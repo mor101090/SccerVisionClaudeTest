@@ -21,25 +21,29 @@ Game, it reaches 90 minutes plus added time with:
 - six goal celebrations (corner run, run to the fans, knee slide, hug with the assister, solo lap, and the rarer team
   huddle). Only the scorer and a few team-mates take part; the others jog back,
 - a goal net that bulges and ripples where the ball hits it, and posts and a crossbar that flash when the ball rattles them,
-- an offside flag that stays up for several seconds while the assistant stands in line with the offence, and the
-  referee's whistle followed by a short pause before kick-offs, penalties and free kicks with a wall,
+- an offside flag that stays up for several seconds while the assistant stands in line with the offence, an offside
+  marker above the player who was caught, and a pause before the free kick is taken; the referee's whistle is followed
+  by a short pause before kick-offs, penalties and free kicks with a wall, and at kick-offs the referee waits outside the
+  centre circle,
 - goalkeepers who catch, parry (over the bar, round the post or away) and punch,
-- the match pace was playtested: 90% of the first version's speed is the right one (`MotionSpeed` 2.025), with a **Pace** slider
-  (50-100%) still available in every viewer,
+- the match pace was playtested: 90% of the first version's speed is the right one (`MotionSpeed` 2.025),
+- a broadcast look: natural, muted turf with mown bands, the technical areas above the top touchline, a 3D ball that
+  rotates as it rolls, the broadcast scoreboard (clock with seconds, team colours, red-card marks), play/pause and
+  settings at the top, and a commentary bar under the pitch in the colour of the team on the ball (flashing on goals,
+  yellow or red on cards),
 - set pieces with real run-ups: penalty takers, corner takers, free-kick shooters and goalkeepers (goal kicks and long kicks
   from the hands) step back and run up to the ball,
 - players with heights (taller players win more headers, are slightly slower; reach for crosses and corners) and
   left or right feet (curl direction, in-swinging or out-swinging corners, the side a free-kick taker aims for, weak-foot errors),
-- little boots that stick out of every player's circle and swing as they run,
 - goalkeeper sorties, headers with physically timed leaps, volleys, cut-inside shots from the wing, free kicks over the
   wall, a scoreboard, live commentary, a skills tooltip on hover, and the ball's height illusion and shadow.
 
 ## Play the demo match in your browser
 
 A standalone page with six full matches played by the real C# engine (a "New match" button picks another one),
-with sound, commentary, key moments (goals, penalties, offsides, free kicks) and a **Pace** slider. It is `docs/index.html`:
+with sound, commentary, key moments (goals, penalties, offsides, free kicks). It is `docs/index.html`:
 
-- Open it right now (no setup): <https://raw.githack.com/mor101090/SccerVisionClaudeTest/claude/beautiful-heisenberg-oyl59z/docs/index.html>
+- Open it right now (no setup): <https://raw.githack.com/mor101090/SccerVisionClaudeTest/feature/broadcast-view-offside-referee/docs/index.html>
 - Or enable GitHub Pages once (Settings > Pages > Deploy from a branch > this branch, folder `/docs`); it is then served at
   <https://mor101090.github.io/SccerVisionClaudeTest/>.
 - Rebuild it after changing the engine: `tools/demo-page/build.sh` (needs the .NET 8 SDK, node and python3).
@@ -67,7 +71,7 @@ tools/demo-page/                    builds docs/index.html from the engine
 1. Install **Unity 6.3 LTS** (6000.3.x) with the WebGL module.
 2. In Unity Hub, choose **Add > Add project from disk** and select `unity/SoccerVision`.
 3. Press **Play** in any scene. A match controller spawns automatically. To get a saved scene, use **SoccerVision > Create Match Scene**.
-4. Keys: `Space` pause, `1`/`2`/`3`/`4` speed x1/x2/x4/x8 (for testing; x1 gives the real 10-minute halves), `H` toggles the HUD, `R` starts a new match, `-`/`=` change the match pace (also a slider in the HUD).
+4. Keys: `Space` pause, `1`/`2`/`3`/`4` speed x1/x2/x4/x8 (for testing; x1 gives the real 10-minute halves), `H` toggles the HUD, `R` starts a new match.
 
 ### Inside React (WebGL)
 1. In Unity, run **SoccerVision > Build WebGL for React**. It writes to `web/public/unity/SoccerVision`.

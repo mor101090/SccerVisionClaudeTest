@@ -23,6 +23,15 @@ namespace SoccerVision.Simulation
             if (d > 25f) target += toBall.Normalized * (d - 25f);
             if (d < 12f && d > 0.01f) target -= toBall.Normalized * (12f - d);
             target = Pitch.ClampToField(target, -2f);
+            // Kick-off (and walking back after a goal): the referee waits outside the centre circle, in the half of the team
+            // that is not kicking off, on his diagonal - not on the centre spot next to the ball.
+            TeamAgent kicking = Phase == MatchPhase.GoalCelebration ? _kickOffAfterGoal
+                              : (Phase == MatchPhase.Stoppage && _restart != null && _restart.Type == RestartType.KickOff ? _restart.Team : null);
+            if (kicking != null)
+            {
+                float side = kicking.Opponent.OwnGoalSign;
+                target = new Vec2(11f * side, 13f * side);
+            }
             MoveOfficial(Referee, target, 7.2f, dt, ball);
 
             UpdateAssistant(Assistant1, dt, ball);

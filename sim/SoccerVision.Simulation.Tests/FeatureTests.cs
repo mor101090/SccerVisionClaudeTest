@@ -241,5 +241,52 @@ namespace SoccerVision.Simulation.Tests
             Assert.Contains(e.AllPlayers, p => p.Attr.StrongFoot == Foot.Left);
             Assert.Contains(e.AllPlayers, p => p.Attr.StrongFoot == Foot.Right);
         }
+
+        [Fact]
+        public void RefereeStaysAwayFromTheCentreAtKickOffs()
+        {
+            int checkedKickOffs = 0;
+            for (ulong seed = 7014; seed < 7017; seed++)
+            {
+                var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed);
+                e.RestartExecuting += r =>
+                {
+                    if (r.Type != RestartType.KickOff) return;
+                    checkedKickOffs++;
+                    Assert.True(e.Referee.Pos.Length > Pitch.CentreCircleRadius, $"referee at {e.Referee.Pos.X:0.0},{e.Referee.Pos.Y:0.0} at a kick-off");
+                };
+                e.RunToEnd();
+            }
+            Assert.True(checkedKickOffs >= 6, "kick-offs checked " + checkedKickOffs);
+        }
+
+        [Fact]
+        public void OffsideShowsAFlagOnThePlayerAndPausesBeforeTheFreeKick()
+        {
+            int offsides = 0;
+            var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 7014);
+            float whistleAt = -1f;
+            PlayerAgent offender = null;
+            e.RestartExecuting += r =>
+            {
+                if (r.Type != RestartType.IndirectFreeKick || whistleAt < 0f) return;
+                float waited = e.RealTimeElapsed - whistleAt;
+                Assert.True(waited >= e.Config.OffsideRestartRealSeconds - 0.05f, "free kick after only " + waited + " s");
+                whistleAt = -1f;
+            };
+            while (!e.IsFinished)
+            {
+                int before = e.Home.Stats.Offsides + e.Away.Stats.Offsides;
+                e.Advance(0.05f);
+                if (e.Home.Stats.Offsides + e.Away.Stats.Offsides > before)
+                {
+                    offsides++;
+                    whistleAt = e.RealTimeElapsed;
+                    offender = e.AllPlayers.FirstOrDefault(p => p.OffsideMarkTimer > 0f);
+                    Assert.NotNull(offender);
+                }
+            }
+            Assert.True(offsides >= 1, "no offside in this match");
+        }
     }
 }

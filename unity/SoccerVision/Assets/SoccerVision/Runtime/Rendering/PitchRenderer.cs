@@ -4,25 +4,27 @@ using UnityEngine;
 namespace SoccerVision.Runtime
 {
     /// <summary>
-    /// Draws the 105 x 68 m pitch (IFAB Law 1 markings, mowing stripes, goals with nets) into one texture.
+    /// Draws the 105 x 68 m pitch (IFAB Law 1 markings, mown bands, technical areas, goal frames) into one texture.
     /// Assign <see cref="fieldOverride"/> to use the designer's PNG instead (centred, sized by
     /// <see cref="overrideWorldSize"/> in metres).
     /// </summary>
     public sealed class PitchRenderer : MonoBehaviour
     {
         public const float Margin = 5f;
+        /// <summary>World extent of the pitch texture: a wider band on top (scoreboard, technical areas) and below (commentary bar).</summary>
+        public const float Top = 46f, Bottom = -41f;
         public Texture2D fieldOverride;
-        public Vector2 overrideWorldSize = new Vector2(Pitch.Length + 2f * Margin, Pitch.Width + 2f * Margin);
+        public Vector2 overrideWorldSize = new Vector2(Pitch.Length + 2f * Margin, Top - Bottom);
         public int pixelsPerMetre = 14;
 
         private Color32[] _px;
         private int _w, _h;
         private float _ppm;
 
-        private static readonly Color32 GrassA = new Color32(46, 125, 50, 255);
-        private static readonly Color32 GrassB = new Color32(56, 142, 60, 255);
-        private static readonly Color32 Surround = new Color32(36, 102, 42, 255);
-        private static readonly Color32 LineColor = new Color32(240, 240, 240, 255);
+        // Natural, slightly muted turf (mown bands along the length of the pitch) with a fine grain.
+        private static readonly Color32 GrassA = new Color32(91, 135, 51, 255);
+        private static readonly Color32 GrassB = new Color32(83, 121, 45, 255);
+        private static readonly Color32 LineColor = new Color32(246, 246, 246, 255);
 
         public void Build()
         {
@@ -32,38 +34,30 @@ namespace SoccerVision.Runtime
             if (fieldOverride != null)
             {
                 float ppu = fieldOverride.width / Mathf.Max(1f, overrideWorldSize.x);
-                sr.sprite = Sprite.Create(fieldOverride, new Rect(0, 0, fieldOverride.width, fieldOverride.height), new Vector2(0.5f, 0.5f), ppu);
+                sr.sprite = Sprite.Create(fieldOverride, new Rect(0, 0, fieldOverride.width, fieldOverride.height), new Vector2(0.5f, -Bottom / (Top - Bottom)), ppu);
                 return;
             }
-            sr.sprite = Sprite.Create(Generate(), new Rect(0, 0, _w, _h), new Vector2(0.5f, 0.5f), _ppm, 0, SpriteMeshType.FullRect);
+            sr.sprite = Sprite.Create(Generate(), new Rect(0, 0, _w, _h), new Vector2(0.5f, -Bottom / (Top - Bottom)), _ppm, 0, SpriteMeshType.FullRect);
         }
 
         private Texture2D Generate()
         {
             _ppm = Mathf.Clamp(pixelsPerMetre, 6, 24);
             _w = Mathf.RoundToInt((Pitch.Length + 2f * Margin) * _ppm);
-            _h = Mathf.RoundToInt((Pitch.Width + 2f * Margin) * _ppm);
+            _h = Mathf.RoundToInt((Top - Bottom) * _ppm);
             _px = new Color32[_w * _h];
 
-            // Grass with mowing stripes on the field of play.
-            const int stripes = 18;
+            const int bands = 12;
+            var rng = new System.Random(11);
             for (int y = 0; y < _h; y++)
             {
-                float wy = y / _ppm - Pitch.HalfWidth - Margin;
+                float wy = y / _ppm + Bottom;
+                int band = Mathf.FloorToInt((Top - wy) / ((Top - Bottom) / bands));
+                Color32 c = (band & 1) == 0 ? GrassB : GrassA;
                 for (int x = 0; x < _w; x++)
                 {
-                    float wx = x / _ppm - Pitch.HalfLength - Margin;
-                    Color32 c;
-                    if (Mathf.Abs(wx) > Pitch.HalfLength + 1.5f || Mathf.Abs(wy) > Pitch.HalfWidth + 1.5f)
-                    {
-                        c = Surround;
-                    }
-                    else
-                    {
-                        int stripe = Mathf.FloorToInt((wx + Pitch.HalfLength) / (Pitch.Length / stripes));
-                        c = (stripe & 1) == 0 ? GrassA : GrassB;
-                    }
-                    _px[y * _w + x] = c;
+                    int grain = rng.Next(-7, 8);
+                    _px[y * _w + x] = new Color32((byte)Mathf.Clamp(c.r + grain, 0, 255), (byte)Mathf.Clamp(c.g + grain, 0, 255), (byte)Mathf.Clamp(c.b + grain, 0, 255), 255);
                 }
             }
 
@@ -76,6 +70,13 @@ namespace SoccerVision.Runtime
             Line(0f, -Pitch.HalfWidth, 0f, Pitch.HalfWidth, lw);
             Circle(0f, 0f, Pitch.CentreCircleRadius, lw, 0f, 360f);
             Disc(0f, 0f, 0.2f, LineColor);
+            // Technical areas (coaches) above the top touchline, either side of the halfway line.
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float x0 = 1.5f * side, x1 = 19f * side;
+                Line(x0, 36f, x1, 36f, lw); Line(x0, 39.6f, x1, 39.6f, lw);
+                Line(x0, 36f, x0, 39.6f, lw); Line(x1, 36f, x1, 39.6f, lw);
+            }
 
             for (int s = -1; s <= 1; s += 2)
             {
@@ -149,7 +150,7 @@ namespace SoccerVision.Runtime
         private void Disc(float wx, float wy, float radius, Color32 color)
         {
             float px = (wx + Pitch.HalfLength + Margin) * _ppm;
-            float py = (wy + Pitch.HalfWidth + Margin) * _ppm;
+            float py = (wy - Bottom) * _ppm;
             float rp = Mathf.Max(0.6f, radius * _ppm);
             int x0 = Mathf.FloorToInt(px - rp - 1), x1 = Mathf.CeilToInt(px + rp + 1);
             int y0 = Mathf.FloorToInt(py - rp - 1), y1 = Mathf.CeilToInt(py + rp + 1);

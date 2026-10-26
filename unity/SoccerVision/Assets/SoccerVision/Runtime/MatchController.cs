@@ -26,14 +26,16 @@ namespace SoccerVision.Runtime
         public bool startPaused;
         [Tooltip("Debug fast-forward multiplier (1 = the real 10 minute halves).")]
         public float playbackSpeed = 1f;
-        /// <summary>Match pace in percent (50-100): slows the whole match (motion and clock) to find the most natural pace.</summary>
-        [Range(50, 100)] public int pacePercent = 100;
         public Texture2D fieldOverride;
 
         public MatchEngine Engine { get; private set; }
         public bool Paused { get; set; }
         public Camera Camera => _camera;
         public readonly List<CommentLine> Commentary = new List<CommentLine>();
+        /// <summary>Last goal or card (for the commentary bar), stamped with the match's real time.</summary>
+        public MatchEventType HighlightType { get; private set; }
+        public string HighlightText { get; private set; }
+        public float HighlightAt { get; private set; } = -100f;
 
         private Camera _camera;
         private Transform _world;
@@ -95,6 +97,7 @@ namespace SoccerVision.Runtime
             config.MotionSpeed = Mathf.Clamp(motionSpeed, 0.5f, 6f);
             Engine = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), (ulong)matchSeed, config);
             Commentary.Clear();
+            HighlightAt = -100f;
             BuildWorld();
             _lastRealtime = Time.realtimeSinceStartupAsDouble;
             _bridge.Emit("MatchReady", BuildReady());
@@ -172,7 +175,7 @@ namespace SoccerVision.Runtime
 
             if (!Paused && !Engine.IsFinished)
             {
-                Engine.Advance(realDt * Mathf.Clamp(playbackSpeed, 0.1f, 16f) * Mathf.Clamp(pacePercent, 50, 100) / 100f);
+                Engine.Advance(realDt * Mathf.Clamp(playbackSpeed, 0.1f, 16f));
             }
 
             _events.Clear();
@@ -185,6 +188,12 @@ namespace SoccerVision.Runtime
                     var net = _nets[e.X < 0f ? 0 : 1];
                     if (e.Type == MatchEventType.NetHit) net.OnNetHit(new Vector2(e.X, e.Y), e.Value);
                     else net.OnWoodwork(new Vector2(e.X, e.Y));
+                }
+                if (e.Type == MatchEventType.Goal || e.Type == MatchEventType.YellowCard || e.Type == MatchEventType.RedCard)
+                {
+                    HighlightType = e.Type;
+                    HighlightText = e.Text;
+                    HighlightAt = Engine.RealTimeElapsed;
                 }
                 if (SoccerVision.Simulation.Commentary.IsCommentary(e.Type) && !string.IsNullOrEmpty(e.Text))
                 {
@@ -231,8 +240,6 @@ namespace SoccerVision.Runtime
             if (Input.GetKeyDown(KeyCode.Alpha2)) playbackSpeed = 2f;
             if (Input.GetKeyDown(KeyCode.Alpha3)) playbackSpeed = 4f;
             if (Input.GetKeyDown(KeyCode.Alpha4)) playbackSpeed = 8f;
-            if (Input.GetKeyDown(KeyCode.Minus)) pacePercent = Mathf.Max(50, pacePercent - 5);
-            if (Input.GetKeyDown(KeyCode.Equals)) pacePercent = Mathf.Min(100, pacePercent + 5);
             if (Input.GetKeyDown(KeyCode.H)) showHud = !showHud;
             if (Input.GetKeyDown(KeyCode.R)) StartMatch(Random.Range(1, int.MaxValue));
 #endif
@@ -275,8 +282,10 @@ namespace SoccerVision.Runtime
             _camera.rect = new Rect(0f, hudFraction, 1f, 1f - hudFraction);
             float viewAspect = Screen.width / Mathf.Max(1f, Screen.height * (1f - hudFraction));
             const float worldW = Pitch.Length + 2f * PitchRenderer.Margin - 2f;
-            const float worldH = Pitch.Width + 2f * PitchRenderer.Margin - 2f;
+            const float worldH = PitchRenderer.Top - PitchRenderer.Bottom - 2f;
             _camera.orthographicSize = Mathf.Max(worldH * 0.5f, worldW * 0.5f / viewAspect);
+            var cp = _camera.transform.position;
+            _camera.transform.position = new Vector3(0f, (PitchRenderer.Top + PitchRenderer.Bottom) * 0.5f, cp.z);
         }
 
         // ---- Bridge ---------------------------------------------------------------------------------------------
@@ -289,7 +298,6 @@ namespace SoccerVision.Runtime
                 case "resume": Paused = false; break;
                 case "togglePause": Paused = !Paused; break;
                 case "setSpeed": playbackSpeed = Mathf.Clamp(cmd.value, 0.1f, 16f); break;
-                case "setPace": pacePercent = Mathf.Clamp(Mathf.RoundToInt(cmd.value), 50, 100); break;
                 case "setHud": showHud = cmd.flag; FitCamera(); break;
                 case "restart": StartMatch(cmd.seed > 0 ? cmd.seed : Random.Range(1, int.MaxValue)); break;
                 case "setTactics":
@@ -365,6 +373,7 @@ namespace SoccerVision.Runtime
                 finished = e.IsFinished,
                 homeStats = TeamStatsDto.From(e.Home.Stats, homeShare),
                 awayStats = TeamStatsDto.From(e.Away.Stats, 100f - homeShare),
+                ballTeam = e.PossessionTeam == e.Home ? 0 : e.PossessionTeam == e.Away ? 1 : -1,
             };
         }
 

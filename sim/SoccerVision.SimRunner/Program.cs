@@ -239,7 +239,7 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
             f.Add(Q(p.Pos.Y));
             f.Add((int)MathF.Round(MathUtil.WrapAngle(p.Facing) * 100f));
             f.Add((int)MathF.Round(p.JumpZ * 100f));
-            f.Add((p.SentOff ? 1 : 0) | (p.IsGoalkeeper ? 2 : 0) | (p.YellowCards > 0 ? 4 : 0));
+            f.Add((p.SentOff ? 1 : 0) | (p.IsGoalkeeper ? 2 : 0) | (p.YellowCards > 0 ? 4 : 0) | (p.OffsideMarkTimer > 0f ? 8 : 0));
         }
         foreach (var o in engine.Officials)
         {
@@ -279,7 +279,7 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
         halftimeRealSeconds = config.HalftimeRealSeconds,
         home = Team(engine.Home),
         away = Team(engine.Away),
-        frameLayout = "t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked)] x22, then officials [x*10, y*10, flag] x3",
+        frameLayout = "t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked,8=caught offside)] x22, then officials [x*10, y*10, flag] x3",
         frames,
         events,
     };

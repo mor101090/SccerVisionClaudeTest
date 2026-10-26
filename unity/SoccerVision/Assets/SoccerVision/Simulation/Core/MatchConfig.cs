@@ -63,6 +63,8 @@ namespace SoccerVision.Simulation
         public float WhistleToKickRealSeconds = 1.5f;
         /// <summary>Real seconds an assistant keeps the flag raised for offside (standing in line with the offence).</summary>
         public float OffsideFlagRealSeconds = 4f;
+        /// <summary>Minimum real seconds between the offside whistle and the indirect free kick, so viewers see what happened.</summary>
+        public float OffsideRestartRealSeconds = 4.5f;
         /// <summary>Upper bound for any restart; after it the restart is forced so a match can never stall.</summary>
         public float MaxSetupSeconds = 40f;
 

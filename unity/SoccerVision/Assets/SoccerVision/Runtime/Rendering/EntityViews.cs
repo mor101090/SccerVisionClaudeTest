@@ -4,9 +4,9 @@ using UnityEngine;
 namespace SoccerVision.Runtime
 {
     /// <summary>
-    /// Player as described in the design document: a circle with a border, the shirt number in the centre and
-    /// two small legs showing the facing direction. Rises while jumping (its shadow stays on the grass, shrinking with height), and shows
-    /// the player's name, centred on a dark plate, under the circle while in possession.
+    /// Player as described in the design document: a circle with a border and the shirt number in the centre.
+    /// Rises while jumping (its shadow stays on the grass, shrinking with height), shows the player's name, centred on a
+    /// dark plate, under the circle while in possession, and an offside flag above him when he is caught offside.
     /// </summary>
     public sealed class PlayerView : MonoBehaviour
     {
@@ -15,11 +15,10 @@ namespace SoccerVision.Runtime
         public PlayerAgent Agent { get; private set; }
 
         private Transform _body, _lift;
-        private SpriteRenderer _fill, _ring, _shadow, _legL, _legR, _card;
+        private SpriteRenderer _fill, _ring, _shadow, _card, _offsideFlag, _offsidePlate;
+        private TextMesh _offsideText;
         private TextMesh _number, _label;
         private SpriteRenderer _labelPlate;
-        private float _stepPhase;
-        private Vector2 _lastPos;
         private float _fade = 1f;
 
         public void Init(PlayerAgent agent, Color kit, Color ringColor, Color numberColor)
@@ -30,10 +29,6 @@ namespace SoccerVision.Runtime
             // shadow stays on the grass, so the height is easy to read.
             _lift = new GameObject("Lift").transform;
             _lift.SetParent(transform, false);
-            var legs = new Color(0.1f, 0.1f, 0.1f, 1f);
-            // Little boots that stick out of the circle in front and swing as he runs (drawn just behind the body).
-            _legL = SpriteFactory.AddSprite(_lift, "LegL", SpriteFactory.Circle, legs, 11, Diameter * 0.4f);
-            _legR = SpriteFactory.AddSprite(_lift, "LegR", SpriteFactory.Circle, legs, 11, Diameter * 0.4f);
             _body = new GameObject("Body").transform;
             _body.SetParent(_lift, false);
             _fill = SpriteFactory.AddSprite(_body, "Fill", SpriteFactory.Circle, kit, 12, 1f);
@@ -51,7 +46,16 @@ namespace SoccerVision.Runtime
             _labelPlate = SpriteFactory.AddSprite(transform, "LabelPlate", SpriteFactory.Square, new Color(0f, 0f, 0f, 0.6f), 29, 1f);
             _labelPlate.transform.localPosition = new Vector3(0f, -1.6f, 0f);
             _labelPlate.enabled = false;
-            _lastPos = new Vector2(agent.Pos.X, agent.Pos.Y);
+            // Offside marker: a flag and a label above the player who was caught.
+            _offsideFlag = SpriteFactory.AddSprite(transform, "OffsideFlag", SpriteFactory.Flag, new Color(1f, 0.82f, 0.1f), 31, 1.5f);
+            _offsideFlag.transform.localPosition = new Vector3(0.55f, 2.3f, 0f);
+            _offsidePlate = SpriteFactory.AddSprite(transform, "OffsidePlate", SpriteFactory.Square, new Color(0.08f, 0.08f, 0.08f, 0.85f), 31, 1f);
+            _offsidePlate.transform.localPosition = new Vector3(0f, 3.4f, 0f);
+            _offsidePlate.transform.localScale = new Vector3(4.2f, 1.1f, 1f);
+            _offsideText = SpriteFactory.AddText(transform, "OffsideText", "OFFSIDE", new Color(1f, 0.82f, 0.1f), 32, 0.13f, 56);
+            _offsideText.fontStyle = FontStyle.Bold;
+            _offsideText.transform.localPosition = new Vector3(0f, 3.4f, 0f);
+            ShowOffside(false);
             UpdateBodyScale(0f);
         }
 
@@ -67,25 +71,10 @@ namespace SoccerVision.Runtime
             var a = Agent;
             float x = Mathf.Lerp(a.PrevPos.X, a.Pos.X, alpha);
             float y = Mathf.Lerp(a.PrevPos.Y, a.Pos.Y, alpha);
-            float facing = Mathf.LerpAngle(a.PrevFacing * Mathf.Rad2Deg, a.Facing * Mathf.Rad2Deg, alpha) * Mathf.Deg2Rad;
             float jump = Mathf.Lerp(a.PrevJumpZ, a.JumpZ, alpha);
             transform.localPosition = new Vector3(x, y, 0f);
 
-            // Legs: step animation proportional to running speed.
-            var pos = new Vector2(x, y);
-            float speed = dt > 0f ? (pos - _lastPos).magnitude / dt : 0f;
-            _lastPos = pos;
-            _stepPhase += Mathf.Clamp(speed, 0f, 40f) * dt * 2.6f;
-            var fwd = new Vector2(Mathf.Cos(facing), Mathf.Sin(facing));
-            var side = new Vector2(-fwd.y, fwd.x);
-            float stride = speed > 0.4f ? Mathf.Sin(_stepPhase) * 0.3f * Diameter : 0f;
-            float r = Diameter * 0.5f;
-            // Boots centred on the rim (1.0 r) so about half of each shows beyond the body; they swing forward and back.
-            Vector2 l = fwd * (r * 1.0f + stride) + side * (r * 0.4f);
-            Vector2 rr = fwd * (r * 1.0f - stride) - side * (r * 0.4f);
-            _legL.transform.localPosition = new Vector3(l.x, l.y, 0f);
-            _legR.transform.localPosition = new Vector3(rr.x, rr.y, 0f);
-
+            ShowOffside(a.OffsideMarkTimer > 0f);
             UpdateBodyScale(jump);
             _card.enabled = a.YellowCards > 0 && !a.SentOff;
             if (_label.gameObject.activeSelf != hasBall)
@@ -124,14 +113,20 @@ namespace SoccerVision.Runtime
             _shadow.color = c;
         }
 
+        private void ShowOffside(bool on)
+        {
+            if (_offsideFlag.enabled == on) return;
+            _offsideFlag.enabled = on;
+            _offsidePlate.enabled = on;
+            _offsideText.gameObject.SetActive(on);
+        }
+
         private void SetAlpha(float a)
         {
             if (Mathf.Approximately(_fill.color.a, a)) return;
             void Set(SpriteRenderer sr) { var c = sr.color; c.a = a; sr.color = c; }
             Set(_fill);
             Set(_ring);
-            Set(_legL);
-            Set(_legR);
             var n = _number.color; n.a = a; _number.color = n;
             gameObject.SetActive(a > 0.01f || !Agent.SentOff);
         }
@@ -143,8 +138,9 @@ namespace SoccerVision.Runtime
     /// </summary>
     public sealed class BallView : MonoBehaviour
     {
-        public const float Diameter = 0.75f;
-        private SpriteRenderer _ball, _outline, _shadow;
+        public const float Diameter = 1.2f;
+        private SpriteRenderer _ball, _shadow;
+        private Ball3DTexture _look;
         private TrailRenderer _trail;
         private Vector2 _last;
 
@@ -153,8 +149,13 @@ namespace SoccerVision.Runtime
             _shadow = SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.6f), 40, Diameter * 1.2f);
             var body = new GameObject("Ball").transform;
             body.SetParent(transform, false);
-            _ball = SpriteFactory.AddSprite(body, "Fill", SpriteFactory.Circle, Color.white, 50, 1f);
-            _outline = SpriteFactory.AddSprite(body, "Outline", SpriteFactory.Ring, new Color(0.1f, 0.1f, 0.1f, 1f), 51, 1f);
+            // A 3D-looking ball (black pentagons, white hexagons, lit from the top left) that rotates as it rolls.
+            _look = new Ball3DTexture(48);
+            var go = new GameObject("Fill");
+            go.transform.SetParent(body, false);
+            _ball = go.AddComponent<SpriteRenderer>();
+            _ball.sprite = _look.Sprite;
+            _ball.sortingOrder = 50;
             _trail = body.gameObject.AddComponent<TrailRenderer>();
             _trail.time = 0.18f;
             _trail.startWidth = Diameter * 0.8f;
@@ -186,9 +187,9 @@ namespace SoccerVision.Runtime
             c.a = Mathf.Clamp(0.6f - h * 0.04f, 0.18f, 0.6f);
             _shadow.color = c;
             // In the air the ball renders above the players, on the ground below their bodies.
-            int order = h > 1.2f ? 60 : 50;
-            _ball.sortingOrder = order;
-            _outline.sortingOrder = order + 1;
+            _ball.sortingOrder = h > 1.2f ? 60 : 50;
+            _look.Spin(new Vector2(x, y), h, dt);
+            _look.Redraw();
 
             var p = new Vector2(x, y);
             float speed = dt > 0f ? (p - _last).magnitude / dt : 0f;

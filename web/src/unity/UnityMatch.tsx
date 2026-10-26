@@ -10,7 +10,7 @@ import {
   type MatchReady,
   type MatchState,
 } from "../bridge/protocol";
-import { Commentary, Scoreboard, StatsTable, type CommentLine } from "../components/MatchHud";
+import { barState, Commentary, CommentaryBar, Scoreboard, StatsTable, TopControls, type CommentLine } from "../components/MatchHud";
 
 const BUILD = "/unity/SoccerVision/Build/SoccerVision";
 
@@ -51,7 +51,18 @@ function UnityPlayer() {
   const [ready, setReady] = useState<MatchReady | null>(null);
   const [state, setState] = useState<MatchState | null>(null);
   const [lines, setLines] = useState<CommentLine[]>([]);
-  const [pace, setPace] = useState(100);
+  // Goal / card highlight for the commentary bar, re-rendered quickly while it flashes.
+  const [highlight, setHighlight] = useState<{ type: string; text: string; at: number } | null>(null);
+  const [now, setNow] = useState(() => performance.now());
+  useEffect(() => {
+    if (!highlight) return;
+    const id = window.setInterval(() => {
+      const t = performance.now();
+      setNow(t);
+      if (t - highlight.at > 6500) window.clearInterval(id);
+    }, 100);
+    return () => window.clearInterval(id);
+  }, [highlight]);
 
   const send = useCallback((cmd: BridgeCommand) => sendMessage(BRIDGE_OBJECT, BRIDGE_METHOD, JSON.stringify(cmd)), [sendMessage]);
 
@@ -74,6 +85,7 @@ function UnityPlayer() {
       const e = parsePayload<MatchEvent>(payload);
       if (!e || !isCommentary(e)) return undefined;
       setLines((prev) => [...prev.slice(-300), { id: nextId++, minute: e.minute, text: e.text, tone: e.tone }]);
+      if (e.type === "Goal" || e.type === "YellowCard" || e.type === "RedCard") setHighlight({ type: e.type, text: e.text, at: performance.now() });
       return undefined;
     };
     addEventListener("MatchReady", onReady);
@@ -101,7 +113,10 @@ function UnityPlayer() {
             homeScore: state.homeScore,
             awayScore: state.awayScore,
             minute: state.minute,
+            clock: state.phase === "HalfTimeBreak" ? "HT" : state.finished ? "FT" : state.clock,
             addedMinutes: state.addedMinutes,
+            homeReds: state.homeStats.redCards,
+            awayReds: state.awayStats.redCards,
           }
         : null,
     [ready, state],
@@ -113,6 +128,19 @@ function UnityPlayer() {
         {!isLoaded && <div className="loading">Loading match {Math.round(loadingProgression * 100)}%</div>}
         <Unity unityProvider={unityProvider} className="unity-canvas" style={{ visibility: isLoaded ? "visible" : "hidden" }} />
         {score && <Scoreboard s={score} />}
+        {isLoaded && <TopControls playing={!state?.paused} onToggle={() => send({ type: "togglePause" })} />}
+        {ready && state && (
+          <CommentaryBar
+            bar={barState({
+              latest: lines.length ? lines[lines.length - 1].text : null,
+              possessionColor: state.ballTeam === 0 ? ready.home.color : state.ballTeam === 1 ? ready.away.color : null,
+              goal: highlight?.type === "Goal" ? { text: highlight.text, age: (now - highlight.at) / 1000 } : null,
+              card: highlight && highlight.type !== "Goal" ? { text: highlight.text, red: highlight.type === "RedCard", age: (now - highlight.at) / 1000 } : null,
+              homeColor: ready.home.color,
+              awayColor: ready.away.color,
+            })}
+          />
+        )}
         {state?.phase === "HalfTimeBreak" && <div className="banner">Half time - second half in {Math.ceil(state.halftimeRemaining)}s</div>}
         {state?.finished && <div className="banner">Full time</div>}
       </div>
@@ -120,25 +148,8 @@ function UnityPlayer() {
         <Commentary lines={lines} />
         <div className="side">
           <div className="controls">
-            <button onClick={() => send({ type: "togglePause" })}>{state?.paused ? "Play" : "Pause"}</button>
             <button onClick={() => send({ type: "setSpeed", value: state && state.speed < 8 ? state.speed * 2 : 1 })}>x{state?.speed ?? 1}</button>
             <button onClick={() => send({ type: "restart" })}>New match</button>
-            <label className="pace">
-              Pace {pace}%
-              <input
-                type="range"
-                min={50}
-                max={100}
-                step={5}
-                value={pace}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  setPace(value);
-                  send({ type: "setPace", value });
-                }}
-                aria-label="Match pace"
-              />
-            </label>
           </div>
           {state && (
             <StatsTable

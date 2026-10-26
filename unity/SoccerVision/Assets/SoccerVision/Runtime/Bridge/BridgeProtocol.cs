@@ -111,6 +111,8 @@ namespace SoccerVision.Runtime
         public bool finished;
         public TeamStatsDto homeStats;
         public TeamStatsDto awayStats;
+        /// <summary>Team in possession (0 home, 1 away, -1 none) - colours the commentary bar.</summary>
+        public int ballTeam = -1;
     }
 
     [Serializable]

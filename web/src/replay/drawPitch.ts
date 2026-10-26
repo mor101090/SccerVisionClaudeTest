@@ -1,3 +1,4 @@
+import { Ball3D } from "./ball3d";
 import type { Replay, Snapshot } from "./replay";
 
 // Field of play (IFAB Law 1) in metres; world origin at the centre mark.
@@ -6,8 +7,11 @@ const W = 68;
 const HL = L / 2;
 const HW = W / 2;
 export const MARGIN = 5;
+/** World shown: the pitch plus a wider band on top (scoreboard, technical areas) and below (commentary bar). */
+const TOP = 46;
+const BOTTOM = -41;
 export const WORLD_W = L + MARGIN * 2;
-export const WORLD_H = W + MARGIN * 2;
+export const WORLD_H = TOP - BOTTOM;
 
 export interface View {
   scale: number; // px per metre
@@ -17,23 +21,55 @@ export interface View {
 
 export function makeView(width: number, height: number): View {
   const scale = Math.min(width / WORLD_W, height / WORLD_H);
-  return { scale, ox: width / 2, oy: height / 2 };
+  return { scale, ox: width / 2, oy: (height - WORLD_H * scale) / 2 + TOP * scale };
 }
 
 const px = (v: View, x: number) => v.ox + x * v.scale;
 const py = (v: View, y: number) => v.oy - y * v.scale;
 
+let grain: { ctx: CanvasRenderingContext2D; pattern: CanvasPattern } | null = null;
+
+/** Fine grain for the turf, made once per canvas. */
+function grassGrain(ctx: CanvasRenderingContext2D): CanvasPattern | null {
+  if (grain && grain.ctx === ctx) return grain.pattern;
+  const n = document.createElement("canvas");
+  n.width = n.height = 192;
+  const g = n.getContext("2d");
+  if (!g) return null;
+  const img = g.createImageData(192, 192);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const r = Math.random();
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = r > 0.5 ? 255 : 0;
+    img.data[i + 3] = Math.floor(Math.abs(r - 0.5) * 2 * 26);
+  }
+  g.putImageData(img, 0, 0);
+  const pattern = ctx.createPattern(n, "repeat");
+  if (!pattern) return null;
+  grain = { ctx, pattern };
+  return pattern;
+}
+
 export function drawPitch(ctx: CanvasRenderingContext2D, v: View) {
   const s = v.scale;
-  ctx.fillStyle = "#24662a";
+  // Natural, slightly muted turf: mown bands along the length of the pitch and a fine grain.
+  ctx.fillStyle = "#567f30";
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  const stripes = 18;
-  for (let i = 0; i < stripes; i++) {
-    ctx.fillStyle = i % 2 === 0 ? "#2e7d32" : "#388e3c";
-    ctx.fillRect(px(v, -HL + (i * L) / stripes), py(v, HW), (L / stripes) * s + 1, W * s);
+  const bands = 12;
+  const bw = WORLD_H / bands;
+  for (let i = 0; i < bands; i++) {
+    ctx.fillStyle = i % 2 ? "#5b8733" : "#53792d";
+    ctx.fillRect(0, py(v, TOP - i * bw), ctx.canvas.width, bw * s + 1);
   }
-  ctx.strokeStyle = "rgba(240,240,240,0.95)";
+  const pattern = grassGrain(ctx);
+  if (pattern) {
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  }
+  ctx.strokeStyle = "rgba(255,255,255,0.9)";
   ctx.lineWidth = Math.max(1, 0.12 * s);
+  // Technical areas (coaches) above the top touchline, either side of the halfway line.
+  ctx.strokeRect(px(v, -19), py(v, 39.6), 17.5 * s, 3.6 * s);
+  ctx.strokeRect(px(v, 1.5), py(v, 39.6), 17.5 * s, 3.6 * s);
   const line = (x1: number, y1: number, x2: number, y2: number) => {
     ctx.beginPath();
     ctx.moveTo(px(v, x1), py(v, y1));
@@ -153,10 +189,39 @@ function netEffects(replay: Replay, t: number, side: number) {
   return { ripple, flash };
 }
 
-const stepPhase = new Float32Array(22);
-const lastPos: ({ x: number; y: number } | undefined)[] = new Array(22).fill(undefined);
+const ball3d = new Ball3D();
 
-export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Replay, snap: Snapshot, time: number) {
+/** Call when a different match is loaded (the ball's spin starts fresh). */
+export function resetBall() {
+  ball3d.reset();
+}
+
+/** Offside: a small chequered flag and a label above the player who was caught. */
+function offsideMark(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  const top = y - 3.3 * s;
+  ctx.strokeStyle = "#1b1b1b";
+  ctx.lineWidth = Math.max(1.2, 0.14 * s);
+  ctx.beginPath();
+  ctx.moveTo(x, y - 1.2 * s);
+  ctx.lineTo(x, top);
+  ctx.stroke();
+  const fw = 1.5 * s;
+  const fh = 1.0 * s;
+  for (let cx = 0; cx < 2; cx++)
+    for (let cy = 0; cy < 2; cy++) {
+      ctx.fillStyle = (cx + cy) % 2 ? "#e53935" : "#ffd21a";
+      ctx.fillRect(x + (cx * fw) / 2, top + (cy * fh) / 2, fw / 2, fh / 2);
+    }
+  ctx.font = `700 ${Math.max(9, 0.95 * s)}px system-ui, sans-serif`;
+  const label = "OFFSIDE";
+  const tw = ctx.measureText(label).width;
+  ctx.fillStyle = "rgba(20,20,20,0.82)";
+  ctx.fillRect(x - tw / 2 - 0.35 * s, top - 1.55 * s, tw + 0.7 * s, 1.2 * s);
+  ctx.fillStyle = "#ffd21a";
+  fillCentered(ctx, label, x, top - 0.95 * s);
+}
+
+export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Replay, snap: Snapshot, time: number, dt = 0) {
   const s = v.scale;
   const r = 0.9 * s;
   const teams = [replay.home, replay.away];
@@ -198,7 +263,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
       ctx.lineTo(px(v, cx), py(v, cy) - 0.9 * s);
       ctx.fill();
     }
-  // Players: circle with border, number, two small legs showing direction; lifted while jumping.
+  // Players: circle with border and number; lifted while jumping.
   snap.players.forEach((p, i) => {
     if (p.sentOff && Math.abs(p.y) > 35.5) return;
     const team = teams[i < 11 ? 0 : 1];
@@ -215,25 +280,6 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     ctx.beginPath();
     ctx.ellipse(x + 0.15 * s, gy + 0.2 * s, r * 1.05 * shrink, r * 0.95 * shrink, 0, 0, Math.PI * 2);
     ctx.fill();
-    const fx = Math.cos(p.facing);
-    const fy = -Math.sin(p.facing);
-    const sx = -fy;
-    const sy = fx;
-    // Little boots that stick out of the circle and swing as he runs: the step phase advances with the distance run.
-    const prev = lastPos[i];
-    const moved = prev ? Math.hypot(p.x - prev.x, p.y - prev.y) : 0;
-    lastPos[i] = { x: p.x, y: p.y };
-    if (moved < 3) stepPhase[i] += moved * 2.6;
-    const stride = moved > 0.002 || p.jump > 0 ? Math.sin(stepPhase[i]) * 0.3 * r * 2 : 0;
-    ctx.fillStyle = "#151515";
-    ctx.strokeStyle = "rgba(255,255,255,0.35)";
-    ctx.lineWidth = Math.max(0.5, r * 0.06);
-    for (const k of [-1, 1]) {
-      ctx.beginPath();
-      ctx.arc(x + fx * (r * 1.0 + stride * k) + sx * r * 0.4 * k, y + fy * (r * 1.0 + stride * k) + sy * r * 0.4 * k, r * 0.4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
     disc(ctx, x, y, r * grow, p.gk ? team.kit.gk : team.kit.primary, team.kit.secondary);
     ctx.fillStyle = p.gk ? team.kit.gkNumber : team.kit.number;
     ctx.font = `bold ${Math.max(8, r * grow * 1.05)}px system-ui, sans-serif`;
@@ -245,6 +291,9 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
       ctx.fillRect(x + r * 0.55, y - r * 1.05, r * 0.32, r * 0.45);
     }
   });
+  snap.players.forEach((p) => {
+    if (p.offside) offsideMark(ctx, px(v, p.x), py(v, p.y), s);
+  });
   // Ball: grows with height, shadow stays below (smaller, lighter the higher it is).
   const b = snap.ball;
   const h = Math.max(0, b.z - 0.11);
@@ -252,9 +301,10 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   const by = py(v, b.y);
   ctx.fillStyle = `rgba(0,0,0,${Math.max(0.18, 0.6 - h * 0.04)})`;
   ctx.beginPath();
-  ctx.arc(bx, by, 0.42 * s * Math.max(0.45, 1 - h * 0.05), 0, Math.PI * 2);
+  ctx.arc(bx + 0.12 * s, by + 0.12 * s, 0.66 * s * Math.max(0.45, 1 - h * 0.05), 0, Math.PI * 2);
   ctx.fill();
-  disc(ctx, bx, by - Math.min(20, h) * 0.55 * s, 0.36 * s * (1 + Math.min(20, h) * 0.07), "#ffffff", "#111111");
+  ball3d.spin(b.x, b.y, h, dt);
+  ball3d.draw(ctx, bx, by - Math.min(20, h) * 0.55 * s, 0.6 * s * (1 + Math.min(20, h) * 0.07));
   // The nets go over a ball lying in the goal (roof netting seen from above).
   for (const side of [-1, 1]) {
     const fx = netEffects(replay, snap.t, side);

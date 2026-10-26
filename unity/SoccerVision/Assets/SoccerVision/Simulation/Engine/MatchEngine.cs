@@ -376,6 +376,7 @@ namespace SoccerVision.Simulation
                 if (p.RunCooldown > 0f) p.RunCooldown -= dt;
                 if (p.DiveTimer > 0f) p.DiveTimer -= dt;
                 if (p.InterceptRecalc > 0f) p.InterceptRecalc -= dt;
+                if (p.OffsideMarkTimer > 0f) p.OffsideMarkTimer -= dt;
             }
             foreach (var o in Officials) if (o.FlagTimer > 0f) o.FlagTimer -= dt;
             if (_advantageTimer > 0f)

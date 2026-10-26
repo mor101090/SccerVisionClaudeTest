@@ -58,6 +58,8 @@ namespace SoccerVision.Simulation
         public float DecisionTimer;
         /// <summary>Keeper's run-up before a long kick from the hands: 0 none, 1 walking back, 2 running up.</summary>
         public int RunUpPhase;
+        /// <summary>Sim seconds left to show the offside flag above this player (he was caught offside).</summary>
+        public float OffsideMarkTimer;
         public Vec2 RunUpFrom;
         public float RunUpTimer;
         public float KickCooldown;

@@ -102,8 +102,8 @@ main {
 .pitch-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 115 / 78;
-  background: #1a3d20;
+  aspect-ratio: 115 / 87;
+  background: #567f30;
   border-radius: 10px;
   overflow: hidden;
 }
@@ -130,41 +130,165 @@ main {
   align-items: center;
 }
 
-.scoreboard {
+/* Broadcast scoreboard (design: broadcast_scoreboard.ai, bottom variant) */
+.sb {
   position: absolute;
-  left: 12px;
-  top: 12px;
+  left: 2.2%;
+  top: 2.4%;
+  font-weight: 500;
+  font-size: clamp(11px, 1.9vw, 22px);
+  line-height: 1;
+  user-select: none;
+}
+.sb-row {
   display: flex;
   align-items: stretch;
-  background: rgba(0, 0, 0, 0.78);
+  height: 2.05em;
+}
+.sb-row > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.sb-clock {
+  background: #2d324b;
+  min-width: 4.1em;
+  padding: 0 0.45em;
+}
+.sb-team {
+  position: relative;
+  background: #252633;
+  min-width: 4.6em;
+  padding: 0 0.7em;
+  box-shadow: inset 0 -0.24em 0 var(--team, #888);
+}
+.sb-score {
+  background: #7b8bb0;
+  min-width: 3.2em;
+  padding: 0 0.5em;
+}
+.sb-add {
+  background: #2d324b;
+  color: #9fe3b0 !important;
+  padding: 0 0.45em;
+  font-size: 0.8em;
+}
+.sb-reds {
+  position: absolute;
+  left: 0.45em;
+  top: -0.5em;
+  display: flex;
+  gap: 0.2em;
+}
+.sb-reds i {
+  display: block;
+  width: 0.42em;
+  height: 0.42em;
+  background: #ed1c24;
+}
+.sb-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  height: 1.45em;
+  padding: 0 0.9em 0 0.35em;
+  background: #7b8bb0;
+  color: #fff;
+  font-size: 0.78em;
+}
+.sb-sub img {
+  height: 1.05em;
+  width: auto;
+  background: #fff;
+  padding: 0.05em 0.2em;
+  display: block;
+}
+.topctl {
+  position: absolute;
+  right: 2.2%;
+  top: 2.4%;
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: clamp(22px, 2.8vw, 40px);
+}
+.topctl button.icon {
+  background: none;
+  border: 0;
+  padding: 0.1em;
+  color: #fff;
+  line-height: 0;
   border-radius: 6px;
-  overflow: hidden;
-  font-weight: 800;
-  font-size: clamp(13px, 1.7vw, 20px);
 }
-
-.scoreboard > span {
-  padding: 6px 12px;
+.topctl button.icon:hover {
+  background: rgba(0, 0, 0, 0.15);
 }
-
-.scoreboard .team {
-  border-left: 6px solid;
+.topctl svg {
+  height: 1.1em;
+  width: 1.1em;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
-
-.scoreboard .team.away {
-  border-left: 0;
-  border-right: 6px solid;
+.topctl .play svg {
+  width: 2.2em;
 }
-
-.scoreboard .minute {
-  background: #dcdcdc;
-  color: #111;
-  min-width: 64px;
+.topctl .gear svg {
+  width: 1.35em;
+  height: 1.35em;
+}
+.topctl .dim {
+  opacity: 0.38;
+}
+.settings {
+  position: absolute;
+  right: 2.2%;
+  top: 11%;
+  width: min(280px, 60%);
+  background: rgba(20, 26, 30, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff;
+}
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.settings p {
+  margin: 0;
+  color: #b9c2c9;
+  font-size: 13px;
+}
+/* Commentary bar under the pitch: colour of the team on the ball; flashes on goals, yellow/red on cards */
+.cbar {
+  position: absolute;
+  left: 50%;
+  bottom: 1.6%;
+  transform: translateX(-50%);
+  width: 66%;
+  min-height: 1.9em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25em 1.2em;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: clamp(11px, 1.3vw, 15px);
+  line-height: 1.25;
   text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
-
-.scoreboard .added {
-  background: #1b8a3a;
+.cbar span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .below {
@@ -240,15 +364,6 @@ main {
 .controls input[type="range"] {
   flex: 1;
   min-width: 120px;
-}
-
-.controls .pace {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1 1 100%;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .stats table {

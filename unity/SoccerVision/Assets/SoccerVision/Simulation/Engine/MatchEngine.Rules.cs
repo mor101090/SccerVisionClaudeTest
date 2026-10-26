@@ -631,7 +631,9 @@ namespace SoccerVision.Simulation
                 EndHalf();
                 return;
             }
+            q.OffsideMarkTimer = Config.OffsideFlagRealSeconds * Config.MotionSpeed;
             BeginRestart(RestartType.IndirectFreeKick, q.Team.Opponent, Pitch.ClampToField(q.Pos, -0.3f), null);
+            _restart.SetupTime = MathF.Max(_restart.SetupTime, Config.OffsideRestartRealSeconds * Config.MotionSpeed);
         }
 
         private void FlagBallOut(Vec2 spot)

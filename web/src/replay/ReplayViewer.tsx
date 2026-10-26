@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MatchSound } from "../audio/matchAudio";
-import { Commentary, Scoreboard, StatsTable, type CommentLine } from "../components/MatchHud";
-import { drawEntities, drawPitch, makeView, WORLD_H, WORLD_W } from "./drawPitch";
+import { barState, Commentary, CommentaryBar, Scoreboard, StatsTable, TopControls, type CommentLine } from "../components/MatchHud";
+import { drawEntities, drawPitch, makeView, resetBall, WORLD_H, WORLD_W } from "./drawPitch";
 import { frameTime, minuteText, sample, type Replay } from "./replay";
 
 /**
@@ -75,21 +75,6 @@ function Player({ replay }: { replay: Replay }) {
   const [time, setTime] = useState(frameTime(replay.frames[0]));
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
-  // Match pace (%): slows the whole match down (motion, clock and sound together) to find the most natural pace.
-  const [pace, setPace] = useState(() => {
-    try {
-      return Number(localStorage.getItem("sv.pace")) || 100;
-    } catch {
-      return 100;
-    }
-  });
-  useEffect(() => {
-    try {
-      localStorage.setItem("sv.pace", String(pace));
-    } catch {
-      /* storage unavailable */
-    }
-  }, [pace]);
   const timeRef = useRef(time);
   const sound = useRef<MatchSound | null>(null);
   if (!sound.current) sound.current = new MatchSound();
@@ -102,6 +87,7 @@ function Player({ replay }: { replay: Replay }) {
     timeRef.current = time;
   }, [time]);
   useEffect(() => () => sound.current?.disable(), []);
+  useEffect(() => resetBall(), [replay]);
 
   // Animation loop: advance replay time by real time x speed and redraw.
   useEffect(() => {
@@ -112,7 +98,7 @@ function Player({ replay }: { replay: Replay }) {
       last = now;
       if (playing) {
         const prev = timeRef.current;
-        const t = Math.min(end, prev + dt * speed * (pace / 100));
+        const t = Math.min(end, prev + dt * speed);
         timeRef.current = t;
         setTime(t);
         // Sound: events that happened since the last frame (muted when fast-forwarding past 4x).
@@ -145,14 +131,14 @@ function Player({ replay }: { replay: Replay }) {
         if (ctx) {
           const view = makeView(c.width, c.height);
           drawPitch(ctx, view);
-          drawEntities(ctx, view, replay, sample(replay, timeRef.current), now / 1000);
+          drawEntities(ctx, view, replay, sample(replay, timeRef.current), now / 1000, playing ? dt * speed : 0);
         }
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [replay, playing, speed, pace, end]);
+  }, [replay, playing, speed, end]);
 
   const snap = sample(replay, time);
   const secondHalf = time >= secondHalfStart;
@@ -164,6 +150,36 @@ function Player({ replay }: { replay: Replay }) {
     });
     return out.slice(-200);
   }, [replay, time]);
+
+  // Commentary bar: latest line, team on the ball, goal flash, card colours.
+  const possession = useRef(-1);
+  if (snap.ball.owner >= 0) possession.current = snap.ball.owner < 11 ? 0 : 1;
+  let latest: string | null = null;
+  let goal: { text: string; age: number } | null = null;
+  let card: { text: string; red: boolean; age: number } | null = null;
+  let homeReds = 0;
+  let awayReds = 0;
+  for (const e of replay.events) {
+    if (e.t > time) break;
+    if (!e.text || e.type === "Whistle" || e.type === "NetHit") continue;
+    latest = e.text;
+    if (e.type === "Goal") goal = { text: e.text, age: time - e.t };
+    if (e.type === "YellowCard" || e.type === "RedCard") card = { text: e.text, red: e.type === "RedCard", age: time - e.t };
+    if (e.type === "RedCard") {
+      if (e.team === 0) homeReds++;
+      else awayReds++;
+    }
+  }
+  const bar = barState({
+    latest,
+    possessionColor: possession.current >= 0 ? [replay.home, replay.away][possession.current].kit.primary : null,
+    goal,
+    card,
+    homeColor: replay.home.kit.primary,
+    awayColor: replay.away.kit.primary,
+  });
+  const clockSecs = Math.floor(snap.clock);
+  const clock = snap.halftime ? "HT" : time >= end ? "FT" : `${String(Math.floor(clockSecs / 60)).padStart(2, "0")}:${String(clockSecs % 60).padStart(2, "0")}`;
 
   const hs = replay.home as unknown as { stats?: Record<string, number> };
   const as = replay.away as unknown as { stats?: Record<string, number> };
@@ -181,9 +197,14 @@ function Player({ replay }: { replay: Replay }) {
             homeScore: snap.homeScore,
             awayScore: snap.awayScore,
             minute,
+            clock,
             addedMinutes: 0,
+            homeReds,
+            awayReds,
           }}
         />
+        <TopControls playing={playing} onToggle={() => setPlaying((p) => !p)} />
+        <CommentaryBar bar={bar} />
         {snap.halftime && (
           <div className="banner">
             Half time - second half in {Math.max(0, Math.ceil(secondHalfStart - time))}s
@@ -195,7 +216,6 @@ function Player({ replay }: { replay: Replay }) {
         <Commentary lines={lines} />
         <div className="side">
           <div className="controls">
-            <button onClick={() => setPlaying((p) => !p)}>{playing ? "Pause" : "Play"}</button>
             <button
               onClick={() => {
                 if (soundOn) sound.current?.disable();
@@ -207,10 +227,6 @@ function Player({ replay }: { replay: Replay }) {
               {soundOn ? "Sound on" : "Sound off"}
             </button>
             <button onClick={() => setSpeed((s) => (s >= 16 ? 1 : s * 2))}>x{speed}</button>
-            <label className="pace">
-              Pace {pace}%
-              <input type="range" min={50} max={100} step={5} value={pace} onChange={(e) => setPace(Number(e.target.value))} aria-label="Match pace" />
-            </label>
             <input
               type="range"
               min={0}
