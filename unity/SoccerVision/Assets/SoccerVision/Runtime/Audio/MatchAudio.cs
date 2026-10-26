@@ -14,7 +14,7 @@ namespace SoccerVision.Runtime
         private const int Rate = 22050;
         private AudioSource _fx;
         private AudioSource _crowd;
-        private AudioClip _whistleShort, _whistleFoul, _whistleLong, _whistleHalf, _whistleFull, _kick, _net, _cheer, _boo, _crowdLoop;
+        private AudioClip _whistleShort, _whistleFoul, _whistleLong, _whistleHalf, _whistleFull, _kick, _kickHard, _header, _clang, _glove, _net, _cheer, _boo, _crowdLoop;
         private float _crowdBoost;
         private System.Random _random = new System.Random(7);
 
@@ -34,6 +34,10 @@ namespace SoccerVision.Runtime
             _whistleHalf = Whistle("whistle_half", new[] { 0.45f, 0.45f }, 0.18f);
             _whistleFull = Whistle("whistle_full", new[] { 0.3f, 0.3f, 1.1f }, 0.16f);
             _kick = Thud("kick", 0.09f, 90f);
+            _kickHard = Thud("kick_hard", 0.14f, 70f);
+            _header = Thud("header", 0.07f, 140f);
+            _glove = Thud("glove", 0.08f, 180f);
+            _clang = Clang("clang", 0.9f);
             _net = Noise("net", 0.5f, 0.35f, true);
             _cheer = Noise("cheer", 4.5f, 0.9f, false);
             _boo = Boo("boo", 2.2f);
@@ -72,8 +76,16 @@ namespace SoccerVision.Runtime
                 case MatchEventType.Cross:
                     _fx.PlayOneShot(_kick, 0.25f * masterVolume);
                     break;
+                case MatchEventType.Header:
+                    _fx.PlayOneShot(_header, 0.45f * masterVolume);
+                    break;
+                case MatchEventType.Save:
+                case MatchEventType.GoalkeeperClaim:
+                    _fx.PlayOneShot(_glove, 0.5f * masterVolume);
+                    _crowdBoost = Mathf.Max(_crowdBoost, 0.15f);
+                    break;
                 case MatchEventType.Shot:
-                    _fx.PlayOneShot(_kick, 0.6f * masterVolume);
+                    _fx.PlayOneShot(_kickHard, (e.Detail == 1 ? 0.8f : 0.65f) * masterVolume);
                     _crowdBoost = Mathf.Max(_crowdBoost, 0.1f);
                     break;
                 case MatchEventType.Goal:
@@ -85,15 +97,12 @@ namespace SoccerVision.Runtime
                     _fx.PlayOneShot(_net, 0.25f * masterVolume);
                     break;
                 case MatchEventType.HitWoodwork:
-                    _fx.PlayOneShot(_kick, 0.7f * masterVolume);
+                    _fx.PlayOneShot(_clang, 0.8f * masterVolume);
                     _crowdBoost = Mathf.Max(_crowdBoost, 0.2f);
                     break;
                 case MatchEventType.Foul:
                 case MatchEventType.RedCard:
                     _fx.PlayOneShot(_boo, 0.3f * masterVolume);
-                    break;
-                case MatchEventType.Save:
-                    _crowdBoost = Mathf.Max(_crowdBoost, 0.15f);
                     break;
             }
         }
@@ -136,6 +145,23 @@ namespace SoccerVision.Runtime
                 float env = Mathf.Exp(-t * 45f);
                 float noise = (float)(_random.NextDouble() * 2.0 - 1.0);
                 data[i] = (Mathf.Sin(2f * Mathf.PI * freq * t * (1f - t * 3f)) * 0.8f + noise * 0.25f) * env;
+            }
+            return Make(name, data);
+        }
+
+        /// <summary>Metallic ring of the ball hitting a post or the crossbar.</summary>
+        private AudioClip Clang(string name, float length)
+        {
+            int n = Mathf.CeilToInt(length * Rate);
+            var data = new float[n];
+            float[] partials = { 410f, 880f, 1370f, 2110f, 3300f };
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)Rate;
+                float s = 0f;
+                for (int k = 0; k < partials.Length; k++) s += Mathf.Sin(2f * Mathf.PI * partials[k] * t) * Mathf.Exp(-t * (6f + k * 5f)) / (1f + k * 0.6f);
+                float click = (float)(_random.NextDouble() * 2.0 - 1.0) * Mathf.Exp(-t * 120f) * 0.6f;
+                data[i] = (s * 0.7f + click) * Mathf.Clamp01(t / 0.001f);
             }
             return Make(name, data);
         }

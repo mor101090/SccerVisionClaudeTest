@@ -35,6 +35,21 @@ namespace SoccerVision.Simulation.Tests
         }
 
         [Fact]
+        public void HeadersVolleysAndCutInsideShotsHappen()
+        {
+            var engines = PlayMany(1100, 16);
+            int headers = engines.Sum(e => e.EventLog.Count(x => x.Type == MatchEventType.Header));
+            int headedShots = engines.Sum(e => e.Home.Stats.Headers + e.Away.Stats.Headers);
+            int volleys = engines.Sum(e => e.Home.Stats.Volleys + e.Away.Stats.Volleys);
+            int cutIns = engines.Sum(e => e.Home.Stats.CutInShots + e.Away.Stats.CutInShots);
+            Assert.True(headers >= 16 * 10, "headers " + headers);
+            Assert.True(headedShots >= 16, "headed shots " + headedShots);
+            Assert.True(volleys >= 16, "volleys " + volleys);
+            Assert.True(cutIns >= 16, "cut-inside shots " + cutIns);
+            Assert.Contains(engines.SelectMany(e => e.EventLog), x => x.Type == MatchEventType.Shot && x.Detail == 1 && x.Text.Contains("volleys"));
+        }
+
+        [Fact]
         public void GoalCelebrationsVary()
         {
             var kinds = new HashSet<CelebrationKind>();

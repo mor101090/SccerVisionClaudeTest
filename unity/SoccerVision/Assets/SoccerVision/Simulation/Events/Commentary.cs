@@ -35,6 +35,8 @@ namespace SoccerVision.Simulation
                 case MatchEventType.Header:
                     return P(e.Player) + " heads it" + (e.OtherPlayer >= 0 ? " to " + P(e.OtherPlayer) : "");
                 case MatchEventType.Shot:
+                    if (e.Detail == 1) return P(e.Player) + " volleys it first time!";
+                    if (e.Detail == 2) return P(e.Player) + " cuts inside and shoots!";
                     return P(e.Player) + " shoots!";
                 case MatchEventType.Goal:
                     if (e.Value > 0.5f) return "GOAL! Own goal by " + P(e.Player) + " - " + T(e.Team) + " lead the way";

@@ -100,7 +100,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     ctx.font = `800 ${Math.max(8, 0.95 * s)}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(i === 0 ? "R" : "L", px(v, o.x), py(v, o.y) + 0.5);
+    fillCentered(ctx, i === 0 ? "R" : "L", px(v, o.x), py(v, o.y));
     if (i > 0 && o.flag) {
       ctx.fillStyle = "#f6c90e";
       ctx.beginPath();
@@ -151,7 +151,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     ctx.font = `bold ${Math.max(8, r * grow * 1.05)}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(String(info.number), x, y + 0.5);
+    fillCentered(ctx, String(info.number), x, y);
     if (p.booked) {
       ctx.fillStyle = "#ffd600";
       ctx.fillRect(x + r * 0.55, y - r * 1.05, r * 0.32, r * 0.45);
@@ -182,6 +182,14 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     ctx.fillStyle = "#fff";
     ctx.fillText(label, lx, ly);
   }
+}
+
+/** Draws text so its glyph box is centred on (x, y), using real glyph metrics. */
+export function fillCentered(ctx: CanvasRenderingContext2D, text: string, x: number, y: number) {
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  const m = ctx.measureText(text);
+  ctx.fillText(text, x - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, y + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
 }
 
 function disc(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, stroke: string) {

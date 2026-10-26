@@ -139,7 +139,35 @@ namespace SoccerVision.Runtime
             tm.alignment = TextAlignment.Center;
             tm.color = color;
             go.GetComponent<MeshRenderer>().sortingOrder = order;
+            go.AddComponent<GlyphCenterer>();
             return tm;
+        }
+    }
+
+    /// <summary>
+    /// TextMesh anchors by line box, so digits and letters sit slightly off the visual centre. This measures the
+    /// rendered glyph bounds for a few frames and shifts the text until the glyphs are truly centred.
+    /// </summary>
+    public sealed class GlyphCenterer : MonoBehaviour
+    {
+        private int _frames;
+        private int _stable;
+
+        private void LateUpdate()
+        {
+            var r = GetComponent<MeshRenderer>();
+            if (r == null || ++_frames > 40) { enabled = false; return; }
+            Bounds b = r.bounds;
+            if (b.size.sqrMagnitude < 1e-8f) return;
+            Vector3 d = b.center - transform.position;
+            d.z = 0f;
+            if (d.sqrMagnitude < 1e-6f)
+            {
+                if (++_stable >= 3) enabled = false;
+                return;
+            }
+            _stable = 0;
+            transform.position -= d;
         }
     }
 }

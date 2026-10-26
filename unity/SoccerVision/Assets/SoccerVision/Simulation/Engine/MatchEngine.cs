@@ -636,7 +636,7 @@ namespace SoccerVision.Simulation
         // ------------------------------------------------------------------------------------------------
 
         private MatchEvent Emit(MatchEventType type, TeamAgent team = null, PlayerAgent player = null, PlayerAgent other = null,
-                                Vec2 position = default, float value = 0f, WhistleKind whistle = WhistleKind.Short)
+                                Vec2 position = default, float value = 0f, WhistleKind whistle = WhistleKind.Short, int detail = 0)
         {
             var e = new MatchEvent
             {
@@ -651,6 +651,7 @@ namespace SoccerVision.Simulation
                 Y = position.Y,
                 Value = value,
                 Whistle = whistle,
+                Detail = detail,
             };
             e.Text = Commentary.Describe(e, this);
             EventLog.Add(e);

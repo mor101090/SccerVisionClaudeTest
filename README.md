@@ -12,7 +12,7 @@ Game, it reaches 90 minutes plus added time with:
 - kick-offs (the first touch goes backwards, as the design document requires), throw-ins, goal kicks, corners,
   free kicks with walls, penalties, offside, fouls, advantage, yellow and red cards (second yellow, DOGSO), and the
   goalkeeper's 8-second rule (2025/26),
-- a referee (marked R) and two assistants (marked L), five different goal celebrations, goalkeeper sorties, a scoreboard, live commentary, a skills tooltip on hover, procedural whistles and crowd
+- a referee (marked R) and two assistants (marked L), five different goal celebrations, goalkeeper sorties, headers, volleys, cut-inside shots from the wing, a scoreboard, live commentary, a skills tooltip on hover, procedural whistles and crowd
   sound, the ball's height illusion and shadow, and jumping players.
 
 ## Repository layout

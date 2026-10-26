@@ -146,6 +146,9 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Penalty conversion %", r.Sum(x => x.Penalties) > 0 ? 100.0 * r.Sum(x => x.PenaltiesScored) / r.Sum(x => x.Penalties) : 0, "75-80");
     Row("Saves", Avg(x => x.Saves), "5-6");
     Row("Keeper sorties", Avg(x => x.Sorties), "n/a");
+    Row("Headed shots", Avg(x => x.Headers), "n/a");
+    Row("Volleys", Avg(x => x.Volleys), "n/a");
+    Row("Cut-inside shots", Avg(x => x.CutIns), "n/a");
     Row("Passes", Avg(x => x.Passes), "850-1000 (in 57 min ball-in-play)");
     Row("Pass completion %", Avg(x => x.PassPct), "80-85");
     Row("Tackles", Avg(x => x.Tackles), "30-40");
@@ -186,6 +189,7 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
                 team = e.Team,
                 whistle = e.Type == MatchEventType.Whistle ? e.Whistle.ToString() : null,
                 tone = Commentary.ToneOf(e.Type).ToString(),
+                detail = e.Detail,
             });
         }
         if (engine.Phase == MatchPhase.HalfTimeBreak) continue;
@@ -261,7 +265,7 @@ sealed class MatchResult
     public bool Finished;
     public int RecoveredErrors;
     public double WallMs;
-    public int Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles;
+    public int Headers, Volleys, CutIns, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles;
     public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy;
     public string Score;
 
@@ -293,6 +297,9 @@ sealed class MatchResult
             PenaltiesScored = h.PenaltiesScored + a.PenaltiesScored,
             Saves = h.Saves + a.Saves,
             Sorties = h.Sorties + a.Sorties,
+            Headers = h.Headers + a.Headers,
+            Volleys = h.Volleys + a.Volleys,
+            CutIns = h.CutInShots + a.CutInShots,
             Passes = passes,
             Tackles = h.Tackles + a.Tackles,
             Xg = h.ExpectedGoals + a.ExpectedGoals,

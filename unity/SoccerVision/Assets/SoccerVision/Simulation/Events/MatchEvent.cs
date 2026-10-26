@@ -73,6 +73,8 @@ namespace SoccerVision.Simulation
         public float X, Y;
         public float Value;
         public WhistleKind Whistle;
+        /// <summary>Flavour of the event: for shots 1 = volley, 2 = cut inside from the wing.</summary>
+        public int Detail;
         public string Text = "";
 
         public override string ToString() => Minute + " " + Type + " " + Text;

@@ -165,6 +165,9 @@ namespace SoccerVision.Simulation
             float relSpeed = rel.Length;
             float control = MathUtil.A(p.Attr.BallControl);
 
+            // Volley: a ball in the air near goal is hit first time instead of controlled.
+            if (!p.IsGoalkeeper && Ball.Z > 0.3f && !(Ball.IsShot && opponentTouch) && TryVolley(p, opponentTouch)) return;
+
             if (Ball.IsShot && opponentTouch && !p.IsGoalkeeper)
             {
                 BlockShot(p);
@@ -204,6 +207,22 @@ namespace SoccerVision.Simulation
                 SetDeflection(p, dir * speed, _rng.Range(0f, 2f));
                 p.TouchCooldown = 0.35f;
             }
+        }
+
+        private bool TryVolley(PlayerAgent p, bool opponentTouch)
+        {
+            var team = p.Team;
+            float f = team.Forward(Ball.Pos);
+            float dist = Vec2.Distance(Ball.Pos, team.AttackGoal);
+            if (f < 30f || dist > 22f || Ball.M.Speed < 3f) return false;
+            float finishing = MathUtil.A((p.Attr.Finishing + p.Attr.BallControl) / 2);
+            float pTry = (opponentTouch ? 0.35f : 0.5f) + 0.4f * finishing;
+            if (!_rng.Chance(pTry)) return false;
+            ResolvePendingPass(p);
+            Ball.LastToucher = p;
+            Ball.LastTouchTeam = team;
+            ExecuteShot(p, false, false, EstimateShotXG(p, Ball.Pos) * 0.8f, volley: true);
+            return true;
         }
 
         private void GainControl(PlayerAgent p, float relSpeed)

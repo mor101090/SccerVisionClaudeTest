@@ -106,6 +106,11 @@ namespace SoccerVision.Simulation
         public int Saves;
         /// <summary>Goalkeeper rushes out of the penalty area to reach a loose ball.</summary>
         public int Sorties;
+        /// <summary>Shots hit first time from the air.</summary>
+        public int Volleys;
+        /// <summary>Shots by a wide player after cutting inside.</summary>
+        public int CutInShots;
+        public int Headers;
         public float ExpectedGoals;
         public float PossessionSeconds;
         public float DistanceCoveredKm;

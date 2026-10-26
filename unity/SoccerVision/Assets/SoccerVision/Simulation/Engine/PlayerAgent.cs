@@ -77,6 +77,8 @@ namespace SoccerVision.Simulation
         internal bool HasPendingPlan;
         public float HoldTime;
         public float LastSortieTime = -100f;
+        /// <summary>Sim time until which this player is on a cut-inside run (a shot then counts as one).</summary>
+        public float CutInUntil = -1f;
         public PlayerAgent MarkTarget;
 
         // Per-match stats

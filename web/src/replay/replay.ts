@@ -27,6 +27,7 @@ export interface ReplayEvent {
   team: number;
   whistle: string | null;
   tone: "Normal" | "Goal" | "Foul" | "Card" | "Chance" | "Info";
+  detail?: number;
 }
 
 export interface Replay {

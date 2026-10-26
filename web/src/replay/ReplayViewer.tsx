@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MatchSound } from "../audio/matchAudio";
 import { Commentary, Scoreboard, StatsTable, type CommentLine } from "../components/MatchHud";
 import { drawEntities, drawPitch, makeView, WORLD_H, WORLD_W } from "./drawPitch";
 import { frameTime, minuteText, sample, type Replay } from "./replay";
@@ -75,12 +76,17 @@ function Player({ replay }: { replay: Replay }) {
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
   const timeRef = useRef(time);
+  const sound = useRef<MatchSound | null>(null);
+  if (!sound.current) sound.current = new MatchSound();
+  const [soundOn, setSoundOn] = useState(false);
+  const lastEvent = useRef(0);
   const end = frameTime(replay.frames[replay.frames.length - 1]);
   const secondHalfStart = useMemo(() => replay.events.find((e) => e.type === "SecondHalfStart")?.t ?? Infinity, [replay]);
 
   useEffect(() => {
     timeRef.current = time;
   }, [time]);
+  useEffect(() => () => sound.current?.disable(), []);
 
   // Animation loop: advance replay time by real time x speed and redraw.
   useEffect(() => {
@@ -90,9 +96,20 @@ function Player({ replay }: { replay: Replay }) {
       const dt = Math.min(0.25, (now - last) / 1000);
       last = now;
       if (playing) {
-        const t = Math.min(end, timeRef.current + dt * speed);
+        const prev = timeRef.current;
+        const t = Math.min(end, prev + dt * speed);
         timeRef.current = t;
         setTime(t);
+        // Sound: events that happened since the last frame (muted when fast-forwarding past 4x).
+        const evs = replay.events;
+        let i = lastEvent.current;
+        if (i > 0 && evs[i - 1].t > prev) i = 0; // seeked backwards
+        while (i < evs.length && evs[i].t <= t) {
+          if (speed <= 4 && evs[i].t > prev - 0.001) sound.current?.play({ type: evs[i].type, whistle: evs[i].whistle, detail: evs[i].detail });
+          i++;
+        }
+        lastEvent.current = i;
+        sound.current?.tick(dt);
       }
       const c = canvas.current;
       const w = wrap.current;
@@ -160,6 +177,16 @@ function Player({ replay }: { replay: Replay }) {
         <div className="side">
           <div className="controls">
             <button onClick={() => setPlaying((p) => !p)}>{playing ? "Pause" : "Play"}</button>
+            <button
+              onClick={() => {
+                if (soundOn) sound.current?.disable();
+                else sound.current?.enable();
+                setSoundOn(!soundOn);
+              }}
+              aria-pressed={soundOn}
+            >
+              {soundOn ? "Sound on" : "Sound off"}
+            </button>
             <button onClick={() => setSpeed((s) => (s >= 16 ? 1 : s * 2))}>x{speed}</button>
             <input
               type="range"
