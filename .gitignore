@@ -1,0 +1,29 @@
+# Unity
+unity/SoccerVision/[Ll]ibrary/
+unity/SoccerVision/[Tt]emp/
+unity/SoccerVision/[Oo]bj/
+unity/SoccerVision/[Bb]uild/
+unity/SoccerVision/[Bb]uilds/
+unity/SoccerVision/[Ll]ogs/
+unity/SoccerVision/[Uu]ser[Ss]ettings/
+unity/SoccerVision/*.csproj
+unity/SoccerVision/*.sln
+unity/SoccerVision/.vs/
+unity/SoccerVision/.idea/
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# .NET
+sim/**/bin/
+sim/**/obj/
+sim/**/TestResults/
+
+# Node / web
+node_modules/
+web/dist/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/

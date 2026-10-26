@@ -1,0 +1,5 @@
+node_modules
+dist
+# Generated: Unity WebGL build and engine replays
+public/unity/
+public/replays/*.json

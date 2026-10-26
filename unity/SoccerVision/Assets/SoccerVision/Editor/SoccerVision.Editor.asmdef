@@ -1,0 +1,19 @@
+{
+    "name": "SoccerVision.Editor",
+    "rootNamespace": "SoccerVision.EditorTools",
+    "references": [
+        "SoccerVision.Runtime",
+        "SoccerVision.Simulation"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

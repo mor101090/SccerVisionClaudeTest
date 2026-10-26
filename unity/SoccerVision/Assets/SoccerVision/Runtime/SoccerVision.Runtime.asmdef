@@ -1,0 +1,16 @@
+{
+    "name": "SoccerVision.Runtime",
+    "rootNamespace": "SoccerVision.Runtime",
+    "references": [
+        "SoccerVision.Simulation"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

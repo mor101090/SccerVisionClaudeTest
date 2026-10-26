@@ -1,0 +1,637 @@
+using System;
+using System.Collections.Generic;
+
+namespace SoccerVision.Simulation
+{
+    internal enum ContactKind { None, Feet, Head, Body, Hands }
+
+    /// <summary>Ball contacts: control, interceptions, blocks, headers, aerial duels, saves and tackles.</summary>
+    public sealed partial class MatchEngine
+    {
+        private struct Contact
+        {
+            public PlayerAgent Player;
+            public ContactKind Kind;
+            public float Distance;
+            public float Weight;
+            public float Along;
+        }
+
+        private readonly List<Contact> _contacts = new List<Contact>(8);
+
+        private void ResolveTouches()
+        {
+            if (Ball.Owner != null || Ball.InGoal) return;
+            Vec2 a = Ball.PrevPos, b = Ball.Pos;
+            float z = Ball.Z;
+            _contacts.Clear();
+            bool passInFlight = Ball.IntendedReceiver != null || Ball.IsShot;
+
+            foreach (var p in AllPlayers)
+            {
+                if (p.SentOff || p.TouchCooldown > 0f || p.StunTimer > 0f) continue;
+                if (p == Ball.LastKicker && (Ball.KickerMustWait || SimTime - Ball.LastKickTime < 0.3f)) continue;
+                float d = Vec2.DistanceToSegment(p.Pos, a, b, out _);
+                if (d > 2.6f) continue;
+
+                // A player surprised by a new ball path (within his reaction time) can only block with his body.
+                bool surprised = _ballChangeExpectedBy != p.Team && Ball.IntendedReceiver != p && SimTime - _ballChangedAt < p.ReactionTime;
+                float footReach = surprised ? 0.45f : p.FootReach;
+                bool blocker = Ball.IsShot && Ball.Shooter != null && Ball.Shooter.Team != p.Team && !p.IsGoalkeeper;
+                if (blocker)
+                {
+                    // Defenders expect shots: a set defender in the lane gets a sliding block in.
+                    surprised = false;
+                    footReach = 0.95f;
+                }
+                ContactKind kind = ContactKind.None;
+                bool handsAllowed = p.IsGoalkeeper && Ball.HandlingForbiddenFor != p.Team
+                                    && Pitch.InPenaltyArea(p.Pos, p.Team.OwnGoalSign) && Pitch.InPenaltyArea(Ball.Pos, p.Team.OwnGoalSign);
+                if (handsAllowed && z <= p.GoalkeeperReach && d <= GoalkeeperHandReach(p)) kind = ContactKind.Hands;
+                else if (z <= (blocker ? 1.5f : 1.05f) && d <= footReach) kind = ContactKind.Feet;
+                else if (z > 1.05f && z <= p.HeadReach && d <= (surprised ? 0.4f : 0.62f)) kind = ContactKind.Head;
+                else if (z <= 1.9f && d <= 0.33f) kind = ContactKind.Body;
+                if (kind == ContactKind.None) continue;
+
+                // Team-mates of the passer leave the ball for the intended receiver (or let a shot through).
+                bool teammateOfKicker = Ball.LastTouchTeam == p.Team && passInFlight && Ball.IntendedReceiver != p;
+                if (teammateOfKicker && (kind != ContactKind.Body || _rng.Chance(0.75f))) continue;
+
+                float weight;
+                switch (kind)
+                {
+                    case ContactKind.Hands:
+                        weight = 3f;
+                        break;
+                    case ContactKind.Head:
+                        weight = 0.6f + (p.Attr.Jumping + p.Attr.Heading + p.Attr.PhysicalPower) / 150f;
+                        break;
+                    default:
+                        weight = 0.6f + (p.Attr.BallControl + p.Attr.Positioning + p.Attr.PhysicalPower) / 200f;
+                        break;
+                }
+                weight *= 1.3f - d / 2.6f;
+                if (Ball.IntendedReceiver == p) weight *= 1.25f;
+                float along = Vec2.Dot(p.Pos - a, Ball.Velocity.LengthSq > 0.01f ? Ball.Velocity.Normalized : Vec2.Zero);
+                _contacts.Add(new Contact { Player = p, Kind = kind, Distance = d, Weight = weight, Along = along });
+            }
+
+            if (_contacts.Count == 0) return;
+
+            int winner = 0;
+            bool contested = false;
+            if (_contacts.Count > 1)
+            {
+                var team0 = _contacts[0].Player.Team;
+                for (int i = 1; i < _contacts.Count; i++) if (_contacts[i].Player.Team != team0) contested = true;
+                var weights = new float[_contacts.Count];
+                int first = 0;
+                for (int i = 1; i < _contacts.Count; i++) if (_contacts[i].Along < _contacts[first].Along) first = i;
+                for (int i = 0; i < _contacts.Count; i++) weights[i] = _contacts[i].Weight * (i == first ? 2.2f : 1f);
+                winner = _rng.PickWeighted(weights, weights.Length);
+                if (winner < 0) winner = 0;
+                for (int i = 0; i < _contacts.Count; i++)
+                {
+                    if (i == winner) continue;
+                    var loser = _contacts[i].Player;
+                    loser.TouchCooldown = 0.45f;
+                    if (_contacts[i].Kind == ContactKind.Head && Ball.Z > 1.7f) loser.JumpVz = MathF.Max(loser.JumpVz, 3.2f);
+                }
+            }
+
+            var c = _contacts[winner];
+            if (contested && c.Kind == ContactKind.Head)
+            {
+                // Aerial challenges sometimes end in a push/holding foul.
+                foreach (var other in _contacts)
+                {
+                    if (other.Player == c.Player || other.Player.Team == c.Player.Team) continue;
+                    float pFoul = 0.025f + 0.04f * MathUtil.A(other.Player.Attr.Aggression);
+                    if (_rng.Chance(pFoul))
+                    {
+                        CommitFoul(other.Player, c.Player, false, true, c.Player.Pos);
+                        return;
+                    }
+                }
+            }
+            ApplyTouch(c.Player, c.Kind, contested);
+        }
+
+        private float GoalkeeperHandReach(PlayerAgent gk)
+        {
+            float reach = 1.0f + 0.25f * MathUtil.A(gk.Attr.Reflexes);
+            if (gk.DiveTimer > 0f) reach += 1.1f + 0.5f * MathUtil.A(gk.Attr.Reflexes);
+            return reach;
+        }
+
+        private void ApplyTouch(PlayerAgent p, ContactKind kind, bool contested)
+        {
+            if (p.SentOff) Violation("sentOffTouch");
+            if (p == Ball.LastKicker && Ball.KickerMustWait) Violation("doubleTouch");
+            if (IsFlaggedOffside(p))
+            {
+                OffsideOffence(p);
+                return;
+            }
+            p.Touches++;
+            bool opponentTouch = Ball.LastTouchTeam != null && Ball.LastTouchTeam != p.Team;
+
+            switch (kind)
+            {
+                case ContactKind.Hands:
+                    GoalkeeperHandle(p, contested);
+                    return;
+                case ContactKind.Head:
+                    HeaderTouch(p, contested, opponentTouch);
+                    return;
+                case ContactKind.Body:
+                    if (opponentTouch && Ball.Z > 0.9f && (Ball.IsShot || Ball.LastKickKind == KickKind.Cross) && _rng.Chance(0.06f))
+                    {
+                        Handball(p);
+                        return;
+                    }
+                    if (Ball.IsShot && opponentTouch) BlockShot(p);
+                    else Deflect(p, _rng.Range(0.25f, 0.5f), 1.2f);
+                    return;
+                default:
+                    FootTouch(p, contested, opponentTouch);
+                    return;
+            }
+        }
+
+        private void FootTouch(PlayerAgent p, bool contested, bool opponentTouch)
+        {
+            Vec2 rel = Ball.Velocity - p.Vel;
+            float relSpeed = rel.Length;
+            float control = MathUtil.A(p.Attr.BallControl);
+
+            if (Ball.IsShot && opponentTouch && !p.IsGoalkeeper)
+            {
+                BlockShot(p);
+                return;
+            }
+            if (Ball.IsShot && opponentTouch && p.IsGoalkeeper)
+            {
+                // Keeper using feet/legs (outside the area or back-pass): treat as a save attempt without catching.
+                SaveAttempt(p, allowCatch: false);
+                return;
+            }
+
+            float pControl;
+            if (opponentTouch)
+            {
+                pControl = 0.86f - 0.022f * MathF.Max(0f, relSpeed - 6f) * (1.25f - control) + 0.08f * (MathUtil.A(p.Attr.Positioning) - 0.5f);
+            }
+            else
+            {
+                pControl = 0.975f - 0.02f * MathF.Max(0f, relSpeed - 7f) * (1.25f - control);
+            }
+            if (contested) pControl -= 0.2f;
+            if (Ball.Z > 0.45f) pControl -= 0.1f * (1.2f - control);
+            pControl -= (1f - p.FatigueFactor) * 0.5f;
+            pControl = MathUtil.Clamp(pControl, 0.25f, 0.99f);
+
+            if (_rng.Chance(pControl))
+            {
+                GainControl(p, relSpeed);
+            }
+            else
+            {
+                // Heavy touch: the ball bounces off the foot into space.
+                if (opponentTouch) ClearOffside(); // a deliberate (if unsuccessful) play by the defending side
+                Vec2 dir = Ball.Velocity.LengthSq > 1f ? Ball.Velocity.Normalized.Rotate(_rng.Range(-1.1f, 1.1f)) : p.FacingDir.Rotate(_rng.Range(-1f, 1f));
+                float speed = MathUtil.Clamp(relSpeed * _rng.Range(0.2f, 0.45f), 1.5f, 9f);
+                SetDeflection(p, dir * speed, _rng.Range(0f, 2f));
+                p.TouchCooldown = 0.35f;
+            }
+        }
+
+        private void GainControl(PlayerAgent p, float relSpeed)
+        {
+            bool changeOfPossession = Ball.LastTouchTeam != p.Team;
+            ResolvePendingPass(p);
+            if (changeOfPossession) ClearOffside();
+            if (changeOfPossession && Ball.LastToucher != null && Ball.LastToucher.Team != p.Team && Ball.PendingPassFrom == null && Ball.IsShot == false)
+            {
+                // Loose ball won (no pass pending) - nothing extra to record.
+            }
+            Ball.Owner = p;
+            Ball.InHands = false;
+            Ball.ClearFlight();
+            Ball.KickerMustWait = false;
+            Ball.HandlingForbiddenFor = null;
+            Ball.LastToucher = p;
+            Ball.LastTouchTeam = p.Team;
+            PossessionTeam = p.Team;
+            if (changeOfPossession) p.Team.LastAttackSeconds = SimTime;
+            SnapshotOffside(p, false);
+            _penaltyKickTime = -1f;
+            float tempo = p.Team.Tactics.Tempo;
+            p.DecisionTimer = MathUtil.Clamp(0.1f + 0.3f * (1f - MathUtil.A(p.Attr.BallControl)) + relSpeed * 0.012f - 0.08f * (tempo - 0.5f), 0.08f, 0.6f);
+            p.Task = PlayerTask.OnBall;
+            p.HasPendingPlan = false;
+            p.HoldTime = 0f;
+            p.Target = p.Pos + p.Vel * 0.3f;
+            _goalkeeperHoldTimer = 0f;
+            AssignBallDuties();
+        }
+
+        /// <summary>Gives the ball a new free velocity after touching <paramref name="p"/>.</summary>
+        private void SetDeflection(PlayerAgent p, Vec2 horizontal, float vz)
+        {
+            Ball.Owner = null;
+            Ball.InHands = false;
+            Ball.M.Vx = horizontal.X;
+            Ball.M.Vy = horizontal.Y;
+            Ball.M.Vz = vz;
+            if (vz > 0f && Ball.M.Z < Pitch.BallRadius + 0.01f) Ball.M.Z = Pitch.BallRadius + 0.01f;
+            Ball.M.SideSpin = 0f;
+            Ball.M.TopSpin = 0f;
+            Ball.LastToucher = p;
+            Ball.LastTouchTeam = p.Team;
+            Ball.IntendedReceiver = null;
+            Ball.KickerMustWait = false;
+            Ball.HandlingForbiddenFor = null;
+            p.TouchCooldown = MathF.Max(p.TouchCooldown, 0.3f);
+            MarkBallChanged();
+            RebuildTrajectory();
+            _ballChangedAt = SimTime;
+            _ballChangeExpectedBy = null;
+            AssignBallDuties();
+        }
+
+        private void Deflect(PlayerAgent p, float energy, float popUp)
+        {
+            Vec2 v = Ball.Velocity;
+            float speed = v.Length;
+            Vec2 dir = speed > 0.5f ? (v / speed).Rotate(_rng.Range(-1.3f, 1.3f)) : Vec2.FromAngle(_rng.Range(0f, MathUtil.TwoPi));
+            SetDeflection(p, dir * MathF.Max(1.5f, speed * energy), _rng.Range(0f, popUp * 2f));
+        }
+
+        private void BlockShot(PlayerAgent p)
+        {
+            var shooter = Ball.Shooter;
+            if (shooter != null)
+            {
+                shooter.Team.Stats.ShotsBlocked++;
+                Emit(MatchEventType.ShotBlocked, p.Team, p, shooter, Ball.Pos);
+            }
+            Ball.IsShot = false;
+            Vec2 v = Ball.Velocity;
+            Vec2 dir = v.LengthSq > 1f ? v.Normalized.Rotate(_rng.Range(-0.9f, 0.9f)) : p.FacingDir;
+            SetDeflection(p, dir * MathF.Max(3f, v.Length * _rng.Range(0.2f, 0.55f)), _rng.Range(0f, 4f));
+        }
+
+        private void Handball(PlayerAgent p)
+        {
+            var victim = Ball.LastToucher != null && Ball.LastToucher.Team != p.Team ? Ball.LastToucher : null;
+            if (victim == null)
+            {
+                Deflect(p, 0.3f, 1f);
+                return;
+            }
+            Ball.Stop();
+            CommitFoul(p, victim, false, false, p.Pos);
+        }
+
+        // ---- Headers ---------------------------------------------------------------------------------
+
+        private void HeaderTouch(PlayerAgent p, bool contested, bool opponentTouch)
+        {
+            if (Ball.Z > 1.75f) p.JumpVz = MathF.Max(p.JumpVz, 3.6f);
+            if (opponentTouch) ClearOffside();
+            var team = p.Team;
+            float f = team.Forward(Ball.Pos);
+            float distGoal = Vec2.Distance(Ball.Pos, team.AttackGoal);
+            float heading = MathUtil.A(p.Attr.Heading);
+            Ball.LastToucher = p;
+            Ball.LastTouchTeam = team;
+            ResolvePendingPass(p);
+
+            if (distGoal < 15f && f > 36f)
+            {
+                float xg = EstimateShotXG(p, Ball.Pos, header: true);
+                // A header shot keeps the ball where it is (no control phase).
+                Emit(MatchEventType.Header, team, p, null, Ball.Pos);
+                ExecuteShot(p, true, false, xg);
+                return;
+            }
+
+            Vec2 dir;
+            float speed;
+            float vz;
+            PlayerAgent receiver = null;
+            if (f < -12f)
+            {
+                // Defensive header: away from goal, wide and high - or, under pressure, behind for a corner.
+                Vec2 away = team.DirToWorld(Vec2.UnitX).Rotate(_rng.Range(-0.9f, 0.9f));
+                bool fromCross = Ball.LastKickKind == KickKind.Cross || Ball.LastKickKind == KickKind.Restart;
+                if (fromCross && f < -34f && _rng.Chance(contested ? 0.45f : 0.28f))
+                {
+                    float side = Ball.Pos.Y >= 0f ? 1f : -1f;
+                    away = (team.DirToWorld(new Vec2(-1f, 0f)) + new Vec2(0f, side * _rng.Range(0.4f, 1.2f))).Normalized;
+                }
+                dir = away;
+                speed = 10f + 7f * heading + 3f * MathUtil.A(p.Attr.PhysicalPower);
+                vz = _rng.Range(4f, 7.5f);
+                Emit(MatchEventType.Clearance, team, p, null, Ball.Pos);
+            }
+            else
+            {
+                // Header pass / flick-on to the best placed team-mate ahead.
+                PlayerAgent best = null;
+                float bestScore = float.NegativeInfinity;
+                foreach (var q in team.Players)
+                {
+                    if (q.SentOff || q == p || q.IsGoalkeeper) continue;
+                    float d = Vec2.Distance(q.Pos, p.Pos);
+                    if (d < 4f || d > 18f) continue;
+                    float score = team.Forward(q.Pos) * 0.08f + NearestOpponentDistance(team, q.Pos) * 0.3f - d * 0.05f;
+                    if (score > bestScore) { bestScore = score; best = q; }
+                }
+                if (best != null)
+                {
+                    receiver = best;
+                    Vec2 to = best.Pos + best.Vel * 0.5f - Ball.Pos;
+                    dir = to.Normalized;
+                    speed = MathUtil.Clamp(to.Length * 0.75f, 7f, 14f);
+                    vz = _rng.Range(1.5f, 3.5f);
+                }
+                else
+                {
+                    dir = team.DirToWorld(Vec2.UnitX).Rotate(_rng.Range(-0.6f, 0.6f));
+                    speed = 9f + 5f * heading;
+                    vz = _rng.Range(2f, 4f);
+                }
+                Emit(MatchEventType.Header, team, p, receiver, Ball.Pos);
+            }
+            float sigma = (0.08f + 0.22f * (1f - heading)) * (contested ? 1.3f : 1f);
+            dir = dir.Rotate(_rng.Gaussian(0f, sigma));
+            KickBall(p, Ball.Pos, dir * speed, vz, 0f, 0f, KickKind.Header, receiver, Ball.Pos + dir * 12f, false, false, Ball.Z);
+            Ball.HandlingForbiddenFor = null; // headers back to the keeper may be handled
+        }
+
+        // ---- Goalkeeper handling -----------------------------------------------------------------------
+
+        private void GoalkeeperHandle(PlayerAgent gk, bool contested)
+        {
+            // Only real shots (or a deflection flying at the goal frame) are saves; crosses are claimed or punched.
+            bool shot = Ball.IsShot && Ball.Shooter != null && Ball.Shooter.Team != gk.Team;
+            bool onFrame = !shot && Ball.LastKickKind != KickKind.Cross && Ball.Velocity.Length > 11f && BallThreatensGoal(gk.Team, out _, out _);
+            if (shot || onFrame)
+            {
+                SaveAttempt(gk, allowCatch: true);
+                return;
+            }
+
+            // Crosses, through balls, loose balls: catch, punch or (rarely) fumble.
+            float crowd = 0f;
+            foreach (var o in gk.Team.Opponent.Players)
+            {
+                if (!o.SentOff && Vec2.Distance(o.Pos, gk.Pos) < 2.5f) crowd += 1f;
+            }
+            float aerial = MathUtil.A(gk.Attr.AerialAbility);
+            float handling = MathUtil.A(gk.Attr.Handling);
+            float skill = Ball.Z > 1.3f ? 0.6f * aerial + 0.4f * handling : handling;
+            float pCatch = MathUtil.Clamp(0.68f + 0.3f * skill - crowd * 0.09f - (contested ? 0.12f : 0f), 0.35f, 0.98f);
+            if (Ball.Z > 1.5f) gk.JumpVz = MathF.Max(gk.JumpVz, 3f);
+            if (_rng.Chance(pCatch))
+            {
+                GoalkeeperCatch(gk);
+                if (Ball.LastKickKind == KickKind.Cross || Ball.Z > 1.3f) Emit(MatchEventType.GoalkeeperClaim, gk.Team, gk, null, gk.Pos);
+                return;
+            }
+            if (Ball.Z > 1.2f || crowd > 0f)
+            {
+                // Punch clear (preferred under heavy pressure): high and away from goal.
+                Vec2 away = (gk.Team.DirToWorld(Vec2.UnitX) * 1.2f + (gk.Pos - gk.Team.OwnGoal).Normalized).Normalized.Rotate(_rng.Range(-0.6f, 0.6f));
+                SetDeflection(gk, away * _rng.Range(13f, 19f), _rng.Range(5f, 8f));
+                Emit(MatchEventType.GoalkeeperClaim, gk.Team, gk, null, gk.Pos, 1f);
+            }
+            else
+            {
+                Deflect(gk, 0.3f, 0.8f);
+            }
+            gk.TouchCooldown = 0.5f;
+        }
+
+        private void SaveAttempt(PlayerAgent gk, bool allowCatch)
+        {
+            var shooter = Ball.Shooter;
+            float speed = Ball.M.Speed;
+            float reflex = MathUtil.A(gk.Attr.Reflexes);
+            float handling = MathUtil.A(gk.Attr.Handling);
+            bool close = shooter != null && Vec2.Distance(shooter.Pos, gk.Pos) < 12f;
+            float positioning = close ? MathUtil.A(gk.Attr.OneOnOne) : MathUtil.A((gk.Attr.Positioning + gk.Attr.OneOnOne) / 2);
+            float skill = 0.5f * reflex + 0.2f * handling + 0.3f * positioning;
+            float reachNeeded = MathUtil.Clamp(Ball.ShotGoalkeeperDistance / 3.2f, 0f, 1.4f);
+            float shotDistance = shooter != null ? Vec2.Distance(shooter.Pos, gk.Team.OwnGoal) : 20f;
+            float closeRange = MathUtil.Clamp01((15f - shotDistance) / 10f); // little time to react
+            float difficulty = 0.42f * MathUtil.Clamp((speed - 12f) / 20f, 0f, 1.2f) + 0.55f * reachNeeded + (Ball.Z > 1.8f ? 0.12f : 0f) + 0.35f * closeRange;
+            float pSave = MathUtil.Clamp(1.0f - difficulty * 0.44f + (skill - 0.5f) * 0.35f, 0.08f, 0.95f);
+            if (_penaltyKickTime >= 0f && shooter != null && SimTime - _penaltyKickTime < 1.5f)
+            {
+                pSave = _penaltyGuessCorrect ? MathUtil.Clamp(0.42f + 0.3f * (skill - 0.5f) - reachNeeded * 0.15f, 0.15f, 0.7f) : 0.05f;
+            }
+
+            if (!_rng.Chance(pSave))
+            {
+                gk.TouchCooldown = 1f; // beaten
+                return;
+            }
+
+            if (shooter != null && Ball.IsShot)
+            {
+                if (!_shotCountedOnTarget) shooter.Team.Stats.ShotsOnTarget++;
+                _shotCountedOnTarget = true;
+                gk.Team.Stats.Saves++;
+                gk.Saves++;
+            }
+            Emit(MatchEventType.Save, gk.Team, gk, shooter, Ball.Pos);
+            if (Ball.Z > 1.6f || reachNeeded > 0.5f) gk.JumpVz = MathF.Max(gk.JumpVz, 2.6f);
+
+            float pCatch = allowCatch ? MathUtil.Clamp(0.25f + 0.6f * handling - (speed - 15f) * 0.025f - difficulty * 0.3f, 0.05f, 0.85f) : 0f;
+            if (_rng.Chance(pCatch))
+            {
+                GoalkeeperCatch(gk);
+                return;
+            }
+            // Parry: tipped over / round the post for a corner, or pushed away (sometimes into danger).
+            Vec2 goal = gk.Team.OwnGoal;
+            Vec2 outward = (Ball.Pos - goal);
+            Vec2 lateral = new Vec2(0f, outward.Y >= 0f ? 1f : -1f);
+            Vec2 forward = (gk.Team.DirToWorld(Vec2.UnitX));
+            Ball.IsShot = false;
+            if (_rng.Chance(0.6f))
+            {
+                // Over the bar or round the post: aim outside the frame so it can never trickle in.
+                bool overBar = Ball.Z > 1.4f;
+                float aimY = overBar ? MathUtil.Clamp(Ball.Pos.Y, -2.5f, 2.5f) : lateral.Y * (Pitch.GoalHalfWidth + _rng.Range(1.2f, 3f));
+                Vec2 aim = new Vec2(Pitch.HalfLength * gk.Team.OwnGoalSign, aimY);
+                Vec2 behind = (aim - Ball.Pos);
+                float dist = MathF.Max(0.5f, behind.Length);
+                float spd = MathF.Max(5f, speed * _rng.Range(0.3f, 0.5f));
+                float t = dist / spd;
+                // Over the bar: enough lift to clear 2.6 m by the line.
+                float vz = overBar ? (2.9f - Ball.Z + 0.5f * Config.Gravity * t * t) / t : _rng.Range(0.3f, 1.5f);
+                SetDeflection(gk, behind / dist * spd, MathUtil.Clamp(vz, 0f, 12f));
+            }
+            else
+            {
+                Vec2 dir = (lateral * _rng.Range(0.6f, 1.2f) + forward * _rng.Range(0.25f, 0.9f)).Normalized;
+                SetDeflection(gk, dir * MathF.Max(4f, speed * _rng.Range(0.25f, 0.5f)), _rng.Range(0.5f, 4f));
+            }
+            gk.TouchCooldown = 0.6f;
+        }
+
+        private void GoalkeeperCatch(PlayerAgent gk)
+        {
+            if (!Pitch.InPenaltyArea(gk.Pos, gk.Team.OwnGoalSign)) Violation("handlingOutsideArea");
+            ResolvePendingPass(gk);
+            ClearOffside();
+            Ball.Owner = gk;
+            Ball.InHands = true;
+            Ball.ClearFlight();
+            Ball.KickerMustWait = false;
+            Ball.HandlingForbiddenFor = null;
+            Ball.LastToucher = gk;
+            Ball.LastTouchTeam = gk.Team;
+            Ball.Stop();
+            PossessionTeam = gk.Team;
+            _goalkeeperHoldTimer = 0f;
+            _penaltyKickTime = -1f;
+            gk.DecisionTimer = _rng.Range(1.4f, 3.2f) * (1.25f - 0.5f * gk.Team.Tactics.Tempo);
+            gk.Task = PlayerTask.GoalkeeperHold;
+            gk.HasPendingPlan = false;
+            AssignBallDuties();
+        }
+
+        // ---- Tackles -----------------------------------------------------------------------------------
+
+        private void ResolveTackles(float dt)
+        {
+            var carrier = Ball.Owner;
+            if (carrier == null || Ball.InHands || carrier.SentOff) return;
+            var defenders = carrier.Team.Opponent;
+            foreach (var d in defenders.Players)
+            {
+                if (d.SentOff || d.TackleCooldown > 0f || d.StunTimer > 0f) continue;
+                float dist = Vec2.Distance(d.Pos, carrier.Pos);
+                if (dist > 1.45f) continue;
+                if (d.IsGoalkeeper && !Pitch.InPenaltyArea(d.Pos, d.Team.OwnGoalSign)) continue;
+                float aggression = MathUtil.A(d.Attr.Aggression);
+                // Defenders mostly jockey; a challenge goes in a few times per second of close contact at most.
+                float rate = 0.12f + 0.25f * aggression + 0.2f * defenders.Tactics.PressingIntensity;
+                if (d.YellowCards > 0) rate *= 0.5f;
+                bool inBox = Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign);
+                float toGoal = Vec2.Distance(carrier.Pos, d.Team.OwnGoal);
+                if (inBox) rate *= toGoal < 13f ? 1.3f : 0.9f;          // last-ditch challenges close to goal
+                else if (toGoal < 32f) rate *= 1.6f;                     // engage before the box
+                bool breakaway = IsDenyingObviousGoalScoringOpportunity(carrier, d);
+                if (breakaway) rate *= 0.3f;
+                // Take-on duel: the carrier deliberately runs at a defender standing in his path.
+                if (dist < 1.15f && d.TackleCooldown <= 0f && carrier.Vel.Length > 2.5f && carrier.Task == PlayerTask.OnBall && carrier.HoldTime > 0.3f)
+                {
+                    Vec2 toD = d.Pos - carrier.Pos;
+                    if (Vec2.Dot(carrier.Vel.Normalized, toD.Normalized) > 0.6f)
+                    {
+                        TakeOn(carrier, d);
+                        return;
+                    }
+                }
+                if (_rng.Chance(rate * dt))
+                {
+                    AttemptTackle(d, carrier);
+                    return;
+                }
+                // "Smart" tactical foul to stop a counter (design doc: only high-decision players try it).
+                if (dist < 1.4f && d.YellowCards == 0 && IsStoppingPromisingAttack(carrier, d) && !IsDenyingObviousGoalScoringOpportunity(carrier, d))
+                {
+                    float smart = MathUtil.A(d.Attr.Decisions) * (0.4f + 0.6f * aggression);
+                    if (smart > 0.35f && _rng.Chance(0.45f * smart * dt))
+                    {
+                        d.Team.Stats.Tackles++;
+                        CommitFoul(d, carrier, true, false, carrier.Pos);
+                        return;
+                    }
+                }
+            }
+        }
+
+        /// <summary>1v1 dribble: beat the man (he is left behind) or lose it (tackle / foul).</summary>
+        private void TakeOn(PlayerAgent carrier, PlayerAgent d)
+        {
+            if (CollectDiagnostics) Count("takeon");
+            var ca = carrier.Attr;
+            var da = d.Attr;
+            float attack = (0.5f * ca.Dribbling + 0.2f * ca.BallControl + 0.2f * ca.Acceleration + 0.1f * ca.Composure) * carrier.FatigueFactor;
+            float defend = (0.45f * da.Tackling + 0.3f * da.Positioning + 0.15f * da.Acceleration + 0.1f * da.PhysicalPower) * d.FatigueFactor;
+            float pBeat = MathUtil.Clamp(0.38f + (attack - defend) / 100f * 1.1f, 0.1f, 0.75f);
+            d.TackleCooldown = 1.2f;
+            if (_rng.Chance(pBeat))
+            {
+                if (CollectDiagnostics) Count("takeon.won");
+                d.StunTimer = 0.5f + 0.35f * (1f - MathUtil.A(da.Positioning));
+                // Burst past: nudge the carrier round the defender.
+                Vec2 side = (carrier.Vel.Normalized.Perp * (Vec2.Cross(carrier.Vel, d.Pos - carrier.Pos) > 0f ? -1f : 1f));
+                carrier.Vel += side * 1.5f;
+                return;
+            }
+            AttemptTackle(d, carrier);
+        }
+
+        private void AttemptTackle(PlayerAgent d, PlayerAgent carrier)
+        {
+            d.Team.Stats.Tackles++;
+            d.Tackles++;
+            Vec2 toDefender = d.Pos - carrier.Pos;
+            float behindAngle = MathF.Abs(MathUtil.AngleDiff(carrier.Facing, toDefender.Angle));
+            bool fromBehind = behindAngle > 2.1f; // defender coming from behind the carrier
+
+            var ca = carrier.Attr;
+            var da = d.Attr;
+            float attack = (0.45f * ca.Dribbling + 0.3f * ca.BallControl + 0.15f * ca.Acceleration + 0.1f * ca.PhysicalPower) * carrier.FatigueFactor;
+            float defend = (0.55f * da.Tackling + 0.2f * da.Positioning + 0.15f * da.PhysicalPower + 0.1f * da.Aggression) * d.FatigueFactor;
+            if (d.IsGoalkeeper) defend = (0.6f * da.OneOnOne + 0.4f * da.Reflexes) * d.FatigueFactor;
+            float pWin = MathUtil.Clamp(0.5f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.15f : 0f), 0.12f, 0.85f);
+            float pFoul = 0.06f + 0.09f * MathUtil.A(da.Aggression) + (fromBehind ? 0.18f : 0f) - 0.06f * MathUtil.A(da.Tackling)
+                          + (1f - d.Energy) * 0.08f;
+            if (d.YellowCards > 0) pFoul *= 0.45f;
+            if (IsDenyingObviousGoalScoringOpportunity(carrier, d)) pFoul *= 0.4f; // tries to stay clean
+            if (Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign)) pFoul *= 0.25f; // careful in the box
+            pFoul = MathUtil.Clamp(pFoul, 0.02f, 0.5f);
+
+            if (_rng.Chance(pFoul))
+            {
+                CommitFoul(d, carrier, fromBehind, true, carrier.Pos);
+                return;
+            }
+            if (_rng.Chance(pWin))
+            {
+                d.Team.Stats.TacklesWon++;
+                Emit(MatchEventType.Tackle, d.Team, d, carrier, carrier.Pos);
+                ClearOffside();
+                if (_rng.Chance(0.5f))
+                {
+                    Ball.LastToucher = carrier; // the carrier had the last controlled touch
+                    GainControl(d, 2f);
+                }
+                else
+                {
+                    Vec2 dir = (carrier.Pos - d.Pos).Normalized.Rotate(_rng.Range(-1.2f, 1.2f));
+                    // Near the touchline a poke usually ends up out of play.
+                    if (MathF.Abs(carrier.Pos.Y) > Pitch.HalfWidth - 4f && _rng.Chance(0.55f))
+                        dir = new Vec2(dir.X * 0.5f, MathF.Sign(carrier.Pos.Y)).Normalized;
+                    SetDeflection(d, dir * _rng.Range(3f, 7f), _rng.Range(0f, 1.5f));
+                }
+                carrier.StunTimer = 0.5f;
+                d.TackleCooldown = 1f;
+            }
+            else
+            {
+                d.StunTimer = 0.5f + 0.5f * (1f - MathUtil.A(da.Tackling));
+                d.TackleCooldown = 1.5f;
+            }
+        }
+    }
+}
