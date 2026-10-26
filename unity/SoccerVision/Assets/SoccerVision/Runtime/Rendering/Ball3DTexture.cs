@@ -65,14 +65,13 @@ namespace SoccerVision.Runtime
             {
                 Vector2 d = pos - _prev.Value;
                 float dist = d.magnitude;
-                if (dist > 0.0005f && dist < 3f && height < 0.35f)
+                if (dist > 0.0005f && dist < 3f)
                 {
-                    // Rolling without slipping: axis = up x direction of travel; the visual rate is capped so the spin stays readable.
+                    // Rolling without slipping on the ground (axis = up x direction of travel); in the air a gentler spin.
+                    // The visual rate is capped so the spin stays readable.
                     _axis = new Vector3(-d.y / dist, d.x / dist, 0f);
-                    _w = Mathf.Min(dist / 0.3f, 0.5f) / dt;
+                    _w = Mathf.Min(dist / 0.3f, 0.5f) / dt * (height < 0.35f ? 1f : 0.35f);
                 }
-                else if (dist >= 3f) _w = 0f;
-                else if (height >= 0.35f) _w *= Mathf.Pow(0.6f, dt); // in the air it keeps spinning, slowly dying away
                 else _w = 0f;
                 if (_w > 0f) _rot = Quaternion.AngleAxis(Mathf.Min(0.5f, _w * dt) * Mathf.Rad2Deg, _axis) * _rot;
             }

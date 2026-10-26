@@ -2,6 +2,16 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/throwin-ball-spin-offside-marker-official-size`
+
+- **Ball spin at throw-ins**: the ball still spun after going out because, while the throw-in was being set up, nobody "owned"
+  it yet and it kept the spin it had when it rolled out. Now the ball does not spin at all while play is stopped (throw-in,
+  goal kick, corner, free kick, ...) or held; once it is in play it rolls on the ground with full spin and spins gently
+  in the air.
+- **Offside marker**: only the small chequered square above the caught player is left (no "OFFSIDE" text, no pole or flag).
+  The assistant's raised flag is unchanged.
+- **Officials**: the referee and the assistants are now the same size as the players (circle and letter).
+
 ## `chore/auto-publish-demo-page`
 
 - **Automatic demo link**: `.github/workflows/publish-demo.yml` rebuilds the playable demo page on every push to any branch and

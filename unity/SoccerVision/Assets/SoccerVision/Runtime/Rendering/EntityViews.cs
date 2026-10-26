@@ -6,7 +6,7 @@ namespace SoccerVision.Runtime
     /// <summary>
     /// Player as described in the design document: a circle with a border and the shirt number in the centre.
     /// Rises while jumping (its shadow stays on the grass, shrinking with height), shows the player's name, centred on a
-    /// dark plate, under the circle while in possession, and an offside flag above him when he is caught offside.
+    /// dark plate, under the circle while in possession, and a chequered square above him when he is caught offside.
     /// </summary>
     public sealed class PlayerView : MonoBehaviour
     {
@@ -15,8 +15,8 @@ namespace SoccerVision.Runtime
         public PlayerAgent Agent { get; private set; }
 
         private Transform _body, _lift;
-        private SpriteRenderer _fill, _ring, _shadow, _card, _offsideFlag, _offsidePlate;
-        private TextMesh _offsideText;
+        private SpriteRenderer _fill, _ring, _shadow, _card;
+        private GameObject _offsideMark;
         private TextMesh _number, _label;
         private SpriteRenderer _labelPlate;
         private float _fade = 1f;
@@ -46,15 +46,17 @@ namespace SoccerVision.Runtime
             _labelPlate = SpriteFactory.AddSprite(transform, "LabelPlate", SpriteFactory.Square, new Color(0f, 0f, 0f, 0.6f), 29, 1f);
             _labelPlate.transform.localPosition = new Vector3(0f, -1.6f, 0f);
             _labelPlate.enabled = false;
-            // Offside marker: a flag and a label above the player who was caught.
-            _offsideFlag = SpriteFactory.AddSprite(transform, "OffsideFlag", SpriteFactory.Flag, new Color(1f, 0.82f, 0.1f), 31, 1.5f);
-            _offsideFlag.transform.localPosition = new Vector3(0.55f, 2.3f, 0f);
-            _offsidePlate = SpriteFactory.AddSprite(transform, "OffsidePlate", SpriteFactory.Square, new Color(0.08f, 0.08f, 0.08f, 0.85f), 31, 1f);
-            _offsidePlate.transform.localPosition = new Vector3(0f, 3.4f, 0f);
-            _offsidePlate.transform.localScale = new Vector3(4.2f, 1.1f, 1f);
-            _offsideText = SpriteFactory.AddText(transform, "OffsideText", "OFFSIDE", new Color(1f, 0.82f, 0.1f), 32, 0.13f, 56);
-            _offsideText.fontStyle = FontStyle.Bold;
-            _offsideText.transform.localPosition = new Vector3(0f, 3.4f, 0f);
+            // Offside marker: a small chequered square above the player who was caught (no text, no pole).
+            _offsideMark = new GameObject("OffsideMark");
+            _offsideMark.transform.SetParent(transform, false);
+            _offsideMark.transform.localPosition = new Vector3(0f, 2.9f, 0f);
+            const float cell = 0.65f;
+            for (int cx = 0; cx < 2; cx++)
+                for (int cy = 0; cy < 2; cy++)
+                {
+                    var sq = SpriteFactory.AddSprite(_offsideMark.transform, "Cell", SpriteFactory.Square, (cx + cy) % 2 == 1 ? new Color(0.9f, 0.22f, 0.21f) : new Color(1f, 0.82f, 0.1f), 31, cell);
+                    sq.transform.localPosition = new Vector3((cx - 0.5f) * cell, (cy - 0.5f) * cell, 0f);
+                }
             ShowOffside(false);
             UpdateBodyScale(0f);
         }
@@ -115,10 +117,7 @@ namespace SoccerVision.Runtime
 
         private void ShowOffside(bool on)
         {
-            if (_offsideFlag.enabled == on) return;
-            _offsideFlag.enabled = on;
-            _offsidePlate.enabled = on;
-            _offsideText.gameObject.SetActive(on);
+            if (_offsideMark.activeSelf != on) _offsideMark.SetActive(on);
         }
 
         private void SetAlpha(float a)
@@ -169,7 +168,7 @@ namespace SoccerVision.Runtime
             _trail.emitting = false;
         }
 
-        public void Render(BallState ball, float alpha, float dt)
+        public void Render(BallState ball, float alpha, float dt, bool inPlay = true)
         {
             float x = Mathf.Lerp(ball.PrevPos.X, ball.Pos.X, alpha);
             float y = Mathf.Lerp(ball.PrevPos.Y, ball.Pos.Y, alpha);
@@ -189,7 +188,8 @@ namespace SoccerVision.Runtime
             // In the air the ball renders above the players, on the ground below their bodies.
             _ball.sortingOrder = h > 1.2f ? 60 : 50;
             // Held by the keeper or carried overhead for a throw-in: the ball moves with the hands and does not roll.
-            bool held = ball.Owner != null && (ball.InHands || ball.Owner.IsGoalkeeper || z > 0.4f);
+            // No spin while held (keeper's hands, carried overhead for a throw-in) or while play is stopped (the ball waits to be taken).
+            bool held = !inPlay || (ball.Owner != null && (ball.InHands || ball.Owner.IsGoalkeeper || z > 0.4f));
             _look.Spin(new Vector2(x, y), h, dt, held);
             _look.Redraw();
 
@@ -214,10 +214,12 @@ namespace SoccerVision.Runtime
         public void Init(Official official, bool assistant)
         {
             _o = official;
-            SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.3f), 10, 1.9f);
-            SpriteFactory.AddSprite(transform, "Fill", SpriteFactory.Circle, new Color(0.08f, 0.08f, 0.08f, 1f), 12, 1.45f);
-            SpriteFactory.AddSprite(transform, "Ring", SpriteFactory.Ring, assistant ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.92f, 0.2f), 13, 1.45f);
-            var letter = SpriteFactory.AddText(transform, "Letter", assistant ? "L" : "R", assistant ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.92f, 0.2f), 14, 0.09f);
+            // Same size as the players.
+            float d = PlayerView.Diameter;
+            SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.3f), 10, d * 1.25f);
+            SpriteFactory.AddSprite(transform, "Fill", SpriteFactory.Circle, new Color(0.08f, 0.08f, 0.08f, 1f), 12, d);
+            SpriteFactory.AddSprite(transform, "Ring", SpriteFactory.Ring, assistant ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.92f, 0.2f), 13, d);
+            var letter = SpriteFactory.AddText(transform, "Letter", assistant ? "L" : "R", assistant ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.92f, 0.2f), 14, 0.112f);
             letter.fontStyle = FontStyle.Bold;
             if (assistant)
             {

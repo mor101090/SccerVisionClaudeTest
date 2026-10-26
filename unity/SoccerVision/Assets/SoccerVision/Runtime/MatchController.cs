@@ -229,7 +229,7 @@ namespace SoccerVision.Runtime
             }
             bool hideBall = Engine.Phase == MatchPhase.HalfTimeBreak;
             if (_ball.gameObject.activeSelf == hideBall) _ball.gameObject.SetActive(!hideBall);
-            _ball.Render(Engine.Ball, alpha, dt);
+            _ball.Render(Engine.Ball, alpha, dt, Engine.Phase == MatchPhase.Live);
             foreach (var o in _officials) o.Render(alpha, Time.time);
             foreach (var n in _nets) n.Render(Engine.Ball);
         }

@@ -196,29 +196,19 @@ export function resetBall() {
   ball3d.reset();
 }
 
-/** Offside: a small chequered flag and a label above the player who was caught. */
+/** Offside: a small chequered square above the player who was caught (no text, no pole). */
 function offsideMark(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
-  const top = y - 3.3 * s;
-  ctx.strokeStyle = "#1b1b1b";
-  ctx.lineWidth = Math.max(1.2, 0.14 * s);
-  ctx.beginPath();
-  ctx.moveTo(x, y - 1.2 * s);
-  ctx.lineTo(x, top);
-  ctx.stroke();
-  const fw = 1.5 * s;
-  const fh = 1.0 * s;
+  const size = 1.3 * s;
+  const left = x - size / 2;
+  const top = y - 2.6 * s;
   for (let cx = 0; cx < 2; cx++)
     for (let cy = 0; cy < 2; cy++) {
       ctx.fillStyle = (cx + cy) % 2 ? "#e53935" : "#ffd21a";
-      ctx.fillRect(x + (cx * fw) / 2, top + (cy * fh) / 2, fw / 2, fh / 2);
+      ctx.fillRect(left + (cx * size) / 2, top + (cy * size) / 2, size / 2, size / 2);
     }
-  ctx.font = `700 ${Math.max(9, 0.95 * s)}px system-ui, sans-serif`;
-  const label = "OFFSIDE";
-  const tw = ctx.measureText(label).width;
-  ctx.fillStyle = "rgba(20,20,20,0.82)";
-  ctx.fillRect(x - tw / 2 - 0.35 * s, top - 1.55 * s, tw + 0.7 * s, 1.2 * s);
-  ctx.fillStyle = "#ffd21a";
-  fillCentered(ctx, label, x, top - 0.95 * s);
+  ctx.strokeStyle = "rgba(0,0,0,0.6)";
+  ctx.lineWidth = Math.max(1, 0.1 * s);
+  ctx.strokeRect(left, top, size, size);
 }
 
 export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Replay, snap: Snapshot, time: number, dt = 0) {
@@ -227,9 +217,9 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   const teams = [replay.home, replay.away];
   // Officials
   snap.officials.forEach((o, i) => {
-    disc(ctx, px(v, o.x), py(v, o.y), 0.78 * s, "#141414", "#f6d43a");
+    disc(ctx, px(v, o.x), py(v, o.y), r, "#141414", "#f6d43a"); // same size as the players
     ctx.fillStyle = "#f6d43a";
-    ctx.font = `800 ${Math.max(8, 0.95 * s)}px system-ui, sans-serif`;
+    ctx.font = `800 ${Math.max(8, 1.05 * s)}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     fillCentered(ctx, i === 0 ? "R" : "L", px(v, o.x), py(v, o.y));
@@ -304,7 +294,8 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   ctx.arc(bx, by, 0.42 * s * Math.max(0.45, 1 - h * 0.05), 0, Math.PI * 2);
   ctx.fill();
   const owner = b.owner >= 0 ? snap.players[b.owner] : null;
-  ball3d.spin(b.x, b.y, h, dt, owner !== null && (owner.gk || b.z > 0.4));
+  // No spin while held (keeper's hands, carried overhead for a throw-in) or while play is stopped (the ball waits to be taken).
+  ball3d.spin(b.x, b.y, h, dt, snap.phase !== 0 || (owner !== null && (owner.gk || b.z > 0.4)));
   ball3d.draw(ctx, bx, by - Math.min(20, h) * 0.55 * s, 0.36 * s * (1 + Math.min(20, h) * 0.07));
   // The nets go over a ball lying in the goal (roof netting seen from above).
   for (const side of [-1, 1]) {

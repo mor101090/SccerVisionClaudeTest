@@ -56,13 +56,12 @@ export class Ball3D {
       const dx = x - this.prev.x;
       const dy = y - this.prev.y;
       const dist = Math.hypot(dx, dy);
-      if (dist > 0.0005 && dist < 3 && height < 0.35) {
-        // Rolling without slipping: axis = up x direction of travel; the visual rate is capped so the spin stays readable.
+      if (dist > 0.0005 && dist < 3) {
+        // Rolling without slipping on the ground (axis = up x direction of travel); in the air a gentler spin. The visual
+        // rate is capped so the spin stays readable.
         this.axis = [-dy / dist, dx / dist, 0];
-        this.w = Math.min(dist / 0.3, 0.5) / dt;
-      } else if (dist >= 3) this.w = 0;
-      else if (height >= 0.35) this.w *= Math.pow(0.6, dt); // in the air it keeps spinning, slowly dying away
-      else this.w = 0;
+        this.w = (Math.min(dist / 0.3, 0.5) / dt) * (height < 0.35 ? 1 : 0.35);
+      } else this.w = 0;
       if (this.w > 0) this.rotate(this.axis, Math.min(0.5, this.w * dt));
     }
     this.prev = { x, y };
