@@ -137,17 +137,20 @@ namespace SoccerVision.Simulation
         {
             var team = gk.Team;
             gk.Task = PlayerTask.GoalkeeperHold;
-            float f = MathUtil.Clamp(team.Forward(gk.Pos) + 1.5f, -51f, -Pitch.HalfLength + Pitch.PenaltyAreaDepth - 2f);
-            float l = MathUtil.Clamp(team.Lateral(gk.Pos), -12f, 12f);
-            gk.Target = team.ToWorld(f, l);
-            gk.Urgency = 0.25f;
-            gk.DecisionTimer -= dt;
-            if (gk.DecisionTimer > 0f && _goalkeeperHoldTimer < 6f) return;
-            // Wait for opponents to clear out of the way before releasing (they must drift away; see MovePlayer).
-            if (_goalkeeperHoldTimer < 6.5f && NearestOpponentDistance(team, gk.Pos) < 6f)
+            if (gk.RunUpPhase == 0)
             {
-                gk.DecisionTimer = 0.3f;
-                return;
+                float f = MathUtil.Clamp(team.Forward(gk.Pos) + 1.5f, -51f, -Pitch.HalfLength + Pitch.PenaltyAreaDepth - 2f);
+                float l = MathUtil.Clamp(team.Lateral(gk.Pos), -12f, 12f);
+                gk.Target = team.ToWorld(f, l);
+                gk.Urgency = 0.25f;
+                gk.DecisionTimer -= dt;
+                if (gk.DecisionTimer > 0f && _goalkeeperHoldTimer < 6f) return;
+                // Wait for opponents to clear out of the way before releasing (they must drift away; see MovePlayer).
+                if (_goalkeeperHoldTimer < 6.5f && NearestOpponentDistance(team, gk.Pos) < 6f)
+                {
+                    gk.DecisionTimer = 0.3f;
+                    return;
+                }
             }
 
             float tempo = team.Tactics.Tempo;
@@ -169,9 +172,37 @@ namespace SoccerVision.Simulation
             }
 
             float pShort = MathUtil.Clamp(0.3f + 0.5f * (1f - tempo) + (shortTarget != null ? 0.15f : -1f) - 0.2f * kicking, 0f, 0.85f);
+            bool goShort = gk.RunUpPhase == 0 && shortTarget != null && _rng.Chance(pShort);
+
+            // A long kick from the hands starts with a run-up: a few steps back, then forward and strike.
+            if (!goShort && _goalkeeperHoldTimer < 5.5f)
+            {
+                Vec2 fwd = team.DirToWorld(Vec2.UnitX);
+                if (gk.RunUpPhase == 0)
+                {
+                    gk.RunUpPhase = 1;
+                    gk.RunUpFrom = gk.Pos;
+                    gk.RunUpTimer = 0f;
+                }
+                gk.RunUpTimer += dt;
+                if (gk.RunUpPhase == 1)
+                {
+                    Vec2 backSpot = gk.RunUpFrom - fwd * 3.2f;
+                    gk.Target = Pitch.ClampToField(backSpot, 1f);
+                    gk.Urgency = 0.35f;
+                    if (Vec2.Distance(gk.Pos, gk.Target) < 0.6f || gk.RunUpTimer > 2.2f) { gk.RunUpPhase = 2; gk.RunUpTimer = 0f; }
+                    gk.DecisionTimer = 0.1f;
+                    return;
+                }
+                gk.Target = gk.RunUpFrom + fwd * 0.6f;
+                gk.Urgency = 0.7f;
+                gk.DecisionTimer = 0.1f;
+                if (Vec2.Distance(gk.Pos, gk.RunUpFrom) > 1.2f && gk.RunUpTimer < 2f) return; // still running up
+            }
+            gk.RunUpPhase = 0;
             Ball.InHands = false;
             NoteKeeperRelease(gk);
-            if (shortTarget != null && _rng.Chance(pShort))
+            if (goShort)
             {
                 Vec2 target = shortTarget.Pos + shortTarget.Vel * 0.4f;
                 float d = Vec2.Distance(Ball.Pos, target);

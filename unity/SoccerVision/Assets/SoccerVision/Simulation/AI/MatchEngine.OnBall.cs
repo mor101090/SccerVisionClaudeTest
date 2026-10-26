@@ -523,8 +523,8 @@ namespace SoccerVision.Simulation
                     if (t < bestOppT) { bestOppT = t; bestOpp = o; }
                 }
                 float flight = d / 17f + 0.4f;
-                float aerialMate = (bestMate.Attr.Jumping + bestMate.Attr.Heading + bestMate.Attr.PhysicalPower) / 3f;
-                float aerialOpp = bestOpp != null ? (bestOpp.IsGoalkeeper ? bestOpp.Attr.AerialAbility + 10f : (bestOpp.Attr.Jumping + bestOpp.Attr.Heading + bestOpp.Attr.PhysicalPower) / 3f) : 0f;
+                float aerialMate = (bestMate.Attr.Jumping + bestMate.Attr.Heading + bestMate.Attr.PhysicalPower) / 3f + (bestMate.Profile.HeightCm - 180) * 0.3f;
+                float aerialOpp = bestOpp != null ? (bestOpp.IsGoalkeeper ? bestOpp.Attr.AerialAbility + 10f : (bestOpp.Attr.Jumping + bestOpp.Attr.Heading + bestOpp.Attr.PhysicalPower) / 3f + (bestOpp.Profile.HeightCm - 180) * 0.3f) : 0f;
                 float pWin = MathUtil.Sigmoid((bestOppT - MathF.Max(bestMateT, flight)) / 0.45f + (aerialMate - aerialOpp) / 35f);
                 float delivery = 0.45f + 0.4f * crossing;
                 float headerXg = ExpectedGoals.FromLocation(target, team.AttackGoalSign) * 0.55f * (0.65f + 0.7f * MathUtil.A(bestMate.Attr.Heading));
@@ -619,6 +619,9 @@ namespace SoccerVision.Simulation
             }
         }
 
+        /// <summary>+1 when the kicker's natural curl bends the ball to the left of its path (right-footers), -1 for left-footers.</summary>
+        private static float NaturalCurlSign(PlayerAgent p) => p.Attr.StrongFoot == Foot.Right ? 1f : -1f;
+
         private float WeakFootFactor(PlayerAgent p, Vec2 direction)
         {
             // Kicking across the body to the strong-foot side is natural; otherwise the weak foot is likely used.
@@ -663,9 +666,9 @@ namespace SoccerVision.Simulation
             float spin = 0f;
             if (curl)
             {
-                // In-swinging cross: curl towards the goal.
-                Vec2 toGoal = p.Team.AttackGoal - from;
-                spin = MathF.Sign(Vec2.Cross(dir, toGoal)) * _rng.Range(10f, 30f);
+                // The ball bends the way the kicking foot naturally curls it: right-footers bend it to the left, left-footers
+                // to the right. From the left wing that is an in-swinger for a right-footer, from the right wing an out-swinger.
+                spin = NaturalCurlSign(p) * _rng.Range(10f, 30f);
             }
             KickBall(p, from, v, vz, spin, 0f, kind, receiver, target, false, false, startZ);
             if (kind == KickKind.Cross) Emit(MatchEventType.Cross, p.Team, p, receiver, from);
@@ -717,7 +720,7 @@ namespace SoccerVision.Simulation
             float composure = MathUtil.A(p.Attr.Composure);
             float stake = penalty ? 0.25f : 0f;
             float sigmaA = (0.085f + 0.16f * (1f - skill)) * (1f + 0.75f * pressure * (1.2f - composure) + stake) * p.FatigueError;
-            if (penalty) sigmaA *= 0.3f;
+            if (penalty) sigmaA *= 0.2f;
             if (!header && !penalty) sigmaA *= WeakFootFactor(p, dir);
             if (header) sigmaA *= 1.0f;
             if (volley) sigmaA *= 1.35f;

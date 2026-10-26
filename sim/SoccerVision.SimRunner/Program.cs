@@ -219,6 +219,7 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
                 x = Math.Round(e.X, 1),
                 y = Math.Round(e.Y, 1),
                 v = Math.Round(e.Value, 1),
+                p = e.Player,
             });
         }
         if (engine.Phase == MatchPhase.HalfTimeBreak) continue;

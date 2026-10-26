@@ -24,9 +24,25 @@ Game, it reaches 90 minutes plus added time with:
 - an offside flag that stays up for several seconds while the assistant stands in line with the offence, and the
   referee's whistle followed by a short pause before kick-offs, penalties and free kicks with a wall,
 - goalkeepers who catch, parry (over the bar, round the post or away) and punch,
-- a **Pace** slider (50-100%) in every viewer, to find the most natural match speed,
+- the match pace was playtested: 90% of the first version's speed is the right one (`MotionSpeed` 2.025), with a **Pace** slider
+  (50-100%) still available in every viewer,
+- set pieces with real run-ups: penalty takers, corner takers, free-kick shooters and goalkeepers (goal kicks and long kicks
+  from the hands) step back and run up to the ball,
+- players with heights (taller players win more headers, are slightly slower; reach for crosses and corners) and
+  left or right feet (curl direction, in-swinging or out-swinging corners, the side a free-kick taker aims for, weak-foot errors),
+- little boots that stick out of every player's circle and swing as they run,
 - goalkeeper sorties, headers with physically timed leaps, volleys, cut-inside shots from the wing, free kicks over the
   wall, a scoreboard, live commentary, a skills tooltip on hover, and the ball's height illusion and shadow.
+
+## Play the demo match in your browser
+
+A standalone page with six full matches played by the real C# engine (a "New match" button picks another one),
+with sound, commentary, key moments (goals, penalties, offsides, free kicks) and a **Pace** slider. It is `docs/index.html`:
+
+- Open it right now (no setup): <https://raw.githack.com/mor101090/SccerVisionClaudeTest/claude/beautiful-heisenberg-oyl59z/docs/index.html>
+- Or enable GitHub Pages once (Settings > Pages > Deploy from a branch > this branch, folder `/docs`); it is then served at
+  <https://mor101090.github.io/SccerVisionClaudeTest/>.
+- Rebuild it after changing the engine: `tools/demo-page/build.sh` (needs the .NET 8 SDK, node and python3).
 
 ## Repository layout
 
@@ -41,7 +57,8 @@ sim/                                .NET 8 solution compiling the same engine so
   SoccerVision.Simulation.Tests/    xUnit: full matches, laws at every restart, physics, determinism
   SoccerVision.SimRunner/           CLI: calibration statistics, timelines, replay export
 web/                                React 19 + Vite + TypeScript shell (react-unity-webgl 10)
-docs/                               ARCHITECTURE.md, RESEARCH.md
+docs/                               ARCHITECTURE.md, RESEARCH.md, index.html (the playable demo page)
+tools/demo-page/                    builds docs/index.html from the engine
 ```
 
 ## Running it
@@ -67,12 +84,12 @@ docs/                               ARCHITECTURE.md, RESEARCH.md
 
 | per match | engine | top leagues |
 |---|---|---|
-| goals | 2.99 | 2.97 (PL 24/25) |
-| offsides | 3.27 | 3.38 |
-| fouls / yellow / red | 20.5 / 3.9 / 0.12 | 22.1 / 4.2 / 0.14 |
-| corners | 8.6 | 10.2 |
-| headed goals | 15% of goals | 13-19% |
-| penalties (converted) | 0.25 (68%) | 0.25-0.35 (75-80%) |
+| goals | 2.76 | 2.97 (PL 24/25) |
+| offsides | 2.83 | 3.38 |
+| fouls / yellow / red | 20.4 / 3.7 / 0.12 | 22.1 / 4.2 / 0.14 |
+| corners | 7.8 | 10.2 |
+| headed goals | 19% of goals | 13-19% |
+| penalties (converted) | 0.24 (80%) | 0.25-0.35 (75-80%) |
 | direct free-kick shots | 0.64 | 0.6-1 |
 | pass completion | 83% | 80-85% |
 

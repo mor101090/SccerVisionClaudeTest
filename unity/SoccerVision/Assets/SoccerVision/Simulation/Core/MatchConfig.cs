@@ -24,7 +24,7 @@ namespace SoccerVision.Simulation
         /// Sim seconds played per real second. 1 = players move at true speed; above 1 looks like a gently
         /// fast-forwarded broadcast and packs more football into the 10 real minutes.
         /// </summary>
-        public float MotionSpeed = 2.25f;
+        public float MotionSpeed = 2.025f; // 90% of the original 2.25: the "right" match pace (playtested)
         /// <summary>Fixed physics step (sim seconds).</summary>
         public float FixedStep = 0.02f;
 

@@ -31,8 +31,9 @@ namespace SoccerVision.Runtime
             _lift = new GameObject("Lift").transform;
             _lift.SetParent(transform, false);
             var legs = new Color(0.1f, 0.1f, 0.1f, 1f);
-            _legL = SpriteFactory.AddSprite(_lift, "LegL", SpriteFactory.Circle, legs, 11, Diameter * 0.32f);
-            _legR = SpriteFactory.AddSprite(_lift, "LegR", SpriteFactory.Circle, legs, 11, Diameter * 0.32f);
+            // Little boots that stick out of the circle in front and swing as he runs (drawn just behind the body).
+            _legL = SpriteFactory.AddSprite(_lift, "LegL", SpriteFactory.Circle, legs, 11, Diameter * 0.4f);
+            _legR = SpriteFactory.AddSprite(_lift, "LegR", SpriteFactory.Circle, legs, 11, Diameter * 0.4f);
             _body = new GameObject("Body").transform;
             _body.SetParent(_lift, false);
             _fill = SpriteFactory.AddSprite(_body, "Fill", SpriteFactory.Circle, kit, 12, 1f);
@@ -74,13 +75,14 @@ namespace SoccerVision.Runtime
             var pos = new Vector2(x, y);
             float speed = dt > 0f ? (pos - _lastPos).magnitude / dt : 0f;
             _lastPos = pos;
-            _stepPhase += Mathf.Clamp(speed, 0f, 40f) * dt * 1.6f;
+            _stepPhase += Mathf.Clamp(speed, 0f, 40f) * dt * 2.6f;
             var fwd = new Vector2(Mathf.Cos(facing), Mathf.Sin(facing));
             var side = new Vector2(-fwd.y, fwd.x);
-            float stride = speed > 0.4f ? Mathf.Sin(_stepPhase) * 0.18f * Diameter : 0f;
+            float stride = speed > 0.4f ? Mathf.Sin(_stepPhase) * 0.3f * Diameter : 0f;
             float r = Diameter * 0.5f;
-            Vector2 l = fwd * (r * 0.62f + stride) + side * (r * 0.42f);
-            Vector2 rr = fwd * (r * 0.62f - stride) - side * (r * 0.42f);
+            // Boots centred on the rim (1.0 r) so about half of each shows beyond the body; they swing forward and back.
+            Vector2 l = fwd * (r * 1.0f + stride) + side * (r * 0.4f);
+            Vector2 rr = fwd * (r * 1.0f - stride) - side * (r * 0.4f);
             _legL.transform.localPosition = new Vector3(l.x, l.y, 0f);
             _legR.transform.localPosition = new Vector3(rr.x, rr.y, 0f);
 

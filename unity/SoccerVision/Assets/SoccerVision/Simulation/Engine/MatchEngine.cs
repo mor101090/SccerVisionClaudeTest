@@ -56,6 +56,11 @@ namespace SoccerVision.Simulation
         public bool WaitForWhistle;
         /// <summary>Restart timer value when the referee blew; the kick follows WhistleToKickRealSeconds later.</summary>
         public float WhistleAt = -1f;
+        /// <summary>The taker walks back to RunUpStart first, then runs up to the ball (penalties, corners, free kicks, goal kicks).</summary>
+        public bool HasRunUp;
+        public Vec2 RunUpStart;
+        public bool RunningUp;
+        public float RunUpBegan;
         public readonly List<PlayerAgent> Wall = new List<PlayerAgent>();
     }
 

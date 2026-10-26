@@ -153,6 +153,9 @@ function netEffects(replay: Replay, t: number, side: number) {
   return { ripple, flash };
 }
 
+const stepPhase = new Float32Array(22);
+const lastPos: ({ x: number; y: number } | undefined)[] = new Array(22).fill(undefined);
+
 export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Replay, snap: Snapshot, time: number) {
   const s = v.scale;
   const r = 0.9 * s;
@@ -216,11 +219,20 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     const fy = -Math.sin(p.facing);
     const sx = -fy;
     const sy = fx;
+    // Little boots that stick out of the circle and swing as he runs: the step phase advances with the distance run.
+    const prev = lastPos[i];
+    const moved = prev ? Math.hypot(p.x - prev.x, p.y - prev.y) : 0;
+    lastPos[i] = { x: p.x, y: p.y };
+    if (moved < 3) stepPhase[i] += moved * 2.6;
+    const stride = moved > 0.002 || p.jump > 0 ? Math.sin(stepPhase[i]) * 0.3 * r * 2 : 0;
     ctx.fillStyle = "#151515";
+    ctx.strokeStyle = "rgba(255,255,255,0.35)";
+    ctx.lineWidth = Math.max(0.5, r * 0.06);
     for (const k of [-1, 1]) {
       ctx.beginPath();
-      ctx.arc(x + fx * r * 0.62 + sx * r * 0.42 * k, y + fy * r * 0.62 + sy * r * 0.42 * k, r * 0.3, 0, Math.PI * 2);
+      ctx.arc(x + fx * (r * 1.0 + stride * k) + sx * r * 0.4 * k, y + fy * (r * 1.0 + stride * k) + sy * r * 0.4 * k, r * 0.4, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
     }
     disc(ctx, x, y, r * grow, p.gk ? team.kit.gk : team.kit.primary, team.kit.secondary);
     ctx.fillStyle = p.gk ? team.kit.gkNumber : team.kit.number;

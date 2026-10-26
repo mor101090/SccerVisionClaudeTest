@@ -73,7 +73,7 @@ namespace SoccerVision.Simulation
                         weight = 3f;
                         break;
                     case ContactKind.Head:
-                        weight = 0.6f + (p.Attr.Jumping + p.Attr.Heading + p.Attr.PhysicalPower) / 150f;
+                        weight = 0.6f + (p.Attr.Jumping + p.Attr.Heading + p.Attr.PhysicalPower) / 150f + (p.Profile.HeightCm - 180) * 0.012f;
                         break;
                     default:
                         weight = 0.6f + (p.Attr.BallControl + p.Attr.Positioning + p.Attr.PhysicalPower) / 200f;
@@ -488,7 +488,7 @@ namespace SoccerVision.Simulation
             float pSave = MathUtil.Clamp(0.98f - difficulty * 0.46f + (skill - 0.5f) * 0.35f, 0.08f, 0.93f);
             if (_penaltyKickTime >= 0f && shooter != null && SimTime - _penaltyKickTime < 1.5f)
             {
-                pSave = _penaltyGuessCorrect ? MathUtil.Clamp(0.42f + 0.3f * (skill - 0.5f) - reachNeeded * 0.15f, 0.15f, 0.7f) : 0.05f;
+                pSave = _penaltyGuessCorrect ? MathUtil.Clamp(0.36f + 0.3f * (skill - 0.5f) - reachNeeded * 0.15f, 0.15f, 0.7f) : 0.05f;
             }
 
             if (!_rng.Chance(pSave))
@@ -552,6 +552,7 @@ namespace SoccerVision.Simulation
             ResolvePendingPass(gk);
             ClearOffside();
             Ball.Owner = gk;
+            gk.RunUpPhase = 0;
             Ball.InHands = true;
             Ball.ClearFlight();
             Ball.KickerMustWait = false;
@@ -656,7 +657,7 @@ namespace SoccerVision.Simulation
             float defend = (0.55f * da.Tackling + 0.2f * da.Positioning + 0.15f * da.PhysicalPower + 0.1f * da.Aggression) * d.FatigueFactor;
             if (d.IsGoalkeeper) defend = (0.6f * da.OneOnOne + 0.4f * da.Reflexes) * d.FatigueFactor;
             float pWin = MathUtil.Clamp(0.5f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.15f : 0f), 0.12f, 0.85f);
-            float pFoul = 0.06f + 0.09f * MathUtil.A(da.Aggression) + (fromBehind ? 0.18f : 0f) - 0.06f * MathUtil.A(da.Tackling)
+            float pFoul = 0.075f + 0.11f * MathUtil.A(da.Aggression) + (fromBehind ? 0.18f : 0f) - 0.06f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
             if (d.YellowCards > 0) pFoul *= 0.45f;
             if (IsDenyingObviousGoalScoringOpportunity(carrier, d)) pFoul *= 0.4f; // tries to stay clean

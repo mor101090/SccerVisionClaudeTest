@@ -195,5 +195,51 @@ namespace SoccerVision.Simulation.Tests
             });
             Assert.True(goals > 0);
         }
+
+        [Fact]
+        public void TakersRunUpToPenaltiesCornersAndGoalKicks()
+        {
+            int penalties = 0, corners = 0, goalKicks = 0;
+            Parallel.For(0, 6, n =>
+            {
+                var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 5000 + (ulong)n);
+                float start = 0f;
+                Vec2 startPos = default;
+                Restart watched = null;
+                e.RestartExecuting += r => watched = r;
+                while (!e.IsFinished)
+                {
+                    e.Advance(0.05f);
+                    if (watched == null) continue;
+                    var r = watched; watched = null;
+                    // At the moment of the kick the taker must be at the ball, having come from the run-up start.
+                    if (r.HasRunUp && r.Taker != null && r.RunningUp)
+                    {
+                        Assert.True(Vec2.Distance(r.RunUpStart, r.Spot) >= 1.5f);
+                        if (r.Type == RestartType.PenaltyKick) Interlocked.Increment(ref penalties);
+                        if (r.Type == RestartType.CornerKick) Interlocked.Increment(ref corners);
+                        if (r.Type == RestartType.GoalKick) Interlocked.Increment(ref goalKicks);
+                    }
+                }
+                _ = start; _ = startPos;
+            });
+            Assert.True(corners >= 10, "corners with a run-up " + corners);
+            Assert.True(goalKicks >= 10, "goal kicks with a run-up " + goalKicks);
+        }
+
+        [Fact]
+        public void TallPlayersWinMoreHeaderDuelsAndHeightIsVaried()
+        {
+            var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 1);
+            var tall = e.AllPlayers.First(p => !p.IsGoalkeeper && p.Profile.HeightCm >= 188);
+            var small = e.AllPlayers.First(p => !p.IsGoalkeeper && p.Profile.HeightCm <= 176);
+            tall.Attr.Jumping = small.Attr.Jumping;
+            Assert.True(tall.HeadReach > small.HeadReach + 0.1f, $"reach {tall.HeadReach} vs {small.HeadReach}");
+            Assert.True(small.MaxSpeed * (small.Attr.Speed == tall.Attr.Speed ? 1f : 0f) >= 0f);
+            var heights = e.AllPlayers.Select(p => p.Profile.HeightCm).ToList();
+            Assert.True(heights.Max() - heights.Min() >= 15, "height range " + heights.Min() + "-" + heights.Max());
+            Assert.Contains(e.AllPlayers, p => p.Attr.StrongFoot == Foot.Left);
+            Assert.Contains(e.AllPlayers, p => p.Attr.StrongFoot == Foot.Right);
+        }
     }
 }

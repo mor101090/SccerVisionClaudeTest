@@ -150,6 +150,19 @@ about 45 minutes of football motion including stoppages. To reach real **per-mat
 events must happen about 1.5× more often per minute of play than in reality. This explains why passes total about 620
 rather than 900. Raising `MotionSpeed` packs more football into the 20 minutes; the cost is faster-looking players.
 
+### Pace, run-ups and player build (round 3)
+- **Pace**: playtested at 90% of the original speed, so `MotionSpeed` is 2.025 sim s per real s; the clock still runs 4.5
+  clock s per real s, so a half still lasts 10 real minutes plus added time. Fewer sim seconds per half meant fewer
+  events (fouls, offsides), so foul probability and off-the-ball runs were nudged up (fouls 20.4, offsides 2.8-3.1).
+- **Run-ups**: penalty 4.6 m back at a slight angle (side of the non-kicking foot), shooting free kicks 5.5 m, other free kicks
+  with a wall 3.5 m, corners 3.6 m x 3.0 m diagonally into the pitch, goal kicks 3.6 m, a keeper's long kick from the
+  hands 3.2 m. Short free kicks, throw-ins and kick-offs have none.
+- **Height** (165-200 cm, centre-backs and keepers tall, wingers shorter): header reach +0.9 cm per cm of height,
+  aerial duel weight +1.2% per cm, cross target choice and corner attackers pick tall players, and ground speed -0.12% per cm
+  above 180 cm.
+- **Feet**: right-footers bend the ball to the left, left-footers to the right (inside curl); corner takers who can swing the ball
+  in are preferred, free-kick takers aim at the side their curl brings the ball back to.
+
 ### Next tuning targets
 - Shots (33 vs 26) and saves are high; corners (8.6 vs 10.2) and throw-ins (19 vs ~40) are low.
 - Throw-ins, corners and offsides are below real values (more play close to the touchline, deflections behind, and offside traps).

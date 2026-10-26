@@ -56,6 +56,10 @@ namespace SoccerVision.Simulation
         public float TackleCooldown;
         public float StunTimer;
         public float DecisionTimer;
+        /// <summary>Keeper's run-up before a long kick from the hands: 0 none, 1 walking back, 2 running up.</summary>
+        public int RunUpPhase;
+        public Vec2 RunUpFrom;
+        public float RunUpTimer;
         public float KickCooldown;
         public float RunTimer;
         public float RunCooldown;
@@ -111,7 +115,9 @@ namespace SoccerVision.Simulation
         public float FatigueFactor => 0.86f + 0.14f * MathF.Pow(MathUtil.Clamp01(Energy), 0.8f);
 
         /// <summary>Top sprint speed: 7.0..9.6 m/s (25-35 km/h, elite tracking data range).</summary>
-        public float MaxSpeed => (7.0f + 2.6f * MathUtil.A(Attr.Speed)) * FatigueFactor * (IsGoalkeeper ? 0.93f : 1f);
+        /// <summary>Taller players are a little slower over the ground (-0.12% per cm above 180), shorter ones a little quicker.</summary>
+        public float HeightAgility => 1f - MathUtil.Clamp((Profile.HeightCm - 180) * 0.0012f, -0.025f, 0.03f);
+        public float MaxSpeed => (7.0f + 2.6f * MathUtil.A(Attr.Speed)) * FatigueFactor * HeightAgility * (IsGoalkeeper ? 0.93f : 1f);
 
         public float MaxAccel => (3.2f + 2.6f * MathUtil.A(Attr.Acceleration)) * (0.9f + 0.1f * FatigueFactor);
 
@@ -126,7 +132,7 @@ namespace SoccerVision.Simulation
         public float FootReach => 0.75f;
 
         /// <summary>Highest ball centre the player can head (with a jump).</summary>
-        public float HeadReach => 2.15f + 0.55f * MathUtil.A(Attr.Jumping) + (Profile.HeightCm - 180) * 0.005f;
+        public float HeadReach => 2.15f + 0.55f * MathUtil.A(Attr.Jumping) + (Profile.HeightCm - 180) * 0.009f;
 
         public float GoalkeeperReach => 2.55f + 0.35f * MathUtil.A(Attr.Jumping) + (Profile.HeightCm - 185) * 0.006f;
 

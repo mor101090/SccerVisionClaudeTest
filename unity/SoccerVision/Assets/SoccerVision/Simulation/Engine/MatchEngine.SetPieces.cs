@@ -55,8 +55,58 @@ namespace SoccerVision.Simulation
             LayoutRestart(r);
             // IFAB: the whistle restarts kick-offs, penalties and free kicks where the 9.15 m distance is enforced;
             // throw-ins, goal kicks, corners and quick free kicks are taken without it.
+            ComputeRunUp(r);
             r.WaitForWhistle = type == RestartType.KickOff || type == RestartType.PenaltyKick || r.Wall.Count > 0;
             if (type == RestartType.KickOff && Vec2.Distance(Ball.Pos, Vec2.Zero) < 0.5f) r.BallPlaced = true;
+        }
+
+        /// <summary>
+        /// Real takers do not strike the ball from where they stand: they step back (4-6 m for a penalty or a free-kick shot,
+        /// diagonally behind the ball for a corner, 3-4 m for a goal kick) and run up to it.
+        /// </summary>
+        private void ComputeRunUp(Restart r)
+        {
+            r.HasRunUp = false;
+            r.RunningUp = false;
+            if (r.Taker == null) return;
+            var team = r.Team;
+            Vec2 dir;
+            float back;
+            switch (r.Type)
+            {
+                case RestartType.PenaltyKick:
+                    dir = (team.AttackGoal - r.Spot).Normalized;
+                    back = 4.6f;
+                    // A slight angle: the run comes from the side of the non-kicking foot.
+                    r.RunUpStart = r.Spot - dir * back + dir.Perp * (r.Taker.Attr.StrongFoot == Foot.Right ? 1.1f : -1.1f);
+                    break;
+                case RestartType.CornerKick:
+                    // Real corner takers step back diagonally into the pitch and run at the ball.
+                    r.RunUpStart = r.Spot + new Vec2(-MathF.Sign(r.Spot.X) * 3.6f, -MathF.Sign(r.Spot.Y) * 3.0f);
+                    break;
+                case RestartType.GoalKick:
+                    dir = team.DirToWorld(Vec2.UnitX);
+                    r.RunUpStart = r.Spot - dir * 3.6f;
+                    break;
+                case RestartType.DirectFreeKick:
+                case RestartType.IndirectFreeKick:
+                    if (r.Wall.Count > 0)
+                    {
+                        dir = (team.AttackGoal - r.Spot).Normalized;
+                        back = IsDangerousFreeKick(r) && r.Type == RestartType.DirectFreeKick ? 5.5f : 3.5f;
+                    }
+                    else
+                    {
+                        dir = team.DirToWorld(Vec2.UnitX);
+                        back = 2.5f;
+                    }
+                    r.RunUpStart = r.Spot - dir * back + dir.Perp * (r.Taker.Attr.StrongFoot == Foot.Right ? 0.6f : -0.6f);
+                    break;
+                default:
+                    return; // throw-ins and kick-offs: no run-up
+            }
+            r.RunUpStart = Pitch.ClampToField(r.RunUpStart, 3f);
+            r.HasRunUp = Vec2.Distance(r.RunUpStart, r.Spot) > 1.5f;
         }
 
         private bool IsDangerousFreeKick(Restart r)
@@ -94,6 +144,12 @@ namespace SoccerVision.Simulation
                     case RestartType.CornerKick:
                         if (p.IsGoalkeeper) { score = -1000f; break; }
                         score = p.Attr.Crossing + 0.3f * p.Attr.FreeKicks - (p.Slot.IsCentreBack ? 40f : 0f) - (p.Slot.Line == Line.Attack ? 15f : 0f);
+                        {
+                            // The foot that swings the ball towards goal (in-swinger) is preferred.
+                            Vec2 toBox = (team.ToWorld(46f, 0f) - r.Spot).Normalized;
+                            Vec2 toGoal = (team.AttackGoal - r.Spot).Normalized;
+                            if (MathF.Sign(Vec2.Cross(toBox, toGoal)) == NaturalCurlSign(p)) score += 14f;
+                        }
                         break;
                     case RestartType.PenaltyKick:
                         if (p.IsGoalkeeper) { score = -1000f; break; }
@@ -130,6 +186,7 @@ namespace SoccerVision.Simulation
                 case RestartType.ThrowIn:
                     return new Vec2(r.Spot.X, r.Spot.Y + MathF.Sign(r.Spot.Y) * 0.35f);
                 case RestartType.CornerKick:
+                    if (r.HasRunUp) return r.Spot + (r.RunUpStart - r.Spot).Normalized * 0.7f;
                     return r.Spot + new Vec2(MathF.Sign(r.Spot.X) * 0.45f, MathF.Sign(r.Spot.Y) * 0.45f);
                 case RestartType.PenaltyKick:
                     return r.Spot - (team.AttackGoal - r.Spot).Normalized * 2.2f;
@@ -331,7 +388,7 @@ namespace SoccerVision.Simulation
             // Best headers attack the box (centre-backs go up), the rest guard against the counter.
             var candidates = new List<PlayerAgent>();
             foreach (var p in att.Players) if (!p.SentOff && !p.IsGoalkeeper && p != r.Taker) candidates.Add(p);
-            candidates.Sort((x, y) => (y.Attr.Heading + y.Attr.Jumping).CompareTo(x.Attr.Heading + x.Attr.Jumping));
+            candidates.Sort((x, y) => (y.Attr.Heading + y.Attr.Jumping + (y.Profile.HeightCm - 180) * 1.2f).CompareTo(x.Attr.Heading + x.Attr.Jumping + (x.Profile.HeightCm - 180) * 1.2f));
             int zoneIndex = 0;
             var attackersInBox = new List<PlayerAgent>();
             int stayBack = Math.Max(2, candidates.Count - zones.Length);
@@ -588,6 +645,8 @@ namespace SoccerVision.Simulation
             }
 
             Vec2 approach = ApproachPoint(r);
+            // The taker first walks back to the start of his run-up, then runs up to the ball.
+            Vec2 moveTo = r.HasRunUp && !r.RunningUp ? r.RunUpStart : approach;
             foreach (var p in AllPlayers)
             {
                 if (p.SentOff)
@@ -599,8 +658,9 @@ namespace SoccerVision.Simulation
                 p.FaceBall = true;
                 if (p == r.Taker)
                 {
-                    p.Target = approach;
-                    p.Urgency = Vec2.Distance(p.Pos, approach) > 8f ? 0.8f : 0.5f;
+                    p.Target = moveTo;
+                    float run = r.RunningUp ? (r.Type == RestartType.PenaltyKick ? 0.5f : 0.62f) : (Vec2.Distance(p.Pos, moveTo) > 8f ? 0.8f : 0.4f);
+                    p.Urgency = run;
                 }
                 else
                 {
@@ -617,8 +677,8 @@ namespace SoccerVision.Simulation
                 Ball.Place(r.Taker.Pos + r.Taker.FacingDir * 0.15f, 2.15f);
             }
 
-            bool takerReady = r.Taker != null && Vec2.Distance(r.Taker.Pos, approach) < 0.7f;
-            bool ready = r.WhistleAt >= 0f || (r.BallPlaced && r.Timer >= r.SetupTime && takerReady && PlayersSettled(r));
+            bool takerReady = r.Taker != null && Vec2.Distance(r.Taker.Pos, moveTo) < 0.7f;
+            bool ready = r.RunningUp || r.WhistleAt >= 0f || (r.BallPlaced && r.Timer >= r.SetupTime && takerReady && PlayersSettled(r));
             if (!ready && r.Timer >= Config.MaxSetupSeconds)
             {
                 if (CollectDiagnostics) Count("restart.forced." + r.Type);
@@ -629,6 +689,7 @@ namespace SoccerVision.Simulation
                     r.Taker.Vel = Vec2.Zero;
                 }
                 if (!r.BallPlaced) { Ball.Place(r.Spot); r.BallPlaced = true; }
+                r.RunningUp = true; // skip the run-up: the taker was put at the ball
                 ready = r.Taker != null;
             }
             if (ready && r.WaitForWhistle)
@@ -641,6 +702,14 @@ namespace SoccerVision.Simulation
                 }
                 if (r.Timer - r.WhistleAt < Config.WhistleToKickRealSeconds * Config.MotionSpeed) return;
             }
+            if (ready && r.HasRunUp && !r.RunningUp)
+            {
+                // Whistle (if any) has been blown: now the run-up starts.
+                r.RunningUp = true;
+                r.RunUpBegan = r.Timer;
+                return;
+            }
+            if (ready && r.RunningUp && r.HasRunUp && r.Taker != null && Vec2.Distance(r.Taker.Pos, approach) > 0.5f && r.Timer - r.RunUpBegan < 4f * Config.MotionSpeed) return;
             if (ready)
             {
                 if (CollectDiagnostics) for (int k = 0; k < (int)r.Timer; k++) Count("restart.seconds." + r.Type);
@@ -984,6 +1053,12 @@ namespace SoccerVision.Simulation
             float nearSide = MathF.Abs(Ball.Pos.Y) > 0.5f ? MathF.Sign(Ball.Pos.Y) : 1f;
             // Over the wall into the corner the wall covers, or across to the keeper's side.
             float targetSide = _rng.Chance(0.6f) ? nearSide : -nearSide;
+            {
+                // Right-footers bend it left, left-footers right: they aim for the side their curl brings the ball back to.
+                Vec2 d0 = (new Vec2(Pitch.HalfLength * goalSign, targetSide * 2f) - Ball.Pos).Normalized;
+                float needed = -MathF.Sign(Vec2.Cross(d0, new Vec2(0f, targetSide)));
+                if (needed != NaturalCurlSign(taker) && _rng.Chance(0.8f)) targetSide = -targetSide;
+            }
             Vec2 aim = new Vec2(Pitch.HalfLength * goalSign, targetSide * (Pitch.GoalHalfWidth - 0.4f - 0.6f * (1f - skill)));
             float aimZ = _rng.Range(1.5f, 2.2f);
             Vec2 from = Ball.Pos;

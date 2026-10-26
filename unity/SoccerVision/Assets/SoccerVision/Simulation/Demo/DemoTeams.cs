@@ -102,7 +102,7 @@ namespace SoccerVision.Simulation
             a.PhysicalPower = R(62); a.BallControl = R(60); a.Dribbling = R(55); a.Acceleration = R(64); a.Speed = R(64);
             a.Jumping = R(60); a.Heading = R(52); a.Stamina = R(68); a.FreeKicks = R(45); a.Penalty = R(52);
             a.AerialAbility = R(18, 5); a.Handling = R(18, 5); a.Kicking = R(25, 6); a.OneOnOne = R(18, 5); a.Reflexes = R(20, 5);
-            int height = (int)MathF.Round(rng.Gaussian(180f, 6f));
+            int height = (int)MathF.Round(rng.Gaussian(178f, 6.5f));
 
             if (slot.Line == Line.Goalkeeper)
             {
@@ -116,7 +116,7 @@ namespace SoccerVision.Simulation
                 a.Tackling = R(70); a.Marking = R(70); a.Positioning = R(68); a.Heading = R(70); a.Jumping = R(68);
                 a.PhysicalPower = R(72); a.Speed = R(60); a.Acceleration = R(58); a.Passing = R(56); a.Dribbling = R(45);
                 a.Finishing = R(35); a.Aggression = R(62, 10);
-                height = (int)MathF.Round(rng.Gaussian(187f, 4f));
+                height = (int)MathF.Round(rng.Gaussian(190f, 4.5f));
             }
             else if (slot.IsFullBack)
             {
@@ -140,6 +140,7 @@ namespace SoccerVision.Simulation
                 a.Finishing = R(70); a.OffTheBall = R(68); a.Composure = R(64); a.Heading = R(64); a.Jumping = R(64);
                 a.Speed = R(70); a.Acceleration = R(70); a.Dribbling = R(64); a.BallControl = R(66); a.LongShots = R(58);
                 a.Penalty = R(66); a.PhysicalPower = R(66); a.Tackling = R(35); a.Marking = R(32);
+                height = (int)MathF.Round(rng.Gaussian(183f, 7f)); // a mix of target men and small quick forwards
             }
 
             // Foot preference: left-sided players are more often left-footed.

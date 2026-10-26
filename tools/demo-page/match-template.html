@@ -1,0 +1,305 @@
+<title>SoccerVision Demo Match</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800&display=swap">
+<style>
+/* Floodlit broadcast: one dark look on purpose (night match), pitch as the hero, data panels beneath. */
+:root {
+  --ground: #0d1411;
+  --panel: #151f1a;
+  --panel-2: #1c2922;
+  --rule: #2b3b32;
+  --text: #e8efe9;
+  --muted: #98ab9f;
+  --amber: #f2b31b;
+  --goal: #72de8f;
+  --foul: #ff7b6c;
+  --card: #ffd23f;
+  --chance: #ffb466;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--ground); color: var(--text); }
+body { font: 15px/1.5 var(--body); }
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-block: 16px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 14px;
+}
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.kicker { font: 700 13px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--amber); }
+h1 { margin: 2px 0 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--display); letter-spacing: .01em; text-wrap: balance; }
+.meta { color: var(--muted); font-size: 14px; }
+.board { margin-left: auto; display: flex; align-items: stretch; border-radius: 6px; overflow: hidden; font-family: var(--display); font-weight: 800; font-size: clamp(18px, 3vw, 26px); }
+.board > span { padding: 6px 12px; display: flex; align-items: center; background: #050806; }
+.board .chip { width: 8px; padding: 0; }
+.board .score { font-variant-numeric: tabular-nums; min-width: 78px; justify-content: center; }
+.board .min { background: var(--text); color: #0b0f0c; min-width: 74px; justify-content: center; font-variant-numeric: tabular-nums; }
+.board .add { background: #1d8a41; color: #fff; }
+.stage { position: relative; width: 100%; max-width: 100%; aspect-ratio: 115 / 78; border-radius: 10px; overflow: hidden; background: #1f4d29; }
+canvas { display: block; width: 100%; height: 100%; }
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.overlay[hidden] { display: none !important; }
+.overlay .box { pointer-events: auto; background: rgba(5, 8, 6, .86); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 20px; text-align: center; display: grid; gap: 8px; }
+.overlay .big { font: 800 28px/1 var(--display); letter-spacing: .04em; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+button { font: 600 14px/1 var(--body); color: var(--text); background: var(--panel-2); border: 1px solid var(--rule); border-radius: 6px; padding: 9px 12px; cursor: pointer; }
+button:hover { border-color: var(--amber); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--amber); color: #120d00; border-color: var(--amber); }
+.speeds { display: flex; gap: 4px; }
+#seek { flex: 1 1 220px; min-width: 0; accent-color: var(--amber); }
+.time { font: 600 14px var(--display); color: var(--muted); font-variant-numeric: tabular-nums; min-width: 92px; text-align: right; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 760px) { .cols { grid-template-columns: 1fr; } .board { margin-left: 0; } }
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.panel h2 { margin: 0 0 8px; font: 700 15px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+#feed { height: 260px; overflow-y: auto; display: grid; align-content: start; gap: 2px; font-size: 14px; }
+#feed div { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 6px; }
+#feed .m { color: var(--muted); font-variant-numeric: tabular-nums; }
+.tone-Goal { color: var(--goal); font-weight: 600; }
+.tone-Foul { color: var(--foul); }
+.tone-Card { color: var(--card); }
+.tone-Chance { color: var(--chance); }
+.tone-Info { color: #9fd0ff; }
+.pass { color: #b8c6bd; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+td { padding: 5px 4px; border-bottom: 1px solid var(--rule); text-align: center; }
+td.l { color: var(--muted); }
+.moments { display: grid; gap: 6px; margin-top: 12px; }
+.moments button { text-align: left; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 6px; padding: 8px 10px; line-height: 1.3; }
+.foot { color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="kicker">SoccerVision · engine demo</div>
+      <h1>Red Rovers v Blue Falcons</h1>
+      <div class="meta">4-4-2 v 4-4-2 · 10 real minutes per half + added time · 2 minute break</div>
+    </div>
+    <div class="board" aria-label="Scoreboard">
+      <span class="chip" id="hc"></span><span id="hn">RED</span><span class="score" id="sc">0 - 0</span><span id="an">BLU</span><span class="chip" id="ac"></span><span class="min" id="mn">1'</span><span class="add" id="ad" hidden></span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="pitch" aria-label="Pitch view of the match"></canvas>
+    <div class="overlay" id="ht" hidden>
+      <div class="box">
+        <div class="big">HALF TIME</div>
+        <div id="htText">Second half in 2:00</div>
+        <button id="skip" type="button">Skip the break</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="play" type="button">Pause</button>
+    <div class="speeds" role="group" aria-label="Playback speed">
+      <button type="button" data-speed="1" aria-pressed="true">1×</button>
+      <button type="button" data-speed="2" aria-pressed="false">2×</button>
+      <button type="button" data-speed="4" aria-pressed="false">4×</button>
+      <button type="button" data-speed="8" aria-pressed="false">8×</button>
+      <button type="button" data-speed="16" aria-pressed="false">16×</button>
+    </div>
+    <input id="seek" type="range" min="0" max="100" step="0.5" value="0" aria-label="Match position">
+    <span class="time" id="rt">0:00</span>
+  </div>
+
+  <div class="cols">
+    <section class="panel">
+      <h2>Live commentary</h2>
+      <div id="feed" aria-live="polite"></div>
+    </section>
+    <section class="panel">
+      <h2>Match facts</h2>
+      <table><tbody id="facts"></tbody></table>
+      <div class="moments" id="moments"></div>
+    </section>
+  </div>
+  <p class="foot">This is the real C# match engine (the same code that runs inside Unity), recorded at seed __SEED__ and replayed at its real pace. The clock runs 4.5× faster than real time, so 45 minutes take 10. The Unity build draws the same match with full graphics and sound.</p>
+</div>
+
+<script id="replay" type="application/json">__REPLAY__</script>
+<script>
+(function () {
+  "use strict";
+  var R = JSON.parse(document.getElementById("replay").textContent);
+  var F = R.frames, E = R.events, teams = [R.home, R.away];
+  var PB = 9, PS = 5, OB = PB + 22 * PS;
+  var t0 = F[0][0] / 100, tEnd = F[F.length - 1][0] / 100;
+  var secondHalfT = Infinity;
+  E.forEach(function (e) { if (e.type === "SecondHalfStart" && secondHalfT === Infinity) secondHalfT = e.t; });
+  var t = t0, playing = true, speed = 1;
+
+  var $ = function (id) { return document.getElementById(id); };
+  $("hn").textContent = R.home.shortName; $("an").textContent = R.away.shortName;
+  $("hc").style.background = R.home.kit.primary; $("ac").style.background = R.away.kit.primary;
+  var seek = $("seek"); seek.min = t0; seek.max = tEnd;
+
+  function ft(f) { return f[0] / 100; }
+  function find(time) {
+    var lo = 0, hi = F.length - 1;
+    if (time <= ft(F[0])) return 0;
+    if (time >= ft(F[hi])) return hi;
+    while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (ft(F[mid]) <= time) lo = mid; else hi = mid; }
+    return lo;
+  }
+  function lerp(a, b, k) { return a + (b - a) * k; }
+  function lerpA(a, b, k) { var d = b - a; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return a + d * k; }
+  function sample(time) {
+    var i = find(time), a = F[i], b = F[Math.min(i + 1, F.length - 1)];
+    var gap = ft(b) - ft(a), half = gap > 5;
+    var k = gap > 1e-6 && !half ? Math.max(0, Math.min(1, (time - ft(a)) / gap)) : 0;
+    var ps = [];
+    for (var p = 0; p < 22; p++) {
+      var o = PB + p * PS;
+      ps.push({ x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, f: lerpA(a[o + 2] / 100, b[o + 2] / 100, k), j: lerp(a[o + 3], b[o + 3], k) / 100, off: (a[o + 4] & 1) !== 0, gk: (a[o + 4] & 2) !== 0, bk: (a[o + 4] & 4) !== 0 });
+    }
+    var os = [];
+    for (var q = 0; q < 3; q++) { var oo = OB + q * 3; os.push({ x: lerp(a[oo], b[oo], k) / 10, y: lerp(a[oo + 1], b[oo + 1], k) / 10, flag: a[oo + 2] === 1 }); }
+    var jump = Math.hypot(b[5] - a[5], b[6] - a[6]) > 150, bk = jump ? 0 : k;
+    return { clock: lerp(a[1], b[1], half ? 0 : k), phase: a[2], hs: a[3], as: a[4], bx: lerp(a[5], b[5], bk) / 10, by: lerp(a[6], b[6], bk) / 10, bz: lerp(a[7], b[7], bk) / 100, owner: a[8], ps: ps, os: os, half: half };
+  }
+  function minuteText(clock, second) {
+    var end = second ? 5400 : 2700;
+    if (clock < end) return Math.floor(clock / 60) + 1 + "'";
+    return end / 60 + "+" + (Math.floor((clock - end) / 60) + 1) + "'";
+  }
+  function mmss(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+
+  // ---- drawing ---------------------------------------------------------------------------------------
+  var cv = $("pitch"), ctx = cv.getContext("2d"), W = 115, H = 78, view = { s: 1, ox: 0, oy: 0 };
+  function X(x) { return view.ox + x * view.s; }
+  function Y(y) { return view.oy - y * view.s; }
+  function resize() {
+    var dpr = window.devicePixelRatio || 1, r = cv.getBoundingClientRect();
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    view.s = Math.min(cv.width / W, cv.height / H); view.ox = cv.width / 2; view.oy = cv.height / 2;
+  }
+  window.addEventListener("resize", resize);
+  function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(X(x1), Y(y1)); ctx.lineTo(X(x2), Y(y2)); ctx.stroke(); }
+  function arc(x, y, r, a0, a1) { ctx.beginPath(); ctx.arc(X(x), Y(y), r * view.s, -a1, -a0); ctx.stroke(); }
+  function dot(x, y, r) { ctx.beginPath(); ctx.arc(X(x), Y(y), Math.max(1.5, r * view.s), 0, Math.PI * 2); ctx.fill(); }
+  function pitch() {
+    var s = view.s;
+    ctx.fillStyle = "#1f4d29"; ctx.fillRect(0, 0, cv.width, cv.height);
+    for (var i = 0; i < 18; i++) { ctx.fillStyle = i % 2 ? "#2f7a37" : "#2a7031"; ctx.fillRect(X(-52.5 + i * 105 / 18), Y(34), 105 / 18 * s + 1, 68 * s); }
+    ctx.strokeStyle = "rgba(240,244,240,.92)"; ctx.fillStyle = "rgba(240,244,240,.92)"; ctx.lineWidth = Math.max(1, .13 * s);
+    ctx.strokeRect(X(-52.5), Y(34), 105 * s, 68 * s); line(0, -34, 0, 34); arc(0, 0, 9.15, 0, Math.PI * 2); dot(0, 0, .2);
+    [-1, 1].forEach(function (sd) {
+      var gl = 52.5 * sd, pa = 36 * sd, ga = 47 * sd;
+      line(gl, -20.16, pa, -20.16); line(gl, 20.16, pa, 20.16); line(pa, -20.16, pa, 20.16);
+      line(gl, -9.16, ga, -9.16); line(gl, 9.16, ga, 9.16); line(ga, -9.16, ga, 9.16);
+      dot(41.5 * sd, 0, .15);
+      var h = Math.acos(5.5 / 9.15), c = sd > 0 ? Math.PI : 0; arc(41.5 * sd, 0, 9.15, c - h, c + h);
+      [-1, 1].forEach(function (cc) { var st = sd > 0 ? (cc > 0 ? Math.PI : Math.PI / 2) : (cc > 0 ? 1.5 * Math.PI : 0); arc(gl, 34 * cc, 1, st, st + Math.PI / 2); });
+      ctx.save(); ctx.strokeStyle = "rgba(230,236,230,.45)"; ctx.lineWidth = 1;
+      for (var y = -3.66; y <= 3.67; y += .5) line(gl, y, gl + 2 * sd, y);
+      for (var d = 0; d <= 2.01; d += .5) line(gl + d * sd, -3.66, gl + d * sd, 3.66);
+      ctx.restore(); ctx.save(); ctx.lineWidth = Math.max(2, .22 * s);
+      line(gl, -3.72, gl + 2 * sd, -3.72); line(gl, 3.72, gl + 2 * sd, 3.72); line(gl + 2 * sd, -3.72, gl + 2 * sd, 3.72); ctx.restore();
+    });
+  }
+  function disc(x, y, r, fill, stroke) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = stroke; ctx.stroke(); }
+  function entities(S, now) {
+    var s = view.s, r = .95 * s;
+    S.os.forEach(function (o, i) {
+      disc(X(o.x), Y(o.y), .78 * s, "#121212", "#f2c230");
+      if (i > 0 && o.flag) { ctx.fillStyle = "#f2b31b"; ctx.beginPath(); ctx.moveTo(X(o.x) + .2 * s, Y(o.y) - 1.7 * s); ctx.lineTo(X(o.x) + 1.4 * s, Y(o.y) - 1.25 * s); ctx.lineTo(X(o.x) + .2 * s, Y(o.y) - .8 * s); ctx.fill(); }
+    });
+    [[-52.5, -34], [-52.5, 34], [52.5, -34], [52.5, 34]].forEach(function (c, i) {
+      var w = Math.sin(now * 3.2 + i) * .15; ctx.fillStyle = "#ffc21a"; ctx.beginPath();
+      ctx.moveTo(X(c[0]), Y(c[1]) - 1.4 * s); ctx.lineTo(X(c[0]) + .9 * s, Y(c[1]) - (1.15 + w) * s); ctx.lineTo(X(c[0]), Y(c[1]) - .9 * s); ctx.fill();
+    });
+    S.ps.forEach(function (p, i) {
+      if (p.off && Math.abs(p.y) > 35.5) return;
+      var tm = teams[i < 11 ? 0 : 1], info = tm.players[i % 11], x = X(p.x), y = Y(p.y), g = 1 + Math.min(1.2, Math.max(0, p.j)) * .45;
+      ctx.fillStyle = "rgba(0,0,0," + (.3 * (1 - Math.min(1, p.j) * .4)) + ")"; ctx.beginPath(); ctx.ellipse(x + .15 * s, y + .2 * s, r * 1.05, r * .95, 0, 0, Math.PI * 2); ctx.fill();
+      var fx = Math.cos(p.f), fy = -Math.sin(p.f); ctx.fillStyle = "#141414";
+      [-1, 1].forEach(function (k) { ctx.beginPath(); ctx.arc(x + fx * r * .62 - fy * r * .42 * k, y + fy * r * .62 + fx * r * .42 * k, r * .3, 0, Math.PI * 2); ctx.fill(); });
+      disc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary, tm.kit.secondary);
+      ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * g * 1.05) + "px Barlow, system-ui, sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(info.number), x, y + .5);
+      if (p.bk) { ctx.fillStyle = "#ffd23f"; ctx.fillRect(x + r * .55, y - r * 1.05, r * .32, r * .45); }
+    });
+    var h = Math.max(0, S.bz - .11), bx = X(S.bx), by = Y(S.by);
+    ctx.fillStyle = "rgba(0,0,0," + Math.max(.12, .45 - h * .035) + ")"; ctx.beginPath(); ctx.arc(bx, by, .42 * s * Math.max(.45, 1 - h * .05), 0, Math.PI * 2); ctx.fill();
+    disc(bx, by, .38 * s * (1 + Math.min(20, h) * .09), "#ffffff", "#111111");
+    if (S.owner >= 0 && S.phase === 0) {
+      var o = S.ps[S.owner], tm2 = teams[S.owner < 11 ? 0 : 1], inf = tm2.players[S.owner % 11], label = "#" + inf.number + " – " + inf.shortName;
+      ctx.font = "600 " + Math.max(11, s) + "px Barlow, system-ui, sans-serif"; var w = ctx.measureText(label).width + 12, lx = X(o.x), ly = Y(o.y) + r * 2.2;
+      ctx.fillStyle = "rgba(5,8,6,.75)"; ctx.fillRect(lx - w / 2, ly - .65 * s, w, 1.3 * s); ctx.fillStyle = "#fff"; ctx.fillText(label, lx, ly);
+    }
+  }
+
+  // ---- panels ----------------------------------------------------------------------------------------
+  var feed = $("feed"), shown = -1, KEY = { Goal: 1, YellowCard: 1, RedCard: 1, PenaltyAwarded: 1 };
+  var moments = $("moments");
+  E.forEach(function (e) {
+    if (!KEY[e.type]) return;
+    var b = document.createElement("button"); b.type = "button";
+    b.innerHTML = '<span class="m"></span><span></span>';
+    b.children[0].textContent = e.minute; b.children[1].textContent = e.text; b.children[1].className = "tone-" + e.tone;
+    b.addEventListener("click", function () { jump(Math.max(t0, e.t - 8)); });
+    moments.appendChild(b);
+  });
+  function rebuildFeed() {
+    var last = 0; while (last < E.length && E[last].t <= t) last++;
+    if (last === shown) return;
+    feed.textContent = "";
+    var lines = [];
+    for (var i = last - 1; i >= 0 && lines.length < 80; i--) { var e = E[i]; if (e.type === "Whistle" || !e.text) continue; lines.push(e); }
+    lines.reverse().forEach(function (e) {
+      var d = document.createElement("div"), m = document.createElement("span"), tx = document.createElement("span");
+      m.className = "m"; m.textContent = e.minute; tx.textContent = e.text; tx.className = e.type === "Pass" ? "pass" : "tone-" + e.tone;
+      d.appendChild(m); d.appendChild(tx); feed.appendChild(d);
+    });
+    feed.scrollTop = feed.scrollHeight; shown = last;
+    var c = { Shot: [0, 0], Corner: [0, 0], Foul: [0, 0], YellowCard: [0, 0], RedCard: [0, 0], Offside: [0, 0], Save: [0, 0] };
+    for (var j = 0; j < last; j++) { var ev = E[j]; if (c[ev.type] && ev.team >= 0) c[ev.type][ev.team]++; }
+    var rows = [["Shots", c.Shot], ["Saves", c.Save], ["Corners", c.Corner], ["Fouls", c.Foul], ["Offsides", c.Offside], ["Yellow cards", c.YellowCard], ["Red cards", c.RedCard]];
+    $("facts").innerHTML = rows.map(function (r) { return "<tr><td>" + r[1][0] + '</td><td class="l">' + r[0] + "</td><td>" + r[1][1] + "</td></tr>"; }).join("");
+  }
+  function jump(to) { t = Math.max(t0, Math.min(tEnd, to)); shown = -1; }
+
+  $("play").addEventListener("click", function () { playing = !playing; this.textContent = playing ? "Pause" : "Play"; });
+  document.querySelectorAll("[data-speed]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      speed = +b.getAttribute("data-speed");
+      document.querySelectorAll("[data-speed]").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+    });
+  });
+  seek.addEventListener("input", function () { jump(+seek.value); });
+  $("skip").addEventListener("click", function () { jump(secondHalfT + .01); });
+
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(.25, (now - last) / 1000); last = now;
+    if (playing && t < tEnd) t = Math.min(tEnd, t + dt * speed);
+    if (!cv.width) resize();
+    var S = sample(t), second = t >= secondHalfT, ended = t >= tEnd;
+    pitch(); entities(S, now / 1000);
+    $("sc").textContent = S.hs + " - " + S.as;
+    var mt = S.half ? "HT" : ended ? "FT" : minuteText(S.clock, second);
+    $("mn").textContent = mt;
+    var inAdded = mt.indexOf("+") > 0;
+    $("ad").hidden = !inAdded;
+    if (inAdded) $("ad").textContent = "+" + addedMinutes[second ? 1 : 0];
+    $("ht").hidden = !S.half;
+    if (S.half) $("htText").textContent = "Second half in " + mmss(secondHalfT - t);
+    seek.value = t; $("rt").textContent = mmss(t - t0) + " / " + mmss(tEnd - t0);
+    rebuildFeed();
+    requestAnimationFrame(frame);
+  }
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>

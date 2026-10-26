@@ -520,11 +520,11 @@ namespace SoccerVision.Simulation
                     if (p.RunTimer <= 0f && p.RunCooldown <= 0f && carrierF > -25f && pressure < 0.6f)
                     {
                         float willing = 0.2f + 0.4f * MathUtil.A(p.Attr.OffTheBall) + 0.25f * team.Tactics.Mentality;
-                        if (_rng.Chance(willing * 0.35f))
+                        if (_rng.Chance(willing * 0.45f))
                         {
                             p.RunTimer = _rng.Range(2.2f, 3.6f);
                             // Imperfect timing: low off-the-ball players drift offside more often.
-                            float timingError = _rng.Gaussian(0.5f, 2.0f * (1.4f - MathUtil.A(p.Attr.OffTheBall)));
+                            float timingError = _rng.Gaussian(0.9f, 2.0f * (1.4f - MathUtil.A(p.Attr.OffTheBall)));
                             float lateral = MathUtil.Clamp(team.Lateral(p.Pos) * 0.8f + _rng.Range(-6f, 6f), -26f, 26f);
                             p.RunPlan = new Vec2(timingError, lateral); // (overshoot beyond the line, lateral) in local space
                         }
