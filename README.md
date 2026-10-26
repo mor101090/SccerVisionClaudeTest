@@ -43,7 +43,7 @@ Game, it reaches 90 minutes plus added time with:
 A standalone page with six full matches played by the real C# engine (a "New match" button picks another one),
 with sound, commentary, key moments (goals, penalties, offsides, free kicks). It is `docs/index.html`:
 
-- Open it right now (no setup): <https://raw.githack.com/mor101090/SccerVisionClaudeTest/feature/broadcast-view-offside-referee/docs/index.html>
+- Open it right now (no setup): <https://raw.githack.com/mor101090/SccerVisionClaudeTest/fix/ball-spin-corner-bounds-goal-colours-hud-sounds/docs/index.html>
 - Or enable GitHub Pages once (Settings > Pages > Deploy from a branch > this branch, folder `/docs`); it is then served at
   <https://mor101090.github.io/SccerVisionClaudeTest/>.
 - Rebuild it after changing the engine: `tools/demo-page/build.sh` (needs the .NET 8 SDK, node and python3).
