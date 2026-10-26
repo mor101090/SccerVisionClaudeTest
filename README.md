@@ -41,12 +41,16 @@ Game, it reaches 90 minutes plus added time with:
 ## Play the demo match in your browser
 
 A standalone page with six full matches played by the real C# engine (a "New match" button picks another one),
-with sound, commentary, key moments (goals, penalties, offsides, free kicks). It is `docs/index.html`:
+with sound, commentary and key moments (goals, penalties, offsides, free kicks).
 
-- Open it right now (no setup): <https://raw.githack.com/mor101090/SccerVisionClaudeTest/fix/ball-spin-corner-bounds-goal-colours-hud-sounds/docs/index.html>
-- Or enable GitHub Pages once (Settings > Pages > Deploy from a branch > this branch, folder `/docs`); it is then served at
-  <https://mor101090.github.io/SccerVisionClaudeTest/>.
-- Rebuild it after changing the engine: `tools/demo-page/build.sh` (needs the .NET 8 SDK, node and python3).
+**One fixed link, always the latest change** - a GitHub Action (`.github/workflows/publish-demo.yml`) rebuilds the page on every
+push to any branch and publishes it to the `demo` branch (about 3 minutes after the push):
+
+- <https://raw.githack.com/mor101090/SccerVisionClaudeTest/demo/index.html> (works right away)
+- <https://mor101090.github.io/SccerVisionClaudeTest/> after enabling GitHub Pages once (Settings > Pages > Deploy from a
+  branch > `demo`, folder `/ (root)`).
+
+To build it yourself: `tools/demo-page/build.sh` (needs the .NET 8 SDK, node and python3; writes the git-ignored `docs/index.html`).
 
 ## Repository layout
 
@@ -61,8 +65,8 @@ sim/                                .NET 8 solution compiling the same engine so
   SoccerVision.Simulation.Tests/    xUnit: full matches, laws at every restart, physics, determinism
   SoccerVision.SimRunner/           CLI: calibration statistics, timelines, replay export
 web/                                React 19 + Vite + TypeScript shell (react-unity-webgl 10)
-docs/                               ARCHITECTURE.md, RESEARCH.md, index.html (the playable demo page)
-tools/demo-page/                    builds docs/index.html from the engine
+docs/                               ARCHITECTURE.md, RESEARCH.md
+tools/demo-page/                    builds the playable demo page from the engine (published by CI)
 ```
 
 ## Running it

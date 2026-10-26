@@ -1,0 +1,46 @@
+# Rebuilds the playable demo page on every push (any branch) and publishes it to the `demo` branch, so one fixed link always
+# shows the latest change:
+#   https://mor101090.github.io/SccerVisionClaudeTest/             (GitHub Pages, source = branch `demo`, folder `/`)
+#   https://raw.githack.com/mor101090/SccerVisionClaudeTest/demo/index.html   (works without enabling Pages)
+name: Publish demo page
+
+on:
+  push:
+    branches-ignore: [demo]
+  workflow_dispatch:
+
+# only the newest push matters
+concurrency:
+  group: publish-demo
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build the demo page
+        run: tools/demo-page/build.sh
+      - name: Publish to the demo branch
+        run: |
+          mkdir /tmp/pub
+          cp docs/index.html /tmp/pub/index.html
+          touch /tmp/pub/.nojekyll
+          printf 'Built from %s (%s) at %s\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" "$(date -u +%FT%TZ)" > /tmp/pub/BUILD.txt
+          cd /tmp/pub
+          git init -q -b demo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Demo page built from ${GITHUB_SHA::7} (${GITHUB_REF_NAME})"
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" demo

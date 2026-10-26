@@ -2,6 +2,12 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `chore/auto-publish-demo-page`
+
+- **Automatic demo link**: `.github/workflows/publish-demo.yml` rebuilds the playable demo page on every push to any branch and
+  publishes it to the `demo` branch, so one fixed link (README) always shows the latest change. The built page
+  (`docs/index.html`, 12 MB) is no longer committed; it is git-ignored and produced by `tools/demo-page/build.sh`.
+
 ## `fix/ball-spin-corner-bounds-goal-colours-hud-sounds`
 
 - **Ball spin**: a ball held by the goalkeeper or carried overhead for a throw-in no longer rotates (it only rolls when it is
