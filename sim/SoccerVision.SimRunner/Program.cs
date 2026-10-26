@@ -115,7 +115,8 @@ if (args.Contains("--scan"))
         var log = e.EventLog;
         Console.WriteLine($"seed {seed + (ulong)i,6}  {e.Home.Score}-{e.Away.Score}  pens {log.Count(x => x.Type == MatchEventType.PenaltyAwarded)}"
             + $"  fkShots {log.Count(x => x.Type == MatchEventType.Shot && x.Detail == 3)}  wallFks {log.Count(x => x.Type == MatchEventType.FreeKick && x.Detail == 1)}"
-            + $"  cards {log.Count(x => x.Type == MatchEventType.YellowCard)}/{log.Count(x => x.Type == MatchEventType.RedCard)}  woodwork {log.Count(x => x.Type == MatchEventType.HitWoodwork)}");
+            + $"  cards {log.Count(x => x.Type == MatchEventType.YellowCard)}/{log.Count(x => x.Type == MatchEventType.RedCard)}  woodwork {log.Count(x => x.Type == MatchEventType.HitWoodwork)}"
+            + $"  offsides {log.Count(x => x.Type == MatchEventType.Offside)}  headerGoals {log.Count(x => x.Type == MatchEventType.Goal && x.Detail == 5)}  volleyGoals {log.Count(x => x.Type == MatchEventType.Goal && x.Detail == 1)}");
     }
 }
 
@@ -149,14 +150,14 @@ static void Report(MatchResult[] r, double wallSeconds)
     void Row(string name, double v, string reference) => Console.WriteLine($"  {name,-26}{v,7:0.00}   {reference}");
     Row("Goals", Avg(x => x.Goals), "2.7-3.0 (PL 24/25: 2.97)");
     Row("xG", Avg(x => x.Xg), "~ goals");
-    Row("Shots", Avg(x => x.Shots), "24-27");
+    Row("Shots", Avg(x => x.Shots), "PL 24/25: 25.9");
     Row("Shots on target", Avg(x => x.ShotsOnTarget), "8-9");
     Row("Shots blocked", Avg(x => x.ShotsBlocked), "6-7");
-    Row("Corners", Avg(x => x.Corners), "9.3-10.7");
-    Row("Fouls", Avg(x => x.Fouls), "20-24");
+    Row("Corners", Avg(x => x.Corners), "PL 24/25: 10.2");
+    Row("Fouls", Avg(x => x.Fouls), "PL 24/25: 22.1");
     Row("Yellow cards", Avg(x => x.Yellows), "3.5-4.3 (PL 24/25: 4.19)");
     Row("Red cards", Avg(x => x.Reds), "0.10-0.15");
-    Row("Offsides", Avg(x => x.Offsides), "3.5-4.5");
+    Row("Offsides", Avg(x => x.Offsides), "PL 24/25: 3.38");
     Row("Throw-ins", Avg(x => x.ThrowIns), "39-43");
     Row("Goal kicks", Avg(x => x.GoalKicks), "14-18");
     Row("Free kicks", Avg(x => x.FreeKicks), "~ fouls + offsides");
@@ -167,6 +168,13 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Headed shots", Avg(x => x.Headers), "n/a");
     Row("Volleys", Avg(x => x.Volleys), "n/a");
     Row("Direct free-kick shots", Avg(x => x.FreeKickShots), "~0.6-1");
+    Row("Headed goals % of goals", 100.0 * r.Sum(x => x.HeaderGoals) / Math.Max(1, r.Sum(x => x.Goals)), "13-19 (PL)");
+    Row("Volley goals % of goals", 100.0 * r.Sum(x => x.VolleyGoals) / Math.Max(1, r.Sum(x => x.Goals)), "n/a");
+    Row("Free-kick goals", Avg(x => x.FreeKickGoals), "~0.05-0.1");
+    Row("Woodwork hits", Avg(x => x.Woodwork), "~0.6-0.8 (est.)");
+    Row("Keeper catches", Avg(x => x.Catches), "n/a");
+    Row("Keeper parries", Avg(x => x.Parries), "n/a");
+    Row("Keeper punches", Avg(x => x.Punches), "~1-2");
     Row("Cut-inside shots", Avg(x => x.CutIns), "n/a");
     Row("Passes", Avg(x => x.Passes), "850-1000 (in 57 min ball-in-play)");
     Row("Pass completion %", Avg(x => x.PassPct), "80-85");
@@ -198,7 +206,6 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
         engine.Advance(dt);
         foreach (var e in engine.DrainEvents())
         {
-            if (e.Type == MatchEventType.NetHit) continue;
             events.Add(new
             {
                 t = Math.Round(engine.RealTimeElapsed, 2),
@@ -209,6 +216,9 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
                 whistle = e.Type == MatchEventType.Whistle ? e.Whistle.ToString() : null,
                 tone = Commentary.ToneOf(e.Type).ToString(),
                 detail = e.Detail,
+                x = Math.Round(e.X, 1),
+                y = Math.Round(e.Y, 1),
+                v = Math.Round(e.Value, 1),
             });
         }
         if (engine.Phase == MatchPhase.HalfTimeBreak) continue;
@@ -284,7 +294,7 @@ sealed class MatchResult
     public bool Finished;
     public int RecoveredErrors;
     public double WallMs;
-    public int Headers, Volleys, CutIns, FreeKickShots, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles;
+    public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles;
     public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy;
     public string Score;
 
@@ -319,6 +329,13 @@ sealed class MatchResult
             Headers = h.Headers + a.Headers,
             Volleys = h.Volleys + a.Volleys,
             FreeKickShots = h.FreeKickShots + a.FreeKickShots,
+            HeaderGoals = h.HeaderGoals + a.HeaderGoals,
+            VolleyGoals = h.VolleyGoals + a.VolleyGoals,
+            FreeKickGoals = h.FreeKickGoals + a.FreeKickGoals,
+            Woodwork = h.WoodworkHits + a.WoodworkHits,
+            Catches = h.KeeperCatches + a.KeeperCatches,
+            Parries = h.KeeperParries + a.KeeperParries,
+            Punches = h.KeeperPunches + a.KeeperPunches,
             CutIns = h.CutInShots + a.CutInShots,
             Passes = passes,
             Tackles = h.Tackles + a.Tackles,

@@ -618,7 +618,7 @@ namespace SoccerVision.Simulation
             }
 
             bool takerReady = r.Taker != null && Vec2.Distance(r.Taker.Pos, approach) < 0.7f;
-            bool ready = r.BallPlaced && r.Timer >= r.SetupTime && takerReady && PlayersSettled(r);
+            bool ready = r.WhistleAt >= 0f || (r.BallPlaced && r.Timer >= r.SetupTime && takerReady && PlayersSettled(r));
             if (!ready && r.Timer >= Config.MaxSetupSeconds)
             {
                 if (CollectDiagnostics) Count("restart.forced." + r.Type);
@@ -630,6 +630,16 @@ namespace SoccerVision.Simulation
                 }
                 if (!r.BallPlaced) { Ball.Place(r.Spot); r.BallPlaced = true; }
                 ready = r.Taker != null;
+            }
+            if (ready && r.WaitForWhistle)
+            {
+                // The referee whistles; the taker waits a moment before playing the ball (players hold position).
+                if (r.WhistleAt < 0f)
+                {
+                    r.WhistleAt = r.Timer;
+                    Whistle(WhistleKind.Short);
+                }
+                if (r.Timer - r.WhistleAt < Config.WhistleToKickRealSeconds * Config.MotionSpeed) return;
             }
             if (ready)
             {
@@ -760,7 +770,6 @@ namespace SoccerVision.Simulation
                             Clock.Running = true;
                             _periodRealStart = RealTimeElapsed;
                         }
-                        Whistle(WhistleKind.Short);
                         Emit(MatchEventType.KickOff, r.Team, taker, null, spot);
                         r.Team.KickOffsTaken++;
                         ExecuteKickOff(taker);
@@ -775,11 +784,9 @@ namespace SoccerVision.Simulation
                         ExecuteCorner(taker);
                         break;
                     case RestartType.PenaltyKick:
-                        Whistle(WhistleKind.Short);
                         ExecutePenalty(taker);
                         break;
                     default:
-                        if (r.WaitForWhistle) Whistle(WhistleKind.Short);
                         ExecuteFreeKick(taker, r);
                         break;
                 }
@@ -1001,6 +1008,9 @@ namespace SoccerVision.Simulation
             Ball.ShotOnTarget = true;
             team.Stats.Shots++;
             team.Stats.FreeKickShots++;
+            _lastShotTime = SimTime;
+            _shotCountedOnTarget = false;
+            _lastShotKind = 3;
             team.Stats.ExpectedGoals += xg;
             taker.Shots++;
             Emit(MatchEventType.Shot, team, taker, null, from, xg, WhistleKind.Short, 3);

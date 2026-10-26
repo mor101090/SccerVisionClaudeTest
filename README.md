@@ -20,6 +20,11 @@ Game, it reaches 90 minutes plus added time with:
 - a home crowd that roars for home goals, falls silent for away goals, boos the visitors' fouls, and "ooh"s and groans at chances,
 - six goal celebrations (corner run, run to the fans, knee slide, hug with the assister, solo lap, and the rarer team
   huddle). Only the scorer and a few team-mates take part; the others jog back,
+- a goal net that bulges and ripples where the ball hits it, and posts and a crossbar that flash when the ball rattles them,
+- an offside flag that stays up for several seconds while the assistant stands in line with the offence, and the
+  referee's whistle followed by a short pause before kick-offs, penalties and free kicks with a wall,
+- goalkeepers who catch, parry (over the bar, round the post or away) and punch,
+- a **Pace** slider (50-100%) in every viewer, to find the most natural match speed,
 - goalkeeper sorties, headers with physically timed leaps, volleys, cut-inside shots from the wing, free kicks over the
   wall, a scoreboard, live commentary, a skills tooltip on hover, and the ball's height illusion and shadow.
 
@@ -45,7 +50,7 @@ docs/                               ARCHITECTURE.md, RESEARCH.md
 1. Install **Unity 6.3 LTS** (6000.3.x) with the WebGL module.
 2. In Unity Hub, choose **Add > Add project from disk** and select `unity/SoccerVision`.
 3. Press **Play** in any scene. A match controller spawns automatically. To get a saved scene, use **SoccerVision > Create Match Scene**.
-4. Keys: `Space` pause, `1`/`2`/`3`/`4` speed x1/x2/x4/x8 (for testing; x1 gives the real 10-minute halves), `H` toggles the HUD, `R` starts a new match.
+4. Keys: `Space` pause, `1`/`2`/`3`/`4` speed x1/x2/x4/x8 (for testing; x1 gives the real 10-minute halves), `H` toggles the HUD, `R` starts a new match, `-`/`=` change the match pace (also a slider in the HUD).
 
 ### Inside React (WebGL)
 1. In Unity, run **SoccerVision > Build WebGL for React**. It writes to `web/public/unity/SoccerVision`.
@@ -62,14 +67,14 @@ docs/                               ARCHITECTURE.md, RESEARCH.md
 
 | per match | engine | top leagues |
 |---|---|---|
-| goals | 2.75 | 2.7-3.0 |
-| fouls / yellow / red | 20.7 / 3.5 / 0.12 | 20-24 / 3.5-4.3 / 0.10-0.15 |
-| penalties (converted) | 0.38 (76%) | 0.25-0.35 (75-80%) |
-| direct free-kick shots | 0.63 | 0.6-1 |
+| goals | 2.99 | 2.97 (PL 24/25) |
+| offsides | 3.27 | 3.38 |
+| fouls / yellow / red | 20.5 / 3.9 / 0.12 | 22.1 / 4.2 / 0.14 |
+| corners | 8.6 | 10.2 |
+| headed goals | 15% of goals | 13-19% |
+| penalties (converted) | 0.25 (68%) | 0.25-0.35 (75-80%) |
+| direct free-kick shots | 0.64 | 0.6-1 |
 | pass completion | 83% | 80-85% |
-| shots blocked | 6.7 | 6-7 |
-| added time 1st / 2nd half | 2.3 / 3.4 min | 1-3 / 3-7 min |
-| real duration 1st half / break / 2nd half | 630 s / 120 s / 646 s | 600 s + added / 120 s / 600 s + added |
 
-There are known gaps to tune next: shots (33 vs 25), corners (6.3 vs ~10), throw-ins (20 vs ~40) and offsides (3.1 vs ~4).
+There are known gaps to tune next: shots (33 vs 26), corners (8.6 vs 10.2) and throw-ins (19 vs ~40).
 See `docs/RESEARCH.md`.

@@ -51,6 +51,7 @@ function UnityPlayer() {
   const [ready, setReady] = useState<MatchReady | null>(null);
   const [state, setState] = useState<MatchState | null>(null);
   const [lines, setLines] = useState<CommentLine[]>([]);
+  const [pace, setPace] = useState(100);
 
   const send = useCallback((cmd: BridgeCommand) => sendMessage(BRIDGE_OBJECT, BRIDGE_METHOD, JSON.stringify(cmd)), [sendMessage]);
 
@@ -122,6 +123,22 @@ function UnityPlayer() {
             <button onClick={() => send({ type: "togglePause" })}>{state?.paused ? "Play" : "Pause"}</button>
             <button onClick={() => send({ type: "setSpeed", value: state && state.speed < 8 ? state.speed * 2 : 1 })}>x{state?.speed ?? 1}</button>
             <button onClick={() => send({ type: "restart" })}>New match</button>
+            <label className="pace">
+              Pace {pace}%
+              <input
+                type="range"
+                min={50}
+                max={100}
+                step={5}
+                value={pace}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setPace(value);
+                  send({ type: "setPace", value });
+                }}
+                aria-label="Match pace"
+              />
+            </label>
           </div>
           {state && (
             <StatsTable

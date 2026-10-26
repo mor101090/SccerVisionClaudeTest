@@ -113,31 +113,35 @@ free kick 20, penalty 40, goal to kick-off ≈ 40.
 ## Calibration snapshot
 
 Run: `dotnet run -c Release --project sim/SoccerVision.SimRunner -- --matches 100 --seed 9000`.
+Real references: Premier League 2024/25, 380 matches, club totals from StatMuse summed and divided by 380:
+offsides 1,284 → **3.38**, fouls 8,389 → **22.1**, corners ≈3,891 → **10.2**, shots 9,846 → **25.9** per match.
+<https://www.statmuse.com/fc/ask/premier-league-team-offsides-2024-25>,
+<https://www.statmuse.com/fc/ask?q=premier+league+team+stats+most+corners+per+game+2024-25>.
+Headed goals are 13-19% of all Premier League goals per season (13.3-13.6% in 2019/20, 19.3% in 2010/11).
+<https://www.premierleague.com/news/1657048>
 
 ```
 Matches: 100   Finished: 100/100   recovered errors: 0
-Per match (both teams)        sim     real-world reference (top leagues)
-  Goals                        2.75   2.7-3.0 (PL 24/25: 2.97)
-  Shots                       33.16   24-27
-  Shots on target             14.82   8-9
-  Shots blocked                6.74   6-7
-  Corners                      6.27   9.3-10.7
-  Fouls                       20.65   20-24
-  Yellow cards                 3.49   3.5-4.3
-  Red cards                    0.12   0.10-0.15
-  Offsides                     3.08   3.5-4.5
-  Throw-ins                   19.98   39-43
-  Goal kicks                  18.08   14-18
-  Free kicks                  13.48   ~ fouls + offsides
-  Penalties                    0.38   0.25-0.35
-  Penalty conversion %        76.32   75-80
-  Direct free-kick shots       0.63   ~0.6-1
-  Pass completion %           82.81   80-85
-  Home possession %           51.68   50 +/- 15
-  Added time 1st / 2nd half    2.27 / 3.36 min
-  Real 1st half / break / 2nd  630.3 s / 120.0 s / 646.1 s
-Goals distribution: 0:3 1:18 2:30 3:24 4:10 5:8 6:5 7:1 8:1
+Per match (both teams)        sim     real-world reference
+  Goals                        2.99   PL 24/25: 2.97
+  Shots                       33.50   PL 24/25: 25.9
+  Shots on target             13.52   8-9
+  Corners                      8.64   PL 24/25: 10.2
+  Fouls                       20.47   PL 24/25: 22.1
+  Yellow / red cards     3.86 / 0.12   4.19 / 0.14
+  Offsides                     3.27   PL 24/25: 3.38
+  Penalties                    0.25   0.25-0.35
+  Direct free-kick shots       0.64   ~0.6-1
+  Headed goals % of goals     15.4    13-19
+  Volley goals % of goals      9.7    n/a
+  Woodwork hits                0.62   ~0.6-0.8 (estimate)
+  Keeper catches / parries / punches   16.6 / 7.8 / 1.8
+  Pass completion %           82.8    80-85
 ```
+
+Tuning in this round: crosses can be blocked by the defender closing the crosser (it usually loops towards
+the goal line, often for a corner); shots have a wider aim error (real on-target share is about 33%); keepers save a little
+less, and much less against close-range headers.
 
 ### Why per-match totals cannot all match reality exactly
 
@@ -147,5 +151,5 @@ events must happen about 1.5× more often per minute of play than in reality. Th
 rather than 900. Raising `MotionSpeed` packs more football into the 20 minutes; the cost is faster-looking players.
 
 ### Next tuning targets
-- Shots and shots on target are high (goals are now on the league average).
+- Shots (33 vs 26) and saves are high; corners (8.6 vs 10.2) and throw-ins (19 vs ~40) are low.
 - Throw-ins, corners and offsides are below real values (more play close to the touchline, deflections behind, and offside traps).

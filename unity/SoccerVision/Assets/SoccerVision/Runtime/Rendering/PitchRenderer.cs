@@ -23,7 +23,6 @@ namespace SoccerVision.Runtime
         private static readonly Color32 GrassB = new Color32(56, 142, 60, 255);
         private static readonly Color32 Surround = new Color32(36, 102, 42, 255);
         private static readonly Color32 LineColor = new Color32(240, 240, 240, 255);
-        private static readonly Color32 NetColor = new Color32(220, 220, 220, 150);
 
         public void Build()
         {
@@ -103,13 +102,7 @@ namespace SoccerVision.Runtime
                     float start = s > 0 ? (c > 0 ? 180f : 90f) : (c > 0 ? 270f : 0f);
                     Circle(gl, Pitch.HalfWidth * c, Pitch.CornerArcRadius, lw, start, start + 90f);
                 }
-                // Goal: net behind the line and the frame.
-                float back = (Pitch.HalfLength + Pitch.GoalDepth) * s;
-                for (float y = -Pitch.GoalHalfWidth; y <= Pitch.GoalHalfWidth + 0.01f; y += 0.3f) Line(gl, y, back, y, 0.03f, NetColor);
-                for (float d = 0f; d <= Pitch.GoalDepth + 0.01f; d += 0.3f) Line(gl + d * s, -Pitch.GoalHalfWidth, gl + d * s, Pitch.GoalHalfWidth, 0.03f, NetColor);
-                Line(gl, -Pitch.GoalHalfWidth - Pitch.PostRadius, back, -Pitch.GoalHalfWidth - Pitch.PostRadius, 0.08f);
-                Line(gl, Pitch.GoalHalfWidth + Pitch.PostRadius, back, Pitch.GoalHalfWidth + Pitch.PostRadius, 0.08f);
-                Line(back, -Pitch.GoalHalfWidth - Pitch.PostRadius, back, Pitch.GoalHalfWidth + Pitch.PostRadius, 0.08f);
+                // Goal frame (posts and crossbar); the net itself is a deforming GoalNetView.
                 Disc(gl, -Pitch.GoalHalfWidth - Pitch.PostRadius, 0.12f, LineColor);
                 Disc(gl, Pitch.GoalHalfWidth + Pitch.PostRadius, 0.12f, LineColor);
                 Line(gl, -Pitch.GoalHalfWidth, gl, Pitch.GoalHalfWidth, 0.1f);

@@ -41,6 +41,8 @@ namespace SoccerVision.Simulation
             if (ball.X * goalSign > lineX * goalSign) x = ball.X;
             // Stay in own half of the pitch (between the halfway line and the goal line).
             x = MathUtil.Clamp(x * goalSign, 0f, Pitch.HalfLength) * goalSign;
+            if (a.HoldPosition && a.FlagTimer > 0f) x = a.HoldX; // flag up, standing in line with the offence
+            else a.HoldPosition = false;
             var target = new Vec2(x, (Pitch.HalfWidth + 1.2f) * a.TouchlineSign);
             MoveOfficial(a, target, 7f, dt, ball);
         }

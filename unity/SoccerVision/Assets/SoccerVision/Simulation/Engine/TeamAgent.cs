@@ -113,6 +113,14 @@ namespace SoccerVision.Simulation
         public int Headers;
         /// <summary>Direct free kicks struck at goal.</summary>
         public int FreeKickShots;
+        public int HeaderGoals;
+        public int VolleyGoals;
+        public int FreeKickGoals;
+        /// <summary>Goalkeeper handling: shots and crosses held, shots parried (over, round the post or out), crosses punched.</summary>
+        public int KeeperCatches;
+        public int KeeperParries;
+        public int KeeperPunches;
+        public int WoodworkHits;
         public float ExpectedGoals;
         public float PossessionSeconds;
         public float DistanceCoveredKm;

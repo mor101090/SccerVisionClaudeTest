@@ -91,5 +91,8 @@ namespace SoccerVision.Simulation
         public int TouchlineSign;
         public int CoverSign;
         public bool FlagRaised => FlagTimer > 0f;
+        /// <summary>Assistant stands still in line with the offence while the flag is up (offside).</summary>
+        public bool HoldPosition;
+        public float HoldX;
     }
 }

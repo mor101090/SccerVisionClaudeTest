@@ -31,6 +31,8 @@ namespace SoccerVision.Simulation
     {
         private readonly List<KickPlan> _options = new List<KickPlan>(64);
         private float _lastShotTime = -10f;
+        /// <summary>How the last shot was struck: 0 foot, 1 volley, 2 cut inside, 3 direct free kick, 4 penalty, 5 header.</summary>
+        private int _lastShotKind;
         private float _riskPremium;
         private bool _shotCountedOnTarget;
         private string _lastPassKey;
@@ -714,16 +716,16 @@ namespace SoccerVision.Simulation
             float pressure = penalty ? 0f : Pressure(p, out _);
             float composure = MathUtil.A(p.Attr.Composure);
             float stake = penalty ? 0.25f : 0f;
-            float sigmaA = (0.065f + 0.14f * (1f - skill)) * (1f + 0.75f * pressure * (1.2f - composure) + stake) * p.FatigueError;
+            float sigmaA = (0.085f + 0.16f * (1f - skill)) * (1f + 0.75f * pressure * (1.2f - composure) + stake) * p.FatigueError;
             if (penalty) sigmaA *= 0.3f;
             if (!header && !penalty) sigmaA *= WeakFootFactor(p, dir);
-            if (header) sigmaA *= 1.25f;
+            if (header) sigmaA *= 1.0f;
             if (volley) sigmaA *= 1.35f;
             float sigmaZ = (0.6f + 1.8f * (1f - skill)) * (1f + 0.5f * pressure) * p.FatigueError;
             if (penalty) sigmaZ *= 0.35f;
             // Technique error that does not shrink with distance (snatched/skied finishes at close range).
             float flight = MathF.Max(0.15f, distToAim / MathF.Max(5f, power));
-            float fixedLateral = (penalty ? 0.15f : 0.75f) * (1.3f - skill) * (1f + pressure);
+            float fixedLateral = (penalty ? 0.15f : 1.0f) * (1.3f - skill) * (1f + pressure);
             float fixedHeight = (penalty ? 0.15f : 0.55f + 1.0f * (1f - skill)) * (1f + 0.6f * pressure);
             float angle = dir.Angle + _rng.Gaussian(0f, sigmaA) + _rng.Gaussian(0f, fixedLateral / MathF.Max(3f, distToAim));
             vz += _rng.Gaussian(0f, sigmaZ) + _rng.Gaussian(0f, fixedHeight / flight);
@@ -787,7 +789,8 @@ namespace SoccerVision.Simulation
             if (cutIn) team.Stats.CutInShots++;
             if (header) team.Stats.Headers++;
             p.CutInUntil = -1f;
-            Emit(MatchEventType.Shot, team, p, null, from, xg, WhistleKind.Short, penalty ? 4 : volley ? 1 : (cutIn ? 2 : 0));
+            _lastShotKind = header ? 5 : penalty ? 4 : volley ? 1 : (cutIn ? 2 : 0);
+            Emit(MatchEventType.Shot, team, p, null, from, xg, WhistleKind.Short, header ? 0 : _lastShotKind);
         }
 
         /// <summary>

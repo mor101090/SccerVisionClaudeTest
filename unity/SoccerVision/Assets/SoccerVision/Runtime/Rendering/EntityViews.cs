@@ -6,7 +6,7 @@ namespace SoccerVision.Runtime
     /// <summary>
     /// Player as described in the design document: a circle with a border, the shirt number in the centre and
     /// two small legs showing the facing direction. Rises while jumping (its shadow stays on the grass, shrinking with height), and shows
-    /// "#10 - Name" under the circle while in possession.
+    /// the player's name, centred on a dark plate, under the circle while in possession.
     /// </summary>
     public sealed class PlayerView : MonoBehaviour
     {
@@ -17,6 +17,7 @@ namespace SoccerVision.Runtime
         private Transform _body, _lift;
         private SpriteRenderer _fill, _ring, _shadow, _legL, _legR, _card;
         private TextMesh _number, _label;
+        private SpriteRenderer _labelPlate;
         private float _stepPhase;
         private Vector2 _lastPos;
         private float _fade = 1f;
@@ -42,9 +43,13 @@ namespace SoccerVision.Runtime
             _card.transform.localPosition = new Vector3(0.38f, 0.38f, 0f);
             _card.transform.localScale = new Vector3(0.16f, 0.22f, 1f);
             _card.enabled = false;
-            _label = SpriteFactory.AddText(transform, "Label", agent.Profile.Label.Replace(" ", " - "), Color.white, 30, 0.15f, 56);
-            _label.transform.localPosition = new Vector3(0f, -1.55f, 0f);
+            _label = SpriteFactory.AddText(transform, "Label", agent.Profile.ShortName, Color.white, 30, 0.15f, 56);
+            _label.transform.localPosition = new Vector3(0f, -1.6f, 0f);
             _label.gameObject.SetActive(false);
+            // Plate sized to the text once it is laid out (see FitLabelPlate).
+            _labelPlate = SpriteFactory.AddSprite(transform, "LabelPlate", SpriteFactory.Square, new Color(0f, 0f, 0f, 0.6f), 29, 1f);
+            _labelPlate.transform.localPosition = new Vector3(0f, -1.6f, 0f);
+            _labelPlate.enabled = false;
             _lastPos = new Vector2(agent.Pos.X, agent.Pos.Y);
             UpdateBodyScale(0f);
         }
@@ -81,12 +86,25 @@ namespace SoccerVision.Runtime
 
             UpdateBodyScale(jump);
             _card.enabled = a.YellowCards > 0 && !a.SentOff;
-            if (_label.gameObject.activeSelf != hasBall) _label.gameObject.SetActive(hasBall);
+            if (_label.gameObject.activeSelf != hasBall)
+            {
+                _label.gameObject.SetActive(hasBall);
+                _labelPlate.enabled = hasBall;
+            }
+            if (hasBall) FitLabelPlate();
 
             // Sent-off players walk off and fade away.
             float target = a.SentOff && Mathf.Abs(y) > Pitch.HalfWidth + 1.5f ? 0f : 1f;
             _fade = Mathf.MoveTowards(_fade, target, dt * 1.5f);
             SetAlpha(_fade);
+        }
+
+        /// <summary>The plate is centred on the label's anchor (the glyphs are centred there too) and fits the text width.</summary>
+        private void FitLabelPlate()
+        {
+            var b = _label.GetComponent<MeshRenderer>().bounds;
+            if (b.size.x < 1e-3f) return; // mesh not built yet; retried next frame
+            _labelPlate.transform.localScale = new Vector3(b.size.x + 0.6f, 1.0f, 1f);
         }
 
         private void UpdateBodyScale(float jump)
@@ -198,8 +216,8 @@ namespace SoccerVision.Runtime
             letter.fontStyle = FontStyle.Bold;
             if (assistant)
             {
-                _flag = SpriteFactory.AddSprite(transform, "Flag", SpriteFactory.Flag, new Color(1f, 0.85f, 0.1f), 14, 1.1f);
-                _flag.transform.localPosition = new Vector3(0.2f, 0.9f, 0f);
+                _flag = SpriteFactory.AddSprite(transform, "Flag", SpriteFactory.Flag, new Color(1f, 0.85f, 0.1f), 14, 1.6f);
+                _flag.transform.localPosition = new Vector3(0.3f, 1.3f, 0f);
                 _flag.enabled = false;
             }
         }
@@ -212,7 +230,8 @@ namespace SoccerVision.Runtime
             if (_flag != null)
             {
                 _flag.enabled = _o.FlagRaised;
-                if (_o.FlagRaised) _flag.transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(time * 12f) * 12f);
+                // Held up and waved gently (offside flags stay up for several seconds).
+                if (_o.FlagRaised) _flag.transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(time * 6f) * 6f);
             }
         }
     }

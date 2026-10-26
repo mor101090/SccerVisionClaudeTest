@@ -54,6 +54,8 @@ namespace SoccerVision.Simulation
         public bool CountsAsLostTime;
         /// <summary>The taker waits for the referee's whistle (kick-off, penalty, free kick with a wall or after a card).</summary>
         public bool WaitForWhistle;
+        /// <summary>Restart timer value when the referee blew; the kick follows WhistleToKickRealSeconds later.</summary>
+        public float WhistleAt = -1f;
         public readonly List<PlayerAgent> Wall = new List<PlayerAgent>();
     }
 
@@ -490,7 +492,8 @@ namespace SoccerVision.Simulation
             {
                 float lineX = Pitch.HalfLength * side;
                 float postX = lineX + Pitch.PostRadius * side;
-                if (MathF.Abs(b.X - lineX) > 1.5f) continue;
+                // Near the frame or inside the net (which is GoalDepth deep): a fast shot must not pass through the back.
+                if ((b.X - lineX) * side < -1.5f || (b.X - lineX) * side > Pitch.GoalDepth + 1.5f) continue;
 
                 // Posts
                 if (b.Z < Pitch.GoalHeight + Pitch.PostRadius * 2f)
@@ -514,7 +517,7 @@ namespace SoccerVision.Simulation
                                 Vec2 fixedPos = post + n * min;
                                 b.X = fixedPos.X;
                                 b.Y = fixedPos.Y;
-                                OnWoodwork(side);
+                                OnWoodwork(side, false);
                             }
                         }
                     }
@@ -537,7 +540,7 @@ namespace SoccerVision.Simulation
                             b.Vz -= (1f + Config.PostRestitution) * vn * nz;
                             b.X = postX + nx * min;
                             b.Z = MathF.Max(r, Pitch.GoalHeight + Pitch.PostRadius + nz * min);
-                            OnWoodwork(side);
+                            OnWoodwork(side, true);
                         }
                     }
                 }
@@ -546,26 +549,28 @@ namespace SoccerVision.Simulation
                 if (Ball.InGoal || (b.X * side > Pitch.HalfLength + r && MathF.Abs(b.Y) < Pitch.GoalHalfWidth && b.Z < Pitch.GoalHeight))
                 {
                     float back = Pitch.HalfLength + Pitch.GoalDepth - r;
+                    float impactSpeed = b.Speed;
                     bool hit = false;
                     if (b.X * side > back) { b.X = back * side; b.Vx = -b.Vx * Config.NetRestitution; b.Vy *= 0.5f; b.Vz *= 0.5f; hit = true; }
                     float sideNet = Pitch.GoalHalfWidth - r;
                     if (b.X * side > Pitch.HalfLength && MathF.Abs(b.Y) > sideNet) { b.Y = sideNet * MathF.Sign(b.Y); b.Vy = -b.Vy * Config.NetRestitution; b.Vx *= 0.5f; hit = true; }
                     if (b.X * side > Pitch.HalfLength && b.Z > Pitch.GoalHeight - r) { b.Z = Pitch.GoalHeight - r; if (b.Vz > 0f) b.Vz = -b.Vz * Config.NetRestitution; hit = true; }
-                    if (hit && Ball.InGoal && b.Speed > 3f) Emit(MatchEventType.NetHit, null, null, null, b.Position2D, b.Speed);
+                    if (hit && Ball.InGoal && b.Speed > 1.5f) Emit(MatchEventType.NetHit, null, null, null, b.Position2D, impactSpeed);
                 }
             }
         }
 
         private float _lastWoodworkTime = -10f;
 
-        private void OnWoodwork(int side)
+        private void OnWoodwork(int side, bool crossbar)
         {
             MarkBallChanged();
             if (SimTime - _lastWoodworkTime < 0.3f) return;
             _lastWoodworkTime = SimTime;
             if (Phase == MatchPhase.Live)
             {
-                Emit(MatchEventType.HitWoodwork, Ball.LastTouchTeam, Ball.LastToucher, null, Ball.Pos);
+                if (Ball.LastTouchTeam != null) Ball.LastTouchTeam.Stats.WoodworkHits++;
+                Emit(MatchEventType.HitWoodwork, Ball.LastTouchTeam, Ball.LastToucher, null, Ball.Pos, Ball.M.Speed, WhistleKind.Short, crossbar ? 2 : 1);
                 // A rebound off the woodwork is not a new play: the shooter must wait at penalties only.
                 if (_penaltyKickTime >= 0f) Ball.KickerMustWait = true;
             }

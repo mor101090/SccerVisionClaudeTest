@@ -26,6 +26,8 @@ namespace SoccerVision.Runtime
         public bool startPaused;
         [Tooltip("Debug fast-forward multiplier (1 = the real 10 minute halves).")]
         public float playbackSpeed = 1f;
+        /// <summary>Match pace in percent (50-100): slows the whole match (motion and clock) to find the most natural pace.</summary>
+        [Range(50, 100)] public int pacePercent = 100;
         public Texture2D fieldOverride;
 
         public MatchEngine Engine { get; private set; }
@@ -39,6 +41,7 @@ namespace SoccerVision.Runtime
         private BallView _ball;
         private readonly List<OfficialView> _officials = new List<OfficialView>();
         private MatchAudio _audio;
+        private readonly System.Collections.Generic.List<GoalNetView> _nets = new System.Collections.Generic.List<GoalNetView>();
         private WebBridge _bridge;
         private MatchHud _hud;
         private readonly List<MatchEvent> _events = new List<MatchEvent>();
@@ -122,6 +125,15 @@ namespace SoccerVision.Runtime
                 }
             }
 
+            _nets.Clear();
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var net = new GameObject("GoalNet").AddComponent<GoalNetView>();
+                net.transform.SetParent(_world, false);
+                net.Init(side);
+                _nets.Add(net);
+            }
+
             foreach (var p in Engine.AllPlayers)
             {
                 var kit = p.Team.Setup.Kit;
@@ -160,7 +172,7 @@ namespace SoccerVision.Runtime
 
             if (!Paused && !Engine.IsFinished)
             {
-                Engine.Advance(realDt * Mathf.Clamp(playbackSpeed, 0.1f, 16f));
+                Engine.Advance(realDt * Mathf.Clamp(playbackSpeed, 0.1f, 16f) * Mathf.Clamp(pacePercent, 50, 100) / 100f);
             }
 
             _events.Clear();
@@ -168,6 +180,12 @@ namespace SoccerVision.Runtime
             foreach (var e in _events)
             {
                 _audio.OnEvent(e, Engine.Home.Score, Engine.Away.Score);
+                if ((e.Type == MatchEventType.NetHit || e.Type == MatchEventType.HitWoodwork) && _nets.Count == 2)
+                {
+                    var net = _nets[e.X < 0f ? 0 : 1];
+                    if (e.Type == MatchEventType.NetHit) net.OnNetHit(new Vector2(e.X, e.Y), e.Value);
+                    else net.OnWoodwork(new Vector2(e.X, e.Y));
+                }
                 if (SoccerVision.Simulation.Commentary.IsCommentary(e.Type) && !string.IsNullOrEmpty(e.Text))
                 {
                     AddComment(e.Minute, e.Text, SoccerVision.Simulation.Commentary.ToneOf(e.Type));
@@ -202,6 +220,7 @@ namespace SoccerVision.Runtime
             if (_ball.gameObject.activeSelf == hideBall) _ball.gameObject.SetActive(!hideBall);
             _ball.Render(Engine.Ball, alpha, dt);
             foreach (var o in _officials) o.Render(alpha, Time.time);
+            foreach (var n in _nets) n.Render(Engine.Ball);
         }
 
         private void HandleKeyboard()
@@ -212,6 +231,8 @@ namespace SoccerVision.Runtime
             if (Input.GetKeyDown(KeyCode.Alpha2)) playbackSpeed = 2f;
             if (Input.GetKeyDown(KeyCode.Alpha3)) playbackSpeed = 4f;
             if (Input.GetKeyDown(KeyCode.Alpha4)) playbackSpeed = 8f;
+            if (Input.GetKeyDown(KeyCode.Minus)) pacePercent = Mathf.Max(50, pacePercent - 5);
+            if (Input.GetKeyDown(KeyCode.Equals)) pacePercent = Mathf.Min(100, pacePercent + 5);
             if (Input.GetKeyDown(KeyCode.H)) showHud = !showHud;
             if (Input.GetKeyDown(KeyCode.R)) StartMatch(Random.Range(1, int.MaxValue));
 #endif
@@ -268,6 +289,7 @@ namespace SoccerVision.Runtime
                 case "resume": Paused = false; break;
                 case "togglePause": Paused = !Paused; break;
                 case "setSpeed": playbackSpeed = Mathf.Clamp(cmd.value, 0.1f, 16f); break;
+                case "setPace": pacePercent = Mathf.Clamp(Mathf.RoundToInt(cmd.value), 50, 100); break;
                 case "setHud": showHud = cmd.flag; FitCamera(); break;
                 case "restart": StartMatch(cmd.seed > 0 ? cmd.seed : Random.Range(1, int.MaxValue)); break;
                 case "setTactics":

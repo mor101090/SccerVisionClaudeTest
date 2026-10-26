@@ -81,7 +81,8 @@ namespace SoccerVision.Simulation
         public WhistleKind Whistle;
         /// <summary>
         /// Flavour of the event. Shots: 1 = volley, 2 = cut inside from the wing, 3 = direct free kick, 4 = penalty kick.
-        /// Free kicks: 1 = dangerous position with a wall.
+        /// Free kicks: 1 = dangerous position with a wall. Goals: shot kind (1 volley, 2 cut in, 3 free kick, 4 penalty,
+        /// 5 header). Saves: 0 held, 1 tipped over, 2 round the post, 3 parried. Woodwork: 1 post, 2 crossbar.
         /// </summary>
         public int Detail;
         public string Text = "";

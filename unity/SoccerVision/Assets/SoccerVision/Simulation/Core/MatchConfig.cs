@@ -59,6 +59,10 @@ namespace SoccerVision.Simulation
         public float FreeKickWithWallSetupSeconds = 15f;
         public float PenaltySetupSeconds = 18f;
         public float CardShowSeconds = 3f;
+        /// <summary>Real seconds between the referee's whistle and the kick at kick-offs, penalties and ceremonial free kicks.</summary>
+        public float WhistleToKickRealSeconds = 1.5f;
+        /// <summary>Real seconds an assistant keeps the flag raised for offside (standing in line with the offence).</summary>
+        public float OffsideFlagRealSeconds = 4f;
         /// <summary>Upper bound for any restart; after it the restart is forced so a match can never stall.</summary>
         public float MaxSetupSeconds = 40f;
 

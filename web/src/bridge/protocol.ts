@@ -103,6 +103,8 @@ export type BridgeCommand =
   | { type: "resume" }
   | { type: "togglePause" }
   | { type: "setSpeed"; value: number }
+  /** Match pace in percent (50-100). */
+  | { type: "setPace"; value: number }
   | { type: "setHud"; flag: boolean }
   | { type: "restart"; seed?: number }
   | { type: "requestState" }

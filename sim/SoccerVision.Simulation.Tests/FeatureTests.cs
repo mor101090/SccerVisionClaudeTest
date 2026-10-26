@@ -134,5 +134,66 @@ namespace SoccerVision.Simulation.Tests
             Assert.True(apex + air + ground > 100, "high headers " + (apex + air + ground));
             Assert.True(apex + air >= 0.8 * (apex + air + ground), $"apex {apex} airborne {air} ground {ground}");
         }
+
+        [Fact]
+        public void KickOffsAndPenaltiesWaitAfterTheWhistle()
+        {
+            int checkedRestarts = 0;
+            foreach (var e in PlayMany(5013, 3))
+            {
+                var log = e.EventLog;
+                float minGap = e.Config.WhistleToKickRealSeconds * e.Config.ClockSecondsPerRealSecond - 0.5f;
+                for (int i = 0; i < log.Count; i++)
+                {
+                    bool kickOff = log[i].Type == MatchEventType.KickOff && log[i].ClockSeconds > 1f && log[i].ClockSeconds != 2700f;
+                    bool penalty = log[i].Type == MatchEventType.Shot && log[i].Detail == 4;
+                    if (!kickOff && !penalty) continue;
+                    checkedRestarts++;
+                    var whistle = log.Take(i).Last(w => w.Type == MatchEventType.Whistle);
+                    Assert.Equal(WhistleKind.Short, whistle.Whistle);
+                    Assert.True(log[i].ClockSeconds - whistle.ClockSeconds >= minGap, $"{log[i].Minute} {log[i].Type}: kicked {log[i].ClockSeconds - whistle.ClockSeconds:0.0} clock s after the whistle");
+                }
+            }
+            Assert.True(checkedRestarts >= 5, "checked " + checkedRestarts);
+        }
+
+        [Fact]
+        public void OffsideFlagStaysUpForSeconds()
+        {
+            var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 700);
+            int offsides = 0;
+            float raisedRealSeconds = 0f, longest = 0f;
+            while (!e.IsFinished)
+            {
+                int before = e.Home.Stats.Offsides + e.Away.Stats.Offsides;
+                e.Advance(0.1f);
+                if (e.Home.Stats.Offsides + e.Away.Stats.Offsides > before) { offsides++; raisedRealSeconds = 0f; }
+                if (e.Assistant1.FlagRaised || e.Assistant2.FlagRaised) { raisedRealSeconds += 0.1f; longest = Math.Max(longest, raisedRealSeconds); }
+                else raisedRealSeconds = 0f;
+            }
+            Assert.True(offsides > 0, "no offside in this match");
+            Assert.True(longest >= 3.5f, "flag raised for only " + longest + " s");
+        }
+
+        [Fact]
+        public void BallStaysInsideTheNetAfterAGoal()
+        {
+            // Regression: hard shots used to pass through the back of the net (the net check stopped 1.5 m behind the
+            // line while the net is 2 m deep) and the ball lay behind the goal during the celebration.
+            int goals = 0;
+            Parallel.For(0, 12, i =>
+            {
+                var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 6000 + (ulong)i);
+                while (!e.IsFinished)
+                {
+                    e.Advance(0.1f);
+                    if (e.Phase != MatchPhase.GoalCelebration) continue;
+                    Interlocked.Increment(ref goals);
+                    Assert.True(MathF.Abs(e.Ball.Pos.X) <= Pitch.HalfLength + Pitch.GoalDepth + 0.01f, $"seed {6000 + i}: ball at x={e.Ball.Pos.X:0.00} behind the net");
+                    Assert.True(MathF.Abs(e.Ball.Pos.Y) <= Pitch.GoalHalfWidth + 0.01f || MathF.Abs(e.Ball.Pos.X) < Pitch.HalfLength, $"seed {6000 + i}: ball outside the side netting");
+                }
+            });
+            Assert.True(goals > 0);
+        }
     }
 }

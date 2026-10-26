@@ -141,6 +141,11 @@ namespace SoccerVision.Runtime
             }
             if (GUI.Button(new Rect(rx + (bw + pad) * 2f, y, bw, bh), "New match", _button)) Controller.StartMatch(Random.Range(1, int.MaxValue));
             if (GUI.Button(new Rect(rx + (bw + pad) * 3f, y, bw, bh), "Hide HUD", _button)) { Controller.showHud = false; Controller.FitCamera(); }
+            // Match pace slider (50-100%, steps of 5).
+            y += bh + pad;
+            GUI.Label(new Rect(rx, y, bw * 1.3f, bh), "Pace " + Controller.pacePercent + "%", _small);
+            float pace = GUI.HorizontalSlider(new Rect(rx + bw * 1.4f, y + bh * 0.35f, rw - bw * 1.4f, bh), Controller.pacePercent, 50f, 100f);
+            Controller.pacePercent = Mathf.RoundToInt(pace / 5f) * 5;
         }
 
         private void DrawTooltip(MatchEngine m)

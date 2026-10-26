@@ -42,15 +42,19 @@ namespace SoccerVision.Simulation
                     return P(e.Player) + " shoots!";
                 case MatchEventType.Goal:
                     if (e.Value > 0.5f) return "GOAL! Own goal by " + P(e.Player) + " - " + T(e.Team) + " lead the way";
-                    return "GOAL! " + P(e.Player) + " scores for " + T(e.Team) + (e.OtherPlayer >= 0 ? " (assist " + P(e.OtherPlayer) + ")" : "");
+                    return "GOAL! " + P(e.Player) + (e.Detail == 5 ? " heads it in" : e.Detail == 1 ? " with a volley" : e.Detail == 3 ? " straight from the free kick" : e.Detail == 4 ? " from the spot" : " scores")
+                           + " for " + T(e.Team) + (e.OtherPlayer >= 0 ? " (assist " + P(e.OtherPlayer) + ")" : "");
                 case MatchEventType.Save:
-                    return "Saved by " + P(e.Player) + "!";
+                    if (e.Detail == 1) return P(e.Player) + " tips it over the bar!";
+                    if (e.Detail == 2) return P(e.Player) + " pushes it round the post!";
+                    if (e.Detail == 3) return P(e.Player) + " parries it away!";
+                    return P(e.Player) + " saves and holds on to it!";
                 case MatchEventType.ShotBlocked:
                     return "Blocked by " + P(e.Player);
                 case MatchEventType.ShotOffTarget:
                     return P(e.Player) + " misses the target";
                 case MatchEventType.HitWoodwork:
-                    return "Off the woodwork!";
+                    return e.Detail == 2 ? "Off the crossbar!" : "Off the post!";
                 case MatchEventType.GoalkeeperClaim:
                     return e.Value > 0.5f ? P(e.Player) + " punches clear" : P(e.Player) + " claims it";
                 case MatchEventType.Tackle:

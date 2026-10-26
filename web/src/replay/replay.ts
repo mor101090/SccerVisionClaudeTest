@@ -28,6 +28,10 @@ export interface ReplayEvent {
   whistle: string | null;
   tone: "Normal" | "Goal" | "Foul" | "Card" | "Chance" | "Info";
   detail?: number;
+  /** Where it happened (m) and its value (e.g. ball speed for NetHit). */
+  x?: number;
+  y?: number;
+  v?: number;
 }
 
 export interface Replay {

@@ -150,24 +150,29 @@ namespace SoccerVision.Runtime
     /// </summary>
     public sealed class GlyphCenterer : MonoBehaviour
     {
+        private Vector3 _anchor;
+        private bool _hasAnchor;
         private int _frames;
-        private int _stable;
 
+        private void OnEnable() => _frames = 0;
+
+        /// <summary>
+        /// Places the glyphs' visual box on the anchor: the offset of the rendered bounds from the pivot is measured
+        /// and subtracted from the anchor (idempotent, so it never drifts). Runs a few frames after (re)activation
+        /// because TextMesh builds its mesh lazily.
+        /// </summary>
         private void LateUpdate()
         {
+            if (!_hasAnchor) { _anchor = transform.localPosition; _hasAnchor = true; }
+            if (++_frames > 6) { enabled = false; return; }
             var r = GetComponent<MeshRenderer>();
-            if (r == null || ++_frames > 40) { enabled = false; return; }
+            if (r == null) { enabled = false; return; }
             Bounds b = r.bounds;
             if (b.size.sqrMagnitude < 1e-8f) return;
-            Vector3 d = b.center - transform.position;
-            d.z = 0f;
-            if (d.sqrMagnitude < 1e-6f)
-            {
-                if (++_stable >= 3) enabled = false;
-                return;
-            }
-            _stable = 0;
-            transform.position -= d;
+            Vector3 offset = b.center - transform.position;
+            if (transform.parent != null) offset = transform.parent.InverseTransformVector(offset);
+            offset.z = 0f;
+            transform.localPosition = _anchor - offset;
         }
     }
 }

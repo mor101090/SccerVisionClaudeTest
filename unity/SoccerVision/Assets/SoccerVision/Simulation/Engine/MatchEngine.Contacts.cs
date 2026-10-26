@@ -41,6 +41,12 @@ namespace SoccerVision.Simulation
                 bool surprised = _ballChangeExpectedBy != p.Team && Ball.IntendedReceiver != p && SimTime - _ballChangedAt < p.ReactionTime;
                 float footReach = surprised ? 0.45f : p.FootReach;
                 bool blocker = Ball.IsShot && Ball.Shooter != null && Ball.Shooter.Team != p.Team && !p.IsGoalkeeper;
+                if (IsCrossBlock(p))
+                {
+                    // The full-back closing the crosser gets a leg in the way.
+                    surprised = false;
+                    footReach = 1.1f;
+                }
                 if (blocker)
                 {
                     // Defenders expect shots: a set defender in the lane gets a sliding block in.
@@ -51,7 +57,7 @@ namespace SoccerVision.Simulation
                 bool handsAllowed = p.IsGoalkeeper && Ball.HandlingForbiddenFor != p.Team
                                     && Pitch.InPenaltyArea(p.Pos, p.Team.OwnGoalSign) && Pitch.InPenaltyArea(Ball.Pos, p.Team.OwnGoalSign);
                 if (handsAllowed && z <= p.GoalkeeperReach && d <= GoalkeeperHandReach(p)) kind = ContactKind.Hands;
-                else if (z <= (blocker ? 1.5f : 1.05f) && d <= footReach) kind = ContactKind.Feet;
+                else if (z <= (blocker || IsCrossBlock(p) ? 1.5f : 1.05f) && d <= footReach) kind = ContactKind.Feet;
                 else if (z > 1.05f && z <= p.HeadReach && d <= (surprised ? 0.4f : 0.62f)) kind = ContactKind.Head;
                 else if (z <= 1.9f && d <= 0.33f) kind = ContactKind.Body;
                 if (kind == ContactKind.None) continue;
@@ -138,6 +144,11 @@ namespace SoccerVision.Simulation
             p.Touches++;
             bool opponentTouch = Ball.LastTouchTeam != null && Ball.LastTouchTeam != p.Team;
 
+            if (kind != ContactKind.Hands && IsCrossBlock(p))
+            {
+                BlockCross(p);
+                return;
+            }
             switch (kind)
             {
                 case ContactKind.Hands:
@@ -289,6 +300,24 @@ namespace SoccerVision.Simulation
             SetDeflection(p, dir * MathF.Max(1.5f, speed * energy), _rng.Range(0f, popUp * 2f));
         }
 
+        /// <summary>A defender near the crosser, touching the cross in its first moments.</summary>
+        private bool IsCrossBlock(PlayerAgent p)
+        {
+            return Ball.LastKickKind == KickKind.Cross && Ball.LastKicker != null && Ball.LastKicker.Team != p.Team
+                   && !p.IsGoalkeeper && SimTime - Ball.LastKickTime < 0.4f && Ball.IntendedReceiver != p;
+        }
+
+        /// <summary>Blocked cross: it loops off the defender, usually towards the goal line - often a corner.</summary>
+        private void BlockCross(PlayerAgent p)
+        {
+            var crosser = Ball.LastKicker;
+            Vec2 v = Ball.Velocity;
+            Vec2 toLine = crosser.Team.DirToWorld(Vec2.UnitX);
+            Vec2 dir = (toLine * _rng.Range(0.5f, 1.3f) + (v.LengthSq > 1f ? v.Normalized : Vec2.Zero) * 0.5f + new Vec2(_rng.Range(-0.5f, 0.5f), _rng.Range(-0.5f, 0.5f))).Normalized;
+            if (CollectDiagnostics) Count("cross.blocked");
+            SetDeflection(p, dir * MathF.Max(4f, v.Length * _rng.Range(0.3f, 0.6f)), _rng.Range(1f, 5f));
+        }
+
         private void BlockShot(PlayerAgent p)
         {
             var shooter = Ball.Shooter;
@@ -420,7 +449,11 @@ namespace SoccerVision.Simulation
             if (_rng.Chance(pCatch))
             {
                 GoalkeeperCatch(gk);
-                if (Ball.LastKickKind == KickKind.Cross || Ball.Z > 1.3f) Emit(MatchEventType.GoalkeeperClaim, gk.Team, gk, null, gk.Pos);
+                if (Ball.LastKickKind == KickKind.Cross || Ball.Z > 1.3f)
+                {
+                    gk.Team.Stats.KeeperCatches++;
+                    Emit(MatchEventType.GoalkeeperClaim, gk.Team, gk, null, gk.Pos);
+                }
                 return;
             }
             if (Ball.Z > 1.2f || crowd > 0f)
@@ -428,6 +461,7 @@ namespace SoccerVision.Simulation
                 // Punch clear (preferred under heavy pressure): high and away from goal.
                 Vec2 away = (gk.Team.DirToWorld(Vec2.UnitX) * 1.2f + (gk.Pos - gk.Team.OwnGoal).Normalized).Normalized.Rotate(_rng.Range(-0.6f, 0.6f));
                 SetDeflection(gk, away * _rng.Range(13f, 19f), _rng.Range(5f, 8f));
+                gk.Team.Stats.KeeperPunches++;
                 Emit(MatchEventType.GoalkeeperClaim, gk.Team, gk, null, gk.Pos, 1f);
             }
             else
@@ -450,7 +484,8 @@ namespace SoccerVision.Simulation
             float shotDistance = shooter != null ? Vec2.Distance(shooter.Pos, gk.Team.OwnGoal) : 20f;
             float closeRange = MathUtil.Clamp01((15f - shotDistance) / 10f); // little time to react
             float difficulty = 0.42f * MathUtil.Clamp((speed - 12f) / 20f, 0f, 1.2f) + 0.55f * reachNeeded + (Ball.Z > 1.8f ? 0.12f : 0f) + 0.35f * closeRange;
-            float pSave = MathUtil.Clamp(1.0f - difficulty * 0.44f + (skill - 0.5f) * 0.35f, 0.08f, 0.95f);
+            if (Ball.LastKickKind == KickKind.Header) difficulty += 0.25f; // close-range headers give little time to react
+            float pSave = MathUtil.Clamp(0.98f - difficulty * 0.46f + (skill - 0.5f) * 0.35f, 0.08f, 0.93f);
             if (_penaltyKickTime >= 0f && shooter != null && SimTime - _penaltyKickTime < 1.5f)
             {
                 pSave = _penaltyGuessCorrect ? MathUtil.Clamp(0.42f + 0.3f * (skill - 0.5f) - reachNeeded * 0.15f, 0.15f, 0.7f) : 0.05f;
@@ -469,15 +504,18 @@ namespace SoccerVision.Simulation
                 gk.Team.Stats.Saves++;
                 gk.Saves++;
             }
-            Emit(MatchEventType.Save, gk.Team, gk, shooter, Ball.Pos);
+            Vec2 savePos = Ball.Pos;
             if (Ball.Z > 1.6f || reachNeeded > 0.5f) StartJump(gk, 0.35f);
 
             float pCatch = allowCatch ? MathUtil.Clamp(0.25f + 0.6f * handling - (speed - 15f) * 0.025f - difficulty * 0.3f, 0.05f, 0.85f) : 0f;
             if (_rng.Chance(pCatch))
             {
+                gk.Team.Stats.KeeperCatches++;
+                Emit(MatchEventType.Save, gk.Team, gk, shooter, savePos, 0f, WhistleKind.Short, 0);
                 GoalkeeperCatch(gk);
                 return;
             }
+            gk.Team.Stats.KeeperParries++;
             // Parry: tipped over / round the post for a corner, or pushed away (sometimes into danger).
             Vec2 goal = gk.Team.OwnGoal;
             Vec2 outward = (Ball.Pos - goal);
@@ -497,9 +535,11 @@ namespace SoccerVision.Simulation
                 // Over the bar: enough lift to clear 2.6 m by the line.
                 float vz = overBar ? (2.9f - Ball.Z + 0.5f * Config.Gravity * t * t) / t : _rng.Range(0.3f, 1.5f);
                 SetDeflection(gk, behind / dist * spd, MathUtil.Clamp(vz, 0f, 12f));
+                Emit(MatchEventType.Save, gk.Team, gk, shooter, savePos, 0f, WhistleKind.Short, overBar ? 1 : 2);
             }
             else
             {
+                Emit(MatchEventType.Save, gk.Team, gk, shooter, savePos, 0f, WhistleKind.Short, 3);
                 Vec2 dir = (lateral * _rng.Range(0.6f, 1.2f) + forward * _rng.Range(0.25f, 0.9f)).Normalized;
                 SetDeflection(gk, dir * MathF.Max(4f, speed * _rng.Range(0.25f, 0.5f)), _rng.Range(0.5f, 4f));
             }

@@ -242,6 +242,15 @@ main {
   min-width: 120px;
 }
 
+.controls .pace {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 100%;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .stats table {
   width: 100%;
   border-collapse: collapse;

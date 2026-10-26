@@ -75,6 +75,21 @@ function Player({ replay }: { replay: Replay }) {
   const [time, setTime] = useState(frameTime(replay.frames[0]));
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
+  // Match pace (%): slows the whole match down (motion, clock and sound together) to find the most natural pace.
+  const [pace, setPace] = useState(() => {
+    try {
+      return Number(localStorage.getItem("sv.pace")) || 100;
+    } catch {
+      return 100;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("sv.pace", String(pace));
+    } catch {
+      /* storage unavailable */
+    }
+  }, [pace]);
   const timeRef = useRef(time);
   const sound = useRef<MatchSound | null>(null);
   if (!sound.current) sound.current = new MatchSound();
@@ -97,7 +112,7 @@ function Player({ replay }: { replay: Replay }) {
       last = now;
       if (playing) {
         const prev = timeRef.current;
-        const t = Math.min(end, prev + dt * speed);
+        const t = Math.min(end, prev + dt * speed * (pace / 100));
         timeRef.current = t;
         setTime(t);
         // Sound: events that happened since the last frame (muted when fast-forwarding past 4x).
@@ -137,7 +152,7 @@ function Player({ replay }: { replay: Replay }) {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [replay, playing, speed, end]);
+  }, [replay, playing, speed, pace, end]);
 
   const snap = sample(replay, time);
   const secondHalf = time >= secondHalfStart;
@@ -192,6 +207,10 @@ function Player({ replay }: { replay: Replay }) {
               {soundOn ? "Sound on" : "Sound off"}
             </button>
             <button onClick={() => setSpeed((s) => (s >= 16 ? 1 : s * 2))}>x{speed}</button>
+            <label className="pace">
+              Pace {pace}%
+              <input type="range" min={50} max={100} step={5} value={pace} onChange={(e) => setPace(Number(e.target.value))} aria-label="Match pace" />
+            </label>
             <input
               type="range"
               min={0}

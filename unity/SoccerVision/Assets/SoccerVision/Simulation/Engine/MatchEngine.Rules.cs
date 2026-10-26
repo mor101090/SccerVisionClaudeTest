@@ -119,9 +119,13 @@ namespace SoccerVision.Simulation
             if (recentShot && !_shotCountedOnTarget) scoringTeam.Stats.ShotsOnTarget++;
             if (_penaltyKickTime >= 0f && Ball.Shooter != null && Ball.Shooter.Team == scoringTeam) scoringTeam.Stats.PenaltiesScored++;
             if (!ownGoal && scorer != null) scorer.Goals++;
+            int goalKind = !ownGoal && recentShot ? _lastShotKind : 0;
+            if (goalKind == 5) scoringTeam.Stats.HeaderGoals++;
+            if (goalKind == 1) scoringTeam.Stats.VolleyGoals++;
+            if (goalKind == 3) scoringTeam.Stats.FreeKickGoals++;
 
             // No whistle: IFAB guidance says it is not needed to stop play for a clear goal (it restarts the kick-off).
-            Emit(MatchEventType.Goal, scoringTeam, scorer, assist, Ball.Pos, ownGoal ? 1f : 0f);
+            Emit(MatchEventType.Goal, scoringTeam, scorer, assist, Ball.Pos, ownGoal ? 1f : 0f, WhistleKind.Short, goalKind);
 
             Ball.InGoal = true;
             Ball.Owner = null;
@@ -396,7 +400,7 @@ namespace SoccerVision.Simulation
             }
 
             bool promising = IsStoppingPromisingAttack(victim, offender);
-            float pYellow = 0.022f + (fromBehind ? 0.1f : 0f) + 0.06f * aggression + (promising ? 0.5f : 0f)
+            float pYellow = 0.03f + (fromBehind ? 0.13f : 0f) + 0.08f * aggression + (promising ? 0.55f : 0f)
                             + (offender.FoulsCommitted >= 3 ? 0.2f : 0f);
             if (!playedForBall) pYellow += 0.1f;
             if (offender.YellowCards > 0) pYellow *= 0.45f; // referees give some leeway before a second caution
@@ -611,7 +615,9 @@ namespace SoccerVision.Simulation
         {
             q.Team.Stats.Offsides++;
             var assistant = Assistant1.CoverSign == MathF.Sign(q.Pos.X) ? Assistant1 : Assistant2;
-            assistant.FlagTimer = 2.5f;
+            assistant.FlagTimer = Config.OffsideFlagRealSeconds * Config.MotionSpeed;
+            assistant.HoldPosition = true;
+            assistant.HoldX = q.Pos.X;
             Emit(MatchEventType.Offside, q.Team, q, null, q.Pos);
             Whistle(WhistleKind.Light);
             Ball.Owner = null;
@@ -631,7 +637,7 @@ namespace SoccerVision.Simulation
         private void FlagBallOut(Vec2 spot)
         {
             var assistant = Assistant1.CoverSign == MathF.Sign(spot.X) ? Assistant1 : Assistant2;
-            assistant.FlagTimer = MathF.Max(assistant.FlagTimer, 1.2f);
+            assistant.FlagTimer = MathF.Max(assistant.FlagTimer, 1.2f * Config.MotionSpeed);
         }
     }
 }
