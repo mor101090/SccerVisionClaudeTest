@@ -142,7 +142,7 @@ namespace SoccerVision.Simulation
                 if (inPossession)
                 {
                     f = MathF.Max(f, ballF - 4f);
-                    float hug = 1.1f * MathF.Sin(SimTime * 0.9f + p.NoisePhaseA * 3f) * (1.3f - MathUtil.A(p.Attr.OffTheBall));
+                    float hug = 1.5f * MathF.Sin(SimTime * 0.9f + p.NoisePhaseA * 3f) * (1.3f - MathUtil.A(p.Attr.OffTheBall));
                     f = MathF.Min(f, offsideLine - 0.25f + hug);
                     l = slot.BaseLateral * 1.15f + ballL * 0.25f;
                 }
@@ -355,7 +355,31 @@ namespace SoccerVision.Simulation
         private bool GoalkeeperMayChase(PlayerAgent gk)
         {
             UpdateIntercept(gk);
-            return Pitch.InPenaltyArea(gk.InterceptPoint, gk.Team.OwnGoalSign);
+            Vec2 point = gk.InterceptPoint;
+            if (Pitch.InPenaltyArea(point, gk.Team.OwnGoalSign)) return true;
+
+            // Sortie: rush out of the box to sweep up a ball played in behind the line (keeper arrives first,
+            // no defender is nearer, the ball is not too far from goal).
+            var team = gk.Team;
+            float depth = Pitch.HalfLength - point.X * team.OwnGoalSign;
+            if (depth > Pitch.PenaltyAreaDepth + 16f || MathF.Abs(point.Y) > Pitch.PenaltyAreaHalfWidth + 4f) return false;
+            if (Ball.IntendedReceiver != null && Ball.IntendedReceiver.Team == team) return false;
+            float own = gk.TimeToReach(point);
+            float rival = float.PositiveInfinity, mate = float.PositiveInfinity;
+            foreach (var p in AllPlayers)
+            {
+                if (p.SentOff || p == gk) continue;
+                float t = p.TimeToReach(point);
+                if (p.Team == team) mate = MathF.Min(mate, t);
+                else rival = MathF.Min(rival, t);
+            }
+            bool go = own + 0.1f < rival && own < mate + 0.25f;
+            if (go && SimTime - gk.LastSortieTime > 4f)
+            {
+                gk.LastSortieTime = SimTime;
+                team.Stats.Sorties++;
+            }
+            return go;
         }
 
         /// <summary>Earliest point on the predicted ball path this player can reach (pitch-control style).</summary>
@@ -500,7 +524,7 @@ namespace SoccerVision.Simulation
                         {
                             p.RunTimer = _rng.Range(2.2f, 3.6f);
                             // Imperfect timing: low off-the-ball players drift offside more often.
-                            float timingError = _rng.Gaussian(0.2f, 1.7f * (1.4f - MathUtil.A(p.Attr.OffTheBall)));
+                            float timingError = _rng.Gaussian(0.5f, 2.0f * (1.4f - MathUtil.A(p.Attr.OffTheBall)));
                             float lateral = MathUtil.Clamp(team.Lateral(p.Pos) * 0.8f + _rng.Range(-6f, 6f), -26f, 26f);
                             p.RunPlan = new Vec2(timingError, lateral); // (overshoot beyond the line, lateral) in local space
                         }

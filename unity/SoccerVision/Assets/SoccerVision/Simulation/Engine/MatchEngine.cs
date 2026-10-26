@@ -14,6 +14,20 @@ namespace SoccerVision.Simulation
         FullTime,
     }
 
+    public enum CelebrationKind
+    {
+        /// <summary>Scorer sprints to the corner flag, team-mates chase him.</summary>
+        CornerRun,
+        /// <summary>Team piles onto the scorer and bounces together.</summary>
+        Huddle,
+        /// <summary>Scorer runs to the touchline in front of the fans.</summary>
+        FansRun,
+        /// <summary>Scorer runs a victory lap.</summary>
+        Lap,
+        /// <summary>Scorer sprints to the corner and slides, team-mates line up behind.</summary>
+        KneeSlide,
+    }
+
     public enum RestartType
     {
         None,
@@ -109,6 +123,8 @@ namespace SoccerVision.Simulation
         private float _dutyTimer;
         private float _goalkeeperHoldTimer;
         private PlayerAgent _celebrationScorer;
+        /// <summary>Style of the current goal celebration (chosen randomly per goal).</summary>
+        public CelebrationKind Celebration { get; private set; }
         private TeamAgent _kickOffAfterGoal;
         private float _penaltyKickTime = -1f;
         private bool _offsideActive;

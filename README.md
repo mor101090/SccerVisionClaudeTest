@@ -12,23 +12,8 @@ Game, it reaches 90 minutes plus added time with:
 - kick-offs (the first touch goes backwards, as the design document requires), throw-ins, goal kicks, corners,
   free kicks with walls, penalties, offside, fouls, advantage, yellow and red cards (second yellow, DOGSO), and the
   goalkeeper's 8-second rule (2025/26),
-- a referee and two assistants, a scoreboard, live commentary, a skills tooltip on hover, procedural whistles and crowd
+- a referee (marked R) and two assistants (marked L), five different goal celebrations, goalkeeper sorties, a scoreboard, live commentary, a skills tooltip on hover, procedural whistles and crowd
   sound, the ball's height illusion and shadow, and jumping players.
-
-## סקירה בעברית
-
-- **המשחקיות** (המשחק עצמו, ה-"דמו" שבו צופים בשתי הקבוצות) נבנתה ב-**Unity**, ומעטפת המשחק ב-**React**.
-- כל הלוגיקה של המשחק (פיזיקה, AI, חוקים, שעון) נמצאת ב-**מנוע סימולציה ב-C# טהור** שלא תלוי ב-Unity.
-  כך אותו קוד רץ ב-Unity, בשרת עתידי ובבדיקות אוטומטיות. Unity רק מציירת.
-- **זמן**: כל מחצית נמשכת 10 דקות אמיתיות (45 דקות על השעון), ועליהן נוספת תוספת זמן שמחושבת לפי זמן שאבד
-  (שערים, כרטיסים, פנדלים ועוד). המחצית נמשכת 2 דקות. אפשר לשנות את כל הערכים ב-`MatchConfig`.
-- **חוקים**: ההתנהגות לפי מסמך העיצוב וחוקי IFAB 2025/26. זה כולל פתיחה עם מסירה לאחור, נבדל, חוץ, בעיטת שער,
-  קרן, חופשית עם חומה, פנדל, כרטיסים, יתרון וחוק 8 השניות לשוער.
-- **בדיקות**: 33 בדיקות אוטומטיות שמריצות משחקים מלאים. הן מוודאות שכל משחק מגיע לשריקת הסיום בלי שגיאות,
-  שהזמנים מדויקים ושכל חידוש משחק מתבצע מעמדות חוקיות.
-- **כיול**: המספרים כוילו מול סטטיסטיקה אמיתית מליגות הצמרת (פירוט ב-`docs/RESEARCH.md`).
-- **השלב הבא**: חילופים, שינוי טקטיקה ושינוי מערך במהלך המשחק. מנגנון הפקודות (`IMatchCommand`) כבר קיים, ופקודת
-  שינוי טקטיקה כבר עובדת.
 
 ## Repository layout
 

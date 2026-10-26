@@ -18,6 +18,17 @@ export function ReplayViewer() {
       .catch(() => setError("No replay at public/replays/demo.json yet."));
   }, []);
 
+  const [busy, setBusy] = useState(false);
+  const newMatch = useCallback(() => {
+    setBusy(true);
+    setError(null);
+    fetch(`/api/new-replay?seed=${Math.floor(Math.random() * 2147483646) + 1}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("failed"))))
+      .then((data: Replay) => setReplay(data))
+      .catch(() => setError("Could not simulate a new match (needs `npm run dev` and the .NET 8 SDK)."))
+      .finally(() => setBusy(false));
+  }, []);
+
   const onFile = useCallback((file: File) => {
     file
       .text()
@@ -36,10 +47,25 @@ export function ReplayViewer() {
         <p>
           Generate one with <code>npm run replay</code> (needs the .NET 8 SDK), or open a replay file:
         </p>
+        <p>
+          <button onClick={newMatch} disabled={busy}>
+            {busy ? "Simulating..." : "New match"}
+          </button>
+        </p>
         <input type="file" accept=".json,application/json" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
       </div>
     );
-  return <Player replay={replay} />;
+  return (
+    <>
+      <div className="controls" style={{ marginBottom: 12 }}>
+        <button onClick={newMatch} disabled={busy}>
+          {busy ? "Simulating..." : "New match"}
+        </button>
+        {error && <span className="hint">{error}</span>}
+      </div>
+      <Player key={replay.seed} replay={replay} />
+    </>
+  );
 }
 
 function Player({ replay }: { replay: Replay }) {

@@ -133,9 +133,83 @@ namespace SoccerVision.Simulation
             Phase = MatchPhase.GoalCelebration;
             _phaseTimer = 0f;
             _celebrationScorer = ownGoal ? null : scorer;
+            Celebration = (CelebrationKind)_rng.Range(0, 5);
             _kickOffAfterGoal = defending;
             _restart = null;
             foreach (var p in AllPlayers) p.Task = PlayerTask.Celebrate;
+        }
+
+        /// <summary>Scorer's own routine for the chosen <see cref="Celebration"/>.</summary>
+        private void CelebrateScorer(PlayerAgent p, TeamAgent scoring, Vec2 corner, int side)
+        {
+            float t = _phaseTimer;
+            Vec2 goal = scoring.AttackGoal;
+            switch (Celebration)
+            {
+                case CelebrationKind.CornerRun:
+                    p.Target = corner * 0.86f;
+                    p.Urgency = 0.85f;
+                    break;
+                case CelebrationKind.Huddle:
+                    p.Target = p.Pos;
+                    p.Urgency = 0f;
+                    if (t > 1.2f && p.JumpZ <= 0f) p.JumpVz = 3.4f;
+                    break;
+                case CelebrationKind.FansRun:
+                    // Sprint to the touchline in front of the fans, then stand with arms wide.
+                    p.Target = new Vec2(MathUtil.Clamp(p.Pos.X, -44f, 44f), (Pitch.HalfWidth - 0.8f) * side);
+                    p.Urgency = 0.95f;
+                    if (t > 3f && p.JumpZ <= 0f) p.JumpVz = 3.4f;
+                    break;
+                case CelebrationKind.Lap:
+                    {
+                        // Victory lap: circle around the penalty area with the crowd on the touchline side.
+                        float ang = t * 0.9f;
+                        Vec2 centre = new Vec2(goal.X * 0.62f, 0f);
+                        p.Target = centre + new Vec2(MathF.Cos(ang) * 11f, MathF.Sin(ang) * 14f);
+                        p.Urgency = 0.8f;
+                        break;
+                    }
+                case CelebrationKind.KneeSlide:
+                    p.Target = corner * 0.8f;
+                    p.Urgency = t < 2.5f ? 1f : 0f;
+                    if (t > 2.2f && t < 2.5f) p.JumpVz = MathF.Max(p.JumpVz, 3.0f);
+                    break;
+            }
+        }
+
+        private void CelebrateTeammate(PlayerAgent p, TeamAgent scoring, Vec2 corner, int side)
+        {
+            var scorer = _celebrationScorer;
+            switch (Celebration)
+            {
+                case CelebrationKind.Huddle:
+                    {
+                        // Everybody piles onto the scorer, then bounces on the spot.
+                        float ring = 1.4f + 0.3f * (p.Index % 3);
+                        Vec2 dir = (p.Pos - scorer.Pos).Normalized;
+                        p.Target = scorer.Pos + dir * ring;
+                        p.Urgency = 0.9f;
+                        if (_phaseTimer > 2f && p.JumpZ <= 0f && Vec2.Distance(p.Pos, scorer.Pos) < 3f && ((int)(_phaseTimer * 1.6f) + p.Index) % 4 == 0) p.JumpVz = 3.0f;
+                        break;
+                    }
+                case CelebrationKind.KneeSlide:
+                    {
+                        // Team-mates line up behind the sliding scorer.
+                        int rank = p.Index % 11;
+                        Vec2 back = (new Vec2(0f, 0f) - corner).Normalized;
+                        p.Target = scorer.Pos + back * (2.5f + rank * 0.7f) + back.Perp * ((rank % 2 == 0 ? 1f : -1f) * 1.2f);
+                        p.Urgency = 0.85f;
+                        break;
+                    }
+                default:
+                    {
+                        Vec2 toward = scorer.Pos + (p.Pos - scorer.Pos).Normalized * 2.2f;
+                        p.Target = Vec2.Distance(p.Pos, scorer.Pos) < 3f ? p.Pos : toward;
+                        p.Urgency = 0.7f;
+                        break;
+                    }
+            }
         }
 
         private void StepCelebration(float dt)
@@ -146,24 +220,15 @@ namespace SoccerVision.Simulation
             if (MathF.Abs(Ball.Pos.X) > Pitch.HalfLength + Pitch.GoalDepth + 1f || MathF.Abs(Ball.Pos.Y) > Pitch.HalfWidth + 3f) Ball.Stop();
 
             var scoring = _kickOffAfterGoal.Opponent;
-            Vec2 corner = Pitch.CornerPosition(scoring.AttackGoalSign, _celebrationScorer != null && _celebrationScorer.Pos.Y < 0f ? -1 : 1);
-            Vec2 celebrationSpot = corner * 0.86f;
+            int side = _celebrationScorer != null && _celebrationScorer.Pos.Y < 0f ? -1 : 1;
+            Vec2 corner = Pitch.CornerPosition(scoring.AttackGoalSign, side);
             foreach (var p in AllPlayers)
             {
                 if (p.SentOff) { MovePlayer(p, dt); continue; }
                 if (p.Team == scoring && !p.IsGoalkeeper && _celebrationScorer != null)
                 {
-                    if (p == _celebrationScorer)
-                    {
-                        p.Target = celebrationSpot;
-                        p.Urgency = 0.85f;
-                    }
-                    else
-                    {
-                        Vec2 toward = _celebrationScorer.Pos + (p.Pos - _celebrationScorer.Pos).Normalized * 2.2f;
-                        p.Target = Vec2.Distance(p.Pos, _celebrationScorer.Pos) < 3f ? p.Pos : toward;
-                        p.Urgency = 0.7f;
-                    }
+                    if (p == _celebrationScorer) CelebrateScorer(p, scoring, corner, side);
+                    else CelebrateTeammate(p, scoring, corner, side);
                 }
                 else
                 {

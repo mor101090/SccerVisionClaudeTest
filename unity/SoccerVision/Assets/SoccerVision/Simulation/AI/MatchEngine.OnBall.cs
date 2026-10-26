@@ -217,7 +217,7 @@ namespace SoccerVision.Simulation
             var team = p.Team;
             float fromF = team.Forward(from);
             float offsideLine = MathF.Max(MathF.Max(SecondLastDefenderForward(team), fromF), 0f);
-            float noticeOffside = 0.45f + 0.45f * MathUtil.A(p.Attr.Decisions);
+            float noticeOffside = 0.3f + 0.45f * MathUtil.A(p.Attr.Decisions);
 
             foreach (var q in team.Players)
             {

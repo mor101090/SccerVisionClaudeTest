@@ -76,6 +76,7 @@ namespace SoccerVision.Simulation
         internal KickPlan PendingPlan;
         internal bool HasPendingPlan;
         public float HoldTime;
+        public float LastSortieTime = -100f;
         public PlayerAgent MarkTarget;
 
         // Per-match stats

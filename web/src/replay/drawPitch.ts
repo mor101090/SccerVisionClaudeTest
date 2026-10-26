@@ -95,7 +95,12 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   const teams = [replay.home, replay.away];
   // Officials
   snap.officials.forEach((o, i) => {
-    disc(ctx, px(v, o.x), py(v, o.y), 0.75 * s, "#141414", "#f6d43a");
+    disc(ctx, px(v, o.x), py(v, o.y), 0.78 * s, "#141414", "#f6d43a");
+    ctx.fillStyle = "#f6d43a";
+    ctx.font = `800 ${Math.max(8, 0.95 * s)}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(i === 0 ? "R" : "L", px(v, o.x), py(v, o.y) + 0.5);
     if (i > 0 && o.flag) {
       ctx.fillStyle = "#f6c90e";
       ctx.beginPath();
@@ -122,12 +127,14 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     const team = teams[i < 11 ? 0 : 1];
     const info = team.players[i % 11];
     const x = px(v, p.x);
-    const y = py(v, p.y);
-    const grow = 1 + Math.min(1.2, Math.max(0, p.jump)) * 0.45;
-    // shadow stays on the grass
-    ctx.fillStyle = `rgba(0,0,0,${0.3 * (1 - Math.min(1, p.jump) * 0.4)})`;
+    const gy = py(v, p.y);
+    const lift = Math.min(1.5, Math.max(0, p.jump)) * 1.8 * s;
+    const y = gy - lift;
+    const grow = 1 + Math.min(1.2, Math.max(0, p.jump)) * 0.3;
+    // shadow stays on the grass; the body rises on screen while jumping
+    ctx.fillStyle = `rgba(0,0,0,${0.5 * (1 - Math.min(1, p.jump) * 0.4)})`;
     ctx.beginPath();
-    ctx.ellipse(x + 0.15 * s, y + 0.2 * s, r * 1.05, r * 0.95, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + 0.15 * s, gy + 0.2 * s, r * 1.05, r * 0.95, 0, 0, Math.PI * 2);
     ctx.fill();
     const fx = Math.cos(p.facing);
     const fy = -Math.sin(p.facing);
@@ -155,11 +162,11 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   const h = Math.max(0, b.z - 0.11);
   const bx = px(v, b.x);
   const by = py(v, b.y);
-  ctx.fillStyle = `rgba(0,0,0,${Math.max(0.12, 0.45 - h * 0.035)})`;
+  ctx.fillStyle = `rgba(0,0,0,${Math.max(0.18, 0.6 - h * 0.04)})`;
   ctx.beginPath();
   ctx.arc(bx, by, 0.42 * s * Math.max(0.45, 1 - h * 0.05), 0, Math.PI * 2);
   ctx.fill();
-  disc(ctx, bx, by, 0.36 * s * (1 + Math.min(20, h) * 0.09), "#ffffff", "#111111");
+  disc(ctx, bx, by - Math.min(20, h) * 0.55 * s, 0.36 * s * (1 + Math.min(20, h) * 0.07), "#ffffff", "#111111");
   // "#10 - Name" under the player in possession
   if (b.owner >= 0 && snap.phase === 0) {
     const p = snap.players[b.owner];

@@ -104,6 +104,8 @@ namespace SoccerVision.Simulation
         public int Penalties;
         public int PenaltiesScored;
         public int Saves;
+        /// <summary>Goalkeeper rushes out of the penalty area to reach a loose ball.</summary>
+        public int Sorties;
         public float ExpectedGoals;
         public float PossessionSeconds;
         public float DistanceCoveredKm;

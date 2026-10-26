@@ -14,7 +14,7 @@ namespace SoccerVision.Runtime
 
         public PlayerAgent Agent { get; private set; }
 
-        private Transform _body;
+        private Transform _body, _lift;
         private SpriteRenderer _fill, _ring, _shadow, _legL, _legR, _card;
         private TextMesh _number, _label;
         private float _stepPhase;
@@ -24,12 +24,16 @@ namespace SoccerVision.Runtime
         public void Init(PlayerAgent agent, Color kit, Color ringColor, Color numberColor)
         {
             Agent = agent;
-            _shadow = SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.35f), 10, Diameter * 1.25f);
+            _shadow = SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.5f), 10, Diameter * 1.25f);
+            // Everything except the shadow rides on _lift: when the player jumps he rises on screen while the
+            // shadow stays on the grass, so the height is easy to read.
+            _lift = new GameObject("Lift").transform;
+            _lift.SetParent(transform, false);
             var legs = new Color(0.1f, 0.1f, 0.1f, 1f);
-            _legL = SpriteFactory.AddSprite(transform, "LegL", SpriteFactory.Circle, legs, 11, Diameter * 0.32f);
-            _legR = SpriteFactory.AddSprite(transform, "LegR", SpriteFactory.Circle, legs, 11, Diameter * 0.32f);
+            _legL = SpriteFactory.AddSprite(_lift, "LegL", SpriteFactory.Circle, legs, 11, Diameter * 0.32f);
+            _legR = SpriteFactory.AddSprite(_lift, "LegR", SpriteFactory.Circle, legs, 11, Diameter * 0.32f);
             _body = new GameObject("Body").transform;
-            _body.SetParent(transform, false);
+            _body.SetParent(_lift, false);
             _fill = SpriteFactory.AddSprite(_body, "Fill", SpriteFactory.Circle, kit, 12, 1f);
             _ring = SpriteFactory.AddSprite(_body, "Ring", SpriteFactory.Ring, ringColor, 13, 1f);
             // TextMesh world height ~= fontSize * characterSize * 0.1 (relative to the 1-unit body here).
@@ -88,12 +92,13 @@ namespace SoccerVision.Runtime
         private void UpdateBodyScale(float jump)
         {
             // Design doc: the circle grows at the peak of a jump, the shadow stays on the ground and fades.
-            float s = Diameter * (1f + Mathf.Clamp(jump, 0f, 1.2f) * 0.45f);
+            _lift.localPosition = new Vector3(0f, Mathf.Clamp(jump, 0f, 1.5f) * 1.8f, 0f);
+            float s = Diameter * (1f + Mathf.Clamp(jump, 0f, 1.2f) * 0.3f);
             _body.localScale = new Vector3(s, s, 1f);
             float shadow = Diameter * 1.25f * (1f - Mathf.Clamp01(jump) * 0.25f);
             _shadow.transform.localScale = new Vector3(shadow, shadow, 1f);
             var c = _shadow.color;
-            c.a = 0.35f * (1f - Mathf.Clamp01(jump) * 0.45f) * _fade;
+            c.a = 0.5f * (1f - Mathf.Clamp01(jump) * 0.4f) * _fade;
             _shadow.color = c;
         }
 
@@ -123,7 +128,7 @@ namespace SoccerVision.Runtime
 
         public void Init()
         {
-            _shadow = SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.45f), 40, Diameter * 1.2f);
+            _shadow = SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.6f), 40, Diameter * 1.2f);
             var body = new GameObject("Ball").transform;
             body.SetParent(transform, false);
             _ball = SpriteFactory.AddSprite(body, "Fill", SpriteFactory.Circle, Color.white, 50, 1f);
@@ -149,12 +154,14 @@ namespace SoccerVision.Runtime
             float h = Mathf.Max(0f, z - Pitch.BallRadius);
             transform.localPosition = new Vector3(x, y, 0f);
             var body = _ball.transform.parent;
-            float s = Diameter * (1f + Mathf.Clamp(h, 0f, 20f) * 0.09f);
+            float s = Diameter * (1f + Mathf.Clamp(h, 0f, 20f) * 0.07f);
             body.localScale = new Vector3(s, s, 1f);
+            // The ball rises on screen with its height; the shadow stays on the grass beneath it.
+            body.localPosition = new Vector3(0f, Mathf.Clamp(h, 0f, 20f) * 0.55f, 0f);
             float sh = Diameter * 1.2f * Mathf.Clamp(1f - h * 0.05f, 0.45f, 1f);
             _shadow.transform.localScale = new Vector3(sh, sh, 1f);
             var c = _shadow.color;
-            c.a = Mathf.Clamp(0.45f - h * 0.035f, 0.12f, 0.45f);
+            c.a = Mathf.Clamp(0.6f - h * 0.04f, 0.18f, 0.6f);
             _shadow.color = c;
             // In the air the ball renders above the players, on the ground below their bodies.
             int order = h > 1.2f ? 60 : 50;
@@ -185,6 +192,8 @@ namespace SoccerVision.Runtime
             SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.3f), 10, 1.9f);
             SpriteFactory.AddSprite(transform, "Fill", SpriteFactory.Circle, new Color(0.08f, 0.08f, 0.08f, 1f), 12, 1.45f);
             SpriteFactory.AddSprite(transform, "Ring", SpriteFactory.Ring, assistant ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.92f, 0.2f), 13, 1.45f);
+            var letter = SpriteFactory.AddText(transform, "Letter", assistant ? "L" : "R", assistant ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.92f, 0.2f), 14, 0.09f);
+            letter.fontStyle = FontStyle.Bold;
             if (assistant)
             {
                 _flag = SpriteFactory.AddSprite(transform, "Flag", SpriteFactory.Flag, new Color(1f, 0.85f, 0.1f), 14, 1.1f);
