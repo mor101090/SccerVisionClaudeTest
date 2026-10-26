@@ -5,7 +5,7 @@ namespace SoccerVision.Runtime
 {
     /// <summary>
     /// Player as described in the design document: a circle with a border, the shirt number in the centre and
-    /// two small legs showing the facing direction. Grows while jumping (shadow stays on the grass), and shows
+    /// two small legs showing the facing direction. Rises while jumping (its shadow stays on the grass, shrinking with height), and shows
     /// "#10 - Name" under the circle while in possession.
     /// </summary>
     public sealed class PlayerView : MonoBehaviour
@@ -91,14 +91,16 @@ namespace SoccerVision.Runtime
 
         private void UpdateBodyScale(float jump)
         {
-            // Design doc: the circle grows at the peak of a jump, the shadow stays on the ground and fades.
-            _lift.localPosition = new Vector3(0f, Mathf.Clamp(jump, 0f, 1.5f) * 1.8f, 0f);
-            float s = Diameter * (1f + Mathf.Clamp(jump, 0f, 1.2f) * 0.3f);
+            // The body rises on screen with the leap (0.2-0.75 m), the design doc's slight growth at the peak; the
+            // shadow stays on the grass and shrinks and fades in proportion to the height, so the height reads at a glance.
+            float h = Mathf.Clamp(jump, 0f, 1f);
+            _lift.localPosition = new Vector3(0f, h * 2.2f, 0f);
+            float s = Diameter * (1f + h * 0.2f);
             _body.localScale = new Vector3(s, s, 1f);
-            float shadow = Diameter * 1.25f * (1f - Mathf.Clamp01(jump) * 0.25f);
+            float shadow = Diameter * 1.25f * (1f - h * 0.6f);
             _shadow.transform.localScale = new Vector3(shadow, shadow, 1f);
             var c = _shadow.color;
-            c.a = 0.5f * (1f - Mathf.Clamp01(jump) * 0.4f) * _fade;
+            c.a = 0.5f * (1f - h * 0.6f) * _fade;
             _shadow.color = c;
         }
 

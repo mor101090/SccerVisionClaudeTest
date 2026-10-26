@@ -167,7 +167,7 @@ namespace SoccerVision.Runtime
             Engine.DrainEvents(_events);
             foreach (var e in _events)
             {
-                _audio.OnEvent(e);
+                _audio.OnEvent(e, Engine.Home.Score, Engine.Away.Score);
                 if (SoccerVision.Simulation.Commentary.IsCommentary(e.Type) && !string.IsNullOrEmpty(e.Text))
                 {
                     AddComment(e.Minute, e.Text, SoccerVision.Simulation.Commentary.ToneOf(e.Type));

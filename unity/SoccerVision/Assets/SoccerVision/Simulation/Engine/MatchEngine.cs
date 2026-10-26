@@ -16,16 +16,18 @@ namespace SoccerVision.Simulation
 
     public enum CelebrationKind
     {
-        /// <summary>Scorer sprints to the corner flag, team-mates chase him.</summary>
+        /// <summary>Scorer sprints to the corner flag; one or two team-mates follow him there.</summary>
         CornerRun,
-        /// <summary>Team piles onto the scorer and bounces together.</summary>
+        /// <summary>A group of the nearest team-mates piles onto the scorer and bounces together (rarer).</summary>
         Huddle,
-        /// <summary>Scorer runs to the touchline in front of the fans.</summary>
+        /// <summary>Scorer runs to the touchline in front of the fans; one team-mate joins him.</summary>
         FansRun,
-        /// <summary>Scorer runs a victory lap.</summary>
+        /// <summary>Scorer runs a solo lap around the box, arms out; the others applaud and jog back.</summary>
         Lap,
-        /// <summary>Scorer sprints to the corner and slides, team-mates line up behind.</summary>
+        /// <summary>Scorer knee-slides near the corner and two or three team-mates jump on him.</summary>
         KneeSlide,
+        /// <summary>Scorer runs to the player who set him up (or the nearest team-mate) to embrace him.</summary>
+        AssistHug,
     }
 
     public enum RestartType
@@ -50,7 +52,8 @@ namespace SoccerVision.Simulation
         public float SetupTime;
         public bool BallPlaced;
         public bool CountsAsLostTime;
-        public bool WhistleGiven;
+        /// <summary>The taker waits for the referee's whistle (kick-off, penalty, free kick with a wall or after a card).</summary>
+        public bool WaitForWhistle;
         public readonly List<PlayerAgent> Wall = new List<PlayerAgent>();
     }
 
@@ -77,6 +80,10 @@ namespace SoccerVision.Simulation
         public readonly List<MatchEvent> EventLog = new List<MatchEvent>();
         /// <summary>Law checks that should never trigger (asserted by the test-suite).</summary>
         public int RuleViolations { get; private set; }
+        /// <summary>Keeper distributions from the hands that an opponent blocked within 1.5 s, close to the keeper.</summary>
+        public int KeeperChargeDowns { get; private set; }
+        /// <summary>Goals conceded within 8 s of such a charge-down (regression guard for a corner bug).</summary>
+        public int KeeperChargeDownGoals { get; private set; }
         /// <summary>Test hook: called with every restart right before the ball is put back into play.</summary>
         internal Action<Restart> RestartExecuting;
 
@@ -123,6 +130,10 @@ namespace SoccerVision.Simulation
         private float _dutyTimer;
         private float _goalkeeperHoldTimer;
         private PlayerAgent _celebrationScorer;
+        private PlayerAgent _celebrationAssist;
+        private readonly List<PlayerAgent> _celebrationJoiners = new List<PlayerAgent>();
+        /// <summary>Team-mates who join the scorer's celebration (the rest jog back for the kick-off).</summary>
+        public IReadOnlyList<PlayerAgent> CelebrationJoiners => _celebrationJoiners;
         /// <summary>Style of the current goal celebration (chosen randomly per goal).</summary>
         public CelebrationKind Celebration { get; private set; }
         private TeamAgent _kickOffAfterGoal;
@@ -296,9 +307,41 @@ namespace SoccerVision.Simulation
                     break;
             }
 
+            TrackKeeperRelease();
             UpdateOfficials(dt);
             CheckAddedTime();
             ValidateState();
+        }
+
+        private PlayerAgent _keeperRelease;
+        private float _keeperReleaseTime;
+        private Vec2 _keeperReleasePos;
+        private TeamAgent _chargeDownTeam;
+        private float _chargeDownTime = -100f;
+
+        private void NoteKeeperRelease(PlayerAgent gk)
+        {
+            _keeperRelease = gk;
+            _keeperReleaseTime = SimTime;
+            _keeperReleasePos = gk.Pos;
+        }
+
+        private void TrackKeeperRelease()
+        {
+            if (_keeperRelease == null) return;
+            if (SimTime - _keeperReleaseTime > 1.5f || Phase != MatchPhase.Live)
+            {
+                _keeperRelease = null;
+                return;
+            }
+            var t = Ball.LastToucher;
+            if (t != null && t.Team != _keeperRelease.Team && Vec2.Distance(Ball.Pos, _keeperReleasePos) < 6f)
+            {
+                KeeperChargeDowns++;
+                _chargeDownTeam = _keeperRelease.Team;
+                _chargeDownTime = SimTime;
+                _keeperRelease = null;
+            }
         }
 
         private void SavePrevious()
@@ -362,6 +405,7 @@ namespace SoccerVision.Simulation
                 _dutyTimer = 0.1f;
                 AssignBallDuties();
             }
+            AnticipateHeaders();
 
             // Think: may kick the ball (the carrier releases it immediately).
             for (int i = 0; i < AllPlayers.Count; i++)

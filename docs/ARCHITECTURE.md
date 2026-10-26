@@ -105,7 +105,7 @@ inside a forbidden zone back to a legal position. The test-suite checks every re
 | live commentary, colour-coded | `MatchHud` + `Simulation/Events/Commentary.cs` |
 | active player label "#10 – Name" | `PlayerView` label |
 | tooltip with skills on hover | `MatchHud.DrawTooltip` |
-| whistle patterns, ball/net sounds, crowd | `MatchAudio` (synthesised placeholders) |
+| IFAB whistle signals (pea whistle), ball/net sounds, home-aware crowd | `MatchAudio` (synthesised; mirrored by `web/src/audio/matchAudio.ts`) |
 
 ## React ↔ Unity bridge
 

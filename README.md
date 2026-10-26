@@ -12,8 +12,16 @@ Game, it reaches 90 minutes plus added time with:
 - kick-offs (the first touch goes backwards, as the design document requires), throw-ins, goal kicks, corners,
   free kicks with walls, penalties, offside, fouls, advantage, yellow and red cards (second yellow, DOGSO), and the
   goalkeeper's 8-second rule (2025/26),
-- a referee (marked R) and two assistants (marked L), five different goal celebrations, goalkeeper sorties, headers, volleys, cut-inside shots from the wing, a scoreboard, live commentary, a skills tooltip on hover, procedural whistles and crowd
-  sound, the ball's height illusion and shadow, and jumping players.
+- restarts at a realistic pace: players reorganise (back into shape, into the box, into the wall) before the ball is
+  played again,
+- a referee (marked R) and two assistants (marked L) whose whistle follows the IFAB guidance (no whistle for a clear
+  throw-in, goal kick, corner or goal; a light tweet for offside, a sharp blast for a foul, a long blast for a penalty,
+  two blasts at half time, three at full time), synthesised as a pea whistle,
+- a home crowd that roars for home goals, falls silent for away goals, boos the visitors' fouls, and "ooh"s and groans at chances,
+- six goal celebrations (corner run, run to the fans, knee slide, hug with the assister, solo lap, and the rarer team
+  huddle). Only the scorer and a few team-mates take part; the others jog back,
+- goalkeeper sorties, headers with physically timed leaps, volleys, cut-inside shots from the wing, free kicks over the
+  wall, a scoreboard, live commentary, a skills tooltip on hover, and the ball's height illusion and shadow.
 
 ## Repository layout
 
@@ -54,13 +62,14 @@ docs/                               ARCHITECTURE.md, RESEARCH.md
 
 | per match | engine | top leagues |
 |---|---|---|
-| goals | 3.5 | 2.9-3.3 |
-| fouls / yellow / red | 22.8 / 3.5 / 0.12 | 20-24 / 3.5-4.3 / 0.10-0.15 |
-| penalties (converted) | 0.47 (70%) | 0.25-0.35 (75-80%) |
-| pass completion | 82% | 80-85% |
-| shots blocked | 6.6 | 6-7 |
-| added time 1st / 2nd half | 1.9 / 3.1 min | 1-3 / 3-7 min |
-| real duration 1st half / break / 2nd half | 625 s / 120 s / 643 s | 600 s + added / 120 s / 600 s + added |
+| goals | 2.75 | 2.7-3.0 |
+| fouls / yellow / red | 20.7 / 3.5 / 0.12 | 20-24 / 3.5-4.3 / 0.10-0.15 |
+| penalties (converted) | 0.38 (76%) | 0.25-0.35 (75-80%) |
+| direct free-kick shots | 0.63 | 0.6-1 |
+| pass completion | 83% | 80-85% |
+| shots blocked | 6.7 | 6-7 |
+| added time 1st / 2nd half | 2.3 / 3.4 min | 1-3 / 3-7 min |
+| real duration 1st half / break / 2nd half | 630 s / 120 s / 646 s | 600 s + added / 120 s / 600 s + added |
 
-There are known gaps to tune next: shots (35 vs 25), corners (7.6 vs ~10), throw-ins (23 vs ~40) and offsides (2.8 vs ~4).
+There are known gaps to tune next: shots (33 vs 25), corners (6.3 vs ~10), throw-ins (20 vs ~40) and offsides (3.1 vs ~4).
 See `docs/RESEARCH.md`.

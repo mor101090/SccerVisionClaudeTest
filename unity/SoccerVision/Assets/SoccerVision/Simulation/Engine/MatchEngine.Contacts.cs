@@ -31,6 +31,9 @@ namespace SoccerVision.Simulation
             {
                 if (p.SentOff || p.TouchCooldown > 0f || p.StunTimer > 0f) continue;
                 if (p == Ball.LastKicker && (Ball.KickerMustWait || SimTime - Ball.LastKickTime < 0.3f)) continue;
+                // Law 12.2: an opponent may not prevent the goalkeeper releasing the ball from the hands.
+                if (Ball.LastKickKind == KickKind.GoalkeeperDistribution && Ball.LastKicker != null && Ball.LastKicker.Team != p.Team
+                    && SimTime - Ball.LastKickTime < 0.4f) continue;
                 float d = Vec2.DistanceToSegment(p.Pos, a, b, out _);
                 if (d > 2.6f) continue;
 
@@ -95,7 +98,6 @@ namespace SoccerVision.Simulation
                     if (i == winner) continue;
                     var loser = _contacts[i].Player;
                     loser.TouchCooldown = 0.45f;
-                    if (_contacts[i].Kind == ContactKind.Head && Ball.Z > 1.7f) loser.JumpVz = MathF.Max(loser.JumpVz, 3.2f);
                 }
             }
 
@@ -317,7 +319,8 @@ namespace SoccerVision.Simulation
 
         private void HeaderTouch(PlayerAgent p, bool contested, bool opponentTouch)
         {
-            if (Ball.Z > 1.75f) p.JumpVz = MathF.Max(p.JumpVz, 3.6f);
+            if (CollectDiagnostics && Ball.Z > 1.9f) Count(p.JumpZ > 0.1f ? (p.JumpVz > -0.6f && p.JumpVz < 0.6f ? "header.jump.apex" : "header.jump.airborne") : "header.jump.ground");
+            if (Ball.Z > 1.9f) StartJump(p, Ball.Z - 1.75f); // unanticipated: a late spring at least
             if (opponentTouch) ClearOffside();
             var team = p.Team;
             float f = team.Forward(Ball.Pos);
@@ -413,7 +416,7 @@ namespace SoccerVision.Simulation
             float handling = MathUtil.A(gk.Attr.Handling);
             float skill = Ball.Z > 1.3f ? 0.6f * aerial + 0.4f * handling : handling;
             float pCatch = MathUtil.Clamp(0.68f + 0.3f * skill - crowd * 0.09f - (contested ? 0.12f : 0f), 0.35f, 0.98f);
-            if (Ball.Z > 1.5f) gk.JumpVz = MathF.Max(gk.JumpVz, 3f);
+            if (Ball.Z > 1.5f) StartJump(gk, Ball.Z - 1.2f);
             if (_rng.Chance(pCatch))
             {
                 GoalkeeperCatch(gk);
@@ -467,7 +470,7 @@ namespace SoccerVision.Simulation
                 gk.Saves++;
             }
             Emit(MatchEventType.Save, gk.Team, gk, shooter, Ball.Pos);
-            if (Ball.Z > 1.6f || reachNeeded > 0.5f) gk.JumpVz = MathF.Max(gk.JumpVz, 2.6f);
+            if (Ball.Z > 1.6f || reachNeeded > 0.5f) StartJump(gk, 0.35f);
 
             float pCatch = allowCatch ? MathUtil.Clamp(0.25f + 0.6f * handling - (speed - 15f) * 0.025f - difficulty * 0.3f, 0.05f, 0.85f) : 0f;
             if (_rng.Chance(pCatch))

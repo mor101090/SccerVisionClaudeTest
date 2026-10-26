@@ -604,6 +604,19 @@ namespace SoccerVision.Simulation
                 p.Target = new Vec2(p.Pos.X, (Pitch.HalfWidth + 6f) * (p.Pos.Y >= 0f ? 1f : -1f));
                 p.Urgency = 0.25f;
             }
+            else if (Phase == MatchPhase.Live && Ball.InHands && Ball.Owner != null && Ball.Owner.Team != p.Team)
+            {
+                // Opponents drift away from a goalkeeper holding the ball: they may not challenge him or block the release.
+                var gk = Ball.Owner;
+                const float keep = 10f;
+                Vec2 away = p.Target - gk.Pos;
+                if (away.Length < keep)
+                {
+                    Vec2 dir = away.Length > 0.5f ? away.Normalized : (p.Pos - gk.Pos).Length > 0.5f ? (p.Pos - gk.Pos).Normalized : gk.Team.DirToWorld(Vec2.UnitX);
+                    p.Target = gk.Pos + dir * keep;
+                    p.Urgency = MathF.Max(p.Urgency, 0.4f);
+                }
+            }
 
             Vec2 toTarget = p.Target - p.Pos;
             float dist = toTarget.Length;
@@ -655,6 +668,8 @@ namespace SoccerVision.Simulation
                 desired += push;
             }
 
+            // Airborne players cannot change direction: no ground contact until they land.
+            if (p.JumpZ > 0f && p.DiveTimer <= 0f) desired = p.Vel;
             Vec2 dv = desired - p.Vel;
             bool accelerating = Vec2.Dot(desired, p.Vel) >= p.Vel.LengthSq * 0.95f;
             float maxDv = (accelerating ? p.MaxAccel : decel) * accelBoost * dt;
@@ -690,15 +705,64 @@ namespace SoccerVision.Simulation
             }
             p.Facing = MathUtil.MoveTowardsAngle(p.Facing, targetFacing, turnRate * dt);
 
-            // Jump (visual elevation for headers / goalkeeper takes).
+            // Jump: ballistic flight of the body (headers, goalkeeper takes, walls, celebrations).
             if (p.JumpZ > 0f || p.JumpVz > 0f)
             {
                 p.JumpZ += p.JumpVz * dt;
-                p.JumpVz -= Config.Gravity * dt;
+                p.JumpVz -= JumpGravity * dt;
                 if (p.JumpZ <= 0f) { p.JumpZ = 0f; p.JumpVz = 0f; }
             }
 
             UpdateEnergy(p, speed, dt);
+        }
+
+        /// <summary>
+        /// Gravity for the body's jump, in sim time. Players move at MotionSpeed x real time, so true gravity would make
+        /// a leap last a blink on screen; dividing by MotionSpeed gives a visible hang time of about 0.45-0.6 real
+        /// seconds for a 0.4-0.7 m leap (a real one lasts 0.55-0.75 s).
+        /// </summary>
+        private float JumpGravity => Config.Gravity / Config.MotionSpeed;
+
+        /// <summary>Highest standing leap of the centre of mass (m) from the Jumping attribute (0.35-0.75 m).</summary>
+        private static float MaxJumpHeight(PlayerAgent p) => 0.35f + 0.4f * MathUtil.A(p.Attr.Jumping);
+
+        /// <summary>Take off for a leap of <paramref name="height"/> metres: v0 = sqrt(2 g h).</summary>
+        private void StartJump(PlayerAgent p, float height)
+        {
+            if (p.JumpZ > 0f || p.SentOff) return;
+            float h = MathUtil.Clamp(height, 0.1f, MaxJumpHeight(p));
+            p.JumpVz = MathF.Sqrt(2f * JumpGravity * h);
+            p.JumpZ = 0.001f;
+            if (p.DiveTimer <= 0f) p.Vel *= 0.55f; // plant and take off
+        }
+
+        /// <summary>Time from take-off to the top of a leap of the given height.</summary>
+        private float TimeToApex(float height) => MathF.Sqrt(2f * height / JumpGravity);
+
+        /// <summary>
+        /// Anticipated leaps: a player under a high ball takes off early so that the top of his jump meets the ball,
+        /// like a real header, instead of hopping after the contact.
+        /// </summary>
+        private void AnticipateHeaders()
+        {
+            if (Ball.Owner != null || Ball.InGoal || Ball.Z < 1.2f && Ball.M.Vz <= 0f) return;
+            Vec2 bv = new Vec2(Ball.M.Vx, Ball.M.Vy);
+            float bv2 = bv.LengthSq;
+            if (bv2 < 4f) return;
+            foreach (var p in AllPlayers)
+            {
+                if (p.SentOff || p.IsGoalkeeper || p.JumpZ > 0f || p.StunTimer > 0f) continue;
+                Vec2 rel = p.Pos - Ball.Pos;
+                float tc = Vec2.Dot(rel, bv) / bv2;
+                if (tc <= 0f || tc > 1.2f) continue;
+                Vec2 closest = Ball.Pos + bv * tc;
+                if (Vec2.Distance(closest, p.Pos + p.Vel * tc) > 1.1f) continue;
+                // Ball height at that moment (drag ignored over such a short time).
+                float z = Ball.Z + Ball.M.Vz * tc - 0.5f * Config.Gravity * tc * tc;
+                if (z < 1.75f || z > p.HeadReach + 0.15f) continue;
+                float need = MathUtil.Clamp(z - 1.75f + 0.15f, 0.2f, MaxJumpHeight(p));
+                if (tc <= TimeToApex(need) + 0.02f) StartJump(p, need);
+            }
         }
 
         private void UpdateEnergy(PlayerAgent p, float speed, float dt)

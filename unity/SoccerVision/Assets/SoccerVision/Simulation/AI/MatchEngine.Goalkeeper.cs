@@ -32,7 +32,7 @@ namespace SoccerVision.Simulation
                 if (gk.DiveTimer <= 0f && gap > 0.9f && (timeToLine < 0.8f || lateralSpeedNeeded > 4f))
                 {
                     gk.DiveTimer = 0.7f;
-                    if (Ball.Z > 1.2f || gap > 1.5f) gk.JumpVz = MathF.Max(gk.JumpVz, 2.2f);
+                    if (Ball.Z > 1.2f || gap > 1.5f) StartJump(gk, 0.25f);
                 }
                 gk.Target = target;
                 gk.Urgency = 1f;
@@ -143,6 +143,12 @@ namespace SoccerVision.Simulation
             gk.Urgency = 0.25f;
             gk.DecisionTimer -= dt;
             if (gk.DecisionTimer > 0f && _goalkeeperHoldTimer < 6f) return;
+            // Wait for opponents to clear out of the way before releasing (they must drift away; see MovePlayer).
+            if (_goalkeeperHoldTimer < 6.5f && NearestOpponentDistance(team, gk.Pos) < 6f)
+            {
+                gk.DecisionTimer = 0.3f;
+                return;
+            }
 
             float tempo = team.Tactics.Tempo;
             float kicking = MathUtil.A(gk.Attr.Kicking);
@@ -164,6 +170,7 @@ namespace SoccerVision.Simulation
 
             float pShort = MathUtil.Clamp(0.3f + 0.5f * (1f - tempo) + (shortTarget != null ? 0.15f : -1f) - 0.2f * kicking, 0f, 0.85f);
             Ball.InHands = false;
+            NoteKeeperRelease(gk);
             if (shortTarget != null && _rng.Chance(pShort))
             {
                 Vec2 target = shortTarget.Pos + shortTarget.Vel * 0.4f;

@@ -105,7 +105,11 @@ function Player({ replay }: { replay: Replay }) {
         let i = lastEvent.current;
         if (i > 0 && evs[i - 1].t > prev) i = 0; // seeked backwards
         while (i < evs.length && evs[i].t <= t) {
-          if (speed <= 4 && evs[i].t > prev - 0.001) sound.current?.play({ type: evs[i].type, whistle: evs[i].whistle, detail: evs[i].detail });
+          if (speed <= 4 && evs[i].t > prev - 0.001) {
+            const ev = evs[i];
+            const now = sample(replay, ev.t);
+            sound.current?.play({ type: ev.type, whistle: ev.whistle, detail: ev.detail, team: ev.team, homeScore: now.homeScore, awayScore: now.awayScore });
+          }
           i++;
         }
         lastEvent.current = i;

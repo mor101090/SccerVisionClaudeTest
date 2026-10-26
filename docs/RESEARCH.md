@@ -32,6 +32,40 @@ These are the sources behind the numbers in the engine. Each line says where the
 - **Law 16 – Goal kick**: the ball can be anywhere in the goal area, and opponents stay outside the penalty area until
   it is in play. <https://www.theifab.com/laws/latest/the-goal-kick/>
 
+- **Law 12 – Goalkeeper releasing the ball**: an opponent may not prevent the goalkeeper releasing the ball from the
+  hands (indirect free kick). Opponents therefore drift at least 10 m away from a keeper holding the ball, cannot touch
+  his kick in its first 0.4 s, and the keeper waits until nobody is within 6 m before releasing. This fixed a measured
+  bug: a keeper's kick out of the hands rebounding off an adjacent attacker into his own net (64 charge-downs and
+  8 goals per 100 matches before; 0 and 0 after, guarded by `KeeperReleaseIsNeverChargedDown`).
+
+### The referee's whistle
+
+IFAB *Practical guidelines for match officials – body language, communication and whistle*
+(<https://www.theifab.com/laws/latest/guidelines/body-language-communication-and-whistle/>):
+
+- The whistle is **needed** to start play (both halves, after a goal); to stop play for a free kick or penalty, a
+  suspension or abandonment, and at the end of each half; to restart free kicks where the 9.15 m distance is enforced
+  and penalty kicks; and to restart after a caution, sending-off, injury or substitution.
+- It is **not needed** to stop play for a clear goal kick, corner, throw-in or goal, nor to restart most free kicks,
+  goal kicks, corners, throw-ins or dropped balls. "A whistle which is used too frequently/unnecessarily will have less
+  impact when it is needed."
+
+The IFAB does not prescribe blast lengths. We follow common refereeing practice: the tone matches the offence (a light
+tweet for offside, a sharp firm blast for a foul, one long strong blast for a penalty or a sending-off offence), two
+blasts at half time and three at full time (short-short-long). → `WhistleKind`, `Restart.WaitForWhistle`.
+
+The sound is modelled on a pea whistle (Acme Thunderer): a bright tone near 3 kHz with strong 2nd and 3rd harmonics, a
+sliding onset and end, and irregular frequency and amplitude modulation caused by the pea, visible mostly in the
+harmonics, together with breath noise in narrow bands around them. The measured level is about 103 dB at 1 m.
+<https://www.windytan.com/2015/10/pea-whistle-steganography.html> → `matchAudio.ts`, `MatchAudio.cs`.
+
+### Restarts at a realistic pace
+
+Broadcast timing (match clock): throw-in 10-20 s, goal kick 20-30 s, corner 25-40 s, free kick 15-40 s, goal to
+kick-off 45-75 s, penalty 60-90 s. Each restart now has a minimum set-up time **and** waits until (nearly) everyone has
+reorganised into position (at most 40 s). Measured averages in match-clock seconds: throw-in 10, goal kick 19, corner 24,
+free kick 20, penalty 40, goal to kick-off ≈ 40.
+
 ## Real-match statistics (calibration targets)
 
 - Premier League 2024/25: 2.97 goals per match, ≈4.2 yellow cards per match, 52 reds in 380 matches (≈0.14).
@@ -55,6 +89,13 @@ These are the sources behind the numbers in the engine. Each line says where the
 - Ball: size-5, 68–70 cm circumference, 410–450 g. Air drag uses ½ρC<sub>d</sub>A/m with C<sub>d</sub>≈0.25. The Magnus
   effect provides curl and dip (design doc: "Physics System – Ball").
 
+- Jumping: a standing or running header leap raises the centre of mass by 0.35-0.75 m (vertical jump tests of
+  footballers are typically 40-60 cm). Take-off speed is v0 = √(2gh) and hang time 2·v0/g ≈ 0.55-0.75 s. Players take
+  off early so that the **apex meets the ball** (about 70% of high headers are won at the apex and 22% while rising or
+  falling), and cannot change direction in the air. Because motion runs at 2.25× real time, the visual jump uses
+  g / MotionSpeed, so a leap stays visible for about half a second on screen. The shadow stays on the grass and
+  shrinks and fades with height.
+
 ## Decision models (football analytics)
 
 - **Expected Threat (xT)**: Karun Singh's open 12×8 grid, embedded in `AI/ValueModels.cs`. It values passes, carries
@@ -76,24 +117,26 @@ Run: `dotnet run -c Release --project sim/SoccerVision.SimRunner -- --matches 10
 ```
 Matches: 100   Finished: 100/100   recovered errors: 0
 Per match (both teams)        sim     real-world reference (top leagues)
-  Goals                        3.50   2.7-3.0 (PL 24/25: 2.97)
-  Shots                       35.50   24-27
-  Shots on target             16.65   8-9
-  Shots blocked                6.58   6-7
-  Corners                      7.56   9.3-10.7
-  Fouls                       22.82   20-24
-  Yellow cards                 3.54   3.5-4.3
+  Goals                        2.75   2.7-3.0 (PL 24/25: 2.97)
+  Shots                       33.16   24-27
+  Shots on target             14.82   8-9
+  Shots blocked                6.74   6-7
+  Corners                      6.27   9.3-10.7
+  Fouls                       20.65   20-24
+  Yellow cards                 3.49   3.5-4.3
   Red cards                    0.12   0.10-0.15
-  Offsides                     2.84   3.5-4.5
-  Throw-ins                   23.04   39-43
-  Goal kicks                  18.98   14-18
-  Penalties                    0.47   0.25-0.35
-  Penalty conversion %        70.21   75-80
-  Pass completion %           81.75   80-85
-  Home possession %           51.63   50 +/- 15
-  Added time 1st / 2nd half    1.91 / 3.11 min
-  Real 1st half / break / 2nd  625.4 s / 120.0 s / 642.7 s
-Goals distribution: 0:1 1:8 2:19 3:26 4:19 5:16 6:8 7:2 8:1
+  Offsides                     3.08   3.5-4.5
+  Throw-ins                   19.98   39-43
+  Goal kicks                  18.08   14-18
+  Free kicks                  13.48   ~ fouls + offsides
+  Penalties                    0.38   0.25-0.35
+  Penalty conversion %        76.32   75-80
+  Direct free-kick shots       0.63   ~0.6-1
+  Pass completion %           82.81   80-85
+  Home possession %           51.68   50 +/- 15
+  Added time 1st / 2nd half    2.27 / 3.36 min
+  Real 1st half / break / 2nd  630.3 s / 120.0 s / 646.1 s
+Goals distribution: 0:3 1:18 2:30 3:24 4:10 5:8 6:5 7:1 8:1
 ```
 
 ### Why per-match totals cannot all match reality exactly
@@ -104,5 +147,5 @@ events must happen about 1.5× more often per minute of play than in reality. Th
 rather than 900. Raising `MotionSpeed` packs more football into the 20 minutes; the cost is faster-looking players.
 
 ### Next tuning targets
-- Shots and shots on target are high, and goals are about 0.3–0.5 above the league average (chance quality in the box).
+- Shots and shots on target are high (goals are now on the league average).
 - Throw-ins, corners and offsides are below real values (more play close to the touchline, deflections behind, and offside traps).

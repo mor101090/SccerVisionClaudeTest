@@ -37,6 +37,8 @@ namespace SoccerVision.Simulation
                 case MatchEventType.Shot:
                     if (e.Detail == 1) return P(e.Player) + " volleys it first time!";
                     if (e.Detail == 2) return P(e.Player) + " cuts inside and shoots!";
+                    if (e.Detail == 4) return P(e.Player) + " steps up... the penalty!";
+                    if (e.Detail == 3) return P(e.Player) + " goes for goal from the free kick - over the wall!";
                     return P(e.Player) + " shoots!";
                 case MatchEventType.Goal:
                     if (e.Value > 0.5f) return "GOAL! Own goal by " + P(e.Player) + " - " + T(e.Team) + " lead the way";
@@ -64,6 +66,7 @@ namespace SoccerVision.Simulation
                 case MatchEventType.RedCard:
                     return (e.Value > 0.5f ? "Second yellow - red card: " : "Red card! ") + P(e.Player) + " is sent off";
                 case MatchEventType.FreeKick:
+                    if (e.Detail == 1) return "Free kick to " + T(e.Team) + " in a dangerous position - " + P(e.Player) + " stands over it, the wall lines up";
                     return "Free kick to " + T(e.Team);
                 case MatchEventType.PenaltyAwarded:
                     return "PENALTY to " + T(e.Team) + "!";

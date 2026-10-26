@@ -121,20 +121,22 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
       ctx.lineTo(px(v, cx), py(v, cy) - 0.9 * s);
       ctx.fill();
     }
-  // Players: circle with border, number, two small legs showing direction; bigger while jumping.
+  // Players: circle with border, number, two small legs showing direction; lifted while jumping.
   snap.players.forEach((p, i) => {
     if (p.sentOff && Math.abs(p.y) > 35.5) return;
     const team = teams[i < 11 ? 0 : 1];
     const info = team.players[i % 11];
     const x = px(v, p.x);
     const gy = py(v, p.y);
-    const lift = Math.min(1.5, Math.max(0, p.jump)) * 1.8 * s;
+    // Leap of 0.2-0.75 m: the body rises on screen, the shadow stays on the grass and shrinks/fades with height.
+    const h = Math.min(1, Math.max(0, p.jump));
+    const lift = h * 2.2 * s;
     const y = gy - lift;
-    const grow = 1 + Math.min(1.2, Math.max(0, p.jump)) * 0.3;
-    // shadow stays on the grass; the body rises on screen while jumping
-    ctx.fillStyle = `rgba(0,0,0,${0.5 * (1 - Math.min(1, p.jump) * 0.4)})`;
+    const grow = 1 + h * 0.2;
+    const shrink = 1 - h * 0.6;
+    ctx.fillStyle = `rgba(0,0,0,${0.5 * shrink})`;
     ctx.beginPath();
-    ctx.ellipse(x + 0.15 * s, gy + 0.2 * s, r * 1.05, r * 0.95, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + 0.15 * s, gy + 0.2 * s, r * 1.05 * shrink, r * 0.95 * shrink, 0, 0, Math.PI * 2);
     ctx.fill();
     const fx = Math.cos(p.facing);
     const fy = -Math.sin(p.facing);

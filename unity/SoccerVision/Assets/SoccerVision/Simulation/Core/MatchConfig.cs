@@ -46,18 +46,21 @@ namespace SoccerVision.Simulation
         public float GoalkeeperHoldLimitSeconds = 8f;
         public bool AllowAdvantage = true;
 
-        // ---- Set piece pacing (sim seconds) -----------------------------------------------------------
-        public float GoalCelebrationSeconds = 11f;
-        public float KickOffSetupSeconds = 4f;
-        public float ThrowInSetupSeconds = 3.2f;
-        public float GoalKickSetupSeconds = 5f;
-        public float CornerSetupSeconds = 7f;
-        public float FreeKickSetupSeconds = 4.5f;
-        public float FreeKickWithWallSetupSeconds = 9f;
-        public float PenaltySetupSeconds = 11f;
+        // ---- Set piece pacing (sim seconds; 1 sim second = 2 clock seconds) ------------------------------
+        // Minimum time before a restart; it is also held until (nearly) everyone is back in position. Real
+        // broadcasts show roughly: throw-in 10-20 s, goal kick 20-30 s, corner 25-40 s, free kick 15-40 s,
+        // goal to kick-off 45-75 s, penalty 60-90 s of match clock.
+        public float GoalCelebrationSeconds = 12f;
+        public float KickOffSetupSeconds = 8f;
+        public float ThrowInSetupSeconds = 5.5f;
+        public float GoalKickSetupSeconds = 10f;
+        public float CornerSetupSeconds = 12f;
+        public float FreeKickSetupSeconds = 7f;
+        public float FreeKickWithWallSetupSeconds = 15f;
+        public float PenaltySetupSeconds = 18f;
         public float CardShowSeconds = 3f;
         /// <summary>Upper bound for any restart; after it the restart is forced so a match can never stall.</summary>
-        public float MaxSetupSeconds = 20f;
+        public float MaxSetupSeconds = 40f;
 
         // ---- Ball physics (SI units) ------------------------------------------------------------------
         public float Gravity = 9.81f;

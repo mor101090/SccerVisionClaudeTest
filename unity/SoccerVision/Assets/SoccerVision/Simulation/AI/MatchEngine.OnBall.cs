@@ -787,7 +787,7 @@ namespace SoccerVision.Simulation
             if (cutIn) team.Stats.CutInShots++;
             if (header) team.Stats.Headers++;
             p.CutInUntil = -1f;
-            Emit(MatchEventType.Shot, team, p, null, from, xg, WhistleKind.Short, volley ? 1 : (cutIn ? 2 : 0));
+            Emit(MatchEventType.Shot, team, p, null, from, xg, WhistleKind.Short, penalty ? 4 : volley ? 1 : (cutIn ? 2 : 0));
         }
 
         /// <summary>

@@ -53,6 +53,9 @@ namespace SoccerVision.Simulation
             }
             r.SetupTime *= _rng.Range(0.85f, 1.2f);
             LayoutRestart(r);
+            // IFAB: the whistle restarts kick-offs, penalties and free kicks where the 9.15 m distance is enforced;
+            // throw-ins, goal kicks, corners and quick free kicks are taken without it.
+            r.WaitForWhistle = type == RestartType.KickOff || type == RestartType.PenaltyKick || r.Wall.Count > 0;
             if (type == RestartType.KickOff && Vec2.Distance(Ball.Pos, Vec2.Zero) < 0.5f) r.BallPlaced = true;
         }
 
@@ -615,9 +618,10 @@ namespace SoccerVision.Simulation
             }
 
             bool takerReady = r.Taker != null && Vec2.Distance(r.Taker.Pos, approach) < 0.7f;
-            bool ready = r.BallPlaced && r.Timer >= r.SetupTime && takerReady;
+            bool ready = r.BallPlaced && r.Timer >= r.SetupTime && takerReady && PlayersSettled(r);
             if (!ready && r.Timer >= Config.MaxSetupSeconds)
             {
+                if (CollectDiagnostics) Count("restart.forced." + r.Type);
                 if (r.Taker == null || r.Taker.SentOff) r.Taker = ChooseTaker(r);
                 if (r.Taker != null)
                 {
@@ -627,7 +631,33 @@ namespace SoccerVision.Simulation
                 if (!r.BallPlaced) { Ball.Place(r.Spot); r.BallPlaced = true; }
                 ready = r.Taker != null;
             }
-            if (ready) ExecuteRestart(r);
+            if (ready)
+            {
+                if (CollectDiagnostics) for (int k = 0; k < (int)r.Timer; k++) Count("restart.seconds." + r.Type);
+                ExecuteRestart(r);
+            }
+        }
+
+        /// <summary>Restarts wait until (nearly) everyone has reorganised: back in shape, in the box, in the wall.</summary>
+        private bool PlayersSettled(Restart r)
+        {
+            int allowed;
+            switch (r.Type)
+            {
+                case RestartType.KickOff: allowed = 0; break;
+                case RestartType.PenaltyKick: allowed = 0; break;
+                case RestartType.ThrowIn: allowed = 4; break;
+                case RestartType.GoalKick: allowed = 2; break;
+                case RestartType.CornerKick: allowed = 1; break;
+                default: allowed = r.Wall.Count > 0 ? 1 : 3; break;
+            }
+            int unsettled = 0;
+            foreach (var p in AllPlayers)
+            {
+                if (p.SentOff || p == r.Taker) continue;
+                if (Vec2.Distance(p.Pos, p.Target) > 2.5f && ++unsettled > allowed) return false;
+            }
+            return true;
         }
 
         /// <summary>Referee management: anyone still illegally positioned is moved back before the kick.</summary>
@@ -739,11 +769,9 @@ namespace SoccerVision.Simulation
                         ExecuteThrowIn(taker, spot);
                         break;
                     case RestartType.GoalKick:
-                        Whistle(WhistleKind.Short);
                         ExecuteGoalKick(taker);
                         break;
                     case RestartType.CornerKick:
-                        Whistle(WhistleKind.Short);
                         ExecuteCorner(taker);
                         break;
                     case RestartType.PenaltyKick:
@@ -751,7 +779,7 @@ namespace SoccerVision.Simulation
                         ExecutePenalty(taker);
                         break;
                     default:
-                        Whistle(WhistleKind.Short);
+                        if (r.WaitForWhistle) Whistle(WhistleKind.Short);
                         ExecuteFreeKick(taker, r);
                         break;
                 }
@@ -906,7 +934,7 @@ namespace SoccerVision.Simulation
             var team = taker.Team;
             bool dangerous = IsDangerousFreeKick(r);
             float dist = Vec2.Distance(Ball.Pos, team.AttackGoal);
-            if (dangerous && r.Type == RestartType.DirectFreeKick && dist < 31f && MathF.Abs(Ball.Pos.Y) < 20f)
+            if (dangerous && r.Type == RestartType.DirectFreeKick && dist < 33f && MathF.Abs(Ball.Pos.Y) < 22f)
             {
                 float skill = MathUtil.A(taker.Attr.FreeKicks);
                 float pShoot = MathUtil.Clamp(0.35f + 0.5f * skill - (dist - 20f) * 0.03f, 0.15f, 0.9f);
@@ -962,7 +990,7 @@ namespace SoccerVision.Simulation
             float sigma = 0.012f + 0.045f * (1f - skill);
             startDir = startDir.Rotate(_rng.Gaussian(0f, sigma));
             vz += _rng.Gaussian(0f, 0.25f + 0.9f * (1f - skill));
-            foreach (var w in r.Wall) if (!w.SentOff) w.JumpVz = 3.2f; // the wall jumps
+            foreach (var w in r.Wall) StartJump(w, 0.4f); // the wall jumps
             float xg = MathUtil.Clamp(0.09f - (Vec2.Distance(from, aim) - 18f) * 0.004f, 0.02f, 0.1f);
             KickBall(taker, from, startDir * power, vz, curl, topSpin, KickKind.Shot, null, aim, true, false);
             Ball.IsShot = true;
@@ -972,9 +1000,10 @@ namespace SoccerVision.Simulation
             Ball.ShotGoalkeeperDistance = keeper != null ? Vec2.Distance(keeper.Pos, aim) : 3f;
             Ball.ShotOnTarget = true;
             team.Stats.Shots++;
+            team.Stats.FreeKickShots++;
             team.Stats.ExpectedGoals += xg;
             taker.Shots++;
-            Emit(MatchEventType.Shot, team, taker, null, from, xg);
+            Emit(MatchEventType.Shot, team, taker, null, from, xg, WhistleKind.Short, 3);
         }
 
         private void ExecutePenalty(PlayerAgent taker)

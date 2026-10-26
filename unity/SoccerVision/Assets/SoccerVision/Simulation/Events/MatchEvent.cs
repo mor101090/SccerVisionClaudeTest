@@ -41,19 +41,25 @@ namespace SoccerVision.Simulation
         NetHit,
     }
 
-    /// <summary>Referee whistle patterns from the audio design section of the design document.</summary>
+    /// <summary>
+    /// Referee whistle signals. When the whistle is (and is not) blown follows the IFAB "Practical guidelines for
+    /// match officials" (body language, communication and whistle); the blast lengths follow common refereeing
+    /// practice: the stronger the offence, the longer and louder the blast.
+    /// </summary>
     public enum WhistleKind
     {
-        /// <summary>Single short whistle: start/restart of play.</summary>
+        /// <summary>One clear, medium blast: start play (kick-off) or restart a free kick that waited for the whistle.</summary>
         Short,
-        /// <summary>Quick, louder blasts: foul or violation.</summary>
+        /// <summary>A sharp, firm blast: stop play for a foul.</summary>
         Foul,
-        /// <summary>One long whistle: serious stoppage, penalty, goal.</summary>
+        /// <summary>One long, strong blast: penalty kick or a sending-off offence.</summary>
         Long,
-        /// <summary>Two short/medium whistles: end of the first half.</summary>
+        /// <summary>Two blasts (short, then long): end of the first half.</summary>
         HalfTime,
-        /// <summary>Three whistles (short-short-long): end of the match.</summary>
+        /// <summary>Three blasts (short, short, long): end of the match.</summary>
         FullTime,
+        /// <summary>A quick, light tweet: stop play for offside or a technical offence.</summary>
+        Light,
     }
 
     /// <summary>
@@ -73,7 +79,10 @@ namespace SoccerVision.Simulation
         public float X, Y;
         public float Value;
         public WhistleKind Whistle;
-        /// <summary>Flavour of the event: for shots 1 = volley, 2 = cut inside from the wing.</summary>
+        /// <summary>
+        /// Flavour of the event. Shots: 1 = volley, 2 = cut inside from the wing, 3 = direct free kick, 4 = penalty kick.
+        /// Free kicks: 1 = dangerous position with a wall.
+        /// </summary>
         public int Detail;
         public string Text = "";
 

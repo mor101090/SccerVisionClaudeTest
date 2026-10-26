@@ -111,6 +111,8 @@ namespace SoccerVision.Simulation
         /// <summary>Shots by a wide player after cutting inside.</summary>
         public int CutInShots;
         public int Headers;
+        /// <summary>Direct free kicks struck at goal.</summary>
+        public int FreeKickShots;
         public float ExpectedGoals;
         public float PossessionSeconds;
         public float DistanceCoveredKm;

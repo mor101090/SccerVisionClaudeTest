@@ -10,6 +10,7 @@ using SoccerVision.Simulation;
 //   dotnet run -c Release -- --seed 7 --replay ../../web/public/replays/demo.json
 //   dotnet run -c Release -- --matches 20 --diag          (decision mix / outcome counters)
 //   dotnet run -c Release -- --matches 10 --shotorigins   (what leads to close-range shots)
+//   dotnet run -c Release -- --matches 40 --seed 100 --scan  (one line per match: set pieces, goals; to pick demos)
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
@@ -92,6 +93,10 @@ Parallel.For(0, matches, i =>
     results[i] = MatchResult.From(engine, ms);
     lock (diagnostics)
     {
+        diagnostics.TryGetValue("keeper.chargedown", out int cd);
+        diagnostics["keeper.chargedown"] = cd + engine.KeeperChargeDowns;
+        diagnostics.TryGetValue("keeper.chargedown.goal", out int cg);
+        diagnostics["keeper.chargedown.goal"] = cg + engine.KeeperChargeDownGoals;
         foreach (var kv in engine.Diagnostics)
         {
             diagnostics.TryGetValue(kv.Key, out int v);
@@ -100,6 +105,19 @@ Parallel.For(0, matches, i =>
     }
 });
 sw.Stop();
+
+if (args.Contains("--scan"))
+{
+    for (int i = 0; i < matches; i++)
+    {
+        var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed + (ulong)i, MakeConfig());
+        e.RunToEnd(0.25f);
+        var log = e.EventLog;
+        Console.WriteLine($"seed {seed + (ulong)i,6}  {e.Home.Score}-{e.Away.Score}  pens {log.Count(x => x.Type == MatchEventType.PenaltyAwarded)}"
+            + $"  fkShots {log.Count(x => x.Type == MatchEventType.Shot && x.Detail == 3)}  wallFks {log.Count(x => x.Type == MatchEventType.FreeKick && x.Detail == 1)}"
+            + $"  cards {log.Count(x => x.Type == MatchEventType.YellowCard)}/{log.Count(x => x.Type == MatchEventType.RedCard)}  woodwork {log.Count(x => x.Type == MatchEventType.HitWoodwork)}");
+    }
+}
 
 if (timeline)
 {
@@ -118,7 +136,7 @@ if (args.Contains("--diag"))
 {
     Console.WriteLine();
     Console.WriteLine("Diagnostics (per match):");
-    foreach (var kv in diagnostics.OrderBy(k => k.Key)) Console.WriteLine($"  {kv.Key,-40}{kv.Value / (double)matches,9:0.0}");
+    foreach (var kv in diagnostics.OrderBy(k => k.Key)) Console.WriteLine($"  {kv.Key,-40}{kv.Value / (double)matches,9:0.00} ({kv.Value})");
 }
 
 static void Report(MatchResult[] r, double wallSeconds)
@@ -148,6 +166,7 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Keeper sorties", Avg(x => x.Sorties), "n/a");
     Row("Headed shots", Avg(x => x.Headers), "n/a");
     Row("Volleys", Avg(x => x.Volleys), "n/a");
+    Row("Direct free-kick shots", Avg(x => x.FreeKickShots), "~0.6-1");
     Row("Cut-inside shots", Avg(x => x.CutIns), "n/a");
     Row("Passes", Avg(x => x.Passes), "850-1000 (in 57 min ball-in-play)");
     Row("Pass completion %", Avg(x => x.PassPct), "80-85");
@@ -265,7 +284,7 @@ sealed class MatchResult
     public bool Finished;
     public int RecoveredErrors;
     public double WallMs;
-    public int Headers, Volleys, CutIns, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles;
+    public int Headers, Volleys, CutIns, FreeKickShots, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles;
     public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy;
     public string Score;
 
@@ -299,6 +318,7 @@ sealed class MatchResult
             Sorties = h.Sorties + a.Sorties,
             Headers = h.Headers + a.Headers,
             Volleys = h.Volleys + a.Volleys,
+            FreeKickShots = h.FreeKickShots + a.FreeKickShots,
             CutIns = h.CutInShots + a.CutInShots,
             Passes = passes,
             Tackles = h.Tackles + a.Tackles,
