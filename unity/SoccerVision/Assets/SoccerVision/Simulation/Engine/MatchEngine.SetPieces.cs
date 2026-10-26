@@ -105,7 +105,7 @@ namespace SoccerVision.Simulation
                 default:
                     return; // throw-ins and kick-offs: no run-up
             }
-            r.RunUpStart = Pitch.ClampToField(r.RunUpStart, 3f);
+            r.RunUpStart = Pitch.ClampToField(r.RunUpStart, 0.5f);
             r.HasRunUp = Vec2.Distance(r.RunUpStart, r.Spot) > 1.5f;
         }
 
@@ -586,7 +586,16 @@ namespace SoccerVision.Simulation
             float len = d.Length;
             if (len >= radius) return p;
             Vec2 dir = len > 1e-3f ? d / len : new Vec2(-MathF.Sign(centre.X == 0f ? 1f : centre.X), 0f);
-            return Pitch.ClampToField(centre + dir * radius, 2f);
+            // Stay on the pitch: if the radial spot is beyond a line (free kicks near the corner or the goal line), swing round
+            // the circle to the nearest spot that is inside the field of play.
+            float baseAngle = dir.Angle;
+            for (int k = 0; k <= 24; k++)
+            {
+                float swing = ((k + 1) / 2) * 0.2618f * (k % 2 == 0 ? 1f : -1f); // 0, +15, -15, +30, -30 degrees ...
+                Vec2 c = centre + Vec2.FromAngle(baseAngle + swing) * radius;
+                if (Pitch.ClampToField(c, -0.3f).Equals(c)) return c;
+            }
+            return Pitch.ClampToField(centre + dir * radius, -0.3f);
         }
 
         private static Vec2 OutsidePenaltyArea(Vec2 p, int goalSign, float margin)
@@ -664,11 +673,14 @@ namespace SoccerVision.Simulation
                 }
                 else
                 {
-                    p.Target = p.ShapeTarget;
+                    p.Target = Pitch.ClampToField(p.ShapeTarget, -0.3f);
                     float d = Vec2.Distance(p.Pos, p.Target);
                     p.Urgency = d > 12f ? 0.7f : (d > 3f ? 0.5f : 0.3f);
                 }
                 MovePlayer(p, dt);
+                // Everybody but the taker stays inside the field of play while a restart is set up.
+                if (p != r.Taker) p.Pos = Pitch.ClampToField(p.Pos, -0.2f);
+                else if (r.Type != RestartType.ThrowIn && r.Type != RestartType.CornerKick) p.Pos = Pitch.ClampToField(p.Pos, 0.3f);
             }
 
             if (r.Type == RestartType.ThrowIn && r.BallPlaced && r.Taker != null && Vec2.Distance(r.Taker.Pos, approach) < 1.2f)

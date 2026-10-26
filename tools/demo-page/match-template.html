@@ -37,24 +37,28 @@ h1 { margin: 2px 0 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--display); lett
 .meta { color: var(--muted); font-size: 14px; }
 .stage { position: relative; width: 100%; max-width: 100%; aspect-ratio: 115 / 87; border-radius: 10px; overflow: hidden; background: #557f30; container-type: inline-size; }
 /* Broadcast scoreboard (design: broadcast_scoreboard.ai, bottom variant) */
-.sb { position: absolute; left: 2.2%; top: 2.4%; font-family: var(--body); font-weight: 500; font-size: clamp(11px, 2.3cqi, 22px); line-height: 1; user-select: none; }
-.sb-row { display: flex; align-items: stretch; height: 2.05em; }
+.sb { position: absolute; left: 2.2%; top: 2.4%; font-family: var(--body); font-weight: 500; font-size: clamp(9px, 1.55cqi, 16px); line-height: 1; user-select: none; }
+.sb-row { display: flex; align-items: stretch; height: 1.75em; }
 .sb-row > span[hidden] { display: none; }
 .sb-row > span { display: flex; align-items: center; justify-content: center; color: #fff; font-variant-numeric: tabular-nums; }
-.sb-clock { background: #2d324b; min-width: 4.1em; padding: 0 .45em; }
-.sb-team { position: relative; background: #252633; min-width: 4.6em; padding: 0 .7em; box-shadow: inset 0 -.24em 0 var(--team, #888); letter-spacing: .02em; }
-.sb-score { background: #7b8bb0; min-width: 3.2em; padding: 0 .5em; }
+.sb-clock { background: #2d324b; min-width: 3.6em; padding: 0 .4em; }
+.sb-team { position: relative; background: #252633; min-width: 3.9em; padding: 0 .55em; box-shadow: inset 0 -.2em 0 var(--team, #888); letter-spacing: .02em; }
+.sb-score { background: #7b8bb0; min-width: 2.7em; padding: 0 .4em; }
 .sb-add { background: #2d324b; color: #9fe3b0 !important; padding: 0 .45em; font-size: .8em; }
 .sb-reds { position: absolute; left: .45em; top: -.5em; display: flex; gap: .2em; }
 .sb-reds i { display: block; width: .42em; height: .42em; background: #ed1c24; }
-.sb-sub { display: inline-flex; align-items: center; gap: .55em; height: 1.45em; padding: 0 .9em 0 .35em; background: #7b8bb0; color: #fff; font-size: .78em; }
+.sb-sub { display: inline-flex; align-items: center; gap: .5em; height: 1.3em; padding: 0 .8em 0 .3em; background: #7b8bb0; color: #fff; font-size: .78em; }
 .sb-sub img { height: 1.05em; width: auto; background: #fff; padding: .05em .2em; display: block; }
-.topctl { position: absolute; right: 2.2%; top: 2.4%; display: flex; align-items: center; gap: .35em; font-size: clamp(22px, 3.4cqi, 40px); }
+.topctl { position: absolute; right: 2.2%; top: 2.4%; display: flex; align-items: center; gap: .5em; font-size: clamp(18px, 2.6cqi, 32px); }
 .topctl button.icon { background: none; border: 0; padding: .1em; color: #fff; line-height: 0; border-radius: 6px; }
 .topctl button.icon:hover { background: rgba(0,0,0,.15); }
 .topctl svg { height: 1.1em; width: 1.1em; display: block; filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
 .topctl #play svg { width: 2.2em; }
-.topctl #gear svg { width: 1.35em; height: 1.35em; }
+/* settings: an ordinary button - dark rounded square with a thin border and a line gear */
+.topctl button#gear { width: 1.9em; height: 1.9em; display: grid; place-items: center; padding: 0; border-radius: .4em; background: rgba(22, 27, 36, .78); border: 1px solid rgba(255,255,255,.22); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.topctl button#gear:hover { background: rgba(40, 48, 62, .9); border-color: rgba(255,255,255,.4); }
+.topctl button#gear[aria-expanded="true"] { background: rgba(70, 82, 104, .95); }
+.topctl #gear svg { width: 1.05em; height: 1.05em; filter: none; }
 #play .dim { opacity: .38; }
 .settings { position: absolute; right: 2.2%; top: 11%; width: min(280px, 60%); background: rgba(20, 26, 30, .94); border: 1px solid rgba(255,255,255,.14); border-radius: 8px; padding: 10px 12px; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
 .settings[hidden] { display: none; }
@@ -125,7 +129,7 @@ td.l { color: var(--muted); }
         <svg viewBox="0 0 48 24" aria-hidden="true"><path id="playTri" class="dim" d="M2 2 L20 12 L2 22 Z" fill="currentColor"/><g id="pauseBars"><rect x="26" y="2" width="7" height="20" fill="currentColor"/><rect x="38" y="2" width="7" height="20" fill="currentColor"/></g></svg>
       </button>
       <button id="gear" class="icon" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings" title="Settings">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 1.5h3.4l.5 2.7c.6.2 1.2.5 1.7.9l2.6-1 1.7 2.9-2.1 1.8c.1.6.1 1.3 0 1.9l2.1 1.8-1.7 2.9-2.6-1c-.5.4-1.1.7-1.7.9l-.5 2.7h-3.4l-.5-2.7c-.6-.2-1.2-.5-1.7-.9l-2.6 1-1.7-2.9 2.1-1.8a6 6 0 0 1 0-1.9L3.6 7l1.7-2.9 2.6 1c.5-.4 1.1-.7 1.7-.9zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z" transform="translate(0 1)"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
     <div class="settings" id="settings" role="dialog" aria-label="Settings" hidden>
@@ -326,7 +330,8 @@ td.l { color: var(--muted); }
     for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) o[i * 3 + j] = r[i * 3] * m[j] + r[i * 3 + 1] * m[3 + j] + r[i * 3 + 2] * m[6 + j];
     ballRot = o;
   }
-  function spinBall(S, h, dt) {
+  function spinBall(S, h, dt, held) {
+    if (held) { ballSpin.w = 0; ballPrev = { x: S.bx, y: S.by }; return; } // held by the keeper / carried overhead: no roll
     if (ballPrev && dt > 0) {
       var dx = S.bx - ballPrev.x, dy = S.by - ballPrev.y, dist = Math.hypot(dx, dy);
       if (dist > 0.0005 && dist < 3 && h < .35) {
@@ -405,9 +410,9 @@ td.l { color: var(--muted); }
     });
     S.ps.forEach(function (p) { if (p.os) offsideMark(X(p.x), Y(p.y), s); });
     var h = Math.max(0, S.bz - .11), bx = X(S.bx), by = Y(S.by);
-    ctx.fillStyle = "rgba(0,0,0," + Math.max(.18, .6 - h * .04) + ")"; ctx.beginPath(); ctx.arc(bx + .12 * s, by + .12 * s, .66 * s * Math.max(.45, 1 - h * .05), 0, Math.PI * 2); ctx.fill();
-    spinBall(S, h, dt);
-    drawBall(bx, by - Math.min(20, h) * .55 * s, .6 * s * (1 + Math.min(20, h) * .07));
+    ctx.fillStyle = "rgba(0,0,0," + Math.max(.18, .6 - h * .04) + ")"; ctx.beginPath(); ctx.arc(bx, by, .42 * s * Math.max(.45, 1 - h * .05), 0, Math.PI * 2); ctx.fill();
+    spinBall(S, h, dt, S.owner >= 0 && (S.ps[S.owner].gk || S.bz > .4));
+    drawBall(bx, by - Math.min(20, h) * .55 * s, .38 * s * (1 + Math.min(20, h) * .07));
     drawNet(-1, S.bx, S.by, netFx(t, -1)); drawNet(1, S.bx, S.by, netFx(t, 1));
     if (S.owner >= 0 && S.phase === 0) {
       var o = S.ps[S.owner], tm2 = teams[S.owner < 11 ? 0 : 1], inf = tm2.players[S.owner % 11], label = inf.shortName;
@@ -513,7 +518,8 @@ td.l { color: var(--muted); }
     var bg = possTeam >= 0 ? teams[possTeam].kit.primary : "#3c4552", text = lastLine ? lastLine.text : "Kick-off";
     if (goal && t - goal.t < 6) {
       // goal: flash between the two teams' colours
-      bg = teams[Math.floor((t - goal.t) / .35) % 2].kit.primary; text = goal.text;
+      // goal: flash in the two colours of the team that scored (e.g. blue and white for the blue team)
+      var gk = teams[goal.team === 1 ? 1 : 0].kit; bg = Math.floor((t - goal.t) / .35) % 2 ? gk.secondary : gk.primary; text = goal.text;
     } else if (card && t - card.t < 4) {
       bg = card.type === "RedCard" ? "#d50000" : "#ffd21a"; text = card.text;
     }
@@ -539,7 +545,7 @@ td.l { color: var(--muted); }
     if (playing && t < tEnd) t = Math.min(tEnd, t + dt * speed);
     if (!cv.width) resize();
     if (t > lastT) {
-      for (var ei = 0; ei < E.length; ei++) { var ev = E[ei]; if (ev.t > t) break; if (ev.t > lastT && speed <= 4) { var sc = sample(ev.t); snd.play({ type: ev.type, whistle: ev.whistle, detail: ev.detail, team: ev.team, homeScore: sc.hs, awayScore: sc.as }); } }
+      for (var ei = 0; ei < E.length; ei++) { var ev = E[ei]; if (ev.t > t) break; if (ev.t > lastT && speed <= 4) { var sc = sample(ev.t); snd.play({ type: ev.type, whistle: ev.whistle, detail: ev.detail, value: ev.v, team: ev.team, homeScore: sc.hs, awayScore: sc.as }); } }
     }
     lastT = t; snd.tick(dt);
     var S = sample(t), second = t >= secondHalfT, ended = t >= tEnd;

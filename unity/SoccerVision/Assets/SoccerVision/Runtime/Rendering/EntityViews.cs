@@ -138,7 +138,7 @@ namespace SoccerVision.Runtime
     /// </summary>
     public sealed class BallView : MonoBehaviour
     {
-        public const float Diameter = 1.2f;
+        public const float Diameter = 0.75f;
         private SpriteRenderer _ball, _shadow;
         private Ball3DTexture _look;
         private TrailRenderer _trail;
@@ -188,7 +188,9 @@ namespace SoccerVision.Runtime
             _shadow.color = c;
             // In the air the ball renders above the players, on the ground below their bodies.
             _ball.sortingOrder = h > 1.2f ? 60 : 50;
-            _look.Spin(new Vector2(x, y), h, dt);
+            // Held by the keeper or carried overhead for a throw-in: the ball moves with the hands and does not roll.
+            bool held = ball.Owner != null && (ball.InHands || ball.Owner.IsGoalkeeper || z > 0.4f);
+            _look.Spin(new Vector2(x, y), h, dt, held);
             _look.Redraw();
 
             var p = new Vector2(x, y);

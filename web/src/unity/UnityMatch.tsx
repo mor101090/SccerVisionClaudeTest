@@ -52,7 +52,7 @@ function UnityPlayer() {
   const [state, setState] = useState<MatchState | null>(null);
   const [lines, setLines] = useState<CommentLine[]>([]);
   // Goal / card highlight for the commentary bar, re-rendered quickly while it flashes.
-  const [highlight, setHighlight] = useState<{ type: string; text: string; at: number } | null>(null);
+  const [highlight, setHighlight] = useState<{ type: string; text: string; team: number; at: number } | null>(null);
   const [now, setNow] = useState(() => performance.now());
   useEffect(() => {
     if (!highlight) return;
@@ -85,7 +85,7 @@ function UnityPlayer() {
       const e = parsePayload<MatchEvent>(payload);
       if (!e || !isCommentary(e)) return undefined;
       setLines((prev) => [...prev.slice(-300), { id: nextId++, minute: e.minute, text: e.text, tone: e.tone }]);
-      if (e.type === "Goal" || e.type === "YellowCard" || e.type === "RedCard") setHighlight({ type: e.type, text: e.text, at: performance.now() });
+      if (e.type === "Goal" || e.type === "YellowCard" || e.type === "RedCard") setHighlight({ type: e.type, text: e.text, team: e.team, at: performance.now() });
       return undefined;
     };
     addEventListener("MatchReady", onReady);
@@ -134,10 +134,15 @@ function UnityPlayer() {
             bar={barState({
               latest: lines.length ? lines[lines.length - 1].text : null,
               possessionColor: state.ballTeam === 0 ? ready.home.color : state.ballTeam === 1 ? ready.away.color : null,
-              goal: highlight?.type === "Goal" ? { text: highlight.text, age: (now - highlight.at) / 1000 } : null,
+              goal:
+                highlight?.type === "Goal"
+                  ? {
+                      text: highlight.text,
+                      age: (now - highlight.at) / 1000,
+                      colors: highlight.team === 1 ? [ready.away.color, ready.away.secondaryColor] : [ready.home.color, ready.home.secondaryColor],
+                    }
+                  : null,
               card: highlight && highlight.type !== "Goal" ? { text: highlight.text, red: highlight.type === "RedCard", age: (now - highlight.at) / 1000 } : null,
-              homeColor: ready.home.color,
-              awayColor: ready.away.color,
             })}
           />
         )}

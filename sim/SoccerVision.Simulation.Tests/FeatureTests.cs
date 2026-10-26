@@ -288,5 +288,35 @@ namespace SoccerVision.Simulation.Tests
             }
             Assert.True(offsides >= 1, "no offside in this match");
         }
+
+        [Fact]
+        public void PlayersStayOnThePitchWhileRestartsAreSetUp()
+        {
+            // Regression: free kicks near the corner or the goal line put wall players up to 3.5 m behind the line, and
+            // players could run well past the lines in open play.
+            int checkedTicks = 0, corners = 0;
+            Parallel.For(0, 10, i =>
+            {
+                var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 7000 + (ulong)i);
+                while (!e.IsFinished)
+                {
+                    e.Advance(0.1f);
+                    if (e.Phase == MatchPhase.HalfTimeBreak || e.Phase == MatchPhase.FullTime) continue;
+                    var r = e.CurrentRestart;
+                    bool setUp = e.Phase == MatchPhase.Stoppage && r != null;
+                    if (setUp && r.Type == RestartType.CornerKick) Interlocked.Increment(ref corners);
+                    foreach (var p in e.AllPlayers)
+                    {
+                        if (p.SentOff) continue;
+                        float outside = MathF.Max(MathF.Abs(p.Pos.X) - Pitch.HalfLength, MathF.Abs(p.Pos.Y) - Pitch.HalfWidth);
+                        bool exempt = setUp && p == r.Taker && (r.Type == RestartType.ThrowIn || r.Type == RestartType.CornerKick);
+                        float limit = e.Phase == MatchPhase.Live ? 1.7f : (exempt ? 1.0f : 0.35f);
+                        Interlocked.Increment(ref checkedTicks);
+                        Assert.True(outside <= limit, $"seed {7000 + i} {e.Phase} {(setUp ? r.Type.ToString() : "")} {p.Team.ShortName}#{p.Number} is {outside:0.0} m outside the pitch");
+                    }
+                }
+            });
+            Assert.True(checkedTicks > 100000 && corners > 20, $"ticks {checkedTicks} corner ticks {corners}");
+        }
     }
 }

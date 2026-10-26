@@ -45,7 +45,13 @@ export class Ball3D {
   }
 
   /** Advances the spin from the ball's movement on the ground (metres) over dt seconds of playback. */
-  spin(x: number, y: number, height: number, dt: number) {
+  spin(x: number, y: number, height: number, dt: number, held = false) {
+    if (held) {
+      // Held by the keeper or carried overhead for a throw-in: the ball moves with the hands and does not roll.
+      this.w = 0;
+      this.prev = { x, y };
+      return;
+    }
     if (this.prev && dt > 0) {
       const dx = x - this.prev.x;
       const dy = y - this.prev.y;

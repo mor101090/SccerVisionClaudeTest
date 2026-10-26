@@ -1,6 +1,31 @@
 # Changelog
 
-Each round of changes is developed on its own branch, named after what it changes.
+Each round of changes is developed on its own branch, named after what it changes. Newest first.
+
+## `fix/ball-spin-corner-bounds-goal-colours-hud-sounds`
+
+- **Ball spin**: a ball held by the goalkeeper or carried overhead for a throw-in no longer rotates (it only rolls when it is
+  free or at a player's feet).
+- **Players outside the pitch**: free kicks near the corner or the goal line put wall players up to 3.5 m behind the line
+  (the "keep 9.15 m away" push went radially outwards), and players could run well past the lines in open play. Now the
+  9.15 m spot swings round the circle to the nearest spot inside the field, everybody except a throw-in or corner taker stays
+  on the pitch during a set-up, and players may run at most 1.5 m past a line in open play. Test:
+  `PlayersStayOnThePitchWhileRestartsAreSetUp` (it failed 3 of 10 matches before the fix, one of them at a corner).
+- **Ball size**: back to the original size in the demo page, the React viewer and Unity.
+- **Goal flash**: the commentary bar flashes in the two colours of the team that scored (blue and white for the blue team,
+  red and white for the red team) instead of one colour of each team.
+- **HUD**: smaller, thinner scoreboard; the settings button is now an ordinary button (dark rounded square, thin border,
+  standard gear icon).
+- **Post and net sounds** (all viewers), built from what is known about the physics:
+  - post / crossbar: a hollow steel or aluminium tube. Layers: the contact click and the ball's dull thud; the frame's bending
+    modes (free-free beam ratios 1 : 2.76 : 5.40 : 8.93), whose audible modes 2-4 give the deep "tonk" - the crossbar is
+    lighter and rings longer (about 0.55 s) than the ground-socketed post (about 0.3 s); the tube's shell "ping" at 2-3 kHz
+    (cylinder modes; an aluminium bat rings at 2200 and 2800 Hz); and the rattle of net fixings right after;
+  - net: slack nylon cord - no ring and no hiss. A soft low "whump", a muffled swish of cords (about 150 Hz to 2 kHz with a
+    quick flutter, 0.4 s) and a few tiny cord ticks. The old net sound was a bright high-passed hiss, and a goal played it
+    twice; now only the net-hit event plays it, louder for a harder strike;
+  - both are louder for a harder strike (the events carry the ball speed). Measured offline: the net peaks 0.25 against
+    0.33-0.48 for the woodwork.
 
 ## `feature/broadcast-view-offside-referee`
 

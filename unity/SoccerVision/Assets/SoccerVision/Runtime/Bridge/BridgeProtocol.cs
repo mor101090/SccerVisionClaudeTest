@@ -55,6 +55,7 @@ namespace SoccerVision.Runtime
         public string name;
         public string shortName;
         public string color;
+        public string secondaryColor;
         public string goalkeeperColor;
         public string formation;
         public PlayerDto[] players;

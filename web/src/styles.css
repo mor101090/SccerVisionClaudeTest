@@ -136,14 +136,14 @@ main {
   left: 2.2%;
   top: 2.4%;
   font-weight: 500;
-  font-size: clamp(11px, 1.9vw, 22px);
+  font-size: clamp(9px, 1.25vw, 16px);
   line-height: 1;
   user-select: none;
 }
 .sb-row {
   display: flex;
   align-items: stretch;
-  height: 2.05em;
+  height: 1.75em;
 }
 .sb-row > span {
   display: flex;
@@ -154,20 +154,20 @@ main {
 }
 .sb-clock {
   background: #2d324b;
-  min-width: 4.1em;
-  padding: 0 0.45em;
+  min-width: 3.6em;
+  padding: 0 0.4em;
 }
 .sb-team {
   position: relative;
   background: #252633;
-  min-width: 4.6em;
-  padding: 0 0.7em;
-  box-shadow: inset 0 -0.24em 0 var(--team, #888);
+  min-width: 3.9em;
+  padding: 0 0.55em;
+  box-shadow: inset 0 -0.2em 0 var(--team, #888);
 }
 .sb-score {
   background: #7b8bb0;
-  min-width: 3.2em;
-  padding: 0 0.5em;
+  min-width: 2.7em;
+  padding: 0 0.4em;
 }
 .sb-add {
   background: #2d324b;
@@ -191,9 +191,9 @@ main {
 .sb-sub {
   display: inline-flex;
   align-items: center;
-  gap: 0.55em;
-  height: 1.45em;
-  padding: 0 0.9em 0 0.35em;
+  gap: 0.5em;
+  height: 1.3em;
+  padding: 0 0.8em 0 0.3em;
   background: #7b8bb0;
   color: #fff;
   font-size: 0.78em;
@@ -211,8 +211,8 @@ main {
   top: 2.4%;
   display: flex;
   align-items: center;
-  gap: 0.35em;
-  font-size: clamp(22px, 2.8vw, 40px);
+  gap: 0.5em;
+  font-size: clamp(18px, 2.2vw, 32px);
 }
 .topctl button.icon {
   background: none;
@@ -234,9 +234,27 @@ main {
 .topctl .play svg {
   width: 2.2em;
 }
+/* settings: an ordinary button - dark rounded square with a thin border and a line gear */
+.topctl button.icon.gear {
+  width: 1.9em;
+  height: 1.9em;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 0.4em;
+  background: rgba(22, 27, 36, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.topctl button.icon.gear:hover,
+.topctl button.icon.gear[aria-expanded="true"] {
+  background: rgba(50, 60, 78, 0.92);
+  border-color: rgba(255, 255, 255, 0.4);
+}
 .topctl .gear svg {
-  width: 1.35em;
-  height: 1.35em;
+  width: 1.05em;
+  height: 1.05em;
+  filter: none;
 }
 .topctl .dim {
   opacity: 0.38;

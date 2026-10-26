@@ -78,11 +78,11 @@ namespace SoccerVision.Runtime
         private void DrawScoreboard(MatchEngine m)
         {
             float s = _scale;
-            float x = 22f * s, y = 18f * s, h = 44f * s;
-            float clockW = 104f * s, teamW = 112f * s, scoreW = 82f * s, underline = 5f * s;
+            float x = 20f * s, y = 16f * s, h = 34f * s;
+            float clockW = 82f * s, teamW = 88f * s, scoreW = 64f * s, underline = 4f * s;
             var home = SpriteFactory.Hex(m.Home.Setup.Kit.Primary, Color.red);
             var away = SpriteFactory.Hex(m.Away.Setup.Kit.Primary, Color.blue);
-            var text = new GUIStyle(_score) { fontStyle = FontStyle.Normal, fontSize = Mathf.RoundToInt(27 * s) };
+            var text = new GUIStyle(_score) { fontStyle = FontStyle.Normal, fontSize = Mathf.RoundToInt(20 * s) };
             string clock = m.Phase == MatchPhase.HalfTimeBreak ? "HT" : m.IsFinished ? "FT" : m.Clock.ClockText;
             Fill(new Rect(x, y, clockW, h), ClockBg);
             GUI.Label(new Rect(x, y, clockW, h), clock, text);
@@ -93,13 +93,13 @@ namespace SoccerVision.Runtime
             DrawTeamBlock(new Rect(tx + teamW + scoreW, y, teamW, h), m.Away.ShortName, away, m.Away.Stats.RedCards, underline, text);
             if (m.Clock.AddedMinutes > 0 && m.Clock.InAddedTime && m.Phase != MatchPhase.HalfTimeBreak && !m.IsFinished)
             {
-                var add = new GUIStyle(text) { fontSize = Mathf.RoundToInt(20 * s) };
+                var add = new GUIStyle(text) { fontSize = Mathf.RoundToInt(15 * s) };
                 add.normal.textColor = new Color(0.62f, 0.89f, 0.69f);
-                Fill(new Rect(tx + teamW * 2 + scoreW, y, 52f * s, h), ClockBg);
-                GUI.Label(new Rect(tx + teamW * 2 + scoreW, y, 52f * s, h), "+" + m.Clock.AddedMinutes, add);
+                Fill(new Rect(tx + teamW * 2 + scoreW, y, 40f * s, h), ClockBg);
+                GUI.Label(new Rect(tx + teamW * 2 + scoreW, y, 40f * s, h), "+" + m.Clock.AddedMinutes, add);
             }
             // Competition strip with the SoccerVision logo.
-            float subH = 30f * s, subW = clockW + teamW + 60f * s;
+            float subH = 22f * s, subW = clockW + teamW + 40f * s;
             Fill(new Rect(x, y + h, subW, subH), ScoreBg);
             if (_logo == null) _logo = Resources.Load<Texture2D>("soccervision-logo");
             float logoH = subH * 0.72f, logoW = _logo != null ? logoH * _logo.width / (float)_logo.height : 0f;
@@ -108,7 +108,7 @@ namespace SoccerVision.Runtime
                 Fill(new Rect(x + 6f * s, y + h + (subH - logoH) * 0.5f, logoW + 4f * s, logoH), Color.white);
                 GUI.DrawTexture(new Rect(x + 8f * s, y + h + (subH - logoH) * 0.5f, logoW, logoH), _logo, ScaleMode.ScaleToFit);
             }
-            var comp = new GUIStyle(_small) { fontSize = Mathf.RoundToInt(19 * s) };
+            var comp = new GUIStyle(_small) { fontSize = Mathf.RoundToInt(14 * s) };
             comp.normal.textColor = Color.white;
             GUI.Label(new Rect(x + logoW + 20f * s, y + h, subW - logoW - 20f * s, subH), "Ligue match", comp);
         }
@@ -119,7 +119,7 @@ namespace SoccerVision.Runtime
             Fill(new Rect(r.x, r.yMax - underline, r.width, underline), teamColor);
             GUI.Label(new Rect(r.x, r.y, r.width, r.height - underline), name, text);
             // One small red mark above the team name per red card.
-            float mark = 9f * _scale;
+            float mark = 7f * _scale;
             for (int i = 0; i < reds; i++) Fill(new Rect(r.x + 10f * _scale + i * (mark + 4f * _scale), r.y - mark - 3f * _scale, mark, mark), RedMark);
         }
 
@@ -128,28 +128,63 @@ namespace SoccerVision.Runtime
         {
             float s = _scale;
             if (_iconPlay == null) MakeIcons();
-            float size = 38f * s, y = 20f * s, right = Screen.width - 22f * s;
-            var gearRect = new Rect(right - size, y, size, size);
-            var playRect = new Rect(gearRect.x - 12f * s - size * 2f, y, size * 2f, size);
+            float size = 30f * s, y = 16f * s, right = Screen.width - 20f * s;
+            // Settings: an ordinary button - dark rounded square with a thin border and a gear.
+            var gearRect = new Rect(right - size * 1.2f, y, size * 1.2f, size * 1.2f);
+            var playRect = new Rect(gearRect.x - 14f * s - size * 2f, y + size * 0.1f, size * 2f, size);
             var old = GUI.color;
             // the action you can take is drawn bright: pause bars while playing, the triangle while paused
             GUI.color = new Color(1f, 1f, 1f, Controller.Paused ? 1f : 0.38f);
             GUI.DrawTexture(new Rect(playRect.x, playRect.y, size, size), _iconPlay);
             GUI.color = new Color(1f, 1f, 1f, Controller.Paused ? 0.38f : 1f);
             GUI.DrawTexture(new Rect(playRect.x + size, playRect.y, size, size), _iconPause);
-            GUI.color = Color.white;
-            GUI.DrawTexture(gearRect, _iconGear);
             GUI.color = old;
             if (GUI.Button(playRect, GUIContent.none, GUIStyle.none)) Controller.Paused = !Controller.Paused;
-            if (GUI.Button(gearRect, GUIContent.none, GUIStyle.none)) _settingsOpen = !_settingsOpen;
+            if (_settingsButton == null) _settingsButton = MakeSettingsButtonStyle();
+            if (GUI.Button(gearRect, GUIContent.none, _settingsButton)) _settingsOpen = !_settingsOpen;
+            float g = gearRect.width * 0.56f;
+            GUI.DrawTexture(new Rect(gearRect.center.x - g * 0.5f, gearRect.center.y - g * 0.5f, g, g), _iconGear);
             if (_settingsOpen)
             {
-                var panel = new Rect(right - 280f * s, y + size + 10f * s, 280f * s, 86f * s);
+                var panel = new Rect(right - 260f * s, gearRect.yMax + 8f * s, 260f * s, 78f * s);
                 Fill(panel, new Color(0.08f, 0.1f, 0.12f, 0.94f));
-                GUI.Label(new Rect(panel.x + 12f * s, panel.y + 8f * s, panel.width, 26f * s), "<b>SETTINGS</b>", _small);
-                GUI.Label(new Rect(panel.x + 12f * s, panel.y + 40f * s, panel.width, 26f * s), "No settings yet.", _small);
-                if (GUI.Button(new Rect(panel.xMax - 40f * s, panel.y + 8f * s, 30f * s, 26f * s), "X", _button)) _settingsOpen = false;
+                GUI.Label(new Rect(panel.x + 12f * s, panel.y + 6f * s, panel.width, 26f * s), "<b>SETTINGS</b>", _small);
+                GUI.Label(new Rect(panel.x + 12f * s, panel.y + 38f * s, panel.width, 26f * s), "No settings yet.", _small);
+                if (GUI.Button(new Rect(panel.xMax - 36f * s, panel.y + 6f * s, 28f * s, 24f * s), "X", _button)) _settingsOpen = false;
             }
+        }
+
+        private GUIStyle _settingsButton;
+
+        private static GUIStyle MakeSettingsButtonStyle()
+        {
+            Texture2D Rounded(Color fill, Color border)
+            {
+                const int n = 40, rad = 10;
+                var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
+                var px = new Color32[n * n];
+                for (int y = 0; y < n; y++)
+                    for (int x = 0; x < n; x++)
+                    {
+                        // signed distance to a rounded rectangle
+                        float dx = Mathf.Max(Mathf.Abs(x + 0.5f - n * 0.5f) - (n * 0.5f - rad), 0f), dy = Mathf.Max(Mathf.Abs(y + 0.5f - n * 0.5f) - (n * 0.5f - rad), 0f);
+                        float d = Mathf.Sqrt(dx * dx + dy * dy) - rad;
+                        float a = Mathf.Clamp01(0.5f - d);
+                        Color c = d > -1.6f ? border : fill;
+                        c.a *= a;
+                        px[y * n + x] = c;
+                    }
+                t.SetPixels32(px);
+                t.Apply();
+                return t;
+            }
+            var normal = Rounded(new Color(0.09f, 0.11f, 0.14f, 0.78f), new Color(1f, 1f, 1f, 0.22f));
+            var hover = Rounded(new Color(0.2f, 0.24f, 0.31f, 0.92f), new Color(1f, 1f, 1f, 0.4f));
+            var st = new GUIStyle { border = new RectOffset(12, 12, 12, 12) };
+            st.normal.background = normal;
+            st.hover.background = hover;
+            st.active.background = hover;
+            return st;
         }
 
         private void MakeIcons()
@@ -176,8 +211,10 @@ namespace SoccerVision.Runtime
             _iconGear = Make((u, v) =>
             {
                 float dx = u - 0.5f, dy = v - 0.5f, r = Mathf.Sqrt(dx * dx + dy * dy), a = Mathf.Atan2(dy, dx);
-                float teeth = Mathf.Cos(a * 8f) > 0.35f ? 0.46f : 0.36f;
-                return r < teeth && r > 0.15f;
+                // 8 teeth with flat tops: radius 0.46 on a tooth, 0.34 between teeth; hole of radius 0.14
+                float t = Mathf.Repeat(a * 8f / (2f * Mathf.PI), 1f);
+                float outer = (t > 0.18f && t < 0.82f) ? 0.34f : 0.47f;
+                return r < outer && r > 0.14f;
             });
         }
 
@@ -199,7 +236,9 @@ namespace SoccerVision.Runtime
             float age = m.RealTimeElapsed - Controller.HighlightAt;
             if (Controller.HighlightType == MatchEventType.Goal && age < 6f)
             {
-                bg = Mathf.FloorToInt(age / 0.35f) % 2 == 0 ? home : away;
+                // flashes in the two colours of the team that scored (e.g. blue and white for the blue team)
+                var kit = (Controller.HighlightTeam == 1 ? m.Away : m.Home).Setup.Kit;
+                bg = Mathf.FloorToInt(age / 0.35f) % 2 == 0 ? SpriteFactory.Hex(kit.Primary, Color.gray) : SpriteFactory.Hex(kit.Secondary, Color.white);
                 text = Controller.HighlightText;
             }
             else if ((Controller.HighlightType == MatchEventType.YellowCard || Controller.HighlightType == MatchEventType.RedCard) && age < 4f)

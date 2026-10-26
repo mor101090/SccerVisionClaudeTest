@@ -36,6 +36,7 @@ namespace SoccerVision.Runtime
         public MatchEventType HighlightType { get; private set; }
         public string HighlightText { get; private set; }
         public float HighlightAt { get; private set; } = -100f;
+        public int HighlightTeam { get; private set; }
 
         private Camera _camera;
         private Transform _world;
@@ -193,6 +194,7 @@ namespace SoccerVision.Runtime
                 {
                     HighlightType = e.Type;
                     HighlightText = e.Text;
+                    HighlightTeam = e.Team;
                     HighlightAt = Engine.RealTimeElapsed;
                 }
                 if (SoccerVision.Simulation.Commentary.IsCommentary(e.Type) && !string.IsNullOrEmpty(e.Text))
@@ -337,6 +339,7 @@ namespace SoccerVision.Runtime
                     name = t.Name,
                     shortName = t.ShortName,
                     color = t.Setup.Kit.Primary,
+                    secondaryColor = t.Setup.Kit.Secondary,
                     goalkeeperColor = t.Setup.Kit.GoalkeeperPrimary,
                     formation = t.Formation.Name,
                     players = players,

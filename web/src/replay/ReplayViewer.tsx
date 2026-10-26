@@ -109,7 +109,7 @@ function Player({ replay }: { replay: Replay }) {
           if (speed <= 4 && evs[i].t > prev - 0.001) {
             const ev = evs[i];
             const now = sample(replay, ev.t);
-            sound.current?.play({ type: ev.type, whistle: ev.whistle, detail: ev.detail, team: ev.team, homeScore: now.homeScore, awayScore: now.awayScore });
+            sound.current?.play({ type: ev.type, whistle: ev.whistle, detail: ev.detail, value: ev.v, team: ev.team, homeScore: now.homeScore, awayScore: now.awayScore });
           }
           i++;
         }
@@ -155,7 +155,7 @@ function Player({ replay }: { replay: Replay }) {
   const possession = useRef(-1);
   if (snap.ball.owner >= 0) possession.current = snap.ball.owner < 11 ? 0 : 1;
   let latest: string | null = null;
-  let goal: { text: string; age: number } | null = null;
+  let goal: { text: string; age: number; colors: [string, string] } | null = null;
   let card: { text: string; red: boolean; age: number } | null = null;
   let homeReds = 0;
   let awayReds = 0;
@@ -163,7 +163,10 @@ function Player({ replay }: { replay: Replay }) {
     if (e.t > time) break;
     if (!e.text || e.type === "Whistle" || e.type === "NetHit") continue;
     latest = e.text;
-    if (e.type === "Goal") goal = { text: e.text, age: time - e.t };
+    if (e.type === "Goal") {
+      const kit = (e.team === 1 ? replay.away : replay.home).kit;
+      goal = { text: e.text, age: time - e.t, colors: [kit.primary, kit.secondary] };
+    }
     if (e.type === "YellowCard" || e.type === "RedCard") card = { text: e.text, red: e.type === "RedCard", age: time - e.t };
     if (e.type === "RedCard") {
       if (e.team === 0) homeReds++;
@@ -175,8 +178,6 @@ function Player({ replay }: { replay: Replay }) {
     possessionColor: possession.current >= 0 ? [replay.home, replay.away][possession.current].kit.primary : null,
     goal,
     card,
-    homeColor: replay.home.kit.primary,
-    awayColor: replay.away.kit.primary,
   });
   const clockSecs = Math.floor(snap.clock);
   const clock = snap.halftime ? "HT" : time >= end ? "FT" : `${String(Math.floor(clockSecs / 60)).padStart(2, "0")}:${String(clockSecs % 60).padStart(2, "0")}`;

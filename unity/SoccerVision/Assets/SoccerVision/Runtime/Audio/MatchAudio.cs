@@ -22,7 +22,7 @@ namespace SoccerVision.Runtime
         private AudioSource _fx;
         private AudioSource _crowd;
         private AudioClip _whistleShort, _whistleLight, _whistleFoul, _whistleLong, _whistleHalf, _whistleFull;
-        private AudioClip _kick, _kickHard, _header, _clang, _glove, _net, _crowdLoop;
+        private AudioClip _kick, _kickHard, _header, _post, _crossbar, _glove, _net, _crowdLoop;
         private AudioClip _roar, _roarShort, _awayEnd, _ooh, _groan, _murmur, _boo, _booLong, _applause, _applauseLong;
         private float _crowdBoost;
         private float _hush;
@@ -48,8 +48,9 @@ namespace SoccerVision.Runtime
             _kickHard = Thud("kick_hard", 0.14f, 70f);
             _header = Thud("header", 0.07f, 140f);
             _glove = Thud("glove", 0.08f, 180f);
-            _clang = Clang("clang", 0.9f);
-            _net = Net("net", 0.6f);
+            _post = Woodwork("post", false);
+            _crossbar = Woodwork("crossbar", true);
+            _net = Net("net", 0.7f);
             _roar = Voices("roar", Ah, 270f, 340f, 5.5f, 3200f);
             _roarShort = Voices("roar_short", Ah, 260f, 320f, 3f, 3200f);
             _awayEnd = Voices("away_end", Ah, 280f, 330f, 4f, 900f);
@@ -125,12 +126,12 @@ namespace SoccerVision.Runtime
                     if (home) Fx(_applause, 0.3f);
                     break;
                 case MatchEventType.HitWoodwork:
-                    Fx(_clang, 0.8f);
+                    Fx(e.Detail == 2 ? _crossbar : _post, Mathf.Clamp(0.3f + e.Value / 30f, 0.3f, 1f));
                     Fx(_ooh, home ? 0.7f : 0.45f);
                     if (home) Fx(_groan, 0.4f);
                     break;
                 case MatchEventType.Goal:
-                    Fx(_net, 0.5f);
+                    // the net's own sound comes with the NetHit event right after (it knows how hard the ball hit it)
                     if (home)
                     {
                         Fx(_roar, 1f);
@@ -145,7 +146,7 @@ namespace SoccerVision.Runtime
                     }
                     break;
                 case MatchEventType.NetHit:
-                    Fx(_net, 0.25f);
+                    Fx(_net, Mathf.Clamp(0.25f + e.Value / 28f, 0.25f, 1f));
                     break;
                 case MatchEventType.Foul:
                     if (away) Fx(_boo, 0.6f);
@@ -348,37 +349,87 @@ namespace SoccerVision.Runtime
             return Make(name, data);
         }
 
-        /// <summary>Metallic ring of the ball hitting a post or the crossbar.</summary>
-        private AudioClip Clang(string name, float length)
+        /// <summary>
+        /// The ball hitting a goal post or the crossbar (a hollow steel/aluminium tube). Layers: the contact click and the ball's
+        /// dull thud; the frame's bending modes (free-free beam ratios 1 : 2.76 : 5.40 : 8.93) for the deep "tonk" (the crossbar is
+        /// lighter and rings longer than the ground-socketed post); the tube's shell "ping" at 2-3 kHz (squeeze-and-expand cylinder
+        /// modes, like an aluminium bat's 2200 and 2800 Hz); and the rattle of net fixings right after.
+        /// </summary>
+        private AudioClip Woodwork(string name, bool crossbar)
         {
-            int n = Mathf.CeilToInt(length * Rate);
+            int n = Mathf.CeilToInt(1.1f * Rate);
             var data = new float[n];
-            float[] partials = { 410f, 880f, 1370f, 2110f, 3300f };
-            for (int i = 0; i < n; i++)
-            {
-                float t = i / (float)Rate;
-                float s = 0f;
-                for (int k = 0; k < partials.Length; k++) s += Mathf.Sin(2f * Mathf.PI * partials[k] * t) * Mathf.Exp(-t * (6f + k * 5f)) / (1f + k * 0.6f);
-                float click = Rand() * Mathf.Exp(-t * 120f) * 0.6f;
-                data[i] = (s * 0.7f + click) * Mathf.Clamp01(t / 0.001f);
-            }
-            return Make(name, data);
-        }
-
-        /// <summary>Net rustle: bright noise with a quick decay over a soft thump.</summary>
-        private AudioClip Net(string name, float length)
-        {
-            int n = Mathf.CeilToInt(length * Rate);
-            var data = new float[n];
+            float f1 = crossbar ? 74f : 58f, tail = crossbar ? 0.7f : 0.38f;
+            float[] ratios = { 1f, 2.76f, 5.4f, 8.93f };
+            // the lowest mode is felt more than heard on a normal speaker: the audible "tonk" comes from modes 2-4 (about 170-550 Hz)
+            float[] weights = { 0.2f, 0.5f, 0.45f, 0.32f };
+            float[] ping = crossbar ? new[] { 2200f, 2800f, 3650f } : new[] { 1900f, 2500f, 3300f };
+            float pingDur = crossbar ? 0.34f : 0.2f;
+            var rattleAt = new float[4];
+            for (int k = 0; k < 4; k++) rattleAt[k] = 0.03f + k * 0.045f + (float)_random.NextDouble() * 0.03f;
             float lp = 0f;
             for (int i = 0; i < n; i++)
             {
                 float t = i / (float)Rate;
+                float v = 0f;
+                // contact: click (high-passed noise) + thud
+                lp += (Rand() - lp) * 0.5f;
+                float noise = Rand() - lp;
+                v += noise * Mathf.Exp(-t * 600f) * 0.8f;
+                v += Mathf.Sin(2f * Mathf.PI * 130f * t * (1f - t * 2f)) * Mathf.Exp(-t * 40f) * 0.45f;
+                // frame modes
+                for (int k = 0; k < 4; k++)
+                {
+                    float dur = tail / (1f + k * 0.5f);
+                    v += Mathf.Sin(2f * Mathf.PI * f1 * ratios[k] * t) * Mathf.Exp(-t * 6.9f / dur) * weights[k];
+                }
+                // shell ping
+                for (int k = 0; k < ping.Length; k++)
+                {
+                    float dur = pingDur / (1f + k * 0.3f);
+                    v += Mathf.Sin(2f * Mathf.PI * ping[k] * t) * Mathf.Exp(-t * 6.9f / dur) * 0.42f / (1f + k * 0.4f);
+                }
+                // rattle of the fixings
+                for (int k = 0; k < 4; k++)
+                {
+                    float dt = t - rattleAt[k];
+                    if (dt > 0f && dt < 0.03f) v += noise * Mathf.Exp(-dt * 250f) * 0.18f * (1f - k * 0.2f);
+                }
+                data[i] = v * Mathf.Clamp01(t / 0.002f) * Mathf.Clamp01((1.1f - t) / 0.1f);
+            }
+            return Make(name, data);
+        }
+
+        /// <summary>
+        /// The ball hitting the back of the net. Netting is slack nylon cord: no ring, no hiss. A soft low "whump" as the ball
+        /// stretches the net, a short muffled swish of cords sliding on each other (about 150 Hz to 2 kHz, with a quick flutter)
+        /// and a few tiny cord ticks as it settles.
+        /// </summary>
+        private AudioClip Net(string name, float length)
+        {
+            int n = Mathf.CeilToInt(length * Rate);
+            var data = new float[n];
+            float lo = 0f, hi = 0f;
+            float flutterHz = 26f + (float)_random.NextDouble() * 8f;
+            var tickAt = new float[4];
+            for (int k = 0; k < 4; k++) tickAt[k] = 0.05f + k * 0.07f + (float)_random.NextDouble() * 0.05f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)Rate;
                 float w = Rand();
-                lp += (w - lp) * 0.6f;
-                float hiss = (w - lp) * Mathf.Clamp01(t / 0.02f) * Mathf.Exp(-t * 6f);
-                float thump = Mathf.Sin(2f * Mathf.PI * 110f * t) * Mathf.Exp(-t * 30f) * 0.4f;
-                data[i] = hiss * 0.6f + thump;
+                lo += (w - lo) * 0.45f; // ~2 kHz low-pass
+                hi += (lo - hi) * 0.04f; // ~150 Hz: subtract for a high-pass
+                float band = lo - hi;
+                float env = Mathf.Clamp01(t / 0.018f) * Mathf.Exp(-t * 6.9f / 0.5f);
+                float swish = band * env * (0.75f + 0.25f * Mathf.Sin(2f * Mathf.PI * flutterHz * t)) * 3.6f;
+                float whump = Mathf.Sin(2f * Mathf.PI * 85f * t * (1f - t * 1.5f)) * Mathf.Exp(-t * 28f) * 0.55f;
+                float ticks = 0f;
+                for (int k = 0; k < 4; k++)
+                {
+                    float dt = t - tickAt[k];
+                    if (dt > 0f && dt < 0.03f) ticks += (w - lo) * Mathf.Exp(-dt * 200f) * 0.4f;
+                }
+                data[i] = swish + whump + ticks;
             }
             return Make(name, data);
         }

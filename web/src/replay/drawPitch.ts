@@ -301,10 +301,11 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   const by = py(v, b.y);
   ctx.fillStyle = `rgba(0,0,0,${Math.max(0.18, 0.6 - h * 0.04)})`;
   ctx.beginPath();
-  ctx.arc(bx + 0.12 * s, by + 0.12 * s, 0.66 * s * Math.max(0.45, 1 - h * 0.05), 0, Math.PI * 2);
+  ctx.arc(bx, by, 0.42 * s * Math.max(0.45, 1 - h * 0.05), 0, Math.PI * 2);
   ctx.fill();
-  ball3d.spin(b.x, b.y, h, dt);
-  ball3d.draw(ctx, bx, by - Math.min(20, h) * 0.55 * s, 0.6 * s * (1 + Math.min(20, h) * 0.07));
+  const owner = b.owner >= 0 ? snap.players[b.owner] : null;
+  ball3d.spin(b.x, b.y, h, dt, owner !== null && (owner.gk || b.z > 0.4));
+  ball3d.draw(ctx, bx, by - Math.min(20, h) * 0.55 * s, 0.36 * s * (1 + Math.min(20, h) * 0.07));
   // The nets go over a ball lying in the goal (roof netting seen from above).
   for (const side of [-1, 1]) {
     const fx = netEffects(replay, snap.t, side);

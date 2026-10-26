@@ -677,7 +677,7 @@ namespace SoccerVision.Simulation
             float speed = p.Vel.Length;
             if (speed > vmax) { p.Vel = p.Vel / speed * vmax; speed = vmax; }
             p.Pos += p.Vel * dt;
-            p.Pos = Pitch.ClampToField(p.Pos, p.SentOff ? 8f : 3.5f);
+            p.Pos = Pitch.ClampToField(p.Pos, p.SentOff ? 8f : 1.5f);
             p.DistanceCovered += speed * dt;
 
             // Facing: run direction when moving, otherwise the ball. A pending kick turns the body first.

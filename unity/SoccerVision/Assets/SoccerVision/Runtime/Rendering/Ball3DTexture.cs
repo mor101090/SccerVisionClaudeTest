@@ -52,9 +52,15 @@ namespace SoccerVision.Runtime
             Redraw();
         }
 
-        /// <summary>Advances the spin from the ball's movement on the ground (metres) over dt seconds.</summary>
-        public void Spin(Vector2 pos, float height, float dt)
+        /// <summary>Advances the spin from the ball's movement on the ground (metres) over dt seconds; a held ball does not spin.</summary>
+        public void Spin(Vector2 pos, float height, float dt, bool held)
         {
+            if (held)
+            {
+                _w = 0f;
+                _prev = pos;
+                return;
+            }
             if (_prev.HasValue && dt > 0f)
             {
                 Vector2 d = pos - _prev.Value;

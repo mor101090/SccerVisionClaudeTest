@@ -29,6 +29,7 @@ export interface TeamInfo {
   name: string;
   shortName: string;
   color: string;
+  secondaryColor: string;
   goalkeeperColor: string;
   formation: string;
   players: PlayerInfo[];

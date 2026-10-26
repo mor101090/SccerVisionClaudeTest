@@ -6,6 +6,8 @@ export interface SoundEvent {
   type: string;
   whistle?: string | null;
   detail?: number;
+  /** Event value: ball speed (m/s) for NetHit and HitWoodwork. */
+  value?: number;
   /** 0 = home, 1 = away, -1 = none (as in the engine's events). */
   team?: number;
   homeScore?: number;
@@ -110,12 +112,12 @@ export class MatchSound {
         if (home) this.applause(1.2, 0.3);
         break;
       case "HitWoodwork":
-        this.clang();
+        this.woodwork(e.detail === 2, e.value ?? 12);
         this.voices("oo", 240, 300, 1.0, home ? 0.7 : 0.45);
         if (home) this.voices("aw", 260, 160, 1.6, 0.5, 0.9);
         break;
       case "Goal":
-        this.net(0.5);
+        // the net's own sound comes with the NetHit event right after (it knows how hard the ball hit it)
         if (home) {
           this.voices("ah", 270, 340, 5.5, 1);
           this.voices("eh", 300, 360, 4, 0.5, 0.4);
@@ -129,7 +131,7 @@ export class MatchSound {
         }
         break;
       case "NetHit":
-        this.net(0.3);
+        this.net(e.value ?? 10);
         break;
       case "Foul":
         // e.team is the offender's side: the home crowd boos the visitors' fouls.
@@ -456,39 +458,96 @@ export class MatchSound {
     n.stop(t + 0.06);
   }
 
-  /** Metallic ring of the ball hitting a post or crossbar. */
-  private clang() {
+  /** A short band-passed noise burst: contact clicks and rattles. */
+  private burst(at: number, len: number, freq: number, q: number, gain: number) {
     const ctx = this.ctx!;
-    const t = ctx.currentTime;
-    [410, 880, 1370, 2110, 3300].forEach((f, i) => {
-      const o = ctx.createOscillator();
-      o.frequency.value = f;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.5 / (1 + i * 0.6), t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.9 / (1 + i * 0.5));
-      o.connect(g).connect(this.out());
-      o.start(t);
-      o.stop(t + 1);
-    });
-    this.thud(900, 0.03, 0.4);
+    const n = ctx.createBufferSource();
+    n.buffer = this.noiseBuf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = freq;
+    bp.Q.value = q;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gain, at);
+    g.gain.exponentialRampToValueAtTime(0.0005, at + len);
+    n.connect(bp).connect(g).connect(this.out());
+    n.start(at, Math.random());
+    n.stop(at + len + 0.02);
   }
 
-  /** Net rustle: bright noise with a quick decay. */
-  private net(vol: number) {
+  /** One decaying sine partial of a struck object (decays to -60 dB over `dur` seconds). */
+  private partial(at: number, freq: number, gain: number, dur: number) {
+    const ctx = this.ctx!;
+    const o = ctx.createOscillator();
+    o.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.linearRampToValueAtTime(gain, at + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0005, at + dur);
+    o.connect(g).connect(this.out());
+    o.start(at);
+    o.stop(at + dur + 0.02);
+  }
+
+  /**
+   * The ball hitting the post or the crossbar of a goal: a hollow steel/aluminium tube. Layers:
+   * 1. the contact: a hard click and the ball's dull thud (a ball "breathes" at about 150 Hz when kicked);
+   * 2. the frame as a whole: bending modes of a long free-free beam, frequency ratios 1 : 2.76 : 5.40 : 8.93, which gives the
+   *    deep "tonk" (the crossbar is lighter and rings longer than the ground-socketed post);
+   * 3. the hollow tube's shell "ping": the squeeze-and-expand cylinder modes ring at 2-3 kHz (like an aluminium bat, 2200 and
+   *    2800 Hz), decaying in a fraction of a second;
+   * 4. the rattle of net fixings and the frame settling, a few small clicks right after.
+   * Louder for a harder strike.
+   */
+  private woodwork(crossbar: boolean, speed: number) {
     const ctx = this.ctx!;
     const t = ctx.currentTime;
+    const vol = Math.min(1, Math.max(0.3, 0.25 + speed / 30));
+    this.burst(t, 0.008, 3200, 1.1, 0.8 * vol);
+    this.thud(130, 0.09, 0.5 * vol);
+    const f1 = crossbar ? 74 : 58;
+    const tail = crossbar ? 0.7 : 0.38;
+    // the lowest mode is felt more than heard on a normal speaker: the audible "tonk" comes from modes 2-4 (about 170-550 Hz)
+    [0.2, 0.5, 0.45, 0.32].forEach((w, i) => this.partial(t, f1 * [1, 2.76, 5.4, 8.93][i] * (1 + (Math.random() - 0.5) * 0.01), w * vol, tail / (1 + i * 0.5)));
+    const ping = crossbar ? [2200, 2800, 3650] : [1900, 2500, 3300];
+    ping.forEach((f, i) => this.partial(t, f * (1 + (Math.random() - 0.5) * 0.015), (0.42 * vol) / (1 + i * 0.4), (crossbar ? 0.34 : 0.2) / (1 + i * 0.3)));
+    for (let k = 0; k < 4; k++) this.burst(t + 0.03 + k * 0.045 + Math.random() * 0.03, 0.012, 1600 + Math.random() * 2200, 1.4, 0.18 * vol * (1 - k * 0.2));
+  }
+
+  /**
+   * The ball hitting the back of the net. Netting is slack nylon cord: there is no ring and no hiss. What you hear is a soft low
+   * "whump" as the ball stretches the net, a short muffled swish of cords sliding against each other (broad, about 150 Hz to
+   * 2 kHz, with a quick flutter) and a few tiny cord ticks as it settles. Louder for a harder strike.
+   */
+  private net(speed: number) {
+    const ctx = this.ctx!;
+    const t = ctx.currentTime;
+    const vol = Math.min(1, Math.max(0.25, 0.2 + speed / 28));
+    this.thud(85, 0.14, 0.4 * vol);
     const n = ctx.createBufferSource();
     n.buffer = this.noiseBuf;
     const hp = ctx.createBiquadFilter();
     hp.type = "highpass";
-    hp.frequency.value = 2500;
+    hp.frequency.value = 150;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 2000;
+    const flutter = ctx.createGain();
+    flutter.gain.value = 0.75;
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 26 + Math.random() * 8;
+    const lfoDepth = ctx.createGain();
+    lfoDepth.gain.value = 0.25;
+    lfo.connect(lfoDepth).connect(flutter.gain);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
-    n.connect(hp).connect(g).connect(this.out());
-    n.start(t);
-    n.stop(t + 0.8);
-    this.thud(110, 0.12, 0.3);
+    g.gain.linearRampToValueAtTime(1.3 * vol, t + 0.018);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + 0.5);
+    n.connect(hp).connect(lp).connect(flutter).connect(g).connect(this.out());
+    n.start(t, Math.random());
+    lfo.start(t);
+    n.stop(t + 0.55);
+    lfo.stop(t + 0.55);
+    for (let k = 0; k < 4; k++) this.burst(t + 0.05 + k * 0.07 + Math.random() * 0.05, 0.015, 900 + Math.random() * 1400, 1.0, 0.16 * vol);
   }
 }
