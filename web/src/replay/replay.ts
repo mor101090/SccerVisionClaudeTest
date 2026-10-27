@@ -48,6 +48,10 @@ export interface Replay {
   away: ReplayTeam;
   frames: number[][];
   events: ReplayEvent[];
+  /** Weather and pitch the match was played in (older files have none). */
+  conditions?: { weather: string; maintenance: number; wind: number; windAngle: number; night: boolean };
+  /** Mud and standing water, 0..255 on a 1 m grid from (minX, minY), row by row (null: a uniform pitch). */
+  surface?: { minX: number; minY: number; cell: number; columns: number; rows: number; mud: number[] | null; water: number[] | null } | null;
 }
 
 export const PLAYERS = 22;

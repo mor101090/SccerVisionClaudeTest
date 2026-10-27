@@ -19,6 +19,8 @@ namespace SoccerVision.Runtime
 
         private Transform _body, _lift;
         private SpriteRenderer _fill, _ring, _shadow, _card, _streak;
+        private readonly SpriteRenderer[] _extraShadows = new SpriteRenderer[3];
+        private readonly Vector3[] _lights = new Vector3[4];
         private GameObject _injury;
         private PlayerProfile _shownProfile;
         private GameObject _offsideMark;
@@ -30,6 +32,8 @@ namespace SoccerVision.Runtime
         {
             Agent = agent;
             _shadow = SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.5f), 10, Diameter * 1.25f);
+            // at night three more, one from each floodlight tower
+            for (int i = 0; i < 3; i++) _extraShadows[i] = SpriteFactory.AddSprite(transform, "Shadow" + (i + 2), SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.16f), 10, Diameter * 1.25f);
             // Everything except the shadow rides on _lift: when the player jumps he rises on screen while the
             // shadow stays on the grass, so the height is easy to read.
             _lift = new GameObject("Lift").transform;
@@ -138,10 +142,23 @@ namespace SoccerVision.Runtime
             float s = Diameter * (1f + h * 0.1f);
             _body.localScale = new Vector3(s, s, 1f);
             float shadow = Diameter * 1.25f * (1f - h * 0.6f);
-            _shadow.transform.localScale = new Vector3(shadow, shadow, 1f);
-            var c = _shadow.color;
-            c.a = 0.5f * (1f - h * 0.6f) * _fade;
-            _shadow.color = c;
+            // shadows fall away from the light: the sun, a grey sky or the four floodlights
+            int n = Atmosphere.Shadows(new Vector2(transform.localPosition.x, transform.localPosition.y), _lights);
+            for (int i = 0; i < 4; i++)
+            {
+                var sr = i == 0 ? _shadow : _extraShadows[i - 1];
+                bool on = i < n;
+                if (sr.enabled != on) sr.enabled = on;
+                if (!on) continue;
+                var l = _lights[i];
+                sr.transform.localPosition = new Vector3(l.x, l.y, 0f);
+                bool stretched = n > 1 || Atmosphere.Look.sky == Weather.Sunny;
+                sr.transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(l.y, l.x) * Mathf.Rad2Deg);
+                sr.transform.localScale = new Vector3(shadow * (stretched ? 1.28f : 1f), shadow * (stretched ? 0.86f : 1f), 1f);
+                var c = sr.color;
+                c.a = Mathf.Min(0.8f, 0.5f * l.z) * (1f - h * 0.6f) * _fade;
+                sr.color = c;
+            }
         }
 
         /// <summary>On the ground: the kit circle becomes a body stretched along the facing direction (the number stays upright).</summary>
@@ -189,6 +206,7 @@ namespace SoccerVision.Runtime
         public const float Diameter = 0.75f;
         private SpriteRenderer _ball, _shadow;
         private Ball3DTexture _look;
+        private readonly Vector3[] _lights = new Vector3[4];
         private TrailRenderer _trail;
         private Vector2 _last;
 
@@ -240,7 +258,10 @@ namespace SoccerVision.Runtime
             // No spin while held (keeper's hands, carried overhead for a throw-in) or while play is stopped (the ball waits to be taken).
             bool held = !inPlay || (ball.Owner != null && (ball.InHands || ball.Owner.IsGoalkeeper || z > 0.4f));
             _look.Spin(new Vector2(x, y), h, dt, held);
+            _look.Yellow = Atmosphere.Look.sky == Weather.Snow;
             _look.Redraw();
+            Atmosphere.Shadows(new Vector2(x, y), _lights);
+            _shadow.transform.localPosition = new Vector3(_lights[0].x, _lights[0].y, 0f) * (Atmosphere.Look.night ? 0f : 1f);
 
             var p = new Vector2(x, y);
             float speed = dt > 0f ? (p - _last).magnitude / dt : 0f;
@@ -346,9 +367,12 @@ namespace SoccerVision.Runtime
         private void Update()
         {
             float t = Time.time + _phase;
-            float angle = _outward + (Mathf.Sin(t * 0.45f) * 0.16f + Mathf.Sin(t * 0.17f) * 0.1f) * Mathf.Rad2Deg;
+            // in a strong wind the cloth streams out downwind, stretched and rippling fast; in still air it hangs limp
+            bool windy = Atmosphere.Windy;
+            float baseAngle = windy ? Atmosphere.WindAngle * Mathf.Rad2Deg : _outward;
+            float angle = baseAngle + (Mathf.Sin(t * (windy ? 1.3f : 0.45f)) * (windy ? 0.07f : 0.16f) + Mathf.Sin(t * 0.17f) * 0.1f) * Mathf.Rad2Deg;
             var rot = Quaternion.Euler(0f, 0f, angle);
-            var scale = new Vector3(1.3f * (0.97f + 0.03f * Mathf.Sin(t * 1.7f)), 0.56f, 1f);
+            var scale = new Vector3((windy ? 1.4f : 0.9f) * (0.97f + 0.03f * Mathf.Sin(t * (windy ? 4.2f : 1.7f))), 0.56f, 1f);
             _cloth.localRotation = _shadow.localRotation = rot;
             _cloth.localScale = _shadow.localScale = scale;
         }

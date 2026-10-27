@@ -1,4 +1,6 @@
 import { Ball3D } from "./ball3d";
+import type { DevSettings } from "../settings/devSettings";
+import { PitchLook } from "./conditions";
 import { playerAt } from "./replay";
 import type { Replay, Snapshot } from "./replay";
 
@@ -28,45 +30,15 @@ export function makeView(width: number, height: number): View {
 const px = (v: View, x: number) => v.ox + x * v.scale;
 const py = (v: View, y: number) => v.oy - y * v.scale;
 
-let grain: { ctx: CanvasRenderingContext2D; pattern: CanvasPattern } | null = null;
+/** Weather, pitch and light (one per page: the textures are built once per match). */
+export const look = new PitchLook();
 
-/** Fine grain for the turf, made once per canvas. */
-function grassGrain(ctx: CanvasRenderingContext2D): CanvasPattern | null {
-  if (grain && grain.ctx === ctx) return grain.pattern;
-  const n = document.createElement("canvas");
-  n.width = n.height = 192;
-  const g = n.getContext("2d");
-  if (!g) return null;
-  const img = g.createImageData(192, 192);
-  for (let i = 0; i < img.data.length; i += 4) {
-    const r = Math.random();
-    img.data[i] = img.data[i + 1] = img.data[i + 2] = r > 0.5 ? 255 : 0;
-    img.data[i + 3] = Math.floor(Math.abs(r - 0.5) * 2 * 26);
-  }
-  g.putImageData(img, 0, 0);
-  const pattern = ctx.createPattern(n, "repeat");
-  if (!pattern) return null;
-  grain = { ctx, pattern };
-  return pattern;
-}
-
-export function drawPitch(ctx: CanvasRenderingContext2D, v: View) {
+export function drawPitch(ctx: CanvasRenderingContext2D, v: View, settings: DevSettings) {
   const s = v.scale;
-  // Natural, slightly muted turf: mown bands along the length of the pitch and a fine grain.
-  ctx.fillStyle = "#567f30";
-  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  const bands = 12;
-  const bw = WORLD_H / bands;
-  for (let i = 0; i < bands; i++) {
-    ctx.fillStyle = i % 2 ? "#5b8733" : "#53792d";
-    ctx.fillRect(0, py(v, TOP - i * bw), ctx.canvas.width, bw * s + 1);
-  }
-  const pattern = grassGrain(ctx);
-  if (pattern) {
-    ctx.fillStyle = pattern;
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  }
-  ctx.strokeStyle = "rgba(255,255,255,0.9)";
+  look.grass(ctx, v, settings, TOP, BOTTOM);
+  look.ground(ctx, v);
+  const paint = look.linePaint(settings);
+  ctx.strokeStyle = paint;
   ctx.lineWidth = Math.max(1, 0.12 * s);
   // Technical areas (coaches) above the top touchline, either side of the halfway line.
   ctx.strokeRect(px(v, -19), py(v, 39.6), 17.5 * s, 3.6 * s);
@@ -85,7 +57,7 @@ export function drawPitch(ctx: CanvasRenderingContext2D, v: View) {
   ctx.strokeRect(px(v, -HL), py(v, HW), L * s, W * s);
   line(0, -HW, 0, HW);
   arc(0, 0, 9.15, 0, Math.PI * 2);
-  ctx.fillStyle = "#f0f0f0";
+  ctx.fillStyle = paint;
   ctx.beginPath();
   ctx.arc(px(v, 0), py(v, 0), Math.max(1.5, 0.2 * s), 0, Math.PI * 2);
   ctx.fill();
@@ -122,7 +94,7 @@ export function drawPitch(ctx: CanvasRenderingContext2D, v: View) {
  * A goal's net from above as a mesh of strings: the ball presses the netting out where it lies, a hard shot makes
  * it bulge and ripple (NetHit), and the frame flashes when the ball rattles the woodwork. Same model as Unity's GoalNetView.
  */
-function drawNet(ctx: CanvasRenderingContext2D, v: View, side: number, ball: { x: number; y: number }, ripple: { x: number; y: number; amp: number } | null, flash: { x: number; y: number; age: number } | null) {
+function drawNet(ctx: CanvasRenderingContext2D, v: View, side: number, ball: { x: number; y: number }, ripple: { x: number; y: number; amp: number } | null, flash: { x: number; y: number; age: number } | null, colour: string) {
   const HALF_GOAL = 3.66;
   const DEPTH = 2;
   const gl = HL * side;
@@ -143,7 +115,8 @@ function drawNet(ctx: CanvasRenderingContext2D, v: View, side: number, ball: { x
     return [px(v, gl + (d + push) * side), py(v, y + (y - at.y) * amp * w * 0.25)];
   };
   ctx.save();
-  ctx.strokeStyle = "rgba(235,235,235,0.6)";
+  const n = parseInt(colour.slice(1), 16);
+  ctx.strokeStyle = `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},0.62)`;
   const ny = 25;
   const nd = 8;
   const ys = Array.from({ length: ny }, (_, i) => -HALF_GOAL + (i * 2 * HALF_GOAL) / (ny - 1));
@@ -212,12 +185,13 @@ function offsideMark(ctx: CanvasRenderingContext2D, x: number, y: number, s: num
   ctx.strokeRect(left, top, size, size);
 }
 
-export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Replay, snap: Snapshot, time: number, dt = 0) {
+export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Replay, snap: Snapshot, time: number, dt: number, settings: DevSettings) {
   const s = v.scale;
   const r = 0.9 * s;
   const teams = [replay.home, replay.away];
   // Officials
   snap.officials.forEach((o, i) => {
+    look.shadow(ctx, v, settings, o.x, o.y, px(v, o.x), py(v, o.y), r, r * 0.9, 0.45);
     disc(ctx, px(v, o.x), py(v, o.y), r, "#141414", "#f6d43a"); // same size as the players
     ctx.fillStyle = "#f6d43a";
     ctx.font = `800 ${Math.max(8, 1.05 * s)}px system-ui, sans-serif`;
@@ -257,10 +231,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     }
     const grow = 1 + h * 0.1;
     const shrink = 1 - h * 0.6;
-    ctx.fillStyle = `rgba(0,0,0,${0.5 * shrink})`;
-    ctx.beginPath();
-    ctx.ellipse(x + 0.15 * s, gy + 0.2 * s, r * 1.05 * shrink, r * 0.95 * shrink, 0, 0, Math.PI * 2);
-    ctx.fill();
+    look.shadow(ctx, v, settings, p.x, p.y, x, gy, r * 1.05 * shrink, r * 0.95 * shrink, 0.5 * shrink);
     disc(ctx, x, y, r * grow, p.gk ? team.kit.gk : team.kit.primary, team.kit.secondary);
     ctx.fillStyle = p.gk ? team.kit.gkNumber : team.kit.number;
     ctx.font = `bold ${Math.max(8, r * grow * 1.05)}px system-ui, sans-serif`;
@@ -281,10 +252,9 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   const h = Math.max(0, b.z - 0.11);
   const bx = px(v, b.x);
   const by = py(v, b.y);
-  ctx.fillStyle = `rgba(0,0,0,${Math.max(0.18, 0.6 - h * 0.04)})`;
-  ctx.beginPath();
-  ctx.arc(bx, by, 0.42 * s * Math.max(0.45, 1 - h * 0.05), 0, Math.PI * 2);
-  ctx.fill();
+  const bsr = 0.42 * s * Math.max(0.45, 1 - h * 0.05);
+  look.shadow(ctx, v, settings, b.x, b.y, bx, by, bsr, bsr, Math.max(0.18, 0.6 - h * 0.04));
+  ball3d.yellow = settings.sky === "Snow";
   const owner = b.owner >= 0 ? snap.players[b.owner] : null;
   // No spin while held (keeper's hands, carried overhead for a throw-in) or while play is stopped (the ball waits to be taken).
   ball3d.spin(b.x, b.y, h, dt, snap.phase !== 0 || (owner !== null && (owner.gk || b.z > 0.4)));
@@ -292,7 +262,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   // The nets go over a ball lying in the goal (roof netting seen from above).
   for (const side of [-1, 1]) {
     const fx = netEffects(replay, snap.t, side);
-    drawNet(ctx, v, side, b, fx.ripple, fx.flash);
+    drawNet(ctx, v, side, b, fx.ripple, fx.flash, settings.net);
   }
   // The name of the player in possession, centred on a plate under him
   if (b.owner >= 0 && snap.phase === 0) {
@@ -350,17 +320,20 @@ function clothPath(ctx: CanvasRenderingContext2D, pts: [number, number][], y0: n
  * seen edge-on, hanging out away from the pitch (ax, ay: outward screen direction) and swaying slowly in the breeze.
  */
 function cornerFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number, seed: number, ax: number, ay: number) {
-  const len = 1.3 * s;
+  // In a strong wind the cloth streams out downwind, stretched and rippling fast; in still air it hangs limp and sways.
+  const windy = look.wind.speed > 0.5;
+  const len = (windy ? 1.4 : 0.9) * s;
   const wid = 0.42 * s;
   const n = 6;
-  const ang = Math.atan2(ay, ax) + Math.sin(t * 0.45 + seed * 1.7) * 0.16 + Math.sin(t * 0.17 + seed * 3.4) * 0.1;
+  const rate = windy ? 4.2 : 1.7;
+  const ang = (windy ? look.wind.screenAngle : Math.atan2(ay, ax)) + Math.sin(t * (windy ? 1.3 : 0.45) + seed * 1.7) * (windy ? 0.07 : 0.16) + Math.sin(t * 0.17 + seed * 3.4) * 0.1;
   const dx = Math.cos(ang);
   const dy = Math.sin(ang);
   const top: [number, number][] = [];
   const bot: [number, number][] = [];
   for (let k = 0; k <= n; k++) {
     const u = k / n;
-    const bend = Math.sin(t * 1.7 + seed * 1.7 - u * 2.4) * 0.12 * u * s;
+    const bend = Math.sin(t * rate + seed * 1.7 - u * 2.4) * (windy ? 0.1 : 0.12) * u * s;
     const w = wid * (1 - 0.25 * u);
     const cx = x + dx * u * len - dy * bend;
     const cy = y + dy * u * len + dx * bend;
@@ -402,7 +375,8 @@ function assistantFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
   ctx.stroke();
   const w = 1.6 * s;
   const h = 1.1 * s;
-  const pts = clothEdge(fx, y - 2.6 * s, w, h, t * 1.6, 3.1, 1);
+  const windy = look.wind.speed > 0.5;
+  const pts = clothEdge(fx, y - 2.6 * s, w, h, t * (windy ? 3.2 : 1.6), 3.1, windy && Math.cos(look.wind.screenAngle) < 0 ? -1 : 1);
   for (let qx = 0; qx < 2; qx++)
     for (let qy = 0; qy < 2; qy++) {
       clothPath(ctx, pts, (qy * h) / 2, ((qy + 1) * h) / 2, qx * 3, qx * 3 + 3);

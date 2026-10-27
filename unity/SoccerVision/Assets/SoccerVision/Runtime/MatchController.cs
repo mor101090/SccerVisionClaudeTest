@@ -27,6 +27,8 @@ namespace SoccerVision.Runtime
         [Tooltip("Debug fast-forward multiplier (1 = the real 10 minute halves).")]
         public float playbackSpeed = 1f;
         public Texture2D fieldOverride;
+        [Tooltip("Developer settings: pace, pitch, sky, wind, day/night, nets and team colours (rain, snow, wind and the pitch change the football)")]
+        public MatchLook look = new MatchLook();
 
         public MatchEngine Engine { get; private set; }
         public bool Paused { get; set; }
@@ -45,6 +47,7 @@ namespace SoccerVision.Runtime
         private readonly List<OfficialView> _officials = new List<OfficialView>();
         private MatchAudio _audio;
         private readonly System.Collections.Generic.List<GoalNetView> _nets = new System.Collections.Generic.List<GoalNetView>();
+        private PitchRenderer _pitch;
         private WebBridge _bridge;
         private MatchHud _hud;
         private readonly List<MatchEvent> _events = new List<MatchEvent>();
@@ -96,7 +99,13 @@ namespace SoccerVision.Runtime
             config.HalfRealSeconds = Mathf.Max(10f, halfRealSeconds);
             config.HalftimeRealSeconds = Mathf.Max(0f, halftimeRealSeconds);
             config.MotionSpeed = Mathf.Clamp(motionSpeed, 0.5f, 6f);
-            Engine = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), (ulong)matchSeed, config);
+            config.Conditions = look.ToConditions(matchSeed);
+            var home = DemoTeams.Red();
+            var away = DemoTeams.Blue();
+            Recolour(home.Kit, look.homePrimary, look.homeSecondary);
+            Recolour(away.Kit, look.awayPrimary, look.awaySecondary);
+            Engine = new MatchEngine(home, away, (ulong)matchSeed, config);
+            SetAtmosphere();
             Commentary.Clear();
             HighlightAt = -100f;
             BuildWorld();
@@ -113,10 +122,10 @@ namespace SoccerVision.Runtime
             _world = new GameObject("Pitch").transform;
             _world.SetParent(transform, false);
 
-            var pitch = new GameObject("Field").AddComponent<PitchRenderer>();
-            pitch.transform.SetParent(_world, false);
-            pitch.fieldOverride = fieldOverride;
-            pitch.Build();
+            _pitch = new GameObject("Field").AddComponent<PitchRenderer>();
+            _pitch.transform.SetParent(_world, false);
+            _pitch.fieldOverride = fieldOverride;
+            _pitch.Build(look, Engine.Surface);
 
             for (int sx = -1; sx <= 1; sx += 2)
             {
@@ -135,8 +144,13 @@ namespace SoccerVision.Runtime
                 var net = new GameObject("GoalNet").AddComponent<GoalNetView>();
                 net.transform.SetParent(_world, false);
                 net.Init(side);
+                net.SetColour(look.net);
                 _nets.Add(net);
             }
+
+            var weather = new GameObject("Weather").AddComponent<WeatherView>();
+            weather.transform.SetParent(_world, false);
+            weather.Init(Engine.Surface);
 
             foreach (var p in Engine.AllPlayers)
             {
@@ -176,7 +190,7 @@ namespace SoccerVision.Runtime
 
             if (!Paused && !Engine.IsFinished)
             {
-                Engine.Advance(realDt * Mathf.Clamp(playbackSpeed, 0.1f, 16f));
+                Engine.Advance(realDt * Mathf.Clamp(playbackSpeed, 0.1f, 16f) * Mathf.Clamp(look.pace, 50, 100) / 100f);
             }
 
             _events.Clear();
@@ -305,11 +319,66 @@ namespace SoccerVision.Runtime
                 case "setTactics":
                     if (cmd.tactics != null && (cmd.team == 0 || cmd.team == 1)) Engine.Submit(new ChangeTacticsCommand(cmd.team, cmd.tactics.ToModel((cmd.team == 0 ? Engine.Home : Engine.Away).Tactics)));
                     break;
+                case "setLook": ApplyLook(MatchLook.From(cmd.look, look)); break;
                 case "requestState":
                     _bridge.Emit("MatchReady", BuildReady());
                     _bridge.Emit("MatchState", BuildState());
                     break;
             }
+        }
+
+        // ---- Developer settings ------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// Applies new developer settings: the picture changes at once; rain, snow, wind or a different pitch replay the
+        /// same match (same seed) in those conditions, because they change the football.
+        /// </summary>
+        public void ApplyLook(MatchLook next)
+        {
+            bool replay = !next.SamePlay(look);
+            look = next;
+            if (replay || Engine == null)
+            {
+                StartMatch(seed);
+                return;
+            }
+            Engine.Conditions.Night = look.night;
+            Engine.Conditions.Weather = look.sky; // sunny <-> cloudy only (same football)
+            SetAtmosphere();
+            _pitch.Build(look, Engine.Surface);
+            foreach (var n in _nets) n.SetColour(look.net);
+            // team colours: the engine's kits and every player view
+            var homeKit = DemoTeams.Red().Kit;
+            var awayKit = DemoTeams.Blue().Kit;
+            Recolour(homeKit, look.homePrimary, look.homeSecondary);
+            Recolour(awayKit, look.awayPrimary, look.awaySecondary);
+            Engine.Home.Setup.Kit = homeKit;
+            Engine.Away.Setup.Kit = awayKit;
+            foreach (var v in _players)
+            {
+                var kit = v.Agent.Team.Setup.Kit;
+                v.SetKit(SpriteFactory.Hex(v.Agent.IsGoalkeeper ? kit.GoalkeeperPrimary : kit.Primary, Color.gray), SpriteFactory.Hex(kit.Secondary, Color.white),
+                    SpriteFactory.Hex(v.Agent.IsGoalkeeper ? kit.GoalkeeperNumber : kit.Number, Color.white));
+            }
+            _bridge.Emit("MatchReady", BuildReady());
+        }
+
+        /// <summary>The picked shirt and trim colours (empty keeps the kit); the number in black or white, whichever reads best.</summary>
+        private static void Recolour(KitColors kit, string primary, string secondary)
+        {
+            if (!string.IsNullOrEmpty(primary) && ColorUtility.TryParseHtmlString(primary, out var p))
+            {
+                kit.Primary = primary;
+                kit.Number = p.r * 0.299f + p.g * 0.587f + p.b * 0.114f > 0.63f ? "#111111" : "#FFFFFF";
+            }
+            if (!string.IsNullOrEmpty(secondary) && ColorUtility.TryParseHtmlString(secondary, out _)) kit.Secondary = secondary;
+        }
+
+        private void SetAtmosphere()
+        {
+            Atmosphere.Look = look;
+            Atmosphere.WindSpeed = Engine.Conditions.WindSpeed;
+            Atmosphere.WindAngle = Engine.Conditions.WindAngle;
         }
 
         private MatchReadyDto BuildReady()

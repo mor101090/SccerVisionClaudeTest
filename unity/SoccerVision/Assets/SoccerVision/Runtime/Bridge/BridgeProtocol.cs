@@ -10,13 +10,31 @@ namespace SoccerVision.Runtime
     [Serializable]
     public sealed class BridgeCommand
     {
-        /// <summary>pause | resume | togglePause | setSpeed | restart | setHud | setTactics | requestState</summary>
+        /// <summary>pause | resume | togglePause | setSpeed | restart | setHud | setTactics | setLook | requestState</summary>
         public string type = "";
         public float value;
         public bool flag;
         public long seed = -1;
         public int team = -1;
         public TeamTacticsDto tactics;
+        public LookDto look;
+    }
+
+    /// <summary>Developer settings from React (setLook); see MatchLook.</summary>
+    [Serializable]
+    public sealed class LookDto
+    {
+        public int pace = 100;
+        /// <summary>along | across | circles</summary>
+        public string grass = "along";
+        /// <summary>Sunny | Cloudy | Rain | Snow</summary>
+        public string sky = "Sunny";
+        /// <summary>2 perfect, 1 average, 0 neglected</summary>
+        public int upkeep = 2;
+        public bool windy;
+        public bool night;
+        public string net = "#ebf0eb";
+        public string homePrimary = "", homeSecondary = "", awayPrimary = "", awaySecondary = "";
     }
 
     [Serializable]

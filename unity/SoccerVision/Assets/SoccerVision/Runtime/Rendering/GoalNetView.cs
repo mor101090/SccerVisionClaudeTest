@@ -54,6 +54,14 @@ namespace SoccerVision.Runtime
             return lr;
         }
 
+        /// <summary>Net colour (developer settings).</summary>
+        public void SetColour(Color c)
+        {
+            c.a = 0.65f;
+            foreach (var lr in _strings) lr.startColor = lr.endColor = c;
+            foreach (var lr in _rows) lr.startColor = lr.endColor = c;
+        }
+
         /// <summary>A shot struck the net (speed m/s, impact on the ground plane).</summary>
         public void OnNetHit(Vector2 at, float speed)
         {

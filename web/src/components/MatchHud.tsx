@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type React from "react";
 import type { Tone } from "../bridge/protocol";
 
 export interface CommentLine {
@@ -24,6 +25,11 @@ export interface ScoreInfo {
   homeReds: number;
   awayReds: number;
   competition?: string;
+  /** "Day · Rain" etc. */
+  weather?: string;
+  /** Wind arrow on screen (degrees) and its speed, when it blows. */
+  windArrow?: number;
+  windText?: string;
 }
 
 /** Broadcast scoreboard (design: broadcast_scoreboard.ai, bottom variant): clock, teams with their colour, score, red cards. */
@@ -56,12 +62,27 @@ export function Scoreboard({ s }: { s: ScoreInfo }) {
         <img src={logo} alt="SoccerVision" />
         <span>{s.competition ?? "Ligue match"}</span>
       </div>
+      {s.weather && (
+        <div>
+          <span className="sb-wx">
+            <span>{s.weather}</span>
+            {s.windArrow !== undefined && (
+              <>
+                <svg viewBox="0 0 16 16" aria-hidden="true" style={{ transform: `rotate(${s.windArrow}deg)` }}>
+                  <path d="M1.5 8h11M9 4.5L12.8 8 9 11.5" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span>{s.windText}</span>
+              </>
+            )}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
-/** Play / pause and settings, top right of the pitch. Settings is empty for now. */
-export function TopControls({ playing, onToggle }: { playing: boolean; onToggle: () => void }) {
+/** Play / pause and the (developer) settings, top right of the pitch. */
+export function TopControls({ playing, onToggle, settings }: { playing: boolean; onToggle: () => void; settings?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -86,12 +107,14 @@ export function TopControls({ playing, onToggle }: { playing: boolean; onToggle:
       {open && (
         <div className="settings" role="dialog" aria-label="Settings">
           <div className="settings-head">
-            <span>Settings</span>
+            <span>
+              Settings<span className="dev">DEV</span>
+            </span>
             <button type="button" aria-label="Close settings" onClick={() => setOpen(false)}>
               ✕
             </button>
           </div>
-          <p>No settings yet.</p>
+          {settings ?? <p>No settings yet.</p>}
         </div>
       )}
     </>

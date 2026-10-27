@@ -206,6 +206,7 @@ namespace SoccerVision.Simulation
             if (contested) pControl -= 0.2f;
             if (Ball.Z > 0.45f) pControl -= 0.1f * (1.2f - control);
             pControl -= (1f - p.FatigueFactor) * 0.5f;
+            if (_slippery) pControl -= (1f - BallControlFactor(Ball.Pos)) * 0.6f;
             pControl = MathUtil.Clamp(pControl, 0.25f, 0.99f);
 
             if (_rng.Chance(pControl))
@@ -460,6 +461,7 @@ namespace SoccerVision.Simulation
             float handling = MathUtil.A(gk.Attr.Handling);
             float skill = Ball.Z > 1.3f ? 0.6f * aerial + 0.4f * handling : handling;
             float pCatch = MathUtil.Clamp(0.68f + 0.3f * skill - crowd * 0.09f - (contested ? 0.12f : 0f), 0.35f, 0.98f);
+            if (Conditions.IsWet) pCatch *= 0.9f; // a wet ball slips through the gloves
             if (Ball.Z > 1.5f) StartJump(gk, Ball.Z - 1.2f);
             if (_rng.Chance(pCatch))
             {
@@ -523,6 +525,7 @@ namespace SoccerVision.Simulation
             if (Ball.Z > 1.6f || reachNeeded > 0.5f) StartJump(gk, 0.35f);
 
             float pCatch = allowCatch ? MathUtil.Clamp(0.25f + 0.6f * handling - (speed - 15f) * 0.025f - difficulty * 0.3f, 0.05f, 0.85f) : 0f;
+            if (Conditions.IsWet) pCatch *= 0.85f;
             if (_rng.Chance(pCatch))
             {
                 gk.Team.Stats.KeeperCatches++;
@@ -702,6 +705,7 @@ namespace SoccerVision.Simulation
             d.SlideDir = to / len;
             d.SlideSpeed = MathUtil.Clamp((len + 0.4f) / lunge, 5.5f, 8.5f);
             d.SlideTimer = lunge;
+            if (Conditions.IsWet) { d.SlideSpeed *= 1.12f; d.SlideTimer *= 1.15f; } // a wet surface carries the slide further
             d.SlideVictim = carrier;
             d.SlideResolved = false;
             d.TackleCooldown = 3f;
@@ -757,7 +761,7 @@ namespace SoccerVision.Simulation
             bool fromBehind = MathF.Abs(MathUtil.AngleDiff(carrier.Facing, (d.Pos - carrier.Pos).Angle)) > 2.1f;
             var ca = carrier.Attr;
             var da = d.Attr;
-            float attack = (0.45f * ca.Dribbling + 0.25f * ca.Acceleration + 0.2f * ca.BallControl + 0.1f * ca.Composure) * carrier.FatigueFactor;
+            float attack = (0.45f * ca.Dribbling + 0.25f * ca.Acceleration + 0.2f * ca.BallControl + 0.1f * ca.Composure) * carrier.FatigueFactor * BallControlFactor(carrier.Pos);
             float defend = (0.6f * da.Tackling + 0.2f * da.Decisions + 0.2f * da.Acceleration) * d.FatigueFactor;
             float pFoul = 0.14f + 0.14f * MathUtil.A(da.Aggression) + (fromBehind ? 0.3f : 0.05f) - 0.1f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
@@ -865,7 +869,7 @@ namespace SoccerVision.Simulation
             carrier.Team.Stats.Dribbles++;
             var ca = carrier.Attr;
             var da = d.Attr;
-            float attack = (0.5f * ca.Dribbling + 0.2f * ca.BallControl + 0.2f * ca.Acceleration + 0.1f * ca.Composure) * carrier.FatigueFactor;
+            float attack = (0.5f * ca.Dribbling + 0.2f * ca.BallControl + 0.2f * ca.Acceleration + 0.1f * ca.Composure) * carrier.FatigueFactor * BallControlFactor(carrier.Pos);
             float defend = (0.45f * da.Tackling + 0.3f * da.Positioning + 0.15f * da.Acceleration + 0.1f * da.PhysicalPower) * d.FatigueFactor;
             float pBeat = MathUtil.Clamp(0.38f + (attack - defend) / 100f * 1.1f, 0.1f, 0.75f);
             d.TackleCooldown = 1.2f;
@@ -895,7 +899,7 @@ namespace SoccerVision.Simulation
 
             var ca = carrier.Attr;
             var da = d.Attr;
-            float attack = (0.45f * ca.Dribbling + 0.3f * ca.BallControl + 0.15f * ca.Acceleration + 0.1f * ca.PhysicalPower) * carrier.FatigueFactor;
+            float attack = (0.45f * ca.Dribbling + 0.3f * ca.BallControl + 0.15f * ca.Acceleration + 0.1f * ca.PhysicalPower) * carrier.FatigueFactor * BallControlFactor(carrier.Pos);
             float defend = (0.55f * da.Tackling + 0.2f * da.Positioning + 0.15f * da.PhysicalPower + 0.1f * da.Aggression) * d.FatigueFactor;
             if (d.IsGoalkeeper) defend = (0.6f * da.OneOnOne + 0.4f * da.Reflexes) * d.FatigueFactor;
             float pWin = MathUtil.Clamp(0.58f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.15f : 0f) + 0.1f * exposed, 0.12f, 0.88f);

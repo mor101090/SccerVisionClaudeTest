@@ -163,6 +163,7 @@ namespace SoccerVision.Simulation
             away.Validate();
             Seed = seed;
             _rng = new Rng(seed);
+            SetUpConditions();
             Roll = new GroundRollTable(Config);
             Clock.RegulationHalfSeconds = Config.RegulationHalfClockSeconds;
 

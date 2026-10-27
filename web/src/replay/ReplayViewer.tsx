@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MatchSound } from "../audio/matchAudio";
 import { barState, Commentary, CommentaryBar, Scoreboard, StatsTable, TopControls, type CommentLine } from "../components/MatchHud";
-import { drawEntities, drawPitch, makeView, resetBall, WORLD_H, WORLD_W } from "./drawPitch";
+import { DevSettingsPanel } from "../components/DevSettingsPanel";
+import { type DevSettings, engineConditions, loadSettings, samePlay, saveSettings, textOn } from "../settings/devSettings";
+import { drawEntities, drawPitch, look, makeView, resetBall, WORLD_H, WORLD_W } from "./drawPitch";
 import { frameTime, minuteText, sample, type Replay } from "./replay";
 
 /**
@@ -20,15 +22,32 @@ export function ReplayViewer() {
   }, []);
 
   const [busy, setBusy] = useState(false);
-  const newMatch = useCallback(() => {
+  const [settings, setSettingsState] = useState<DevSettings>(loadSettings);
+  const settingsRef = useRef(settings);
+  // Simulates match `seed` with the engine in the chosen weather and pitch (dev server only).
+  const simulate = useCallback((seed: number, s: DevSettings) => {
     setBusy(true);
     setError(null);
-    fetch(`/api/new-replay?seed=${Math.floor(Math.random() * 2147483646) + 1}`)
+    const c = engineConditions(s);
+    const windAngle = (seed * 97) % 360; // the wind blows from a direction fixed per match
+    fetch(`/api/new-replay?seed=${seed}&weather=${c.weather}&maintenance=${c.maintenance}&wind=${c.wind}&windangle=${windAngle}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("failed"))))
       .then((data: Replay) => setReplay(data))
-      .catch(() => setError("Could not simulate a new match (needs `npm run dev` and the .NET 8 SDK)."))
+      .catch(() => setError("Could not simulate the match (needs `npm run dev` and the .NET 8 SDK)."))
       .finally(() => setBusy(false));
   }, []);
+  const newMatch = useCallback(() => simulate(Math.floor(Math.random() * 2147483646) + 1, settingsRef.current), [simulate]);
+  const setSettings = useCallback(
+    (s: DevSettings) => {
+      const before = settingsRef.current;
+      settingsRef.current = s;
+      setSettingsState(s);
+      saveSettings(s);
+      // rain, snow, wind and the pitch change the football: the same match is played again in those conditions
+      if (!samePlay(before, s) && replay) simulate(replay.seed, s);
+    },
+    [replay, simulate],
+  );
 
   const onFile = useCallback((file: File) => {
     file
@@ -64,12 +83,19 @@ export function ReplayViewer() {
         </button>
         {error && <span className="hint">{error}</span>}
       </div>
-      <Player key={replay.seed} replay={replay} />
+      <Player key={replay.seed + JSON.stringify(replay.conditions ?? null)} replay={replay} settings={settings} onSettings={setSettings} note={busy ? "Playing the match in these conditions..." : error} />
     </>
   );
 }
 
-function Player({ replay }: { replay: Replay }) {
+function Player({ replay: recorded, settings, onSettings, note }: { replay: Replay; settings: DevSettings; onSettings: (s: DevSettings) => void; note: string | null }) {
+  // the team colours picked in the settings (the number in black or white, whichever reads best)
+  const replay = useMemo(() => {
+    const kit = (k: Replay["home"]["kit"], c: DevSettings["home"]) => (c ? { ...k, primary: c.primary, secondary: c.secondary, number: textOn(c.primary) } : k);
+    return { ...recorded, home: { ...recorded.home, kit: kit(recorded.home.kit, settings.home) }, away: { ...recorded.away, kit: kit(recorded.away.kit, settings.away) } };
+  }, [recorded, settings.home, settings.away]);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const canvas = useRef<HTMLCanvasElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const [time, setTime] = useState(frameTime(replay.frames[0]));
@@ -87,18 +113,21 @@ function Player({ replay }: { replay: Replay }) {
     timeRef.current = time;
   }, [time]);
   useEffect(() => () => sound.current?.disable(), []);
-  useEffect(() => resetBall(), [replay]);
+  useEffect(() => resetBall(), [recorded]);
 
   // Animation loop: advance replay time by real time x speed and redraw.
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
     const loop = (now: number) => {
-      const dt = Math.min(0.25, (now - last) / 1000);
+      const dt = Math.max(0, Math.min(0.25, (now - last) / 1000));
       last = now;
+      const pace = settingsRef.current.pace / 100;
+      let advanced = 0;
       if (playing) {
         const prev = timeRef.current;
-        const t = Math.min(end, prev + dt * speed);
+        const t = Math.min(end, prev + dt * speed * pace);
+        advanced = t - prev;
         timeRef.current = t;
         setTime(t);
         // Sound: events that happened since the last frame (muted when fast-forwarding past 4x).
@@ -130,8 +159,14 @@ function Player({ replay }: { replay: Replay }) {
         const ctx = c.getContext("2d");
         if (ctx) {
           const view = makeView(c.width, c.height);
-          drawPitch(ctx, view);
-          drawEntities(ctx, view, replay, sample(replay, timeRef.current), now / 1000, playing ? dt * speed : 0);
+          const s = settingsRef.current;
+          const snap = sample(replay, timeRef.current);
+          look.update(replay, s);
+          look.tread(snap, advanced);
+          drawPitch(ctx, view, s);
+          drawEntities(ctx, view, replay, snap, now / 1000, advanced, s);
+          look.fx(ctx, view, s, now / 1000, dt);
+          look.light(ctx, view, s, now / 1000);
         }
       }
       raf = requestAnimationFrame(loop);
@@ -202,9 +237,24 @@ function Player({ replay }: { replay: Replay }) {
             addedMinutes: 0,
             homeReds,
             awayReds,
+            weather: `${settings.night ? "Night" : "Day"} · ${settings.night && settings.sky === "Sunny" ? "Clear" : settings.sky}`,
+            windArrow: look.wind.speed > 0.5 ? (look.wind.screenAngle * 180) / Math.PI : undefined,
+            windText: `${Math.round(look.wind.speed * 3.6)} km/h`,
           }}
         />
-        <TopControls playing={playing} onToggle={() => setPlaying((p) => !p)} />
+        <TopControls
+          playing={playing}
+          onToggle={() => setPlaying((p) => !p)}
+          settings={
+            <DevSettingsPanel
+              value={settings}
+              onChange={onSettings}
+              kits={[recorded.home.kit, recorded.away.kit]}
+              names={[recorded.home.shortName, recorded.away.shortName]}
+              note={note}
+            />
+          }
+        />
         <CommentaryBar bar={bar} />
         {snap.halftime && (
           <div className="banner">
@@ -234,7 +284,10 @@ function Player({ replay }: { replay: Replay }) {
               max={end}
               step={0.5}
               value={time}
-              onChange={(e) => setTime(Number(e.target.value))}
+              onChange={(e) => {
+                setTime(Number(e.target.value));
+                look.clearTracks();
+              }}
               aria-label="Seek"
             />
           </div>

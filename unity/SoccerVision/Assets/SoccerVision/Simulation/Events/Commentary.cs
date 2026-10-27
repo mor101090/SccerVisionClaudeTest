@@ -108,6 +108,9 @@ namespace SoccerVision.Simulation
                     return "Goal kick for " + T(e.Team);
                 case MatchEventType.ThrowIn:
                     return "Throw-in for " + T(e.Team);
+                case MatchEventType.Slip:
+                    if (e.Detail == 1) return P(e.Player) + " loses his footing and the ball runs away from him";
+                    return P(e.Player) + " slips on the " + (m.Conditions.IsSnow ? "snow" : m.Surface != null && m.Surface.MudAt(e.X, e.Y) > 0.3f ? "mud" : "wet grass");
                 case MatchEventType.Offside:
                     return "Offside! " + P(e.Player) + " was caught behind the line";
                 case MatchEventType.GoalkeeperHoldViolation:

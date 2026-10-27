@@ -36,10 +36,12 @@ namespace SoccerVision.Simulation
 
             if (!rolling)
             {
-                float speed = b.Speed;
+                // Air drag works on the speed through the air: with wind the ball drifts and carries with it.
+                float rvx = b.Vx - c.WindX, rvy = b.Vy - c.WindY;
+                float speed = MathF.Sqrt(rvx * rvx + rvy * rvy + b.Vz * b.Vz);
                 float drag = c.AirDragK * speed;
-                float ax = -drag * b.Vx;
-                float ay = -drag * b.Vy;
+                float ax = -drag * rvx;
+                float ay = -drag * rvy;
                 float az = -c.Gravity - drag * b.Vz;
 
                 float hs = b.HorizontalSpeed;
@@ -63,9 +65,17 @@ namespace SoccerVision.Simulation
                     b.Z = r;
                     if (b.Vz < -BounceThreshold)
                     {
-                        b.Vz = -b.Vz * c.GroundRestitution;
-                        b.Vx *= c.BounceFriction;
-                        b.Vy *= c.BounceFriction;
+                        float restitution = c.GroundRestitution, friction = c.BounceFriction;
+                        if (c.Surface != null)
+                        {
+                            // A ball landing in mud plugs; in a puddle it splashes down and hardly bounces.
+                            float mud = c.Surface.MudAt(b.X, b.Y), water = c.Surface.WaterAt(b.X, b.Y);
+                            restitution *= 1f - 0.45f * mud - 0.75f * water;
+                            friction *= 1f - 0.15f * mud - 0.35f * water;
+                        }
+                        b.Vz = -b.Vz * restitution;
+                        b.Vx *= friction;
+                        b.Vy *= friction;
                         b.SideSpin *= 0.5f;
                         b.TopSpin *= 0.5f;
                     }
@@ -83,6 +93,7 @@ namespace SoccerVision.Simulation
                 if (hs > 0f)
                 {
                     float decel = c.RollingDecel + c.GrassLinearDrag * hs + c.AirDragK * hs * hs;
+                    if (c.Surface != null) decel += c.Surface.ExtraRollingDecel(b.X, b.Y, hs);
                     float newHs = MathF.Max(0f, hs - decel * dt);
                     float scale = newHs / hs;
                     b.Vx *= scale;
@@ -300,6 +311,7 @@ namespace SoccerVision.Simulation
         /// <summary>Simulates flight until the first ground contact and returns the horizontal carry distance.</summary>
         public static float CarryDistance(float speed, float launchAngle, MatchConfig c, out float flightTime, float topSpin = 0f)
         {
+            c = c.StillAir;
             var b = new BallMotion
             {
                 Z = Pitch.BallRadius + 0.001f,
@@ -352,6 +364,7 @@ namespace SoccerVision.Simulation
 
         public static float HeightAtDistance(Vec2 horizontal, float startZ, float vz, float distance, MatchConfig c, float sideSpin = 0f, float topSpin = 0f)
         {
+            c = c.StillAir;
             var b = new BallMotion
             {
                 Z = MathF.Max(Pitch.BallRadius, startZ),

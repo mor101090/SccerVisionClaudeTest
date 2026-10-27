@@ -930,6 +930,7 @@ namespace SoccerVision.Simulation
             float composure = MathUtil.A(p.Attr.Composure);
             float stake = penalty ? 0.25f : 0f;
             float sigmaA = (0.105f + 0.19f * (1f - skill)) * (1f + 0.75f * pressure * (1.2f - composure) + stake) * p.FatigueError;
+            if (_slippery) sigmaA *= 1f + 0.6f * (1f - BallControlFactor(p.Pos));
             if (penalty) sigmaA *= 0.2f;
             // (the techniques for the weaker side already price in which foot is used)
             if (tech == ShotTechnique.Power || tech == ShotTechnique.PlacedNear || tech == ShotTechnique.PlacedFar) sigmaA *= WeakFootFactor(p, dir);
@@ -1119,6 +1120,7 @@ namespace SoccerVision.Simulation
                               float startZ = Pitch.BallRadius)
         {
             if (CollectDiagnostics) ContactCheck(p, from, startZ, "kick." + kind + (_restartKick ? ".restart" + (_restart != null ? _restart.Type.ToString() : "") : "") + (Ball.Owner == p ? ".owned" : ".loose"));
+            horizontalVelocity = AllowForWind(p, from, startZ, horizontalVelocity, vz, sideSpin, topSpin, kind);
             Ball.Owner = null;
             Ball.InHands = false;
             Ball.M = new BallMotion

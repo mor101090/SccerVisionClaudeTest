@@ -11,6 +11,8 @@ import {
   type MatchState,
 } from "../bridge/protocol";
 import { barState, Commentary, CommentaryBar, Scoreboard, StatsTable, TopControls, type CommentLine } from "../components/MatchHud";
+import { DevSettingsPanel } from "../components/DevSettingsPanel";
+import { type DevSettings, loadSettings, saveSettings } from "../settings/devSettings";
 
 const BUILD = "/unity/SoccerVision/Build/SoccerVision";
 
@@ -65,6 +67,36 @@ function UnityPlayer() {
   }, [highlight]);
 
   const send = useCallback((cmd: BridgeCommand) => sendMessage(BRIDGE_OBJECT, BRIDGE_METHOD, JSON.stringify(cmd)), [sendMessage]);
+  const [settings, setSettings] = useState<DevSettings>(loadSettings);
+  const [kits, setKits] = useState<[{ primary: string; secondary: string }, { primary: string; secondary: string }] | null>(null);
+  const sendLook = useCallback(
+    (s: DevSettings) =>
+      send({
+        type: "setLook",
+        look: {
+          pace: s.pace,
+          grass: s.grass,
+          sky: s.sky,
+          upkeep: s.upkeep,
+          windy: s.windy,
+          night: s.night,
+          net: s.net,
+          homePrimary: s.home?.primary ?? "",
+          homeSecondary: s.home?.secondary ?? "",
+          awayPrimary: s.away?.primary ?? "",
+          awaySecondary: s.away?.secondary ?? "",
+        },
+      }),
+    [send],
+  );
+  const changeSettings = useCallback(
+    (s: DevSettings) => {
+      setSettings(s);
+      saveSettings(s);
+      sendLook(s);
+    },
+    [sendLook],
+  );
 
   useEffect(() => {
     let nextId = 1;
@@ -72,6 +104,7 @@ function UnityPlayer() {
       const r = parsePayload<MatchReady>(payload);
       if (!r) return;
       setReady(r);
+      setKits((k) => k ?? [{ primary: r.home.color, secondary: r.home.secondaryColor }, { primary: r.away.color, secondary: r.away.secondaryColor }]);
       setLines([]);
       send({ type: "setHud", flag: false }); // React draws the HUD
       return undefined;
@@ -99,8 +132,10 @@ function UnityPlayer() {
   }, [addEventListener, removeEventListener, send]);
 
   useEffect(() => {
-    if (isLoaded) send({ type: "requestState" });
-  }, [isLoaded, send]);
+    if (!isLoaded) return;
+    send({ type: "requestState" });
+    sendLook(loadSettings());
+  }, [isLoaded, send, sendLook]);
 
   const score = useMemo(
     () =>
@@ -128,7 +163,17 @@ function UnityPlayer() {
         {!isLoaded && <div className="loading">Loading match {Math.round(loadingProgression * 100)}%</div>}
         <Unity unityProvider={unityProvider} className="unity-canvas" style={{ visibility: isLoaded ? "visible" : "hidden" }} />
         {score && <Scoreboard s={score} />}
-        {isLoaded && <TopControls playing={!state?.paused} onToggle={() => send({ type: "togglePause" })} />}
+        {isLoaded && (
+          <TopControls
+            playing={!state?.paused}
+            onToggle={() => send({ type: "togglePause" })}
+            settings={
+              ready && kits ? (
+                <DevSettingsPanel value={settings} onChange={changeSettings} kits={kits} names={[ready.home.shortName, ready.away.shortName]} />
+              ) : undefined
+            }
+          />
+        )}
         {ready && state && (
           <CommentaryBar
             bar={barState({

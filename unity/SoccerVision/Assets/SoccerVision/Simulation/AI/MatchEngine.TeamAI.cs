@@ -993,6 +993,9 @@ namespace SoccerVision.Simulation
             float dist = toTarget.Length;
             float u = MathUtil.Clamp01(p.Urgency);
             float vmax = p.MaxSpeed;
+            // Wet grass, snow and mud: less grip to accelerate, brake and turn on, and a little less pace.
+            float footing = Footing(p.Pos);
+            if (footing < 1f) vmax *= 1f - 0.45f * (1f - footing);
             float accelBoost = 1f;
             if (p.DiveTimer > 0f)
             {
@@ -1051,6 +1054,11 @@ namespace SoccerVision.Simulation
             Vec2 dv = desired - p.Vel;
             bool accelerating = Vec2.Dot(desired, p.Vel) >= p.Vel.LengthSq * 0.95f;
             float maxDv = (accelerating ? p.MaxAccel : decel) * accelBoost * dt;
+            if (footing < 1f)
+            {
+                maxDv *= 0.5f + 0.5f * footing;
+                MaybeSlip(p, footing, p.Vel.Length, vmax, dv.Length, dt);
+            }
             p.Vel += dv.ClampLength(maxDv);
             float speed = p.Vel.Length;
             if (speed > vmax) { p.Vel = p.Vel / speed * vmax; speed = vmax; }
@@ -1082,6 +1090,7 @@ namespace SoccerVision.Simulation
                 targetFacing = p.Facing;
                 turnRate = 6f;
             }
+            if (footing < 1f) turnRate *= 0.55f + 0.45f * footing;
             p.Facing = MathUtil.MoveTowardsAngle(p.Facing, targetFacing, turnRate * dt);
 
             // Jump: ballistic flight of the body (headers, goalkeeper takes, walls, celebrations).

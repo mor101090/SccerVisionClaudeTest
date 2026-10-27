@@ -4,7 +4,9 @@ using UnityEngine;
 namespace SoccerVision.Runtime
 {
     /// <summary>
-    /// Draws the 105 x 68 m pitch (IFAB Law 1 markings, mown bands, technical areas, goal frames) into one texture.
+    /// Draws the 105 x 68 m pitch (IFAB Law 1 markings, mown bands, technical areas, goal frames) into one texture, with
+    /// the state of the grass: the engine's mud and puddle map (edges broken up with Perlin noise), or a layer of snow
+    /// with the lines painted blue. Mowing pattern: bands along the pitch, bands across it, or rings around the centre.
     /// Assign <see cref="fieldOverride"/> to use the designer's PNG instead (centred, sized by
     /// <see cref="overrideWorldSize"/> in metres).
     /// </summary>
@@ -20,11 +22,21 @@ namespace SoccerVision.Runtime
         private Color32[] _px;
         private int _w, _h;
         private float _ppm;
+        private MatchLook _look = new MatchLook();
+        private PitchSurface _surface;
+        private Color32 _line = LineColor;
 
         // Natural, slightly muted turf (mown bands along the length of the pitch) with a fine grain.
         private static readonly Color32 GrassA = new Color32(91, 135, 51, 255);
         private static readonly Color32 GrassB = new Color32(83, 121, 45, 255);
         private static readonly Color32 LineColor = new Color32(246, 246, 246, 255);
+
+        public void Build(MatchLook look, PitchSurface surface)
+        {
+            _look = look ?? new MatchLook();
+            _surface = surface;
+            Build();
+        }
 
         public void Build()
         {
@@ -49,17 +61,27 @@ namespace SoccerVision.Runtime
 
             const int bands = 12;
             var rng = new System.Random(11);
+            bool wet = _look.sky == Weather.Rain, snow = _look.sky == Weather.Snow;
+            Color32 light = wet ? new Color32(79, 133, 48, 255) : GrassA, dark = wet ? new Color32(70, 118, 43, 255) : GrassB;
             for (int y = 0; y < _h; y++)
             {
                 float wy = y / _ppm + Bottom;
                 int band = Mathf.FloorToInt((Top - wy) / ((Top - Bottom) / bands));
-                Color32 c = (band & 1) == 0 ? GrassB : GrassA;
                 for (int x = 0; x < _w; x++)
                 {
+                    float wx = x / _ppm - Pitch.HalfLength - Margin;
+                    bool lightBand;
+                    if (_look.grass == GrassPattern.Across) lightBand = (Mathf.FloorToInt((wx + 52.5f) / (105f / 18f)) & 1) == 0;
+                    else if (_look.grass == GrassPattern.Circles) lightBand = (Mathf.FloorToInt(Mathf.Sqrt(wx * wx + wy * wy) / 5f) & 1) == 1;
+                    else lightBand = (band & 1) == 1;
+                    Color32 c = lightBand ? light : dark;
                     int grain = rng.Next(-7, 8);
                     _px[y * _w + x] = new Color32((byte)Mathf.Clamp(c.r + grain, 0, 255), (byte)Mathf.Clamp(c.g + grain, 0, 255), (byte)Mathf.Clamp(c.b + grain, 0, 255), 255);
                 }
             }
+            if (_surface != null) PaintSurface(wet);
+            if (snow) PaintSnow();
+            _line = snow ? new Color32(40, 98, 205, 255) : LineColor;
 
             const float lw = 0.12f; // line width (max 12 cm)
             // Boundary and halfway line
@@ -69,7 +91,7 @@ namespace SoccerVision.Runtime
             Line(Pitch.HalfLength, -Pitch.HalfWidth, Pitch.HalfLength, Pitch.HalfWidth, lw);
             Line(0f, -Pitch.HalfWidth, 0f, Pitch.HalfWidth, lw);
             Circle(0f, 0f, Pitch.CentreCircleRadius, lw, 0f, 360f);
-            Disc(0f, 0f, 0.2f, LineColor);
+            Disc(0f, 0f, 0.2f, _line);
             // Technical areas (coaches) above the top touchline, either side of the halfway line.
             for (int side = -1; side <= 1; side += 2)
             {
@@ -93,7 +115,7 @@ namespace SoccerVision.Runtime
                 Line(ga, -Pitch.GoalAreaHalfWidth, ga, Pitch.GoalAreaHalfWidth, lw);
                 // Penalty mark and arc (only the part outside the area)
                 float spot = (Pitch.HalfLength - Pitch.PenaltySpotDistance) * s;
-                Disc(spot, 0f, 0.15f, LineColor);
+                Disc(spot, 0f, 0.15f, _line);
                 float half = Mathf.Acos((Pitch.PenaltyAreaDepth - Pitch.PenaltySpotDistance) / Pitch.PenaltyArcRadius) * Mathf.Rad2Deg;
                 float centre = s > 0 ? 180f : 0f;
                 Circle(spot, 0f, Pitch.PenaltyArcRadius, lw, centre - half, centre + half);
@@ -105,7 +127,7 @@ namespace SoccerVision.Runtime
                 }
                 // Goal frame (posts and crossbar); the net itself is a deforming GoalNetView.
                 Disc(gl, -Pitch.GoalHalfWidth - Pitch.PostRadius, 0.12f, LineColor);
-                Disc(gl, Pitch.GoalHalfWidth + Pitch.PostRadius, 0.12f, LineColor);
+                Disc(gl, Pitch.GoalHalfWidth + Pitch.PostRadius, 0.12f, LineColor); // the posts stay white
                 Line(gl, -Pitch.GoalHalfWidth, gl, Pitch.GoalHalfWidth, 0.1f);
             }
 
@@ -122,7 +144,57 @@ namespace SoccerVision.Runtime
             return tex;
         }
 
-        private void Line(float x1, float y1, float x2, float y2, float width) => Line(x1, y1, x2, y2, width, LineColor);
+        /// <summary>Worn grass and bare mud, standing water darker where deep with a light rim (the engine's own map).</summary>
+        private void PaintSurface(bool wet)
+        {
+            for (int y = 0; y < _h; y++)
+            {
+                float wy = y / _ppm + Bottom;
+                for (int x = 0; x < _w; x++)
+                {
+                    float wx = x / _ppm - Pitch.HalfLength - Margin;
+                    float grunge = 0.55f * Mathf.PerlinNoise(wx * 0.7f + 100f, wy * 0.7f + 100f) + 0.3f * Mathf.PerlinNoise(wx * 2.3f + 7f, wy * 2.3f - 3f) + 0.15f * Mathf.PerlinNoise(wx * 6.1f + 11f, wy * 6.1f + 5f);
+                    float mm = Mathf.Clamp01((_surface.MudAt(wx, wy) - 0.08f + (grunge - 0.5f) * 0.55f) * 1.5f);
+                    int i = y * _w + x;
+                    Color b = _px[i];
+                    if (mm > 0f)
+                    {
+                        float k = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.3f, 0.85f, mm)), dk = wet ? 0.8f : 1f;
+                        var mud = new Color((150f - 54f * k) / 255f * dk, (136f - 68f * k) / 255f * dk, (84f - 42f * k) / 255f * dk);
+                        b = Color.Lerp(b, mud, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.04f, 0.45f, mm)) * 0.93f);
+                    }
+                    float wa = _surface.WaterAt(wx, wy);
+                    float ww = Mathf.Clamp01((wa - 0.1f + (Mathf.PerlinNoise(wx * 0.9f + 50f, wy * 0.9f) - 0.5f) * 0.18f) * 1.8f);
+                    if (ww > 0f)
+                    {
+                        float deep = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.25f, 0.9f, ww)), sky = Mathf.PerlinNoise(wx * 0.35f + 40f, wy * 0.35f);
+                        var water = ww < 0.12f ? new Color(150f / 255f, 166f / 255f, 170f / 255f) : new Color((112f - 46f * deep + 14f * sky) / 255f, (128f - 44f * deep + 14f * sky) / 255f, (136f - 38f * deep + 16f * sky) / 255f);
+                        b = Color.Lerp(b, water, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.22f, ww)) * (ww < 0.12f ? 0.63f : 0.9f));
+                    }
+                    _px[i] = b;
+                }
+            }
+        }
+
+        /// <summary>A fresh, even layer of snow over the whole ground, a little thinner in places.</summary>
+        private void PaintSnow()
+        {
+            for (int y = 0; y < _h; y++)
+            {
+                float wy = y / _ppm + Bottom;
+                for (int x = 0; x < _w; x++)
+                {
+                    float wx = x / _ppm - Pitch.HalfLength - Margin;
+                    float n = Mathf.PerlinNoise(wx * 0.45f + 200f, wy * 0.45f + 200f), fine = Mathf.PerlinNoise(wx * 4f, wy * 4f);
+                    float shade = (238f + 12f * n + 5f * fine) / 255f;
+                    var snow = new Color(shade - 5f / 255f, shade - 1f / 255f, Mathf.Min(1f, shade + 7f / 255f));
+                    int i = y * _w + x;
+                    _px[i] = Color.Lerp(_px[i], snow, 0.94f + 0.06f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.25f, 0.65f, n)) - (fine > 0.85f ? 0.05f : 0f));
+                }
+            }
+        }
+
+        private void Line(float x1, float y1, float x2, float y2, float width) => Line(x1, y1, x2, y2, width, _line);
 
         private void Line(float x1, float y1, float x2, float y2, float width, Color32 color)
         {
@@ -142,7 +214,7 @@ namespace SoccerVision.Runtime
             for (int i = 0; i <= steps; i++)
             {
                 float a = fromDeg * Mathf.Deg2Rad + span * i / steps;
-                Disc(cx + Mathf.Cos(a) * r, cy + Mathf.Sin(a) * r, width * 0.5f, LineColor);
+                Disc(cx + Mathf.Cos(a) * r, cy + Mathf.Sin(a) * r, width * 0.5f, _line);
             }
         }
 
@@ -164,9 +236,9 @@ namespace SoccerVision.Runtime
                     int i = y * _w + x;
                     Color32 b = _px[i];
                     _px[i] = new Color32(
-                        (byte)Mathf.Max(b.r, b.r + (color.r - b.r) * a),
-                        (byte)Mathf.Max(b.g, b.g + (color.g - b.g) * a),
-                        (byte)Mathf.Max(b.b, b.b + (color.b - b.b) * a),
+                        (byte)(b.r + (color.r - b.r) * a),
+                        (byte)(b.g + (color.g - b.g) * a),
+                        (byte)(b.b + (color.b - b.b) * a),
                         255);
                 }
             }

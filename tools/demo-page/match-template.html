@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>SoccerVision Demo Match</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -60,11 +61,24 @@ h1 { margin: 2px 0 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--display); lett
 .topctl button#gear[aria-expanded="true"] { background: rgba(70, 82, 104, .95); }
 .topctl #gear svg { width: 1.05em; height: 1.05em; filter: none; }
 #play .dim { opacity: .38; }
-.settings { position: absolute; right: 2.2%; top: 11%; width: min(280px, 60%); background: rgba(20, 26, 30, .94); border: 1px solid rgba(255,255,255,.14); border-radius: 8px; padding: 10px 12px; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.settings { position: absolute; right: 2.2%; top: 11%; width: min(340px, calc(100% - 4.4%)); max-height: 84%; overflow-y: auto; background: rgba(20, 26, 30, .95); border: 1px solid rgba(255,255,255,.14); border-radius: 8px; padding: 10px 12px 12px; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.35); font-size: 13px; }
+.settings .dev { font: 700 10px/1 var(--body); letter-spacing: .08em; background: var(--amber); color: #120d00; border-radius: 3px; padding: 3px 5px; margin-left: 6px; vertical-align: middle; }
+.settings h3 { margin: 12px 0 6px; font: 700 12px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.srow { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 6px 8px; margin: 6px 0; }
+.srow > label, .srow > span.l { color: #c9d2d8; }
+.seg { display: flex; flex-wrap: wrap; gap: 3px; }
+.seg button { padding: 6px 8px; font-size: 12px; border-radius: 5px; }
+.srow input[type="range"] { width: 100%; accent-color: var(--amber); }
+.colors { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.colors input[type="color"] { width: 34px; height: 26px; padding: 0; border: 1px solid var(--rule); border-radius: 5px; background: none; cursor: pointer; }
+.colors small { color: var(--muted); }
+.settings .note { margin-top: 8px; color: #b9c2c9; font-size: 12px; min-height: 1em; }
+.settings .reset { margin-top: 10px; font-size: 12px; padding: 6px 10px; }
+.sb-wx { display: inline-flex; align-items: center; gap: .45em; margin-top: .3em; height: 1.35em; padding: 0 .6em; background: rgba(37, 38, 51, .85); color: #fff; font-size: .74em; }
+.sb-wx svg { height: 1em; width: 1em; display: block; }
 .settings[hidden] { display: none; }
 .settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font: 700 15px var(--display); letter-spacing: .08em; text-transform: uppercase; }
 .settings-head button { padding: 2px 8px; }
-.settings p { margin: 0; color: #b9c2c9; font-size: 13px; }
 /* Commentary bar under the pitch: colour of the team on the ball; flashes on goals, yellow/red on cards */
 .cbar { position: absolute; left: 50%; bottom: 1.6%; transform: translateX(-50%); width: 66%; min-height: 1.9em; display: flex; align-items: center; justify-content: center; padding: .25em 1.2em; border-radius: 999px; background: #444; color: #fff; font: 600 clamp(11px, 1.55cqi, 15px)/1.25 var(--body); text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); transition: background-color .15s; }
 .cbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -124,6 +138,7 @@ td.l { color: var(--muted); }
         <span class="sb-add" id="ad" hidden></span>
       </div>
       <div class="sb-sub"><img alt="SoccerVision" src="data:image/png;base64,__LOGO__"><span>Ligue match</span></div>
+      <div><span class="sb-wx" id="wx"></span></div>
     </div>
     <div class="topctl">
       <button id="play" class="icon" type="button" aria-label="Pause" title="Play / pause">
@@ -134,8 +149,21 @@ td.l { color: var(--muted); }
       </button>
     </div>
     <div class="settings" id="settings" role="dialog" aria-label="Settings" hidden>
-      <div class="settings-head"><span>Settings</span><button id="settingsClose" type="button" aria-label="Close settings">✕</button></div>
-      <p>No settings yet.</p>
+      <div class="settings-head"><span>Settings<span class="dev">DEV</span></span><button id="settingsClose" type="button" aria-label="Close settings">✕</button></div>
+      <div class="srow"><label for="pace">Match pace</label><div class="colors"><input id="pace" type="range" min="50" max="100" step="5" value="100" style="flex:1"><span id="paceText" style="min-width:3.2em;text-align:right">100%</span></div></div>
+      <h3>Pitch</h3>
+      <div class="srow"><span class="l">Grass</span><div class="seg" data-set="grass"><button type="button" data-v="along">Stripes along</button><button type="button" data-v="across">Stripes across</button><button type="button" data-v="circles">Circles</button></div></div>
+      <div class="srow"><span class="l">Upkeep</span><div class="seg" data-set="maint"><button type="button" data-v="2">Perfect</button><button type="button" data-v="1">Average</button><button type="button" data-v="0">Neglected</button></div></div>
+      <div class="srow"><label for="netColor">Goal nets</label><div class="colors"><input id="netColor" type="color" value="#ebf0eb"></div></div>
+      <h3>Weather</h3>
+      <div class="srow"><span class="l">Sky</span><div class="seg" data-set="weather"><button type="button" data-v="Sunny">Sunny</button><button type="button" data-v="Cloudy">Cloudy</button><button type="button" data-v="Rain">Rain</button><button type="button" data-v="Snow">Snow</button></div></div>
+      <div class="srow"><span class="l">Wind</span><div class="seg" data-set="wind"><button type="button" data-v="0">Calm</button><button type="button" data-v="1">Strong</button></div></div>
+      <div class="srow"><span class="l">Kick-off</span><div class="seg" data-set="night"><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div></div>
+      <h3>Team colours</h3>
+      <div class="srow"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour"><input id="homeS" type="color" aria-label="Home trim colour"><small>shirt · trim</small></div></div>
+      <div class="srow"><span class="l" id="awayLabel">Away</span><div class="colors"><input id="awayP" type="color" aria-label="Away shirt colour"><input id="awayS" type="color" aria-label="Away trim colour"><small>shirt · trim</small></div></div>
+      <div class="note" id="setNote"></div>
+      <button class="reset" id="setReset" type="button">Reset to defaults</button>
     </div>
     <div class="cbar" id="cbar" aria-live="polite"><span id="cbarText">Kick-off</span></div>
     <div class="overlay" id="ht" hidden>
@@ -172,7 +200,7 @@ td.l { color: var(--muted); }
       <div class="moments" id="moments"></div>
     </section>
   </div>
-  <p class="foot">This is the real C# match engine (the same code that runs inside Unity), recorded at seed <span id="seedText"></span> and replayed at its real pace. The clock runs 4.5× faster than real time, so 45 minutes take 10. The Unity build draws the same match with full graphics and sound. The first match is staged to contain one red card, one light injury and one serious injury with a substitution; find them under "Key moments".</p>
+  <p class="foot">This is the real C# match engine (the same code that runs inside Unity), recorded at seed <span id="seedText"></span> and replayed at its real pace. The clock runs 4.5× faster than real time, so 45 minutes take 10. The Unity build draws the same match with full graphics and sound. The first match is staged to contain one red card, one light injury and one serious injury with a substitution; find them under "Key moments". The settings (gear) choose the weather, wind, pitch upkeep, day or night, grass pattern, net and team colours and the match pace; rain, snow, wind and a worn pitch replay the match as the engine plays it in those conditions.</p>
 </div>
 
 <script>__AUDIO__</script>
@@ -180,7 +208,7 @@ td.l { color: var(--muted); }
 <script>
 (function () {
   "use strict";
-  var PACKED = JSON.parse(document.getElementById("replays").textContent);
+  var PACKED = JSON.parse(document.getElementById("replays").textContent), SEEDS = __SEEDS__, VARIANT_SEEDS = __VARIANT_SEEDS__;
   var R, F, E, teams, t0, tEnd, secondHalfT, t, shown = -1;
   var PB = 9, PS = 5, OB = PB + 22 * PS;
   var playing = true, speed = 1, current = -1, addedMinutes = [0, 0];
@@ -228,13 +256,14 @@ td.l { color: var(--muted); }
     var dpr = window.devicePixelRatio || 1, r = cv.getBoundingClientRect();
     cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
     view.s = Math.min(cv.width / W, cv.height / H); view.ox = cv.width / 2; view.oy = (cv.height - H * view.s) / 2 + TOP * view.s;
-    grassNoise = null;
+    grassNoise = null; darkCv = null; drops = []; flakes = []; rings = [];
   }
   window.addEventListener("resize", resize);
   function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(X(x1), Y(y1)); ctx.lineTo(X(x2), Y(y2)); ctx.stroke(); }
   function arc(x, y, r, a0, a1) { ctx.beginPath(); ctx.arc(X(x), Y(y), r * view.s, -a1, -a0); ctx.stroke(); }
   function dot(x, y, r) { ctx.beginPath(); ctx.arc(X(x), Y(y), Math.max(1.5, r * view.s), 0, Math.PI * 2); ctx.fill(); }
-  // Natural, slightly muted turf: mown bands along the length of the pitch and a fine grain texture.
+  // Natural, slightly muted turf with a fine grain texture, mown in one of three patterns: bands along the length of the
+  // pitch, bands across it, or rings around the centre spot.
   var grassNoise = null;
   function makeGrassNoise() {
     var n = document.createElement("canvas"); n.width = n.height = 192;
@@ -247,14 +276,27 @@ td.l { color: var(--muted); }
     g.putImageData(img, 0, 0);
     return ctx.createPattern(n, "repeat");
   }
-  function pitch() {
-    var s = view.s;
-    ctx.fillStyle = "#567f30"; ctx.fillRect(0, 0, cv.width, cv.height);
-    var bands = 12, bw = (TOP - BOTTOM) / bands;
-    for (var i = 0; i < bands; i++) { ctx.fillStyle = i % 2 ? "#5b8733" : "#53792d"; ctx.fillRect(0, Y(TOP - i * bw), cv.width, bw * s + 1); }
+  function grass() {
+    var s = view.s, wet = SET.weather === "Rain";
+    var light = wet ? "#4f8530" : "#5b8733", dark = wet ? "#46762b" : "#53792d";
+    ctx.fillStyle = dark; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = light;
+    if (SET.grass === "across") {
+      var bwx = 105 / 18;
+      for (var i = -2; i < 20; i++) if (i % 2 === 0) ctx.fillRect(X(-52.5 + i * bwx), 0, bwx * s + 1, cv.height);
+    } else if (SET.grass === "circles") {
+      for (var r = 80; r > 0; r -= 5) { ctx.fillStyle = (r / 5) % 2 ? light : dark; ctx.beginPath(); ctx.arc(X(0), Y(0), r * s, 0, Math.PI * 2); ctx.fill(); }
+    } else {
+      var bands = 12, bw = (TOP - BOTTOM) / bands;
+      for (var j = 0; j < bands; j++) if (j % 2) ctx.fillRect(0, Y(TOP - j * bw), cv.width, bw * s + 1);
+    }
     if (!grassNoise) grassNoise = makeGrassNoise();
     ctx.fillStyle = grassNoise; ctx.fillRect(0, 0, cv.width, cv.height);
-    ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = Math.max(1, .12 * s);
+    if (wet) { ctx.fillStyle = "rgba(170,210,230,.05)"; ctx.fillRect(0, 0, cv.width, cv.height); } // wet sheen
+  }
+  function lines() {
+    var s = view.s, paint = SET.weather === "Snow" ? "rgba(40,98,205,.95)" : "rgba(255,255,255,.9)"; // in snow the lines are painted blue
+    ctx.strokeStyle = paint; ctx.fillStyle = paint; ctx.lineWidth = Math.max(1, .12 * s);
     // Technical areas (coaches) above the top touchline, either side of the halfway line.
     ctx.strokeRect(X(-19), Y(39.6), 17.5 * s, 3.6 * s); ctx.strokeRect(X(1.5), Y(39.6), 17.5 * s, 3.6 * s);
     ctx.strokeRect(X(-52.5), Y(34), 105 * s, 68 * s); line(0, -34, 0, 34); arc(0, 0, 9.15, 0, Math.PI * 2); dot(0, 0, .2);
@@ -268,6 +310,91 @@ td.l { color: var(--muted); }
       ctx.save(); ctx.lineWidth = Math.max(2, .22 * s); line(gl, -3.72, gl, 3.72); ctx.restore();
     });
   }
+  // ---- the state of the pitch: mud, puddles and snow -------------------------------------------------
+  // The engine's own map (1 m grid of mud and standing water, built from Perlin noise where a pitch wears) decides where
+  // the patches are, so the ball really stops in the puddles you see. Finer value noise ("grunge") breaks up their edges.
+  function hash2(i, j) { var h = Math.imul(i, 374761393) ^ Math.imul(j, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
+  function vnoise(x, y) {
+    var i = Math.floor(x), j = Math.floor(y), u = x - i, v = y - j; u = u * u * (3 - 2 * u); v = v * v * (3 - 2 * v);
+    var a = hash2(i, j), b = hash2(i + 1, j), c = hash2(i, j + 1), d = hash2(i + 1, j + 1);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  }
+  function grunge(x, y) { return .55 * vnoise(x * .7, y * .7) + .3 * vnoise(x * 2.3 + 7, y * 2.3 - 3) + .15 * vnoise(x * 6.1 - 11, y * 6.1 + 5); }
+  var SNOW = { x: -60, y: 48, w: 120, h: 92 }; // the snow covers the whole view
+  var SPX = 5, surfCv = null, snowCv = null, trodCv = null, snowTmp = null, puddles = [];
+  function sm(a, b, x) { var k = Math.max(0, Math.min(1, (x - a) / (b - a))); return k * k * (3 - 2 * k); }
+  function buildSurface() {
+    surfCv = null; puddles = [];
+    var sf = R.surface, w = 108 * SPX, h = 72 * SPX;
+    if (sf && (sf.mud || sf.water)) {
+      var cvs = document.createElement("canvas"); cvs.width = w; cvs.height = h;
+      var g = cvs.getContext("2d"), img = g.createImageData(w, h), d = img.data, cols = sf.columns, wet = SET.weather === "Rain";
+      var bil = function (arr, x, y) {
+        if (!arr) return 0;
+        var fx = Math.max(0, Math.min(cols - 1.001, (x - sf.minX) / sf.cell)), fy = Math.max(0, Math.min(sf.rows - 1.001, (y - sf.minY) / sf.cell));
+        var i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j, k = j * cols + i;
+        var top = arr[k] + (arr[k + 1] - arr[k]) * u, bot = arr[k + cols] + (arr[k + cols + 1] - arr[k + cols]) * u;
+        return (top + (bot - top) * v) / 255;
+      };
+      for (var py = 0; py < h; py++) for (var px = 0; px < w; px++) {
+        var x = -54 + (px + .5) / SPX, y = 36 - (py + .5) / SPX, gr = grunge(x, y), o = (py * w + px) * 4;
+        var m = bil(sf.mud, x, y), mm = Math.max(0, Math.min(1, (m - .08 + (gr - .5) * .55) * 1.5));
+        var r = 0, gg = 0, b = 0, a = 0;
+        if (mm > 0) {
+          // thin, worn grass (khaki) giving way to bare mud; darker and glossier when it rains
+          var k = sm(.3, .85, mm), dk = wet ? .8 : 1;
+          r = (150 + (96 - 150) * k) * dk; gg = (136 + (68 - 136) * k) * dk; b = (84 + (42 - 84) * k) * dk;
+          a = sm(.04, .45, mm) * .93;
+          var speck = vnoise(x * 9, y * 9); if (speck > .78) { r *= .82; gg *= .82; b *= .82; } // clods and stud marks
+        }
+        var wa = bil(sf.water, x, y), ww = Math.max(0, Math.min(1, (wa - .1 + (vnoise(x * .9, y * .9) - .5) * .18) * 1.8));
+        if (ww > 0) {
+          // standing water: dark where it is deep, reflecting the grey sky towards the edge, with a thin bright rim
+          var deep = sm(.25, .9, ww), sky = .5 + .5 * vnoise(x * .35 + 40, y * .35);
+          var wr = 112 - 46 * deep + 14 * sky, wg = 128 - 44 * deep + 14 * sky, wb = 136 - 38 * deep + 16 * sky, wA = sm(0, .22, ww) * .9;
+          if (ww < .12) { wr = 150; wg = 166; wb = 170; wA *= .7; }
+          r = r * (1 - wA) + wr * wA; gg = gg * (1 - wA) + wg * wA; b = b * (1 - wA) + wb * wA; a = a + wA * (1 - a);
+          if (wa > .55 && puddles.length < 260 && hash2(px, py) < .02) puddles.push([x, y]);
+        }
+        d[o] = r; d[o + 1] = gg; d[o + 2] = b; d[o + 3] = a * 255;
+      }
+      g.putImageData(img, 0, 0); surfCv = cvs;
+    }
+    snowCv = null; trodCv = null;
+    if (SET.weather === "Snow") {
+      // a fresh, even layer over the whole ground, a little thinner in places where the grass tips show through
+      var sw = SNOW.w * SPX, sh = SNOW.h * SPX, sc = document.createElement("canvas"); sc.width = sw; sc.height = sh;
+      var sg = sc.getContext("2d"), si = sg.createImageData(sw, sh), sd = si.data;
+      for (var qy = 0; qy < sh; qy++) for (var qx = 0; qx < sw; qx++) {
+        var sx = SNOW.x + (qx + .5) / SPX, sy = SNOW.y - (qy + .5) / SPX, n = grunge(sx * .6, sy * .6), fine = vnoise(sx * 4, sy * 4), q = (qy * sw + qx) * 4;
+        var shade = 238 + 12 * n + 5 * fine;
+        sd[q] = shade - 5; sd[q + 1] = shade - 1; sd[q + 2] = Math.min(255, shade + 7); sd[q + 3] = 255 * (.94 + .06 * sm(.25, .65, n) - .05 * (fine > .85 ? 1 : 0));
+      }
+      sg.putImageData(si, 0, 0); snowCv = sc;
+      trodCv = document.createElement("canvas"); trodCv.width = sw; trodCv.height = sh;
+      snowTmp = document.createElement("canvas"); snowTmp.width = sw; snowTmp.height = sh;
+    }
+  }
+  // Where players run and the ball rolls, the snow is trodden down and the grass shows through.
+  function treadSnow(S, dt) {
+    if (!trodCv || dt <= 0) return;
+    var g = trodCv.getContext("2d");
+    g.fillStyle = "rgba(0,0,0," + Math.min(.12, dt * .35) + ")";
+    S.ps.forEach(function (p) { if (p.off) return; g.beginPath(); g.arc((p.x - SNOW.x) * SPX, (SNOW.y - p.y) * SPX, .45 * SPX, 0, Math.PI * 2); g.fill(); });
+    if (S.bz < .3) { g.fillStyle = "rgba(0,0,0," + Math.min(.3, dt * 1.2) + ")"; g.beginPath(); g.arc((S.bx - SNOW.x) * SPX, (SNOW.y - S.by) * SPX, .16 * SPX, 0, Math.PI * 2); g.fill(); }
+  }
+  function ground() {
+    var s = view.s;
+    if (surfCv) ctx.drawImage(surfCv, X(-54), Y(36), 108 * s, 72 * s);
+    if (snowCv) {
+      var g = snowTmp.getContext("2d");
+      g.globalCompositeOperation = "copy"; g.drawImage(snowCv, 0, 0);
+      g.globalCompositeOperation = "destination-out"; g.drawImage(trodCv, 0, 0);
+      g.globalCompositeOperation = "source-over";
+      ctx.drawImage(snowTmp, X(SNOW.x), Y(SNOW.y), SNOW.w * s, SNOW.h * s);
+    }
+  }
+  function pitch() { grass(); ground(); lines(); }
   function fillC(text, x, y) {
     ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     var m = ctx.measureText(text);
@@ -299,7 +426,7 @@ td.l { color: var(--muted); }
     var ys = [], ds = [], i, k;
     for (i = 0; i < 25; i++) ys.push(-3.66 + i * 7.32 / 24);
     for (k = 0; k < 8; k++) ds.push(k * 2 / 7);
-    ctx.save(); ctx.strokeStyle = "rgba(235,240,235,.6)";
+    ctx.save(); ctx.strokeStyle = rgba(SET.net, .62);
     ys.forEach(function (y, i) { ctx.lineWidth = i === 0 || i === 24 ? Math.max(1.5, .2 * s) : 1; ctx.beginPath(); ds.forEach(function (d, k) { var p = P(y, d); if (k) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }); ctx.stroke(); });
     ds.forEach(function (d, k) { ctx.lineWidth = k === 7 ? Math.max(1.5, .2 * s) : 1; ctx.beginPath(); ys.forEach(function (y, i) { var p = P(y, d); if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }); ctx.stroke(); });
     if (fx.fl && fx.fl.age < .6) {
@@ -344,6 +471,7 @@ td.l { color: var(--muted); }
     }
     ballPrev = { x: S.bx, y: S.by };
   }
+  var yellowBall = false;
   function drawBall(cx, cy, rad) {
     var size = Math.ceil(rad * 2) + 2, c = size / 2;
     if (ballCv.width !== size) { ballCv.width = size; ballCv.height = size; }
@@ -359,12 +487,13 @@ td.l { color: var(--muted); }
       var best = -9, second = -9, pent = false, q, sc;
       for (q = 0; q < 12; q++) { sc = (PENT[q][0] * bx + PENT[q][1] * by + PENT[q][2] * bz) / RP; if (sc > best) { second = best; best = sc; pent = true; } else if (sc > second) second = sc; }
       for (q = 0; q < 20; q++) { sc = (HEX[q][0] * bx + HEX[q][1] * by + HEX[q][2] * bz) / RH; if (sc > best) { second = best; best = sc; pent = false; } else if (sc > second) second = sc; }
-      var base = pent ? 28 : 246;
-      if (best - second < .006) base = pent ? 60 : 150; // stitched seams
+      // a white ball with black pentagons; in snow the high-visibility yellow one with navy pentagons
+      var col = yellowBall ? (pent ? [24, 34, 96] : [255, 212, 34]) : (pent ? [28, 28, 28] : [246, 246, 246]);
+      if (best - second < .006) col = yellowBall ? (pent ? [60, 70, 120] : [190, 150, 20]) : (pent ? [60, 60, 60] : [150, 150, 150]); // stitched seams
       var diff = .38 + .62 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]);
       var spec = Math.pow(Math.max(0, nx * Hv[0] + ny * Hv[1] + nz * Hv[2]), 36) * (pent ? 120 : 90);
-      var v = Math.min(255, base * diff + spec), a = Math.min(1, (1 - Math.sqrt(r2)) * rad + .5), o = (py * size + px) * 4;
-      d[o] = v; d[o + 1] = v; d[o + 2] = v; d[o + 3] = 255 * a;
+      var a = Math.min(1, (1 - Math.sqrt(r2)) * rad + .5), o = (py * size + px) * 4;
+      d[o] = Math.min(255, col[0] * diff + spec); d[o + 1] = Math.min(255, col[1] * diff + spec); d[o + 2] = Math.min(255, col[2] * diff + spec); d[o + 3] = 255 * a;
     }
     ballCx.putImageData(img, 0, 0);
     ctx.drawImage(ballCv, cx - c, cy - c);
@@ -384,17 +513,20 @@ td.l { color: var(--muted); }
   }
   // Corner flag seen from above (top view, like the rest of the pitch): the white top of the pole and the yellow cloth
   // seen edge-on, hanging out away from the pitch and swaying slowly in the breeze.
+  // In a strong wind the cloth streams out downwind, stretched and rippling fast; in still air it hangs limp, shorter
+  // seen from above, and only sways.
   function cornerFlag(x, y, s, t, i, ax, ay) {
-    var base = Math.atan2(ay, ax), len = 1.3 * s, wid = .42 * s, n = 6;
-    var ang = base + Math.sin(t * .45 + i * 1.7) * .16 + Math.sin(t * .17 + i * 3.4) * .1;
+    var wind = WIND.speed > .5, base = wind ? WIND.screenAngle : Math.atan2(ay, ax), len = (wind ? 1.4 : .9) * s, wid = .42 * s, n = 6;
+    var swayAmp = wind ? .07 : .16, rate = wind ? 4.2 : 1.7, bendAmp = wind ? .1 : .12;
+    var ang = base + Math.sin(t * (wind ? 1.3 : .45) + i * 1.7) * swayAmp + Math.sin(t * .17 + i * 3.4) * .1;
     var dx = Math.cos(ang), dy = Math.sin(ang), nx = -dy, ny = dx, top = [], bot = [];
     for (var k = 0; k <= n; k++) {
-      var u = k / n, bend = Math.sin(t * 1.7 + i * 1.7 - u * 2.4) * .12 * u * s, w = wid * (1 - .25 * u);
+      var u = k / n, bend = Math.sin(t * rate + i * 1.7 - u * 2.4) * bendAmp * u * s, w = wid * (1 - .25 * u);
       var cx = x + dx * u * len + nx * bend, cy = y + dy * u * len + ny * bend;
       top.push([cx + nx * w / 2, cy + ny * w / 2]); bot.push([cx - nx * w / 2, cy - ny * w / 2]);
     }
     function strip(ox, oy) { ctx.beginPath(); top.forEach(function (q) { ctx.lineTo(q[0] + ox, q[1] + oy); }); for (var k2 = n; k2 >= 0; k2--) ctx.lineTo(bot[k2][0] + ox, bot[k2][1] + oy); ctx.closePath(); }
-    ctx.fillStyle = "rgba(0,0,0,.22)"; strip(.35 * s, .35 * s); ctx.fill(); // shadow on the grass
+    var so = shadowOffset(); ctx.fillStyle = "rgba(0,0,0," + (.22 * so.a) + ")"; strip(so.dx * s, so.dy * s); ctx.fill(); // shadow on the grass
     ctx.fillStyle = "#ffd21f"; strip(0, 0); ctx.fill();
     ctx.strokeStyle = "rgba(150,100,0,.6)"; ctx.lineWidth = Math.max(.7, .04 * s); ctx.stroke();
     ctx.beginPath(); ctx.arc(x, y, Math.max(1.6, .2 * s), 0, Math.PI * 2); ctx.fillStyle = "#f6f6f4"; ctx.fill();
@@ -404,7 +536,8 @@ td.l { color: var(--muted); }
   function assistantFlag(x, y, s, t) {
     var fx = x + .3 * s;
     ctx.strokeStyle = "#111"; ctx.lineWidth = Math.max(1.5, .15 * s); ctx.beginPath(); ctx.moveTo(fx, y - .5 * s); ctx.lineTo(fx, y - 2.6 * s); ctx.stroke();
-    cloth(fx, y - 2.6 * s, 1.6 * s, 1.1 * s, t * 1.6, 3.1, 1, function (pts, hh) {
+    var wind = WIND.speed > .5, dir = wind && Math.cos(WIND.screenAngle) < 0 ? -1 : 1;
+    cloth(fx, y - 2.6 * s, 1.6 * s, 1.1 * s, t * (wind ? 3.2 : 1.6), 3.1, dir, function (pts, hh) {
       // four quadrants: neon yellow top-left / bottom-right, orange top-right / bottom-left
       for (var qx = 0; qx < 2; qx++) for (var qy = 0; qy < 2; qy++) {
         ctx.fillStyle = (qx + qy) % 2 ? "#ff5a1f" : "#e4f53c"; ctx.beginPath();
@@ -465,6 +598,30 @@ td.l { color: var(--muted); }
     for (var k = 0; k < list.length && list[k].t <= t; k++) cur = list[k];
     return cur;
   }
+  // Shadows follow the light: one long, sharp shadow from the low sun, a faint soft one under a grey sky, and four faint
+  // ones at night, one from each floodlight tower.
+  var TOWERS = [[-60, -42], [-60, 42], [60, -42], [60, 42]];
+  function shadowOffset() {
+    if (SET.night) return { dx: .1, dy: .12, a: .7 };
+    if (SET.weather === "Sunny") return { dx: .6, dy: .45, a: 1.05 };
+    return { dx: .1, dy: .14, a: .62 };
+  }
+  function castShadow(wx, wy, x, gy, rx, ry, alpha) {
+    var s = view.s;
+    if (SET.night) {
+      TOWERS.forEach(function (L) {
+        var dx = wx - L[0], dy = wy - L[1], l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = -dy / l;
+        ctx.fillStyle = "rgba(0,0,0," + (alpha * .32) + ")"; ctx.beginPath();
+        ctx.ellipse(x + ux * .55 * s, gy + uy * .55 * s, rx * 1.25, ry * .8, Math.atan2(uy, ux), 0, Math.PI * 2); ctx.fill();
+      });
+      return;
+    }
+    var o = shadowOffset();
+    ctx.fillStyle = "rgba(0,0,0," + Math.min(.8, alpha * o.a) + ")"; ctx.beginPath();
+    if (SET.weather === "Sunny") ctx.ellipse(x + o.dx * s, gy + o.dy * s, rx * 1.3, ry * .88, Math.atan2(o.dy, o.dx), 0, Math.PI * 2);
+    else ctx.ellipse(x + o.dx * s, gy + o.dy * s, rx * 1.02, ry * 1.02, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
   function disc(x, y, r, fill, stroke) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = stroke; ctx.stroke(); }
   function entities(S, now, dt) {
     var s = view.s, r = .95 * s;
@@ -472,6 +629,7 @@ td.l { color: var(--muted); }
     S.os.forEach(function (o, i) {
       var ox = X(o.x), oy = Y(o.y);
       if (i > 0 && o.flag) assistantFlag(ox, oy, s, now);
+      castShadow(o.x, o.y, ox, oy, r, r * .9, .45);
       disc(ox, oy, r, "#121212", "#f2c230"); // same size as the players
       ctx.fillStyle = "#f2c230"; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
       if (i === 0 && o.card) refereeCard(ox, oy, s, o.card);
@@ -480,7 +638,7 @@ td.l { color: var(--muted); }
       if (p.off && Math.abs(p.y) > 35.5) return;
       var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * 2.2 * s, g = 1 + jh * .1, sh = 1 - jh * .6;
       if (p.sl || p.gr) { downPlayer(p, tm, info, x, gy); if (p.inj) injuryMark(x, gy, r); return; }
-      ctx.fillStyle = "rgba(0,0,0," + (.5 * sh) + ")"; ctx.beginPath(); ctx.ellipse(x + .15 * s, gy + .2 * s, r * 1.05 * sh, r * .95 * sh, 0, 0, Math.PI * 2); ctx.fill();
+      castShadow(p.x, p.y, x, gy, r * 1.05 * sh, r * .95 * sh, .5 * sh);
       disc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary, tm.kit.secondary);
       ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * g * 1.05) + "px Barlow, system-ui, sans-serif";
       fillC(String(info.number), x, y);
@@ -489,7 +647,8 @@ td.l { color: var(--muted); }
     });
     S.ps.forEach(function (p) { if (p.os) offsideMark(X(p.x), Y(p.y), s); });
     var h = Math.max(0, S.bz - .11), bx = X(S.bx), by = Y(S.by);
-    ctx.fillStyle = "rgba(0,0,0," + Math.max(.18, .6 - h * .04) + ")"; ctx.beginPath(); ctx.arc(bx, by, .42 * s * Math.max(.45, 1 - h * .05), 0, Math.PI * 2); ctx.fill();
+    var bsr = .42 * s * Math.max(.45, 1 - h * .05); castShadow(S.bx, S.by, bx, by, bsr, bsr, Math.max(.18, .6 - h * .04));
+    yellowBall = SET.weather === "Snow";
     spinBall(S, h, dt, S.phase !== 0 || (S.owner >= 0 && (S.ps[S.owner].gk || S.bz > .4))); // none while held or while play is stopped
     drawBall(bx, by - Math.min(20, h) * .55 * s, .38 * s * (1 + Math.min(20, h) * .07));
     drawNet(-1, S.bx, S.by, netFx(t, -1)); drawNet(1, S.bx, S.by, netFx(t, 1));
@@ -499,6 +658,177 @@ td.l { color: var(--muted); }
       ctx.fillStyle = "rgba(5,8,6,.75)"; ctx.fillRect(lx - tw / 2 - .5 * s, ly - th / 2 - .32 * s, tw + s, th + .64 * s); ctx.fillStyle = "#fff"; fillC(label, lx, ly);
     }
   }
+
+  // ---- weather and light -----------------------------------------------------------------------------
+  // Wind of the loaded recording: speed (m/s) and the direction it blows towards, on screen (y down).
+  var WIND = { speed: 0, angle: 0, screenAngle: 0 };
+  function rgba(hex, a) { var n = parseInt(String(hex).slice(1), 16); return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")"; }
+  var drops = [], flakes = [], rings = [], cloudSeed = Math.random() * 100;
+  function windScreen(k) { return { x: Math.cos(WIND.screenAngle) * WIND.speed * k, y: Math.sin(WIND.screenAngle) * WIND.speed * k }; }
+  function weatherFx(now, dt) {
+    var w = cv.width, h = cv.height, s = view.s, dpr = window.devicePixelRatio || 1;
+    if (SET.weather === "Rain") {
+      // seen from above, rain is a fast hail of short streaks blown along by the wind, splashing on the grass
+      var want = Math.round(w * h / 2600);
+      while (drops.length < want) drops.push({ x: Math.random() * w, y: Math.random() * h, l: .5 + Math.random(), v: .8 + Math.random() * .5 });
+      drops.length = want;
+      var ws = windScreen(.06), dx = ws.x + .12, dy = 1 + ws.y * .3, dl = Math.hypot(dx, dy); dx /= dl; dy /= dl;
+      ctx.strokeStyle = SET.night ? "rgba(225,235,255,.42)" : "rgba(205,218,232,.34)"; ctx.lineWidth = Math.max(1, .7 * dpr); ctx.beginPath();
+      drops.forEach(function (d) {
+        var step = d.v * 900 * dpr * dt; d.x += dx * step; d.y += dy * step;
+        if (d.y > h) { d.y -= h; d.x = Math.random() * w; } if (d.x > w) d.x -= w; if (d.x < 0) d.x += w;
+        ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - dx * d.l * 1.1 * s, d.y - dy * d.l * 1.1 * s);
+      });
+      ctx.stroke();
+      for (var k = 0; k < 9; k++) rings.push({ x: Math.random() * w, y: Math.random() * h, t: 0, max: .35, life: .3 });
+      for (var q = 0; q < 3 && puddles.length; q++) { var pp = puddles[Math.floor(Math.random() * puddles.length)]; rings.push({ x: X(pp[0] + Math.random() - .5), y: Y(pp[1] + Math.random() - .5), t: 0, max: .7, life: .9 }); }
+    }
+    if (rings.length) {
+      ctx.lineWidth = Math.max(.7, .5 * dpr);
+      rings = rings.filter(function (r) {
+        r.t += dt; if (r.t > r.life) return false;
+        var k = r.t / r.life; ctx.strokeStyle = "rgba(220,232,240," + (.45 * (1 - k)) + ")";
+        ctx.beginPath(); ctx.ellipse(r.x, r.y, r.max * k * s, r.max * k * s * .8, 0, 0, Math.PI * 2); ctx.stroke(); return true;
+      });
+      if (rings.length > 400) rings.splice(0, rings.length - 400);
+    }
+    if (SET.weather === "Snow") {
+      var want2 = Math.round(w * h / 3800);
+      while (flakes.length < want2) flakes.push({ x: Math.random() * w, y: Math.random() * h, r: (.6 + Math.random() * 1.6) * dpr, ph: Math.random() * 6.3, v: .5 + Math.random() * .8 });
+      flakes.length = want2;
+      var wsn = windScreen(9 * dpr);
+      ctx.fillStyle = "rgba(255,255,255,.88)"; ctx.beginPath();
+      flakes.forEach(function (f) {
+        f.x += (wsn.x * f.v + Math.sin(now * 1.3 + f.ph) * 14 * dpr) * dt; f.y += (wsn.y * f.v + 26 * dpr * f.v) * dt;
+        if (f.y > h) { f.y -= h; f.x = Math.random() * w; } if (f.y < 0) f.y += h; if (f.x > w) f.x -= w; if (f.x < 0) f.x += w;
+        ctx.moveTo(f.x + f.r, f.y); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      });
+      ctx.fill();
+    }
+  }
+  // Cloud shadows drift across the pitch with the wind ("grunge" clouds from layered noise blobs).
+  function cloudShadows(now, strength) {
+    var s = view.s, drift = Math.max(1.5, WIND.speed) * now * .6;
+    var ux = Math.cos(WIND.speed > .5 ? WIND.angle : .4), uy = Math.sin(WIND.speed > .5 ? WIND.angle : .4);
+    for (var i = 0; i < 6; i++) {
+      var span = 260, ox = ((hash2(i, 7) * span + drift * ux) % span + span) % span - span / 2, oy = ((hash2(i, 9) * 160 + drift * uy) % 160 + 160) % 160 - 80;
+      var rad = (22 + hash2(i, 3) * 26) * s, g = ctx.createRadialGradient(X(ox), Y(oy), 0, X(ox), Y(oy), rad);
+      g.addColorStop(0, "rgba(10,18,28," + strength + ")"); g.addColorStop(.6, "rgba(10,18,28," + strength * .6 + ")"); g.addColorStop(1, "rgba(10,18,28,0)");
+      ctx.fillStyle = g; ctx.fillRect(X(ox) - rad, Y(oy) - rad, rad * 2, rad * 2);
+    }
+  }
+  // Night: everything outside the floodlights' reach falls into the dark; the four towers light the pitch.
+  var darkCv = null;
+  function buildDark() {
+    darkCv = document.createElement("canvas"); darkCv.width = cv.width; darkCv.height = cv.height;
+    var g = darkCv.getContext("2d"), s = view.s;
+    g.fillStyle = "rgba(2,7,22,.8)"; g.fillRect(0, 0, cv.width, cv.height);
+    g.globalCompositeOperation = "destination-out";
+    TOWERS.forEach(function (L) {
+      var cx = X(L[0] * .42), cy = Y(L[1] * .42), gr = g.createRadialGradient(cx, cy, 0, cx, cy, 62 * s);
+      gr.addColorStop(0, "rgba(0,0,0,.22)"); gr.addColorStop(.6, "rgba(0,0,0,.13)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gr; g.fillRect(0, 0, cv.width, cv.height);
+    });
+    g.globalCompositeOperation = "source-over";
+    TOWERS.forEach(function (L) { // the towers' glare at the corners
+      var cx = X(L[0]), cy = Y(L[1]), gr = g.createRadialGradient(cx, cy, 0, cx, cy, 7 * s);
+      gr.addColorStop(0, "rgba(255,250,225,.9)"); gr.addColorStop(.25, "rgba(255,245,200,.35)"); gr.addColorStop(1, "rgba(255,245,200,0)");
+      g.fillStyle = gr; g.fillRect(cx - 7 * s, cy - 7 * s, 14 * s, 14 * s);
+    });
+  }
+  function lighting(now) {
+    var w = cv.width, h = cv.height, wx = SET.weather;
+    if (SET.night) {
+      if (!darkCv || darkCv.width !== w || darkCv.height !== h) buildDark();
+      ctx.drawImage(darkCv, 0, 0);
+      return;
+    }
+    if (wx === "Sunny") { cloudShadows(now, .07); ctx.fillStyle = "rgba(255,214,140,.05)"; ctx.fillRect(0, 0, w, h); return; }
+    cloudShadows(now, wx === "Cloudy" ? .1 : .08);
+    ctx.fillStyle = wx === "Rain" ? "rgba(18,28,44,.28)" : wx === "Snow" ? "rgba(40,52,74,.12)" : "rgba(22,30,42,.16)";
+    ctx.fillRect(0, 0, w, h);
+  }
+  var WX_ICON = {
+    Sunny: '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.2" fill="#ffd34d"/><g stroke="#ffd34d" stroke-width="1.4" stroke-linecap="round"><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3"/></g></svg>',
+    Night: '<svg viewBox="0 0 16 16"><path d="M10.5 2.2a6 6 0 1 0 3.3 9.6A5 5 0 0 1 10.5 2.2z" fill="#e8ecff"/></svg>',
+    Cloudy: '<svg viewBox="0 0 16 16"><path d="M4.5 12.5h7.2a3 3 0 0 0 .2-6 4 4 0 0 0-7.6 1.2 2.4 2.4 0 0 0 .2 4.8z" fill="#cfd8e3"/></svg>',
+    Rain: '<svg viewBox="0 0 16 16"><path d="M4.5 9.5h7.2a3 3 0 0 0 .2-6 4 4 0 0 0-7.6 1.2 2.4 2.4 0 0 0 .2 4.8z" fill="#cfd8e3"/><g stroke="#8fc3ff" stroke-width="1.3" stroke-linecap="round"><path d="M5 11.5l-1 2.5M8 11.5l-1 2.5M11 11.5l-1 2.5"/></g></svg>',
+    Snow: '<svg viewBox="0 0 16 16"><path d="M4.5 9h7.2a3 3 0 0 0 .2-6 4 4 0 0 0-7.6 1.2 2.4 2.4 0 0 0 .2 4.8z" fill="#cfd8e3"/><g fill="#fff"><circle cx="5" cy="12" r="1"/><circle cx="8" cy="14" r="1"/><circle cx="11" cy="12" r="1"/></g></svg>'
+  };
+  function updateWeatherChip() {
+    var sky = SET.night && SET.weather === "Sunny" ? "Night" : SET.weather, label = (SET.night ? "Night" : "Day") + " · " + (SET.weather === "Sunny" && SET.night ? "Clear" : SET.weather);
+    var html = WX_ICON[sky] + "<span>" + label + "</span>";
+    if (WIND.speed > .5) html += '<svg viewBox="0 0 16 16" style="transform:rotate(' + (WIND.screenAngle * 180 / Math.PI) + 'deg)"><path d="M1.5 8h11M9 4.5L12.8 8 9 11.5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>' + Math.round(WIND.speed * 3.6) + " km/h</span>";
+    $("wx").innerHTML = html;
+  }
+
+  // ---- developer settings ----------------------------------------------------------------------------
+  var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null };
+  var SET = (function () { var o = {}; for (var k in DEFAULTS) o[k] = DEFAULTS[k]; try { var st = JSON.parse(localStorage.getItem("sv-dev-settings") || "{}"); for (var k2 in st) if (k2 in DEFAULTS) o[k2] = st[k2]; } catch (e) {} return o; })();
+  SET.night = SET.night === true || SET.night === "1";
+  function saveSettings() { try { var o = {}; for (var k in DEFAULTS) o[k] = SET[k]; o.night = SET.night ? "1" : "0"; localStorage.setItem("sv-dev-settings", JSON.stringify(o)); } catch (e) {} }
+  // Which recording fits the chosen conditions: d(ry)/r(ain)/s(now) + upkeep 2/1/0 + wind 0/1 ("d20" is the normal one).
+  function condCode() { return (SET.weather === "Rain" ? "r" : SET.weather === "Snow" ? "s" : "d") + SET.maint + SET.wind; }
+  function syncSettingsUi() {
+    $("pace").value = SET.pace; $("paceText").textContent = SET.pace + "%";
+    document.querySelectorAll(".seg[data-set]").forEach(function (g) {
+      var key = g.getAttribute("data-set"), val = key === "night" ? (SET.night ? "1" : "0") : String(SET[key]);
+      g.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === val)); });
+    });
+    $("netColor").value = SET.net;
+    if (R) {
+      var c = teamColours();
+      $("homeP").value = c[0].primary; $("homeS").value = c[0].secondary; $("awayP").value = c[1].primary; $("awayS").value = c[1].secondary;
+      $("homeLabel").textContent = R.home.shortName; $("awayLabel").textContent = R.away.shortName;
+    }
+  }
+  function note(text) { $("setNote").textContent = text || ""; }
+  // Team colours: the shirt and trim picked here (or the team's own), the number in whichever of black or white reads best.
+  function teamColours() {
+    return [0, 1].map(function (i) {
+      var base = (i ? R.away : R.home)._kit0, pick = SET[i ? "away" : "home"];
+      if (!pick) return base;
+      var k = {}; for (var key in base) k[key] = base[key];
+      k.primary = pick.primary; k.secondary = pick.secondary; k.number = textOn(pick.primary) === "#111" ? "#111111" : "#ffffff";
+      return k;
+    });
+  }
+  function applyColours() {
+    var c = teamColours(); R.home.kit = c[0]; R.away.kit = c[1];
+    $("hb").style.setProperty("--team", c[0].primary); $("ab").style.setProperty("--team", c[1].primary);
+    $("cbar").dataset.bg = "";
+  }
+  function applyWind() {
+    var c = R.conditions || {};
+    WIND.speed = c.wind || 0; WIND.angle = c.windAngle || 0; WIND.screenAngle = Math.atan2(-Math.sin(WIND.angle), Math.cos(WIND.angle));
+    updateWeatherChip();
+  }
+  document.querySelectorAll(".seg[data-set]").forEach(function (g) {
+    var key = g.getAttribute("data-set");
+    g.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      var v = b.getAttribute("data-v"), before = condCode(), wasWeather = SET.weather;
+      if (key === "night") SET.night = v === "1"; else SET[key] = v;
+      saveSettings(); syncSettingsUi(); updateWeatherChip();
+      if (condCode() !== before) show(currentSeed, true);
+      else if (key === "weather" && wasWeather !== SET.weather) buildSurface();
+    });
+  });
+  $("pace").addEventListener("input", function () { SET.pace = +this.value; $("paceText").textContent = SET.pace + "%"; saveSettings(); });
+  $("netColor").addEventListener("input", function () { SET.net = this.value; saveSettings(); });
+  [["homeP", "home", "primary"], ["homeS", "home", "secondary"], ["awayP", "away", "primary"], ["awayS", "away", "secondary"]].forEach(function (d) {
+    $(d[0]).addEventListener("input", function () {
+      var cur = teamColours()[d[1] === "home" ? 0 : 1];
+      SET[d[1]] = { primary: cur.primary, secondary: cur.secondary }; SET[d[1]][d[2]] = this.value;
+      saveSettings(); applyColours();
+    });
+  });
+  $("setReset").addEventListener("click", function () {
+    var before = condCode();
+    for (var k in DEFAULTS) SET[k] = DEFAULTS[k]; SET.night = false;
+    saveSettings(); syncSettingsUi(); applyColours(); updateWeatherChip();
+    if (condCode() !== before) show(currentSeed, true); else buildSurface();
+  });
 
   // ---- panels ----------------------------------------------------------------------------------------
   var feed = $("feed"), KEY = { Goal: 1, YellowCard: 1, RedCard: 1, PenaltyAwarded: 1, Offside: 1, HitWoodwork: 1, Injury: 1, Substitution: 1 };
@@ -516,6 +846,7 @@ td.l { color: var(--muted); }
   }
   function load(r) {
     R = r; F = R.frames; E = R.events; teams = [R.home, R.away];
+    if (!R.home._kit0) { R.home._kit0 = R.home.kit; R.away._kit0 = R.away.kit; }
     SUBS = {};
     E.forEach(function (e) {
       if (e.type !== "Substitution" || !e.s) return;
@@ -528,7 +859,7 @@ td.l { color: var(--muted); }
     E.forEach(function (e) { if (e.type === "AddedTime") { var m = parseInt(String(e.text).replace(/[^0-9]/g, ""), 10) || 0; if (e.t < secondHalfT) addedMinutes[0] = m; else addedMinutes[1] = m; } });
     t = t0; lastT = t0; shown = -1;
     $("hn").textContent = R.home.shortName; $("an").textContent = R.away.shortName;
-    $("hb").style.setProperty("--team", R.home.kit.primary); $("ab").style.setProperty("--team", R.away.kit.primary);
+    applyColours(); applyWind(); buildSurface(); syncSettingsUi();
     possTeam = -1; ballPrev = null;
     seek.min = t0; seek.max = tEnd;
     $("seedText").textContent = R.seed;
@@ -537,7 +868,16 @@ td.l { color: var(--muted); }
   function unpack(b64) {
     var bin = atob(b64), bytes = new Uint8Array(bin.length);
     for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).json();
+    return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).json().then(function (r) {
+      // frames are stored column by column as differences from the previous frame
+      if (r.cols) {
+        var n = r.cols.length, m = r.cols[0].length, fr = new Array(m), i, c;
+        for (i = 0; i < m; i++) fr[i] = new Array(n);
+        for (c = 0; c < n; c++) { var col = r.cols[c], acc = 0; for (i = 0; i < m; i++) { acc += col[i]; fr[i][c] = acc; } }
+        r.frames = fr; delete r.cols;
+      }
+      return r;
+    });
   }
   var snd = new SVAudio.MatchSound(), soundOn = false, lastT = 0;
   $("sound").addEventListener("click", function () {
@@ -545,17 +885,34 @@ td.l { color: var(--muted); }
     if (soundOn) snd.enable(); else snd.disable();
     this.textContent = soundOn ? "Sound on" : "Sound off"; this.setAttribute("aria-pressed", String(soundOn));
   });
-  var cache = {};
+  var cache = {}, currentSeed = SEEDS[0], loading = 0;
+  // The recording of match <seed> in the chosen conditions: the normal ones are in the page, the others are fetched.
+  function getReplay(seed, code) {
+    var key = seed + "-" + code;
+    if (cache[key]) return Promise.resolve(cache[key]);
+    var p = code === "d20" ? unpack(PACKED[SEEDS.indexOf(seed)])
+      : fetch("conditions/" + key + ".txt").then(function (res) { if (!res.ok) throw new Error(res.status); return res.text(); }).then(unpack);
+    return p.then(function (r) { cache[key] = r; return r; });
+  }
+  function show(seed, keepTime) {
+    var code = condCode(), rel = keepTime && R ? t - t0 : null, ticket = ++loading;
+    if (code !== "d20" && VARIANT_SEEDS.indexOf(seed) < 0) seed = VARIANT_SEEDS[Math.floor(Math.random() * VARIANT_SEEDS.length)];
+    if (code !== "d20") note("Loading the match in these conditions...");
+    return getReplay(seed, code).then(function (r) { note(""); return r; }, function () {
+      note("The recordings for other conditions are fetched from the published page; showing the normal recording here.");
+      return getReplay(seed, "d20");
+    }).then(function (r) {
+      if (ticket !== loading) return;
+      currentSeed = seed; load(r); if (rel !== null) jump(t0 + rel);
+    });
+  }
   function newMatch() {
     var btn = $("newmatch"); btn.disabled = true; btn.textContent = "Loading...";
-    var n = PACKED.length, pick = current;
-    if (current < 0) pick = 0; // the page opens with the staged match (a red card and two injuries); after that, at random
-    else while (n > 1 && pick === current) pick = Math.floor(Math.random() * n);
-    if (n === 1) pick = 0;
-    var p = cache[pick] ? Promise.resolve(cache[pick]) : unpack(PACKED[pick]).then(function (r) { cache[pick] = r; return r; });
-    p.then(function (r) { current = pick; load(r); setPlaying(true); btn.textContent = "New match"; })
-     .catch(function () { btn.textContent = "Could not load"; })
-     .then(function () { btn.disabled = false; });
+    var pool = condCode() === "d20" ? SEEDS : VARIANT_SEEDS, pick = currentSeed;
+    if (!R) pick = SEEDS[0]; // the page opens with the staged match (a red card and two injuries); after that, at random
+    else if (pool.length > 1) while (pick === currentSeed) pick = pool[Math.floor(Math.random() * pool.length)];
+    show(pick, false).then(function () { setPlaying(true); btn.textContent = "New match"; }, function () { btn.textContent = "Could not load"; })
+      .then(function () { btn.disabled = false; });
   }
   $("newmatch").addEventListener("click", newMatch);
   function rebuildFeed() {
@@ -582,7 +939,7 @@ td.l { color: var(--muted); }
                 ["Saves", c.Save], ["Corners", c.Corner], ["Fouls", c.Foul], ["Offsides", c.Offside], ["Yellow cards", c.YellowCard], ["Red cards", c.RedCard]];
     $("facts").innerHTML = rows.map(function (r) { return "<tr><td>" + r[1][0] + '</td><td class="l">' + r[0] + "</td><td>" + r[1][1] + "</td></tr>"; }).join("");
   }
-  function jump(to) { t = Math.max(t0, Math.min(tEnd, to)); lastT = t; shown = -1; }
+  function jump(to) { t = Math.max(t0, Math.min(tEnd, to)); lastT = t; shown = -1; if (trodCv) trodCv.getContext("2d").clearRect(0, 0, trodCv.width, trodCv.height); }
 
   function setPlaying(on) {
     playing = on;
@@ -633,16 +990,18 @@ td.l { color: var(--muted); }
 
   var last = performance.now();
   function frame(now) {
-    var dt = Math.min(.25, (now - last) / 1000); last = now;
+    var dt = Math.max(0, Math.min(.25, (now - last) / 1000)); last = now;
     if (!R) { requestAnimationFrame(frame); return; }
-    if (playing && t < tEnd) t = Math.min(tEnd, t + dt * speed);
+    var adv = playing && t < tEnd ? Math.min(tEnd - t, dt * speed * SET.pace / 100) : 0;
+    t += adv;
     if (!cv.width) resize();
     if (t > lastT) {
       for (var ei = 0; ei < E.length; ei++) { var ev = E[ei]; if (ev.t > t) break; if (ev.t > lastT && speed <= 4) { var sc = sample(ev.t); snd.play({ type: ev.type, whistle: ev.whistle, detail: ev.detail, value: ev.v, team: ev.team, homeScore: sc.hs, awayScore: sc.as }); } }
     }
     lastT = t; snd.tick(dt);
     var S = sample(t), second = t >= secondHalfT, ended = t >= tEnd;
-    pitch(); entities(S, now / 1000, playing ? dt * speed : 0);
+    treadSnow(S, adv);
+    pitch(); entities(S, now / 1000, adv); weatherFx(now / 1000, dt); lighting(now / 1000);
     $("sc").textContent = S.hs + "-" + S.as;
     var mt = S.half ? "HT" : ended ? "FT" : minuteText(S.clock, second);
     $("mn").textContent = S.half ? "HT" : ended ? "FT" : clockText(S.clock);

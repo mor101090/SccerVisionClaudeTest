@@ -2,6 +2,67 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/dev-settings-weather-pitch-colours`
+
+- **Developer settings** (gear, marked DEV) in the demo page, both React views and the Unity HUD:
+  - **Match pace** slider (50-100%) is back.
+  - **Grass**: stripes along the pitch, stripes across it, or rings around the centre spot.
+  - **Pitch upkeep**: perfect, average or neglected.
+  - **Goal net colour**.
+  - **Sky**: sunny, cloudy, rain or snow.
+  - **Wind**: calm or strong (12 m/s, about 43 km/h, from a direction fixed per match).
+  - **Kick-off**: day or night.
+  - **Team colours**: shirt and trim for both teams. The number switches to black or white, whichever reads best.
+    Everything follows the colours: players, scoreboard, possession colour of the commentary bar, goal flash.
+  - Settings are remembered in the browser. Unity takes them in the inspector, in its HUD, or from React (`setLook`).
+- **Weather and pitch in the engine** (`MatchConditions`, `PitchSurface`). On a dry, perfect pitch in still air nothing
+  changes: the same seed plays exactly the same match as before (checked event by event, and by a test).
+  - **Mud and puddles map**: built per match from Perlin noise (fractal sums), shaped by where a pitch really wears:
+    goalmouths, penalty spots, the centre circle, the middle, and the assistants' channels. Coverage:
+    - average pitch: about 4% mud;
+    - neglected pitch: about 15% mud;
+    - in rain, puddles cover about 2% of an average pitch and about 9% of a neglected one;
+    - a perfect pitch drains, so no puddles.
+    The renderers draw this same map, so the ball stops in the puddles you see.
+  - **Rain**: the ball skids on and keeps its pace (rolling resistance 35% lower, a lower bounce that skids on). Ball
+    control, first touches, dribbles and shots are a little harder. Players lose grip and slip now and then (a player
+    on the ball loses it). Slides go further. Keepers spill more.
+  - **Snow**: the ball dies in the snow and hardly bounces. Players are a little slower and slip more.
+  - **Mud and standing water**: slow and stop a rolling ball, kill its bounce, take away grip, and spoil close control.
+  - **Wind**: air drag works on the ball's speed relative to the air. A lofted ball carries further with the wind,
+    shorter against it, and drifts with a crosswind (a 20 m/s + 12 m/s kick in a 12 m/s crosswind lands more than 2 m
+    off). Kickers aim off to allow for it; the better the technique (passing, crossing, long shots, keeper kicking),
+    the more of the drift they take out.
+  - New event "Slip" in the commentary ("slips on the wet grass / mud / snow", "loses his footing and the ball runs
+    away from him").
+- **Pictures of the conditions** (demo page, React and Unity):
+  - mud from worn khaki grass to dark bare mud (glossier in rain), edges broken up with layered value noise;
+  - puddles dark where deep, reflecting the grey sky towards the edge, with a light rim and raindrop rings;
+  - rain as fast streaks blown along by the wind, with splashes;
+  - snow cover over the whole ground with the lines painted blue, and falling flakes drifting with the wind. Where
+    players run and the ball rolls the snow is trodden down (web views). In snow the ball is the high-visibility
+    yellow one.
+  - cloud shadows drifting with the wind; a grey sky dims the light;
+  - **night**: dark beyond the reach of four floodlight towers, the towers' glare in the corners, and four faint
+    shadows per player (one from each tower);
+  - **day**: one long, sharp shadow from the sun, or a soft faint one under clouds;
+  - the corner flags stream out downwind in a strong wind (and hang limp in still air), and the assistant's flag
+    flies with the wind;
+  - weather and wind (arrow and km/h) shown under the scoreboard.
+- **Demo page**: the six matches are also recorded in every combination of weather (dry, rain, snow), upkeep and wind
+  for three of them (51 recordings). Picking conditions loads that recording at the same moment of the match.
+  Recordings are stored in a compact column-by-column delta form: the page went from 11.6 MB to 4.5 MB, and each extra
+  recording is about 0.7 MB, fetched only when needed.
+- React's replay viewer plays the same match again in the chosen conditions through the dev server
+  (`/api/new-replay?...&weather=&maintenance=&wind=&windangle=`).
+- Tests: `ConditionsTests` covers:
+  - default conditions unchanged;
+  - wet roll longer and snow shorter;
+  - wind carry and drift;
+  - upkeep decides mud, and rain fills puddles;
+  - a puddle stops a rolling ball;
+  - slips in rain and snow, and full matches in every condition with no errors.
+
 ## `fix/top-view-flags`
 
 - **Assistant's flag**: back to how it was. He holds it up only when he signals (offside, ball out) and does not carry

@@ -146,12 +146,47 @@ namespace SoccerVision.Runtime
             GUI.DrawTexture(new Rect(gearRect.center.x - g * 0.5f, gearRect.center.y - g * 0.5f, g, g), _iconGear);
             if (_settingsOpen)
             {
-                var panel = new Rect(right - 260f * s, gearRect.yMax + 8f * s, 260f * s, 78f * s);
+                var panel = new Rect(right - 380f * s, gearRect.yMax + 8f * s, 380f * s, 336f * s);
                 Fill(panel, new Color(0.08f, 0.1f, 0.12f, 0.94f));
-                GUI.Label(new Rect(panel.x + 12f * s, panel.y + 6f * s, panel.width, 26f * s), "<b>SETTINGS</b>", _small);
-                GUI.Label(new Rect(panel.x + 12f * s, panel.y + 38f * s, panel.width, 26f * s), "No settings yet.", _small);
+                GUI.Label(new Rect(panel.x + 12f * s, panel.y + 6f * s, panel.width, 26f * s), "<b>SETTINGS</b>  <color=#f2b31b><b>DEV</b></color>", _small);
                 if (GUI.Button(new Rect(panel.xMax - 36f * s, panel.y + 6f * s, 28f * s, 24f * s), "X", _button)) _settingsOpen = false;
+                DrawDevSettings(panel, s);
             }
+        }
+
+        /// <summary>Developer settings: pace, grass, upkeep, sky, wind, day/night. Rain, snow, wind and upkeep replay the match.</summary>
+        private void DrawDevSettings(Rect panel, float s)
+        {
+            var l = Controller.look.Clone();
+            float x = panel.x + 12f * s, lw = 82f * s, y = panel.y + 40f * s, rowH = 34f * s, bh = 26f * s;
+            bool changed = false;
+            int Seg(string label, string[] options, int current)
+            {
+                GUI.Label(new Rect(x, y, lw, bh), label, _small);
+                float bx = x + lw, bw = (panel.xMax - 12f * s - bx) / options.Length;
+                int pick = current;
+                for (int i = 0; i < options.Length; i++)
+                {
+                    var old = GUI.backgroundColor;
+                    if (i == current) GUI.backgroundColor = new Color(0.95f, 0.7f, 0.1f);
+                    if (GUI.Button(new Rect(bx + i * bw, y, bw - 3f * s, bh), options[i], _button) && i != current) pick = i;
+                    GUI.backgroundColor = old;
+                }
+                y += rowH;
+                if (pick != current) changed = true;
+                return pick;
+            }
+            GUI.Label(new Rect(x, y, lw, bh), "Pace " + l.pace + "%", _small);
+            int pace = Mathf.RoundToInt(GUI.HorizontalSlider(new Rect(x + lw, y + bh * 0.35f, panel.xMax - 12f * s - x - lw, bh), l.pace, 50f, 100f) / 5f) * 5;
+            if (pace != l.pace) { l.pace = pace; changed = true; }
+            y += rowH;
+            l.grass = (GrassPattern)Seg("Grass", new[] { "Along", "Across", "Circles" }, (int)l.grass);
+            l.upkeep = 2 - Seg("Upkeep", new[] { "Perfect", "Average", "Neglected" }, 2 - l.upkeep);
+            l.sky = (Weather)Seg("Sky", new[] { "Sunny", "Cloudy", "Rain", "Snow" }, (int)l.sky);
+            l.windy = Seg("Wind", new[] { "Calm", "Strong" }, l.windy ? 1 : 0) == 1;
+            l.night = Seg("Kick-off", new[] { "Day", "Night" }, l.night ? 1 : 0) == 1;
+            GUI.Label(new Rect(x, y, panel.width - 24f * s, bh * 2f), "<size=" + Mathf.RoundToInt(11f * s) + ">Team and net colours: inspector or the React settings.</size>", _small);
+            if (changed) Controller.ApplyLook(l);
         }
 
         private GUIStyle _settingsButton;

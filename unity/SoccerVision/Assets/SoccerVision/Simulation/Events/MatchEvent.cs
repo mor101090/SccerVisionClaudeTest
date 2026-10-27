@@ -50,6 +50,8 @@ namespace SoccerVision.Simulation
         Substitution,
         /// <summary>Play restarted with a dropped ball after the referee stopped it for an injury (Law 8).</summary>
         DroppedBall,
+        /// <summary>A player loses his footing on a wet, snowy or muddy pitch (Detail 1: with the ball, which runs loose).</summary>
+        Slip,
     }
 
     /// <summary>

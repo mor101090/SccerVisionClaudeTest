@@ -109,6 +109,23 @@ export interface TacticsSliders {
   tackling?: "stayOnFeet" | "normal" | "getStuckIn";
 }
 
+/** Developer settings for the Unity match: look (pitch, sky, nets, colours, pace) and the conditions it plays in. */
+export interface LookSettings {
+  pace: number;
+  grass: "along" | "across" | "circles";
+  sky: "Sunny" | "Cloudy" | "Rain" | "Snow";
+  /** 2 perfect, 1 average, 0 neglected */
+  upkeep: number;
+  windy: boolean;
+  night: boolean;
+  net: string;
+  /** "" keeps the team's own kit */
+  homePrimary: string;
+  homeSecondary: string;
+  awayPrimary: string;
+  awaySecondary: string;
+}
+
 export type BridgeCommand =
   | { type: "pause" }
   | { type: "resume" }
@@ -117,7 +134,9 @@ export type BridgeCommand =
   | { type: "setHud"; flag: boolean }
   | { type: "restart"; seed?: number }
   | { type: "requestState" }
-  | { type: "setTactics"; team: 0 | 1; tactics: TacticsSliders };
+  | { type: "setTactics"; team: 0 | 1; tactics: TacticsSliders }
+  /** Applies the look at once; rain, snow, wind or a different pitch replay the same match in those conditions. */
+  | { type: "setLook"; look: LookSettings };
 
 /** Event types that belong in the commentary box (whistles/net hits are audio-visual only). */
 export function isCommentary(e: MatchEvent): boolean {

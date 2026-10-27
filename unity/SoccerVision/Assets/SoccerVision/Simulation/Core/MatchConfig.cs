@@ -90,6 +90,66 @@ namespace SoccerVision.Simulation
         public float SpinDecayPerSecond = 0.25f;
         public float NetRestitution = 0.12f;
 
+        // ---- Weather and pitch ------------------------------------------------------------------------
+        /// <summary>Weather, wind and the state of the pitch (see <see cref="MatchConditions"/>).</summary>
+        public MatchConditions Conditions = new MatchConditions();
+        /// <summary>Wind velocity (m/s, world axes) the ball's air drag works against. Set by the engine from the conditions.</summary>
+        [NonSerialized] public float WindX, WindY;
+        /// <summary>Mud and standing water under a rolling or bouncing ball (null: a uniform pitch). Set by the engine.</summary>
+        [NonSerialized] public PitchSurface Surface;
+        [NonSerialized] private MatchConfig _still;
+
+        /// <summary>
+        /// The same physics in still air on a uniform pitch: what the kick solvers aim with (they work in the kick's own
+        /// frame, where a world wind direction means nothing). Kicks then allow for the wind separately.
+        /// </summary>
+        public MatchConfig StillAir
+        {
+            get
+            {
+                if (WindX == 0f && WindY == 0f && Surface == null) return this;
+                if (_still == null)
+                {
+                    _still = (MatchConfig)MemberwiseClone();
+                    _still.WindX = _still.WindY = 0f;
+                    _still.Surface = null;
+                    _still._still = null;
+                }
+                return _still;
+            }
+        }
+
+        /// <summary>
+        /// Turns the weather into ball physics. Rain: the ball skids on (less rolling resistance, a lower, skidding bounce).
+        /// Snow: it dies in the snow. A neglected pitch has longer, uneven grass (a little more resistance everywhere).
+        /// Local mud and water come on top through <see cref="Surface"/>. Nothing changes for a dry, perfect pitch.
+        /// </summary>
+        public void ApplyConditions()
+        {
+            var c = Conditions;
+            if (c == null) return;
+            c.Sanitize();
+            if (c.IsWet)
+            {
+                RollingDecel *= 0.65f;
+                GrassLinearDrag *= 0.75f;
+                GroundRestitution *= 0.82f;
+                BounceFriction = 0.93f;
+            }
+            else if (c.IsSnow)
+            {
+                RollingDecel = 1.8f;
+                GrassLinearDrag = 0.35f;
+                GroundRestitution = 0.3f;
+                BounceFriction = 0.72f;
+            }
+            RollingDecel += 0.35f * (1f - c.Maintenance);
+            Vec2 w = c.Wind;
+            WindX = w.X;
+            WindY = w.Y;
+            _still = null;
+        }
+
         // ---- Derived ---------------------------------------------------------------------------------
         public float RegulationHalfClockSeconds => RegulationHalfMinutes * 60f;
 
@@ -101,7 +161,13 @@ namespace SoccerVision.Simulation
 
         public static MatchConfig CreateDefault() => new MatchConfig();
 
-        public MatchConfig Clone() => (MatchConfig)MemberwiseClone();
+        public MatchConfig Clone()
+        {
+            var c = (MatchConfig)MemberwiseClone();
+            c.Conditions = (Conditions ?? new MatchConditions()).Clone();
+            c._still = null;
+            return c;
+        }
 
         public void Validate()
         {

@@ -17,7 +17,15 @@ function newReplayApi(): Plugin {
         const dir = await mkdtemp(join(tmpdir(), "sv-replay-"));
         const out = join(dir, "replay.json");
         const project = resolve(process.cwd(), "../sim/SoccerVision.SimRunner");
-        const child = spawn("dotnet", ["run", "-c", "Release", "--project", project, "--", "--replay", out, "--seed", seed, "--fps", "8"], { stdio: "ignore" });
+        // weather and pitch: ?weather=sunny|rain|snow&maintenance=0..1&wind=m/s&windangle=degrees
+        const extra: string[] = [];
+        const weather = url.searchParams.get("weather");
+        if (weather && /^(sunny|cloudy|rain|snow)$/.test(weather)) extra.push("--weather", weather);
+        for (const key of ["maintenance", "wind", "windangle"]) {
+          const v = url.searchParams.get(key);
+          if (v && /^\d{1,3}(\.\d{1,3})?$/.test(v)) extra.push("--" + key, v);
+        }
+        const child = spawn("dotnet", ["run", "-c", "Release", "--project", project, "--", "--replay", out, "--seed", seed, "--fps", "8", ...extra], { stdio: "ignore" });
         child.on("error", () => {
           res.statusCode = 500;
           res.end("dotnet SDK not found");

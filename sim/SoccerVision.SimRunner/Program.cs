@@ -20,6 +20,7 @@ bool timeline = false;
 string replayPath = null;
 float? motion = null;
 int replayFps = 8;
+var conditions = new MatchConditions();
 for (int i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -30,6 +31,12 @@ for (int i = 0; i < args.Length; i++)
         case "--replay": replayPath = args[++i]; break;
         case "--motion": motion = float.Parse(args[++i]); break;
         case "--fps": replayFps = int.Parse(args[++i]); break;
+        // weather and pitch: --weather sunny|cloudy|rain|snow  --maintenance 0..1  --wind m/s  --windangle degrees  --night
+        case "--weather": conditions.Weather = Enum.Parse<Weather>(args[++i], true); break;
+        case "--maintenance": conditions.Maintenance = float.Parse(args[++i]); break;
+        case "--wind": conditions.WindSpeed = float.Parse(args[++i]); break;
+        case "--windangle": conditions.WindAngle = float.Parse(args[++i]) * MathF.PI / 180f; break;
+        case "--night": conditions.Night = true; break;
     }
 }
 
@@ -37,6 +44,7 @@ MatchConfig MakeConfig()
 {
     var c = MatchConfig.CreateDefault();
     if (motion.HasValue) c.MotionSpeed = motion.Value;
+    c.Conditions = conditions.Clone();
     return c;
 }
 
@@ -329,6 +337,25 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
         scale = 10,
         halfRealSeconds = config.HalfRealSeconds,
         halftimeRealSeconds = config.HalftimeRealSeconds,
+        conditions = new
+        {
+            weather = engine.Conditions.Weather.ToString(),
+            maintenance = Math.Round(engine.Conditions.Maintenance, 2),
+            wind = Math.Round(engine.Conditions.WindSpeed, 1),
+            windAngle = Math.Round(engine.Conditions.WindAngle, 3),
+            night = engine.Conditions.Night,
+        },
+        // mud and standing water on a 1 m grid from (minX, minY), 0..255 per node, row by row (null: a uniform pitch)
+        surface = engine.Surface == null ? null : new
+        {
+            minX = PitchSurface.MinX,
+            minY = PitchSurface.MinY,
+            cell = PitchSurface.Cell,
+            columns = PitchSurface.Columns,
+            rows = PitchSurface.Rows,
+            mud = engine.Surface.HasMud ? engine.Surface.Bytes(engine.Surface.Mud) : null,
+            water = engine.Surface.HasWater ? engine.Surface.Bytes(engine.Surface.Water) : null,
+        },
         home = Team(engine.Home),
         away = Team(engine.Away),
         frameLayout = "t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked,8=caught offside,16=sliding,32=on the ground,64=injured)] x22, then officials [x*10, y*10, flag] x3",
