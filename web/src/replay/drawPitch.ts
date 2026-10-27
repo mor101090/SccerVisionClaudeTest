@@ -224,12 +224,12 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     fillCentered(ctx, i === 0 ? "R" : "L", px(v, o.x), py(v, o.y));
-    if (i > 0) assistantFlag(ctx, px(v, o.x), py(v, o.y), s, time, o.flag, o.x < 0 ? -1 : 1);
+    if (i > 0 && o.flag) assistantFlag(ctx, px(v, o.x), py(v, o.y), s, time);
     if (i === 0 && o.card) refereeCard(ctx, px(v, o.x), py(v, o.y), s, o.card);
   });
   // Corner flags
   let flagIndex = 0;
-  for (const cx of [-HL, HL]) for (const cy of [-HW, HW]) cornerFlag(ctx, px(v, cx), py(v, cy), s, time, flagIndex++, cx < 0 ? 1 : -1);
+  for (const cx of [-HL, HL]) for (const cy of [-HW, HW]) cornerFlag(ctx, px(v, cx), py(v, cy), s, time, flagIndex++, px(v, cx + Math.sign(cx)) - px(v, cx), py(v, cy + Math.sign(cy)) - py(v, cy));
   // Players: circle with border and number; lifted while jumping.
   snap.players.forEach((p, i) => {
     if (p.sentOff && Math.abs(p.y) > 35.5) return;
@@ -345,49 +345,64 @@ function clothPath(ctx: CanvasRenderingContext2D, pts: [number, number][], y0: n
   ctx.closePath();
 }
 
-/** Corner flag: white pole, yellow cloth. */
-function cornerFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number, seed: number, dir: number) {
-  const top = y - 2.6 * s;
-  ctx.strokeStyle = "rgba(0,0,0,0.25)";
-  ctx.lineWidth = Math.max(1, 0.12 * s);
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x + 0.5 * s, y + 0.25 * s);
-  ctx.stroke();
-  ctx.strokeStyle = "#f4f4f2";
-  ctx.lineWidth = Math.max(1.5, 0.2 * s);
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x, top);
-  ctx.stroke();
-  const h = 0.95 * s;
-  const pts = clothEdge(x, top, 1.35 * s, h, t, seed * 1.7, dir);
-  clothPath(ctx, pts, 0, h, 0, pts.length - 1);
-  ctx.fillStyle = "#ffd21f";
+/**
+ * Corner flag seen from above (top view, like the rest of the pitch): the white top of the pole and the yellow cloth
+ * seen edge-on, hanging out away from the pitch (ax, ay: outward screen direction) and swaying slowly in the breeze.
+ */
+function cornerFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number, seed: number, ax: number, ay: number) {
+  const len = 1.3 * s;
+  const wid = 0.42 * s;
+  const n = 6;
+  const ang = Math.atan2(ay, ax) + Math.sin(t * 0.45 + seed * 1.7) * 0.16 + Math.sin(t * 0.17 + seed * 3.4) * 0.1;
+  const dx = Math.cos(ang);
+  const dy = Math.sin(ang);
+  const top: [number, number][] = [];
+  const bot: [number, number][] = [];
+  for (let k = 0; k <= n; k++) {
+    const u = k / n;
+    const bend = Math.sin(t * 1.7 + seed * 1.7 - u * 2.4) * 0.12 * u * s;
+    const w = wid * (1 - 0.25 * u);
+    const cx = x + dx * u * len - dy * bend;
+    const cy = y + dy * u * len + dx * bend;
+    top.push([cx - (dy * w) / 2, cy + (dx * w) / 2]);
+    bot.push([cx + (dy * w) / 2, cy - (dx * w) / 2]);
+  }
+  const strip = (ox: number, oy: number) => {
+    ctx.beginPath();
+    for (const q of top) ctx.lineTo(q[0] + ox, q[1] + oy);
+    for (let k = n; k >= 0; k--) ctx.lineTo(bot[k][0] + ox, bot[k][1] + oy);
+    ctx.closePath();
+  };
+  ctx.fillStyle = "rgba(0,0,0,0.22)"; // shadow on the grass
+  strip(0.35 * s, 0.35 * s);
   ctx.fill();
-  ctx.strokeStyle = "rgba(160,110,0,0.55)";
-  ctx.lineWidth = Math.max(0.8, 0.05 * s);
+  ctx.fillStyle = "#ffd21f";
+  strip(0, 0);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(150,100,0,0.6)";
+  ctx.lineWidth = Math.max(0.7, 0.04 * s);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x, y, Math.max(1.6, 0.2 * s), 0, Math.PI * 2);
+  ctx.fillStyle = "#f6f6f4";
+  ctx.fill();
+  ctx.lineWidth = Math.max(0.6, 0.05 * s);
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
   ctx.stroke();
 }
 
-/** The assistant's flag: black handle, checked orange / neon-yellow cloth; held down at his side, or up for offside. */
-function assistantFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number, up: boolean, side: number) {
-  const hx = x + side * 0.55 * s;
+/** The assistant's flag, raised only when he signals: black handle, checked orange / neon-yellow cloth. */
+function assistantFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number) {
+  const fx = x + 0.3 * s;
   ctx.strokeStyle = "#111";
-  ctx.lineWidth = Math.max(1.4, 0.16 * s);
+  ctx.lineWidth = Math.max(1.5, 0.15 * s);
   ctx.beginPath();
-  if (up) {
-    ctx.moveTo(hx, y - 0.3 * s);
-    ctx.lineTo(hx, y - 3.2 * s);
-  } else {
-    ctx.moveTo(hx, y + 0.1 * s);
-    ctx.lineTo(hx, y + 0.9 * s);
-  }
+  ctx.moveTo(fx, y - 0.5 * s);
+  ctx.lineTo(fx, y - 2.6 * s);
   ctx.stroke();
-  const w = (up ? 1.6 : 0.95) * s;
-  const h = (up ? 1.2 : 0.72) * s;
-  const top = up ? y - 3.2 * s : y + 0.5 * s;
-  const pts = clothEdge(hx, top, w, h, t * (up ? 1.6 : 0.8), 3.1, side);
+  const w = 1.6 * s;
+  const h = 1.1 * s;
+  const pts = clothEdge(fx, y - 2.6 * s, w, h, t * 1.6, 3.1, 1);
   for (let qx = 0; qx < 2; qx++)
     for (let qy = 0; qy < 2; qy++) {
       clothPath(ctx, pts, (qy * h) / 2, ((qy + 1) * h) / 2, qx * 3, qx * 3 + 3);

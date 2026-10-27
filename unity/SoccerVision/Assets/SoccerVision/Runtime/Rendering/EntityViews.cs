@@ -274,15 +274,17 @@ namespace SoccerVision.Runtime
             letter.fontStyle = FontStyle.Bold;
             if (assistant)
             {
-                // Black handle and the checked orange / neon-yellow flag (held down at his side, or up for offside).
+                // Raised only when he signals (as before): black handle and the checked orange / neon-yellow flag.
                 _flag = new GameObject("Flag").transform;
                 _flag.SetParent(transform, false);
+                _flag.localPosition = new Vector3(0.3f, 0.5f, 0f);
                 var handle = SpriteFactory.AddSprite(_flag, "Handle", SpriteFactory.Square, new Color(0.07f, 0.07f, 0.07f), 15, 1f);
-                handle.transform.localScale = new Vector3(0.16f, 0.6f, 1f);
-                handle.transform.localPosition = new Vector3(0f, 0.3f, 0f);
+                handle.transform.localScale = new Vector3(0.15f, 2.1f, 1f);
+                handle.transform.localPosition = new Vector3(0f, 1.05f, 0f);
                 var cloth = SpriteFactory.AddSprite(_flag, "Cloth", SpriteFactory.CheckerFlag, Color.white, 16, 1f);
-                cloth.transform.localScale = new Vector3(0.95f, 0.75f, 1f);
-                cloth.transform.localPosition = new Vector3(0f, 0.25f, 0f);
+                cloth.transform.localScale = new Vector3(1.6f, 1.45f, 1f);
+                cloth.transform.localPosition = new Vector3(0f, 1.55f, 0f);
+                _flag.gameObject.SetActive(false);
             }
             else
             {
@@ -305,12 +307,9 @@ namespace SoccerVision.Runtime
             transform.localPosition = new Vector3(x, y, 0f);
             if (_flag != null)
             {
-                float side = x < 0f ? -1f : 1f;
-                bool up = _o.FlagRaised;
-                // Held up above his head for an offside, otherwise down at his side; a calm sway, no flapping.
-                _flag.localPosition = up ? new Vector3(side * 0.55f, 1.7f, 0f) : new Vector3(side * 0.55f, -0.75f, 0f);
-                _flag.localScale = up ? new Vector3(side * 1.65f, 1.6f, 1f) : new Vector3(side, 0.95f, 1f);
-                _flag.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(time * (up ? 0.9f : 0.5f)) * 2.5f);
+                if (_flag.gameObject.activeSelf != _o.FlagRaised) _flag.gameObject.SetActive(_o.FlagRaised);
+                // A calm sway, no flapping.
+                if (_o.FlagRaised) _flag.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(time * 0.9f) * 2.5f);
             }
             if (_card != null)
             {
@@ -322,30 +321,36 @@ namespace SoccerVision.Runtime
         }
     }
 
-    /// <summary>Corner flag: a white pole and a yellow cloth that sways gently in the breeze (no flapping).</summary>
+    /// <summary>
+    /// Corner flag seen from above (top view, like the rest of the pitch): the white top of the pole and the yellow cloth
+    /// seen edge-on, hanging out away from the pitch and swaying slowly in the breeze.
+    /// </summary>
     public sealed class CornerFlagView : MonoBehaviour
     {
         private Transform _cloth;
+        private Transform _shadow;
         private float _phase;
+        private float _outward;
 
         public void Init(float phase)
         {
             _phase = phase;
-            SpriteFactory.AddSprite(transform, "Base", SpriteFactory.Circle, new Color(0.95f, 0.95f, 0.95f), 20, 0.25f);
-            var pole = SpriteFactory.AddSprite(transform, "Pole", SpriteFactory.Square, new Color(0.96f, 0.96f, 0.95f), 21, 1f);
-            pole.transform.localScale = new Vector3(0.2f, 2.6f, 1f);
-            pole.transform.localPosition = new Vector3(0f, 1.3f, 0f);
-            var cloth = SpriteFactory.AddSprite(transform, "Cloth", SpriteFactory.Cloth, new Color(1f, 0.82f, 0.12f), 22, 1f);
-            _cloth = cloth.transform;
-            _cloth.localPosition = new Vector3(0.06f, 2.1f, 0f);
+            var p = transform.localPosition;
+            _outward = Mathf.Atan2(Mathf.Sign(p.y), Mathf.Sign(p.x)) * Mathf.Rad2Deg;
+            _shadow = SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Cloth, new Color(0f, 0f, 0f, 0.22f), 20, 1f).transform;
+            _shadow.localPosition = new Vector3(0.35f, -0.35f, 0f);
+            _cloth = SpriteFactory.AddSprite(transform, "Cloth", SpriteFactory.Cloth, new Color(1f, 0.82f, 0.12f), 21, 1f).transform;
+            SpriteFactory.AddSprite(transform, "Pole", SpriteFactory.Circle, new Color(0.96f, 0.96f, 0.95f), 22, 0.4f);
         }
 
         private void Update()
         {
             float t = Time.time + _phase;
-            float dir = transform.position.x < 0f ? 1f : -1f;
-            _cloth.localRotation = Quaternion.Euler(0f, 0f, dir * (-4f + Mathf.Sin(t * 0.45f) * 3f + Mathf.Sin(t * 0.17f) * 2f));
-            _cloth.localScale = new Vector3(dir * 1.35f * (0.97f + 0.03f * Mathf.Sin(t * 1.7f)), 0.95f, 1f);
+            float angle = _outward + (Mathf.Sin(t * 0.45f) * 0.16f + Mathf.Sin(t * 0.17f) * 0.1f) * Mathf.Rad2Deg;
+            var rot = Quaternion.Euler(0f, 0f, angle);
+            var scale = new Vector3(1.3f * (0.97f + 0.03f * Mathf.Sin(t * 1.7f)), 0.56f, 1f);
+            _cloth.localRotation = _shadow.localRotation = rot;
+            _cloth.localScale = _shadow.localScale = scale;
         }
     }
 }

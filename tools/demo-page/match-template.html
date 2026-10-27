@@ -382,27 +382,29 @@ td.l { color: var(--muted); }
     }
     fillFn(pts, h);
   }
-  function cornerFlag(x, y, s, t, i) {
-    var pole = 2.6 * s, top = y - pole, dir = x < view.ox ? 1 : -1;
-    ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = Math.max(1, .12 * s); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + .5 * s, y + .25 * s); ctx.stroke(); // shadow
-    ctx.strokeStyle = "#f4f4f2"; ctx.lineWidth = Math.max(1.5, .2 * s); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, top); ctx.stroke();
-    cloth(x, top, 1.35 * s, .95 * s, t, i * 1.7, dir, function (pts, h) {
-      ctx.fillStyle = "#ffd21f"; ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
-      for (var k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1]);
-      for (var k2 = pts.length - 1; k2 >= 0; k2--) ctx.lineTo(pts[k2][0], pts[k2][1] + h);
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "rgba(160,110,0,.55)"; ctx.lineWidth = Math.max(.8, .05 * s); ctx.stroke();
-    });
+  // Corner flag seen from above (top view, like the rest of the pitch): the white top of the pole and the yellow cloth
+  // seen edge-on, hanging out away from the pitch and swaying slowly in the breeze.
+  function cornerFlag(x, y, s, t, i, ax, ay) {
+    var base = Math.atan2(ay, ax), len = 1.3 * s, wid = .42 * s, n = 6;
+    var ang = base + Math.sin(t * .45 + i * 1.7) * .16 + Math.sin(t * .17 + i * 3.4) * .1;
+    var dx = Math.cos(ang), dy = Math.sin(ang), nx = -dy, ny = dx, top = [], bot = [];
+    for (var k = 0; k <= n; k++) {
+      var u = k / n, bend = Math.sin(t * 1.7 + i * 1.7 - u * 2.4) * .12 * u * s, w = wid * (1 - .25 * u);
+      var cx = x + dx * u * len + nx * bend, cy = y + dy * u * len + ny * bend;
+      top.push([cx + nx * w / 2, cy + ny * w / 2]); bot.push([cx - nx * w / 2, cy - ny * w / 2]);
+    }
+    function strip(ox, oy) { ctx.beginPath(); top.forEach(function (q) { ctx.lineTo(q[0] + ox, q[1] + oy); }); for (var k2 = n; k2 >= 0; k2--) ctx.lineTo(bot[k2][0] + ox, bot[k2][1] + oy); ctx.closePath(); }
+    ctx.fillStyle = "rgba(0,0,0,.22)"; strip(.35 * s, .35 * s); ctx.fill(); // shadow on the grass
+    ctx.fillStyle = "#ffd21f"; strip(0, 0); ctx.fill();
+    ctx.strokeStyle = "rgba(150,100,0,.6)"; ctx.lineWidth = Math.max(.7, .04 * s); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, Math.max(1.6, .2 * s), 0, Math.PI * 2); ctx.fillStyle = "#f6f6f4"; ctx.fill();
+    ctx.lineWidth = Math.max(.6, .05 * s); ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.stroke();
   }
-  // The assistant's flag: black handle, checked orange / neon-yellow cloth. Held down at his side, or up for offside.
-  function assistantFlag(x, y, s, t, up, side) {
-    var hx = x + side * .55 * s;
-    ctx.strokeStyle = "#111"; ctx.lineWidth = Math.max(1.4, .16 * s); ctx.beginPath();
-    if (up) { ctx.moveTo(hx, y - .3 * s); ctx.lineTo(hx, y - 3.2 * s); }
-    else { ctx.moveTo(hx, y + .1 * s); ctx.lineTo(hx, y + .9 * s); }
-    ctx.stroke();
-    var w = (up ? 1.6 : .95) * s, h = (up ? 1.2 : .72) * s, top = up ? y - 3.2 * s : y + .5 * s;
-    cloth(hx, top, w, h, t * (up ? 1.6 : .8), 3.1, side, function (pts, hh) {
+  // The assistant's flag, raised only when he signals (as before): black handle, checked orange / neon-yellow cloth.
+  function assistantFlag(x, y, s, t) {
+    var fx = x + .3 * s;
+    ctx.strokeStyle = "#111"; ctx.lineWidth = Math.max(1.5, .15 * s); ctx.beginPath(); ctx.moveTo(fx, y - .5 * s); ctx.lineTo(fx, y - 2.6 * s); ctx.stroke();
+    cloth(fx, y - 2.6 * s, 1.6 * s, 1.1 * s, t * 1.6, 3.1, 1, function (pts, hh) {
       // four quadrants: neon yellow top-left / bottom-right, orange top-right / bottom-left
       for (var qx = 0; qx < 2; qx++) for (var qy = 0; qy < 2; qy++) {
         ctx.fillStyle = (qx + qy) % 2 ? "#ff5a1f" : "#e4f53c"; ctx.beginPath();
@@ -466,10 +468,10 @@ td.l { color: var(--muted); }
   function disc(x, y, r, fill, stroke) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = stroke; ctx.stroke(); }
   function entities(S, now, dt) {
     var s = view.s, r = .95 * s;
-    [[-52.5, -34], [-52.5, 34], [52.5, -34], [52.5, 34]].forEach(function (c, i) { cornerFlag(X(c[0]), Y(c[1]), s, now, i); });
+    [[-52.5, -34], [-52.5, 34], [52.5, -34], [52.5, 34]].forEach(function (c, i) { cornerFlag(X(c[0]), Y(c[1]), s, now, i, X(c[0] + Math.sign(c[0])) - X(c[0]), Y(c[1] + Math.sign(c[1])) - Y(c[1])); });
     S.os.forEach(function (o, i) {
       var ox = X(o.x), oy = Y(o.y);
-      if (i > 0) assistantFlag(ox, oy, s, now, o.flag, o.x < 0 ? -1 : 1);
+      if (i > 0 && o.flag) assistantFlag(ox, oy, s, now);
       disc(ox, oy, r, "#121212", "#f2c230"); // same size as the players
       ctx.fillStyle = "#f2c230"; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
       if (i === 0 && o.card) refereeCard(ox, oy, s, o.card);

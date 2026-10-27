@@ -2,6 +2,15 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/top-view-flags`
+
+- **Assistant's flag**: back to how it was. He holds it up only when he signals (offside, ball out) and does not carry
+  it around the rest of the time. Only the flag itself changed: black handle and checked orange / neon-yellow cloth,
+  moving calmly.
+- **Corner flags seen from above**: the pitch is a top view, so the flags are now drawn from the same angle. You see
+  the white top of the pole on the corner and the yellow cloth hanging out away from the pitch, with its shadow. It
+  sways slowly in the breeze. Same in the demo page, React and Unity.
+
 ## `fix/goals-contacts-substitution-assistants-flags`
 
 - **Ugly goals**: measured over 60 matches before and after the attacking round. Rebounds were 20% of goals both
