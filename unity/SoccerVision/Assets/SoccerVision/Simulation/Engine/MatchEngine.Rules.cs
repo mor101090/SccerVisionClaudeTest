@@ -58,6 +58,21 @@ namespace SoccerVision.Simulation
         private void BallOutOfPlay(RestartType type, TeamAgent team, Vec2 spot)
         {
             if (CollectDiagnostics) Count("out." + type + "." + (SimTime - _ballChangedAt < 0.05f ? "now" : Ball.LastKickKind.ToString()) + (_ballChangeExpectedBy == null ? ".deflect" : ""));
+            var shielder = team.Shielder;
+            if (shielder != null && type != RestartType.CornerKick && !Ball.IsShot && Vec2.Distance(shielder.Pos, Ball.Pos) < 3f)
+            {
+                // Escorted out with the body for our own restart.
+                team.Stats.ShieldedOut++;
+                PlayerAgent chaser = null;
+                float best = 9f;
+                foreach (var o in team.Opponent.Players)
+                {
+                    if (o.SentOff) continue;
+                    float d = Vec2.Distance(o.Pos, Ball.Pos);
+                    if (d < best) { best = d; chaser = o; }
+                }
+                Emit(MatchEventType.ShieldOut, team, shielder, chaser, Ball.Pos, 0f, WhistleKind.Short, type == RestartType.GoalKick ? 0 : 1);
+            }
             if (Ball.IsShot && type != RestartType.ThrowIn && Ball.Shooter != null)
             {
                 Emit(MatchEventType.ShotOffTarget, Ball.Shooter.Team, Ball.Shooter, null, Ball.Pos);

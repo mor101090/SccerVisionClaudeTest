@@ -183,6 +183,12 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("  sliding", Avg(x => x.SlideTackles), "~15-25% of tackles");
     Row("  slides won", Avg(x => x.SlideTacklesWon), "n/a");
     Row("Tackles won %", 100.0 * r.Sum(x => x.TacklesWon) / Math.Max(1, r.Sum(x => x.Tackles)), "~60-65");
+    Row("Interceptions", Avg(x => x.Interceptions), "~16-17 (PL 25/26: ~8.3 per team)");
+    Row("  read and stepped in front", Avg(x => x.AnticipatedInterceptions), "n/a");
+    Row("Through balls (completed)", Avg(x => x.ThroughBalls), Avg(x => x.ThroughBallsCompleted).ToString("0.00"));
+    Row("Passes into space", Avg(x => x.PassesIntoSpace), "n/a");
+    Row("Shielded out for our restart", Avg(x => x.ShieldedOut), "n/a");
+    Row("Shoulder duels won", Avg(x => x.ShoulderDuelsWon), "n/a");
     Row("Goals home / away", Avg(x => x.HomeGoals), Avg(x => x.AwayGoals).ToString("0.00"));
     Row("Shots home / away", Avg(x => x.HomeShots), Avg(x => x.AwayShots).ToString("0.00"));
     Row("Marking switches (zonal home / m2m away)", Avg(x => x.HomeSwitches), Avg(x => x.AwaySwitches).ToString("0.0"));
@@ -302,7 +308,7 @@ sealed class MatchResult
     public bool Finished;
     public int RecoveredErrors;
     public double WallMs;
-    public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots;
+    public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots, Interceptions, AnticipatedInterceptions, ThroughBalls, ThroughBallsCompleted, PassesIntoSpace, ShieldedOut, ShoulderDuelsWon;
     public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy;
     public string Score;
 
@@ -353,6 +359,13 @@ sealed class MatchResult
             TacklesWon = h.TacklesWon + a.TacklesWon,
             HomeSwitches = h.MarkingSwitches,
             HomeGoals = h.Goals,
+            Interceptions = h.Interceptions + a.Interceptions,
+            AnticipatedInterceptions = h.AnticipatedInterceptions + a.AnticipatedInterceptions,
+            ThroughBalls = h.ThroughBalls + a.ThroughBalls,
+            ThroughBallsCompleted = h.ThroughBallsCompleted + a.ThroughBallsCompleted,
+            PassesIntoSpace = h.PassesIntoSpace + a.PassesIntoSpace,
+            ShieldedOut = h.ShieldedOut + a.ShieldedOut,
+            ShoulderDuelsWon = h.ShoulderDuelsWon + a.ShoulderDuelsWon,
             AwayGoals = a.Goals,
             HomeShots = h.Shots,
             AwayShots = a.Shots,

@@ -24,6 +24,33 @@ namespace SoccerVision.Simulation
         public float LineForward = -33f;     // current back line (local forward)
         public float LastAttackSeconds;      // sim time of the last possession change in favour of this team
         public PlayerAgent Presser, SecondPresser, Chaser;
+        /// <summary>Covering defender: diagonally behind the presser, inside him (pressure - cover - balance).</summary>
+        public PlayerAgent Cover;
+        public Vec2 CoverSpot;
+        /// <summary>Marker who reads a pass to his man and steps in front to intercept it.</summary>
+        public PlayerAgent Anticipator;
+        /// <summary>Player escorting a ball that is running out of play for our restart, body between it and the chaser.</summary>
+        public PlayerAgent Shielder;
+        /// <summary>
+        /// How well the back line plays as a unit (0..1), from the defenders' teamwork, positioning and decisions:
+        /// a high value keeps the line flat, steps up together and leaves attackers offside.
+        /// </summary>
+        public float DefensiveChemistry
+        {
+            get
+            {
+                float sum = 0f;
+                int n = 0;
+                foreach (var p in Players)
+                {
+                    if (p.SentOff || p.IsGoalkeeper || p.Slot.Line != Line.Defence) continue;
+                    sum += 0.4f * MathUtil.A(p.Attr.Teamwork) + 0.35f * MathUtil.A(p.Attr.Positioning) + 0.25f * MathUtil.A(p.Attr.Decisions);
+                    n++;
+                }
+                // a line missing a man (sent off) is never quite in sync
+                return n == 0 ? 0f : sum / n * (n >= 4 ? 1f : 0.8f);
+            }
+        }
         public readonly List<PlayerAgent> Supporters = new List<PlayerAgent>();
         public int KickOffsTaken;
 
@@ -98,6 +125,16 @@ namespace SoccerVision.Simulation
         /// <summary>Times a marker changed the opponent he follows (hand-overs in zonal, switches in man-to-man).</summary>
         public int MarkingSwitches;
         public int Interceptions;
+        /// <summary>Interceptions where a marker read the pass to his man and stepped in front of him.</summary>
+        public int AnticipatedInterceptions;
+        /// <summary>Balls shielded out of play for our own restart (goal kick / throw-in).</summary>
+        public int ShieldedOut;
+        /// <summary>Shoulder-to-shoulder races for a loose ball won.</summary>
+        public int ShoulderDuelsWon;
+        /// <summary>Through balls (into space behind the line) and passes into space ahead of a running teammate.</summary>
+        public int ThroughBalls;
+        public int ThroughBallsCompleted;
+        public int PassesIntoSpace;
         public int Fouls;
         public int YellowCards;
         public int RedCards;

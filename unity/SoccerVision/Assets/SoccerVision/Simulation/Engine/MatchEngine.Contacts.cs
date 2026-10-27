@@ -30,6 +30,7 @@ namespace SoccerVision.Simulation
             foreach (var p in AllPlayers)
             {
                 if (p.SentOff || p.TouchCooldown > 0f || p.StunTimer > 0f) continue;
+                if (p.Task == PlayerTask.Shield && p.Team.Shielder == p) continue; // letting it run out, on purpose
                 if (p == Ball.LastKicker && (Ball.KickerMustWait || SimTime - Ball.LastKickTime < 0.3f)) continue;
                 // Law 12.2: an opponent may not prevent the goalkeeper releasing the ball from the hands.
                 if (Ball.LastKickKind == KickKind.GoalkeeperDistribution && Ball.LastKicker != null && Ball.LastKicker.Team != p.Team
@@ -775,6 +776,61 @@ namespace SoccerVision.Simulation
             p.SlideVictim = null;
             p.GroundTimer = 0.75f + 0.5f * (1f - MathUtil.A(p.Attr.Acceleration));
             p.StunTimer = MathF.Max(p.StunTimer, p.GroundTimer);
+        }
+
+        /// <summary>
+        /// Body play in a race for a loose ball: two opponents running for it side by side lean into each other
+        /// (a fair shoulder-to-shoulder challenge, Law 12, while the ball is within playing distance). The stronger,
+        /// heavier and more determined player holds his line and gets there first; the other is knocked off stride.
+        /// </summary>
+        private void ResolveShoulderDuels()
+        {
+            if (Ball.Owner != null || Ball.Z > 1.2f || Ablate.Contains("duel")) return;
+            foreach (var a in Home.Players)
+            {
+                if (a.SentOff || a.IsDown || a.IsGoalkeeper || a.DuelCooldown > 0f) continue;
+                if (a.Task != PlayerTask.Chase && a.Task != PlayerTask.Receive && a.Task != PlayerTask.Shield) continue;
+                foreach (var b in Away.Players)
+                {
+                    if (b.SentOff || b.IsDown || b.IsGoalkeeper || b.DuelCooldown > 0f) continue;
+                    if (b.Task != PlayerTask.Chase && b.Task != PlayerTask.Receive && b.Task != PlayerTask.Shield) continue;
+                    if (Vec2.DistanceSq(a.Pos, b.Pos) > 1.0f * 1.0f) continue;
+                    if (Vec2.Distance(a.Pos, Ball.Pos) > 7f || Vec2.Distance(b.Pos, Ball.Pos) > 7f) continue;
+                    // only a real race: both running, roughly the same way
+                    if (a.Vel.Length < 2.5f && a.Task != PlayerTask.Shield) continue;
+                    if (b.Vel.Length < 2.5f && b.Task != PlayerTask.Shield) continue;
+                    ShoulderDuel(a, b);
+                    break;
+                }
+            }
+        }
+
+        private static float BodyStrength(PlayerAgent p) =>
+            0.5f * MathUtil.A(p.Attr.PhysicalPower) + 0.2f * MathUtil.A(p.Attr.Aggression) + 0.15f * MathUtil.A(p.Attr.Acceleration)
+            + MathUtil.Clamp((p.Profile.HeightCm - 165) / 35f, 0f, 1f) * 0.15f + (p.Task == PlayerTask.Shield ? 0.12f : 0f);
+
+        private void ShoulderDuel(PlayerAgent a, PlayerAgent b)
+        {
+            a.DuelCooldown = b.DuelCooldown = 2f;
+            float diff = (BodyStrength(a) - BodyStrength(b)) * a.FatigueFactor / MathF.Max(0.5f, b.FatigueFactor);
+            bool aWins = _rng.Chance(MathUtil.Clamp(0.5f + diff * 1.6f, 0.12f, 0.88f));
+            var winner = aWins ? a : b;
+            var loser = aWins ? b : a;
+            if (CollectDiagnostics) Count("duel.shoulder");
+            // An over-eager challenge is a push (careless) - rarely.
+            if (winner.Task != PlayerTask.Shield && _rng.Chance(0.01f + 0.03f * MathUtil.A(winner.Attr.Aggression)))
+            {
+                if (CollectDiagnostics) Count("duel.shoulder.foul");
+                CommitFoul(winner, loser, false, true, loser.Pos);
+                return;
+            }
+            winner.Team.Stats.ShoulderDuelsWon++;
+            Vec2 away = loser.Pos - winner.Pos;
+            away = away.LengthSq > 1e-4f ? away.Normalized : loser.Vel.Perp.Normalized;
+            loser.Pos = Pitch.ClampToField(loser.Pos + away * 0.35f, 1.5f);
+            loser.Vel = loser.Vel * 0.55f + away * 0.8f;
+            loser.StunTimer = MathF.Max(loser.StunTimer, 0.3f);
+            Emit(MatchEventType.ShoulderDuel, winner.Team, winner, loser, winner.Pos);
         }
 
         /// <summary>1v1 dribble: beat the man (he is left behind) or lose it (tackle / foul).</summary>

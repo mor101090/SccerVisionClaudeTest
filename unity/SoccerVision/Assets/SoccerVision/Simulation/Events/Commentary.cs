@@ -25,6 +25,7 @@ namespace SoccerVision.Simulation
                     return "Second half is about to begin";
                 case MatchEventType.Pass:
                     if (e.OtherPlayer < 0) return P(e.Player) + " plays it forward";
+                    if (e.Value > 1.5f) return P(e.Player) + " plays it into space for " + P(e.OtherPlayer);
                     return P(e.Player) + (e.Value > 0.5f ? " slides a through ball to " : " passes to ") + P(e.OtherPlayer);
                 case MatchEventType.LongBall:
                     return P(e.Player) + " goes long" + (e.OtherPlayer >= 0 ? " for " + P(e.OtherPlayer) : "");
@@ -64,7 +65,13 @@ namespace SoccerVision.Simulation
                 case MatchEventType.SlideTackleMissed:
                     return P(e.Player) + " goes to ground but " + P(e.OtherPlayer) + " rides the challenge";
                 case MatchEventType.Interception:
-                    return P(e.Player) + " intercepts";
+                    return e.Detail == 1
+                        ? P(e.Player) + " reads it and steps in front of " + P(e.OtherPlayer)
+                        : P(e.Player) + " intercepts";
+                case MatchEventType.ShieldOut:
+                    return P(e.Player) + " shields it out" + (e.OtherPlayer >= 0 ? " from " + P(e.OtherPlayer) : "") + (e.Detail == 0 ? " for a goal kick" : " for a throw-in");
+                case MatchEventType.ShoulderDuel:
+                    return P(e.Player) + " muscles " + P(e.OtherPlayer) + " off the ball";
                 case MatchEventType.Foul:
                     return "Foul by " + P(e.Player) + " on " + P(e.OtherPlayer);
                 case MatchEventType.Advantage:

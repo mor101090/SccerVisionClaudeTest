@@ -34,7 +34,8 @@ namespace SoccerVision.Simulation.Tests
                         if (p.ManAssignment == null) { last.Remove(p); continue; }
                         if (last.TryGetValue(p, out var before) && before != p.ManAssignment && !before.SentOff) changes++;
                         last[p] = p.ManAssignment;
-                        if (p.MarkTarget != null)
+                        // (only while he is marking - not while he covers a team-mate or steps in to intercept)
+                        if (p.MarkTarget != null && p.Task == PlayerTask.Mark)
                         {
                             Assert.Same(p.ManAssignment, p.MarkTarget);
                             samples++;
@@ -45,7 +46,8 @@ namespace SoccerVision.Simulation.Tests
             }
             Assert.True(samples > 2000, "samples " + samples);
             Assert.True(changes < samples / 500, $"man-to-man assignments changed mid-phase {changes} times in {samples} samples");
-            Assert.True(close > samples * 0.6, $"close {close}/{samples}");
+            // (defenders let a man go when he stands beyond the line - he is left offside - so not every sample is close)
+            Assert.True(close > samples * 0.5, $"close {close}/{samples}");
         }
 
         [Fact]
@@ -125,6 +127,86 @@ namespace SoccerVision.Simulation.Tests
                 }
             }
             Assert.True(slides >= 5 && grounded >= 5, $"slides {slides} grounded {grounded}");
+        }
+
+        [Fact]
+        public void BothTeamsReadPassesShieldBallsOutAndWinShoulderDuels()
+        {
+            // Every defending skill is engine behaviour for both sides, not a blue-team special.
+            var engines = new MatchEngine[10];
+            Parallel.For(0, engines.Length, i =>
+            {
+                engines[i] = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 3500 + (ulong)i);
+                engines[i].RunToEnd();
+            });
+            foreach (var side in new Func<MatchEngine, TeamAgent>[] { e => e.Home, e => e.Away })
+            {
+                Assert.True(engines.Sum(e => side(e).Stats.AnticipatedInterceptions) >= 10 * 3, "reads");
+                Assert.True(engines.Sum(e => side(e).Stats.ShoulderDuelsWon) >= 10 * 4, "shoulder duels");
+                Assert.True(engines.Sum(e => side(e).Stats.ShieldedOut) >= 3, "shielded out");
+            }
+            var log = engines.SelectMany(e => e.EventLog).ToList();
+            Assert.Contains(log, x => x.Type == MatchEventType.Interception && x.Detail == 1 && x.Text.Contains("steps in front of"));
+            Assert.Contains(log, x => x.Type == MatchEventType.ShieldOut && x.Text.Contains("shields it out"));
+            Assert.Contains(log, x => x.Type == MatchEventType.ShoulderDuel && x.Text.Contains("muscles"));
+        }
+
+        [Fact]
+        public void ABackLineWithBetterUnderstandingStaysFlatter()
+        {
+            static TeamSetup Drilled(TeamSetup t, int level)
+            {
+                // Teamwork is used only for the understanding between the defenders, so the rest of the game is unchanged.
+                foreach (var p in t.Starters) p.Attributes.Teamwork = level;
+                return t;
+            }
+            double Spread(int level, out int offsides)
+            {
+                double sum = 0; int n = 0; int off = 0;
+                for (ulong seed = 3600; seed < 3606; seed++)
+                {
+                    // red defends zonally with a back four that holds a line
+                    var e = new MatchEngine(Drilled(DemoTeams.Red(), level), DemoTeams.Blue(), seed);
+                    while (!e.IsFinished)
+                    {
+                        e.Advance(0.25f);
+                        if (e.Phase != MatchPhase.Live || e.PossessionTeam != e.Away || e.Ball.Owner == null) continue;
+                        // where the defenders holding the line (not the one pressing the ball or covering him) want to be
+                        var line = e.Home.Players.Where(p => !p.SentOff && !p.IsGoalkeeper && p.Slot.Line == Line.Defence
+                                                             && (p.Task == PlayerTask.Shape || p.Task == PlayerTask.Mark)).Select(p => e.Home.Forward(p.Target)).ToList();
+                        if (line.Count < 3 || e.Home.Forward(e.Ball.Pos) < -16f) continue; // ball near the box: the line drops
+                        sum += line.Max() - line.Min();
+                        n++;
+                    }
+                    off += e.Home.Stats.Offsides;
+                }
+                offsides = off;
+                return sum / n;
+            }
+            // (offside counts are too noisy over a few matches to compare; the shape of the line is not)
+            double drilled = Spread(99, out _);
+            double sloppy = Spread(1, out _);
+            Assert.True(drilled < sloppy * 0.9, $"line spread drilled {drilled:0.0} m vs sloppy {sloppy:0.0} m");
+        }
+
+        [Fact]
+        public void ThroughBallsAndPassesIntoSpaceAreFoundAndSomeArrive()
+        {
+            var engines = new MatchEngine[8];
+            Parallel.For(0, engines.Length, i =>
+            {
+                engines[i] = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 3700 + (ulong)i);
+                engines[i].RunToEnd();
+            });
+            int through = engines.Sum(e => e.Home.Stats.ThroughBalls + e.Away.Stats.ThroughBalls);
+            int throughOk = engines.Sum(e => e.Home.Stats.ThroughBallsCompleted + e.Away.Stats.ThroughBallsCompleted);
+            int space = engines.Sum(e => e.Home.Stats.PassesIntoSpace + e.Away.Stats.PassesIntoSpace);
+            Assert.InRange(through / 8.0, 15, 60);
+            Assert.InRange(throughOk / (double)through, 0.2, 0.6);
+            Assert.True(space >= 8 * 6, "passes into space " + space);
+            var log = engines.SelectMany(e => e.EventLog).ToList();
+            Assert.Contains(log, x => x.Type == MatchEventType.Pass && x.Text.Contains("into space for"));
+            Assert.Contains(log, x => x.Type == MatchEventType.Pass && x.Text.Contains("through ball"));
         }
     }
 }

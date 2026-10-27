@@ -370,6 +370,7 @@ namespace SoccerVision.Simulation
             {
                 if (p.TouchCooldown > 0f) p.TouchCooldown -= dt;
                 if (p.TackleCooldown > 0f) p.TackleCooldown -= dt;
+                if (p.DuelCooldown > 0f) p.DuelCooldown -= dt;
                 if (p.StunTimer > 0f) p.StunTimer -= dt;
                 if (p.KickCooldown > 0f) p.KickCooldown -= dt;
                 if (p.RunTimer > 0f) p.RunTimer -= dt;
@@ -436,6 +437,8 @@ namespace SoccerVision.Simulation
             if (Phase != MatchPhase.Live) return;
 
             UpdateSlides();
+            if (Phase != MatchPhase.Live) return;
+            ResolveShoulderDuels();
             if (Phase != MatchPhase.Live) return;
             ResolveTouches();
             if (Phase != MatchPhase.Live) return;

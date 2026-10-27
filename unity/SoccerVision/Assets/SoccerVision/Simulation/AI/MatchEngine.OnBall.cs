@@ -20,6 +20,8 @@ namespace SoccerVision.Simulation
         public Vec2 DribbleTarget;
         public float Heading;      // direction of the kick (radians)
         public float ExpectedGoals;
+        /// <summary>A pass played into space ahead of a running team-mate rather than to his feet.</summary>
+        public bool IntoSpace;
     }
 
     /// <summary>
@@ -36,6 +38,8 @@ namespace SoccerVision.Simulation
         private float _riskPremium;
         private bool _shotCountedOnTarget;
         private string _lastPassKey;
+        private bool _pendingThrough, _pendingIntoSpace;
+        private bool _nextPassIntoSpace;
 
         private void ThinkOnBall(PlayerAgent p, float dt)
         {
@@ -242,22 +246,47 @@ namespace SoccerVision.Simulation
                 AddGroundPass(p, q, from, feet, KickKind.Pass, pressure);
                 if (dist > 22f) AddLoftedPass(p, q, from, Pitch.ClampToField(q.Pos + lead * 1.6f, -1.5f), pressure, KickKind.LongPass);
 
-                // Through balls into space behind the line for runners / attackers who are onside now.
-                bool attacker = q.Slot.Line == Line.Attack || q.Slot.IsWideMidfielder || (q.Slot.IsFullBack && team.Forward(q.Pos) > 10f);
+                // Through balls into space behind the line for runners / attackers who are onside now - aimed through
+                // the widest gap in the back line near the runner (between centre-backs, or full-back and centre-back).
+                bool attacker = q.Slot.Line == Line.Attack || q.Slot.IsWideMidfielder || (q.Slot.IsFullBack && team.Forward(q.Pos) > 10f)
+                                || (q.Slot.IsCentralMidfielder && q.RunTimer > 0f);
                 bool onTheLine = team.Forward(q.Pos) > offsideLine - 4f;
-                bool sees = _rng.Chance(0.2f + 0.6f * MathUtil.A(p.Attr.Creativity));
+                float vision = MathUtil.A(p.Attr.Creativity) * 0.7f + MathUtil.A(p.Attr.Decisions) * 0.3f;
+                bool sees = _rng.Chance(0.25f + 0.6f * vision);
                 if (attacker && !offside && sees && (q.RunTimer > 0f || onTheLine) && team.Forward(q.Pos) > fromF - 6f)
                 {
                     float qLat = team.Lateral(q.Pos);
+                    float gapLat = BestGapInLine(team, offsideLine, qLat);
                     for (int k = 0; k < 2; k++)
                     {
                         float depth = k == 0 ? 6f : 13f;
                         float tf = MathF.Min(offsideLine + depth, 49f);
                         if (tf < team.Forward(q.Pos) + 3f) continue;
-                        float tl = MathUtil.Clamp(qLat * 0.85f, -30f, 30f);
+                        // the run bends towards the gap
+                        float tl = MathUtil.Clamp(MathUtil.Lerp(qLat * 0.85f, gapLat, 0.6f), -30f, 30f);
                         Vec2 target = team.ToWorld(tf, tl);
                         AddGroundPass(p, q, from, target, KickKind.ThroughBall, pressure);
                         if (Vec2.Distance(target, from) > 18f) AddLoftedPass(p, q, from, target, pressure, KickKind.ThroughBall);
+                    }
+                }
+
+                // Into space: a team-mate already running (a run, an overlap, a wide man going down the line) gets the
+                // ball played ahead of him, into the space he is running into, so he can take it in his stride.
+                float qSpeed = q.Vel.Length;
+                if (!Ablate.Contains("space") && !q.IsGoalkeeper && qSpeed > 3.4f && _rng.Chance(0.25f + 0.45f * vision))
+                {
+                    Vec2 run = q.Vel / qSpeed;
+                    if (Vec2.Dot(run, team.DirToWorld(Vec2.UnitX)) > 0.2f)
+                    {
+                        float ahead = MathUtil.Clamp(qSpeed * 1.2f, 4.5f, 9f);
+                        Vec2 target = Pitch.ClampToField(q.Pos + run * ahead, -2f);
+                        bool behindLine = team.Forward(target) > offsideLine;
+                        if (!behindLine && SpaceAround(team, target) > 5.5f && SpaceAround(team, q.Pos) > 2.5f)
+                        {
+                            _nextPassIntoSpace = true;
+                            AddGroundPass(p, q, from, target, KickKind.ThroughBall, pressure);
+                            _nextPassIntoSpace = false;
+                        }
                     }
                 }
             }
@@ -313,6 +342,11 @@ namespace SoccerVision.Simulation
             float pAccuracy = 1f - MathF.Exp(-0.635f * capture * capture / (lateralSd * lateralSd));
 
             float success = (1f - pIntercept) * pControl * pAccuracy;
+            // A ball into space must also be weighted perfectly - harder than the lane model alone says.
+            if (_nextPassIntoSpace) success *= 0.85f;
+            // Through balls behind the line: keepers sweep, defenders turn and recover - the race is harder to win
+            // than the simple estimate suggests (measured: well below the predicted success).
+            else if (kind == KickKind.ThroughBall) success *= 0.68f;
             float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure);
             float progress = team.Forward(target) - team.Forward(from);
             value += MathF.Max(0f, progress) * 0.00022f * (0.6f + 0.8f * team.Tactics.Tempo);
@@ -331,7 +365,53 @@ namespace SoccerVision.Simulation
                 Heading = dir.Angle,
                 Success = success,
                 Utility = utility,
+                IntoSpace = _nextPassIntoSpace,
             });
+        }
+
+        /// <summary>Distance from a point to the nearest opponent outfield player (how much space there is).</summary>
+        private float SpaceAround(TeamAgent team, Vec2 point)
+        {
+            float best = float.PositiveInfinity;
+            foreach (var o in team.Opponent.Players)
+            {
+                if (o.SentOff || o.IsGoalkeeper) continue;
+                float d = Vec2.Distance(o.Pos, point);
+                if (d < best) best = d;
+            }
+            return best;
+        }
+
+        private readonly List<float> _lineLaterals = new List<float>(11);
+
+        /// <summary>
+        /// The lateral position (in the attacking team's frame) of the widest gap between the opponents holding the
+        /// last line, weighted towards the runner: where a through ball splits the defence.
+        /// </summary>
+        private float BestGapInLine(TeamAgent team, float offsideLine, float runnerLat)
+        {
+            _lineLaterals.Clear();
+            foreach (var o in team.Opponent.Players)
+            {
+                if (o.SentOff || o.IsGoalkeeper) continue;
+                if (team.Forward(o.Pos) > offsideLine - 9f) _lineLaterals.Add(team.Lateral(o.Pos));
+            }
+            if (_lineLaterals.Count == 0) return runnerLat;
+            _lineLaterals.Sort();
+            float best = runnerLat, bestScore = float.NegativeInfinity;
+            float prev = -Pitch.HalfWidth;
+            for (int i = 0; i <= _lineLaterals.Count; i++)
+            {
+                float next = i < _lineLaterals.Count ? _lineLaterals[i] : Pitch.HalfWidth;
+                float width = next - prev;
+                float mid = (prev + next) * 0.5f;
+                // touchline "gaps" are only half gaps (the ball runs out)
+                if (i == 0 || i == _lineLaterals.Count) width *= 0.5f;
+                float score = width - 0.35f * MathF.Abs(mid - runnerLat) - 0.1f * MathF.Abs(mid);
+                if (width > 5f && score > bestScore) { bestScore = score; best = mid; }
+                prev = next;
+            }
+            return best;
         }
 
         private void AddLoftedPass(PlayerAgent p, PlayerAgent q, Vec2 from, Vec2 target, float pressure, KickKind kind)
@@ -365,6 +445,7 @@ namespace SoccerVision.Simulation
             float capture = 2.2f + 0.04f * d;
             float pAccuracy = 1f - MathF.Exp(-0.635f * capture * capture / (sd * sd));
             float success = pWin * pControl * pAccuracy;
+            if (kind == KickKind.ThroughBall) success *= 0.8f; // the keeper and the recovering defenders (see AddGroundPass)
             float value = ExpectedThreat.At(team, target);
             float progress = team.Forward(target) - team.Forward(from);
             value += MathF.Max(0f, progress) * 0.0002f * (0.6f + 0.8f * team.Tactics.Tempo);
@@ -472,7 +553,7 @@ namespace SoccerVision.Simulation
                 keep *= MathF.Pow(0.82f, crowd); // dribbling into a crowd rarely works
                 float value = ExpectedThreat.At(team, target);
                 bool inward = MathF.Abs(team.Lateral(target)) < MathF.Abs(team.Lateral(pos)) - 2f;
-                if (cutIn && inward && f > 14f && MathF.Abs(team.Lateral(pos)) > 14f) value += 0.022f * cutInSkill;
+                if (cutIn && inward && f > 14f && MathF.Abs(team.Lateral(pos)) > 14f) value += 0.03f * cutInSkill;
                 else if (inverted && team.Forward(pos) > 15f && inward) value += 0.003f;
                 bool progressive = team.Forward(target) - team.Forward(pos) > 3f;
                 float stale = MathF.Max(0f, p.HoldTime - (progressive ? 3f : 1.5f)) * 0.005f;
@@ -599,6 +680,15 @@ namespace SoccerVision.Simulation
                 Diagnostics[k + ".predicted%"] = predicted + (int)(plan.Success * 100f);
                 _lastPassKey = k;
             }
+            if (plan.Action == BallAction.Pass)
+            {
+                _pendingThrough = plan.Kind == KickKind.ThroughBall && !plan.IntoSpace;
+                _pendingIntoSpace = plan.IntoSpace;
+                if (_pendingThrough) p.Team.Stats.ThroughBalls++;
+                if (_pendingIntoSpace) p.Team.Stats.PassesIntoSpace++;
+                if (CollectDiagnostics && plan.IntoSpace) Count("pass.intospace");
+            }
+            else _pendingThrough = _pendingIntoSpace = false;
             float pressure = Pressure(p, out _);
             switch (plan.Action)
             {
@@ -678,7 +768,8 @@ namespace SoccerVision.Simulation
 
         private void EmitPass(PlayerAgent p, PlayerAgent receiver, KickKind kind)
         {
-            Emit(kind == KickKind.LongPass ? MatchEventType.LongBall : MatchEventType.Pass, p.Team, p, receiver, Ball.Pos, kind == KickKind.ThroughBall ? 1f : 0f);
+            float value = kind != KickKind.ThroughBall ? 0f : _pendingIntoSpace ? 2f : 1f;
+            Emit(kind == KickKind.LongPass ? MatchEventType.LongBall : MatchEventType.Pass, p.Team, p, receiver, Ball.Pos, value);
         }
 
         /// <summary>Shot at goal: aims at a corner away from the keeper, then applies skill-based error.</summary>
@@ -874,6 +965,8 @@ namespace SoccerVision.Simulation
             var passer = Ball.PendingPassFrom;
             if (passer == null) return;
             Ball.PendingPassFrom = null;
+            bool through = _pendingThrough, intoSpace = _pendingIntoSpace;
+            _pendingThrough = _pendingIntoSpace = false;
             string key = _lastPassKey;
             if (controller == null)
             {
@@ -887,6 +980,8 @@ namespace SoccerVision.Simulation
                 {
                     passer.Team.Stats.PassesCompleted++;
                     passer.PassesCompleted++;
+                    if (through) passer.Team.Stats.ThroughBallsCompleted++;
+                    if (intoSpace && CollectDiagnostics) Count("pass.intospace.ok");
                     if (CollectDiagnostics)
                     {
                         Count("pass.completed");
@@ -897,13 +992,16 @@ namespace SoccerVision.Simulation
             else
             {
                 controller.Team.Stats.Interceptions++;
+                bool read = controller.AnticipatedAt >= Ball.LastKickTime && Ball.IntendedReceiver != null && Ball.IntendedReceiver.Team == passer.Team;
+                if (read) controller.Team.Stats.AnticipatedInterceptions++;
                 if (CollectDiagnostics)
                 {
                     float pf = passer.Team.Forward(controller.Pos);
                     Count("pass.intercepted" + (controller.IsGoalkeeper ? ".gk" : ""));
                     Count("pass.intercepted.zone" + (pf < -17.5f ? "1own" : pf < 17.5f ? "2mid" : "3fin") + "." + (key ?? "other"));
                 }
-                Emit(MatchEventType.Interception, controller.Team, controller, passer, controller.Pos);
+                if (read) Emit(MatchEventType.Interception, controller.Team, controller, Ball.IntendedReceiver, controller.Pos, 0f, WhistleKind.Short, 1);
+                else Emit(MatchEventType.Interception, controller.Team, controller, passer, controller.Pos);
             }
             _lastPassKey = null;
         }

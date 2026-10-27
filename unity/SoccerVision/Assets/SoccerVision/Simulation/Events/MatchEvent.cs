@@ -40,6 +40,10 @@ namespace SoccerVision.Simulation
         Whistle,
         NetHit,
         SlideTackleMissed,
+        /// <summary>A defender shields a ball running out of play with his body (Detail 0 goal kick, 1 throw-in).</summary>
+        ShieldOut,
+        /// <summary>Shoulder-to-shoulder race for a loose ball won by Player against OtherPlayer.</summary>
+        ShoulderDuel,
     }
 
     /// <summary>
@@ -84,7 +88,8 @@ namespace SoccerVision.Simulation
         /// Flavour of the event. Shots: 1 = volley, 2 = cut inside from the wing, 3 = direct free kick, 4 = penalty kick.
         /// Free kicks: 1 = dangerous position with a wall. Goals: shot kind (1 volley, 2 cut in, 3 free kick, 4 penalty,
         /// 5 header). Saves: 0 held, 1 tipped over, 2 round the post, 3 parried. Woodwork: 1 post, 2 crossbar.
-        /// Tackles: 0 standing, 1 slide.
+        /// Tackles: 0 standing, 1 slide. Interceptions: 0 loose pass picked up, 1 read the pass and stepped in front of
+        /// the receiver (OtherPlayer is then the receiver). Passes: Value 1 = through ball, 2 = pass into space.
         /// </summary>
         public int Detail;
         public string Text = "";

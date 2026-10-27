@@ -19,6 +19,8 @@ namespace SoccerVision.Simulation
         SetPiece,       // walking to a restart position
         Celebrate,
         Leave,          // sent off, walking off the pitch
+        Cover,          // covering diagonally behind the presser
+        Shield,         // body between an opponent and a ball running out of play
     }
 
     /// <summary>Runtime state of one player on the pitch.</summary>
@@ -54,6 +56,10 @@ namespace SoccerVision.Simulation
         // Timers (sim seconds)
         public float TouchCooldown;
         public float TackleCooldown;
+        /// <summary>Time before this player can be in another shoulder-to-shoulder duel.</summary>
+        public float DuelCooldown;
+        /// <summary>Sim time at which this player last read a pass and went to intercept it.</summary>
+        public float AnticipatedAt = -100f;
         public float StunTimer;
         public float DecisionTimer;
         /// <summary>Keeper's run-up before a long kick from the hands: 0 none, 1 walking back, 2 running up.</summary>

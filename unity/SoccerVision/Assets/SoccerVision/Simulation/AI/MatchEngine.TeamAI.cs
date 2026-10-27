@@ -28,6 +28,15 @@ namespace SoccerVision.Simulation
             {
                 lineTarget = ballF * 0.45f - 22f + 12f * (tac.DefensiveLine - 0.5f);
                 lineTarget = MathUtil.Clamp(lineTarget, -42f, -7f + 12f * (tac.DefensiveLine - 0.5f));
+                // Step up together (squeeze the space, leave attackers offside) when the opponent has to turn back:
+                // a carrier facing his own goal under pressure, or a ball played back towards their goal.
+                float chem = team.DefensiveChemistry;
+                var opp = Ball.Owner != null && Ball.Owner.Team != team && !Ball.InHands ? Ball.Owner : null;
+                Vec2 ourAttack = team.DirToWorld(Vec2.UnitX);
+                if (opp != null && Vec2.Dot(opp.FacingDir, ourAttack) > 0.3f && Pressure(opp, out _) > 0.45f && ballF > lineTarget + 12f)
+                    lineTarget += 5f * chem;
+                else if (Ball.Owner == null && Ball.LastTouchTeam != team && Vec2.Dot(Ball.Velocity, ourAttack) > 4f && ballF > lineTarget + 10f)
+                    lineTarget += 6f * chem;
                 // Stay goal-side of the ball.
                 lineTarget = MathF.Min(lineTarget, ballF - 2f);
                 // Drop off when the ball carrier has time to play a ball over the top.
@@ -41,7 +50,8 @@ namespace SoccerVision.Simulation
             }
             lineTarget = MathF.Max(lineTarget, -47.5f);
             // The line moves like a unit: rate limited (steps up / drops at ~4.5 m/s).
-            team.LineForward = MathUtil.MoveTowards(team.LineForward, lineTarget, 4.5f * 0.2f);
+            // A well-drilled line moves faster as one.
+            team.LineForward = MathUtil.MoveTowards(team.LineForward, lineTarget, (3.6f + 1.8f * team.DefensiveChemistry) * 0.2f);
 
             float offsideLine = MathF.Max(MathF.Max(SecondLastDefenderForward(team), ballF), 0f);
 
@@ -205,7 +215,7 @@ namespace SoccerVision.Simulation
                     l = MathF.Sign(slot.BaseLateral) * (26f + 4f * tac.Width);
                 }
                 if (inPossession && slot.IsCentreBack) f = MathF.Min(f, 0f); // CBs: no further than halfway
-                if (!inPossession && slot.IsFullBack) f += 1f;
+                if (!inPossession && slot.IsFullBack) f += 1.5f * (1f - team.DefensiveChemistry); // a well-drilled line is flat
             }
             else if (slot.Line == Line.Midfield)
             {
@@ -262,8 +272,14 @@ namespace SoccerVision.Simulation
                 }
             }
 
-            // Slow organic wobble so lines don't look robotic (+/- ~1.5 m).
-            f += 1.4f * MathF.Sin(SimTime * 0.23f + p.NoisePhaseA);
+            // Balance: out of possession the far-side fullback tucks in, so there is no gap through the middle.
+            if (!inPossession && slot.IsFullBack && MathF.Abs(ballL) > 8f && MathF.Sign(ballL) != MathF.Sign(slot.BaseLateral))
+                l = MathF.Sign(slot.BaseLateral) * MathF.Min(MathF.Abs(l), 13f + 4f * tac.Width);
+
+            // Slow organic wobble so lines don't look robotic (+/- ~1.5 m). A back line out of possession stays flat -
+            // the better the understanding between the defenders, the flatter.
+            float depthWobble = !inPossession && slot.Line == Line.Defence ? 1.6f * (1f - team.DefensiveChemistry) : 1.4f;
+            f += depthWobble * MathF.Sin(SimTime * 0.23f + p.NoisePhaseA);
             l += 1.6f * MathF.Sin(SimTime * 0.19f + p.NoisePhaseB);
 
             f = MathUtil.Clamp(f, -50.5f, 50f);
@@ -368,6 +384,9 @@ namespace SoccerVision.Simulation
             foreach (var t in Teams)
             {
                 t.Chaser = null;
+                t.Cover = null;
+                t.Anticipator = null;
+                t.Shielder = null;
                 if (t.Presser != null && (t.Presser.SentOff || t.Presser.IsDown || Ball.Owner == null)) t.Presser = null;
                 t.SecondPresser = null;
             }
@@ -406,6 +425,7 @@ namespace SoccerVision.Simulation
                 {
                     def.SecondPresser = second; // never more than two on the ball
                 }
+                AssignCover(def, carrier);
                 return;
             }
 
@@ -434,6 +454,132 @@ namespace SoccerVision.Simulation
                     t.Chaser = best;
                 }
             }
+            AssignAnticipation();
+            AssignShielding();
+        }
+
+        /// <summary>
+        /// Cover (the second defender): when the ball carrier is pressed in or near our half, the nearest team-mate
+        /// takes up a position diagonally behind the presser, on the inside, so that a carrier who beats the first man
+        /// runs into the second. "Pressure, cover, balance" - the rest of the line stays flat and tucks in.
+        /// </summary>
+        internal static readonly string Ablate = System.Environment.GetEnvironmentVariable("SV_ABLATE") ?? "";
+        private void AssignCover(TeamAgent team, PlayerAgent carrier)
+        {
+            if (Ablate.Contains("cover")) return;
+            var presser = team.Presser;
+            if (presser == null) return;
+            float carrierF = team.Forward(carrier.Pos);
+            if (carrierF > 12f) return; // pressing high up the pitch: the shape behind is the cover
+            Vec2 toGoal = (team.OwnGoal - carrier.Pos).Normalized;
+            float lat = team.Lateral(carrier.Pos);
+            Vec2 inward = MathF.Abs(lat) < 4f ? Vec2.Zero : team.DirToWorld(new Vec2(0f, -MathF.Sign(lat)));
+            Vec2 spot = Pitch.ClampToField(carrier.Pos + toGoal * 6f + inward * 4.5f, -1f);
+            bool deep = carrierF < 0f;
+            PlayerAgent best = null;
+            float bestD = 16f;
+            foreach (var p in team.Players)
+            {
+                if (p.SentOff || p.IsGoalkeeper || p.IsDown || p == presser || p == team.SecondPresser) continue;
+                if (p.Slot.Line == Line.Attack || (deep && p.Slot.Line != Line.Defence)) continue;
+                float d = Vec2.Distance(p.Pos, spot);
+                if (d < bestD) { bestD = d; best = p; }
+            }
+            if (best == null) return;
+            team.Cover = best;
+            team.CoverSpot = spot;
+            if (CollectDiagnostics) Count("cover");
+        }
+
+        /// <summary>
+        /// Reading the game: when a pass is played to an opponent, his marker (or the nearest defender) judges whether
+        /// he can get to the ball first and, if so, steps in front of him to intercept instead of waiting goal-side.
+        /// Better positioning and decisions mean he reads it sooner - and gambles less.
+        /// </summary>
+        private void AssignAnticipation()
+        {
+            if (Ablate.Contains("antic")) return;
+            var receiver = Ball.IntendedReceiver;
+            if (receiver == null || receiver.SentOff || Ball.Owner != null) return;
+            var team = receiver.Team.Opponent;
+            PlayerAgent marker = null;
+            float bestD = 7f;
+            foreach (var p in team.Players)
+            {
+                if (p.SentOff || p.IsGoalkeeper || p.IsDown) continue;
+                float d = Vec2.Distance(p.Pos, receiver.Pos);
+                if (p.MarkTarget == receiver) d -= 3f;
+                if (d < bestD) { bestD = d; marker = p; }
+            }
+            if (marker == null) return;
+            UpdateIntercept(marker);
+            UpdateIntercept(receiver);
+            float read = 0.5f * MathUtil.A(marker.Attr.Positioning) + 0.3f * MathUtil.A(marker.Attr.Decisions) + 0.2f * MathUtil.A(marker.Attr.Marking);
+            // A good reader goes when he is sure to get there first; a poor one too late, or gambles and misses.
+            float margin = -0.1f + 0.25f * read;
+            if (marker.InterceptTime < receiver.InterceptTime + margin - 0.12f)
+            {
+                team.Anticipator = marker;
+                if (marker.AnticipatedAt < Ball.LastKickTime && CollectDiagnostics) Count("anticipate");
+                marker.AnticipatedAt = SimTime;
+            }
+        }
+
+        /// <summary>
+        /// Shielding the ball out: a ball rolling out of play that would give us the restart (goal kick, throw-in) is
+        /// not played - the nearest defender puts his body between it and the opponent chasing it and escorts it out.
+        /// </summary>
+        private void AssignShielding()
+        {
+            if (Ablate.Contains("shield")) return;
+            if (Ball.Owner != null || Ball.Z > 0.5f || Ball.LastTouchTeam == null) return;
+            Vec2 end = _trajectory.FinalPosition;
+            bool outOver = MathF.Abs(end.X) > Pitch.HalfLength + 0.5f || MathF.Abs(end.Y) > Pitch.HalfWidth + 0.5f;
+            if (!outOver) return;
+            float speed = Ball.Velocity.Length;
+            if (speed < 1.5f || speed > 11f) return;
+            var team = Ball.LastTouchTeam.Opponent; // the team that gets the restart
+            var opp = Ball.LastTouchTeam;
+            // the opponent who would reach it first
+            PlayerAgent chaser = null;
+            float oppT = float.PositiveInfinity;
+            foreach (var o in opp.Players)
+            {
+                if (o.SentOff || o.IsDown || (o.IsGoalkeeper && !GoalkeeperMayChase(o))) continue;
+                UpdateIntercept(o);
+                if (o.InterceptTime < oppT) { oppT = o.InterceptTime; chaser = o; }
+            }
+            if (chaser == null || oppT > 4f) return; // nobody can keep it in: just let it go
+            PlayerAgent best = null;
+            float bestT = float.PositiveInfinity;
+            foreach (var p in team.Players)
+            {
+                if (p.SentOff || p.IsDown || p.IsGoalkeeper) continue;
+                float t = p.TimeToReach(Ball.Pos + Ball.Velocity * 0.4f);
+                if (t < bestT) { bestT = t; best = p; }
+            }
+            // He must be there first, and strong enough to hold the chaser off.
+            if (best == null || bestT > oppT + 0.15f) return;
+            team.Shielder = best;
+            if (team.Chaser == best) team.Chaser = null;
+        }
+
+        /// <summary>Where the shielding player stands: just behind the ball, between it and the opponent chasing it.</summary>
+        private Vec2 ShieldSpot(PlayerAgent p)
+        {
+            var opp = p.Team.Opponent;
+            PlayerAgent chaser = null;
+            float best = float.PositiveInfinity;
+            foreach (var o in opp.Players)
+            {
+                if (o.SentOff || o.IsGoalkeeper) continue;
+                float d = Vec2.DistanceSq(o.Pos, Ball.Pos);
+                if (d < best) { best = d; chaser = o; }
+            }
+            Vec2 lead = Ball.Pos + Ball.Velocity * 0.25f;
+            Vec2 from = chaser != null ? (chaser.Pos - lead) : -Ball.Velocity;
+            if (from.LengthSq < 0.01f) from = -Ball.Velocity;
+            return lead + from.Normalized * 0.75f;
         }
 
         private bool GoalkeeperMayChase(PlayerAgent gk)
@@ -535,7 +681,15 @@ namespace SoccerVision.Simulation
             var team = p.Team;
             bool free = Ball.Owner == null;
 
-            if (free && (team.Chaser == p || Ball.IntendedReceiver == p))
+            if (free && team.Shielder == p)
+            {
+                p.Task = PlayerTask.Shield;
+                p.Target = ShieldSpot(p);
+                p.Urgency = 0.9f;
+                return;
+            }
+
+            if (free && (team.Chaser == p || Ball.IntendedReceiver == p || team.Anticipator == p))
             {
                 UpdateIntercept(p);
                 p.Task = Ball.IntendedReceiver == p ? PlayerTask.Receive : PlayerTask.Chase;
@@ -554,10 +708,34 @@ namespace SoccerVision.Simulation
                 float standOff = team.Presser == p ? (facingAway || nearGoal ? 0.95f : 1.6f) : 2.6f;
                 Vec2 lateral = team.SecondPresser == p ? toGoal.Perp * (MathF.Sign(Vec2.Cross(toGoal, p.Pos - carrier.Pos)) * 2.5f) : Vec2.Zero;
                 p.Task = PlayerTask.Press;
-                p.Target = carrier.Pos + carrier.Vel * 0.35f + toGoal * standOff + lateral;
+                Vec2 approach = toGoal;
+                if (team.Presser == p && !nearGoal && !Ablate.Contains("shadow"))
+                {
+                    // Cover shadow: the presser curves his run so that his body also blocks the carrier's best forward
+                    // pass (to the nearest team-mate ahead of him) - pressing and cutting the lane at once.
+                    PlayerAgent option = null;
+                    float best = 22f;
+                    float carrierF = carrier.Team.Forward(carrier.Pos);
+                    foreach (var q in carrier.Team.Players)
+                    {
+                        if (q == carrier || q.SentOff || q.IsGoalkeeper || carrier.Team.Forward(q.Pos) < carrierF + 3f) continue;
+                        float d = Vec2.Distance(q.Pos, carrier.Pos);
+                        if (d < best) { best = d; option = q; }
+                    }
+                    if (option != null) approach = (toGoal * 0.65f + (option.Pos - carrier.Pos).Normalized * 0.35f).Normalized;
+                }
+                p.Target = carrier.Pos + carrier.Vel * 0.35f + approach * standOff + lateral;
                 // Near goal the second man blocks the dribbling lane straight in front of the carrier.
                 if (team.SecondPresser == p && nearGoal) p.Target = carrier.Pos + toGoal * 2.6f + carrier.Vel * 0.25f;
                 p.Urgency = Vec2.Distance(p.Pos, carrier.Pos) > 4f ? 0.95f : 0.75f;
+                return;
+            }
+
+            if (!free && Ball.Owner.Team != team && team.Cover == p)
+            {
+                p.Task = PlayerTask.Cover;
+                p.Target = team.CoverSpot;
+                p.Urgency = Vec2.Distance(p.Pos, team.CoverSpot) > 3f ? 0.85f : 0.55f;
                 return;
             }
 
@@ -604,6 +782,8 @@ namespace SoccerVision.Simulation
                     if (p.RunTimer <= 0f && p.RunCooldown <= 0f && carrierF > -25f && pressure < 0.6f)
                     {
                         float willing = 0.2f + 0.4f * MathUtil.A(p.Attr.OffTheBall) + 0.25f * team.Tactics.Mentality;
+                        // Central midfielders arrive late from deep (third-man runs), only around the box.
+                        if (p.Slot.IsCentralMidfielder) willing *= team.Forward(carrier.Pos) > 12f ? 0.35f : 0f;
                         if (_rng.Chance(willing * 0.45f))
                         {
                             p.RunTimer = _rng.Range(2.2f, 3.6f);
@@ -661,14 +841,43 @@ namespace SoccerVision.Simulation
                         if (inBox || Vec2.Distance(p.Pos, goalSide) > 4f) urgency = 0.85f;
                     }
                 }
+                // Hold the line: a defender does not drop off to follow a forward standing beyond the line while the
+                // ball is still in front of it and under pressure - he is left offside. How reliably the line holds depends on the
+                // understanding between the defenders (DefensiveChemistry) and the player's own positioning.
+                if (p.Slot.Line == Line.Defence && Ball.Owner != null && Ball.Owner.Team != team && !Ball.InHands)
+                {
+                    float chem = team.DefensiveChemistry;
+                    float line = team.LineForward;
+                    // Only with pressure on the ball: an unpressured passer can play it over the top, so then the
+                    // line drops with the runners ("ball pressured - hold, ball free - drop").
+                    bool ballInFront = team.Forward(Ball.Pos) > line + 4f && Pressure(Ball.Owner, out _) > 0.3f;
+                    bool trusts = chem * (0.6f + 0.4f * MathUtil.A(p.Attr.Positioning)) + 0.12f * MathF.Sin(SimTime * 0.31f + p.NoisePhaseB) > 0.55f;
+                    float slack = 0.4f + 2.2f * (1f - chem);
+                    if (!Ablate.Contains("hold") && ballInFront && trusts && !Pitch.InPenaltyArea(target, team.OwnGoalSign) && team.Forward(target) < line - slack)
+                    {
+                        target = team.ToWorld(line - slack, team.Lateral(target));
+                        if (CollectDiagnostics) Count("line.hold");
+                    }
+                    // ...and in a zonal back four nobody steps out of the line to follow a man into midfield: the
+                    // midfield picks him up. (Man-markers do follow their man - that is the point of man-marking.)
+                    float stepOut = 2.5f + 5f * (1f - chem);
+                    if (!Ablate.Contains("hold") && team.Tactics.Marking == MarkingStyle.Zonal && trusts && team.Forward(target) > line + stepOut)
+                        target = team.ToWorld(line + stepOut, team.Lateral(target));
+                }
+
                 // Recovery runs: players caught ahead of the ball sprint back.
                 if (team.Forward(p.Pos) > ballF + 5f && p.Slot.Line != Line.Attack) urgency = 0.9f;
             }
 
             float dist = Vec2.Distance(p.Pos, target);
+            // The back line out of possession moves as a unit with the line (steps up and drops together) instead of
+            // strolling the last couple of metres - the better the understanding, the sharper.
+            bool lineDefender = !inPossession && p.Slot.Line == Line.Defence && (p.Task == PlayerTask.Shape || p.Task == PlayerTask.Mark);
+            if (!Ablate.Contains("unit") && lineDefender && MathF.Abs(team.Forward(target) - team.Forward(p.Pos)) > 0.8f)
+                urgency = MathF.Max(urgency, 0.55f + 0.25f * team.DefensiveChemistry);
             if (dist > 12f) urgency = MathF.Max(urgency, 0.8f);
             // (a marker keeps pace with his man even when close to him)
-            else if (dist < 2.5f && !(p.Task == PlayerTask.Mark && p.MarkTarget != null && p.MarkTarget.Vel.Length > 2f)) urgency = MathF.Min(urgency, 0.35f);
+            else if (dist < 2.5f && !lineDefender && !(p.Task == PlayerTask.Mark && p.MarkTarget != null && p.MarkTarget.Vel.Length > 2f)) urgency = MathF.Min(urgency, 0.35f);
             p.Target = target;
             p.Urgency = urgency;
         }
@@ -676,7 +885,7 @@ namespace SoccerVision.Simulation
         private static bool IsRunner(PlayerAgent p)
         {
             var slot = p.Slot;
-            return slot.Line == Line.Attack || slot.IsWideMidfielder;
+            return slot.Line == Line.Attack || slot.IsWideMidfielder || slot.IsCentralMidfielder;
         }
 
         /// <summary>Pressure on a player: 0 (free) .. 1 (closed down by several opponents).</summary>
@@ -771,12 +980,19 @@ namespace SoccerVision.Simulation
                 {
                     if (q == p || q.SentOff) continue;
                     float radius = q.Team == p.Team ? 1.4f : 0.85f;
+                    float strength = 3f;
+                    if (q.Team != p.Team && q.Task == PlayerTask.Shield)
+                    {
+                        // A player shielding the ball holds the opponent off with his body (arm out, side on).
+                        radius = 1.3f;
+                        strength = 3f * MathUtil.Clamp(1.2f + 2f * (BodyStrength(q) - BodyStrength(p)), 0.5f, 2f);
+                    }
                     Vec2 d = p.Pos - q.Pos;
                     float dl = d.LengthSq;
                     if (dl < radius * radius && dl > 1e-6f)
                     {
                         float len = MathF.Sqrt(dl);
-                        push += d / len * ((radius - len) / radius) * 3f;
+                        push += d / len * ((radius - len) / radius) * strength;
                     }
                 }
                 desired += push;
