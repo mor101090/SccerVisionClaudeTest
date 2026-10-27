@@ -785,7 +785,7 @@ namespace SoccerVision.Simulation
         /// </summary>
         private void ResolveShoulderDuels()
         {
-            if (Ball.Owner != null || Ball.Z > 1.2f || Ablate.Contains("duel")) return;
+            if (Ball.Owner != null || Ball.Z > 1.2f) return;
             foreach (var a in Home.Players)
             {
                 if (a.SentOff || a.IsDown || a.IsGoalkeeper || a.DuelCooldown > 0f) continue;

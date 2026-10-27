@@ -273,7 +273,7 @@ namespace SoccerVision.Simulation
                 // Into space: a team-mate already running (a run, an overlap, a wide man going down the line) gets the
                 // ball played ahead of him, into the space he is running into, so he can take it in his stride.
                 float qSpeed = q.Vel.Length;
-                if (!Ablate.Contains("space") && !q.IsGoalkeeper && qSpeed > 3.4f && _rng.Chance(0.25f + 0.45f * vision))
+                if (!q.IsGoalkeeper && qSpeed > 3.4f && _rng.Chance(0.25f + 0.45f * vision))
                 {
                     Vec2 run = q.Vel / qSpeed;
                     if (Vec2.Dot(run, team.DirToWorld(Vec2.UnitX)) > 0.2f)

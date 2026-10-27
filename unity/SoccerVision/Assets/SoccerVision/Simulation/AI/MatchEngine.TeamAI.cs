@@ -463,10 +463,8 @@ namespace SoccerVision.Simulation
         /// takes up a position diagonally behind the presser, on the inside, so that a carrier who beats the first man
         /// runs into the second. "Pressure, cover, balance" - the rest of the line stays flat and tucks in.
         /// </summary>
-        internal static readonly string Ablate = System.Environment.GetEnvironmentVariable("SV_ABLATE") ?? "";
         private void AssignCover(TeamAgent team, PlayerAgent carrier)
         {
-            if (Ablate.Contains("cover")) return;
             var presser = team.Presser;
             if (presser == null) return;
             float carrierF = team.Forward(carrier.Pos);
@@ -498,7 +496,6 @@ namespace SoccerVision.Simulation
         /// </summary>
         private void AssignAnticipation()
         {
-            if (Ablate.Contains("antic")) return;
             var receiver = Ball.IntendedReceiver;
             if (receiver == null || receiver.SentOff || Ball.Owner != null) return;
             var team = receiver.Team.Opponent;
@@ -531,7 +528,6 @@ namespace SoccerVision.Simulation
         /// </summary>
         private void AssignShielding()
         {
-            if (Ablate.Contains("shield")) return;
             if (Ball.Owner != null || Ball.Z > 0.5f || Ball.LastTouchTeam == null) return;
             Vec2 end = _trajectory.FinalPosition;
             bool outOver = MathF.Abs(end.X) > Pitch.HalfLength + 0.5f || MathF.Abs(end.Y) > Pitch.HalfWidth + 0.5f;
@@ -709,7 +705,7 @@ namespace SoccerVision.Simulation
                 Vec2 lateral = team.SecondPresser == p ? toGoal.Perp * (MathF.Sign(Vec2.Cross(toGoal, p.Pos - carrier.Pos)) * 2.5f) : Vec2.Zero;
                 p.Task = PlayerTask.Press;
                 Vec2 approach = toGoal;
-                if (team.Presser == p && !nearGoal && !Ablate.Contains("shadow"))
+                if (team.Presser == p && !nearGoal)
                 {
                     // Cover shadow: the presser curves his run so that his body also blocks the carrier's best forward
                     // pass (to the nearest team-mate ahead of him) - pressing and cutting the lane at once.
@@ -853,7 +849,7 @@ namespace SoccerVision.Simulation
                     bool ballInFront = team.Forward(Ball.Pos) > line + 4f && Pressure(Ball.Owner, out _) > 0.3f;
                     bool trusts = chem * (0.6f + 0.4f * MathUtil.A(p.Attr.Positioning)) + 0.12f * MathF.Sin(SimTime * 0.31f + p.NoisePhaseB) > 0.55f;
                     float slack = 0.4f + 2.2f * (1f - chem);
-                    if (!Ablate.Contains("hold") && ballInFront && trusts && !Pitch.InPenaltyArea(target, team.OwnGoalSign) && team.Forward(target) < line - slack)
+                    if (ballInFront && trusts && !Pitch.InPenaltyArea(target, team.OwnGoalSign) && team.Forward(target) < line - slack)
                     {
                         target = team.ToWorld(line - slack, team.Lateral(target));
                         if (CollectDiagnostics) Count("line.hold");
@@ -861,7 +857,7 @@ namespace SoccerVision.Simulation
                     // ...and in a zonal back four nobody steps out of the line to follow a man into midfield: the
                     // midfield picks him up. (Man-markers do follow their man - that is the point of man-marking.)
                     float stepOut = 2.5f + 5f * (1f - chem);
-                    if (!Ablate.Contains("hold") && team.Tactics.Marking == MarkingStyle.Zonal && trusts && team.Forward(target) > line + stepOut)
+                    if (team.Tactics.Marking == MarkingStyle.Zonal && trusts && team.Forward(target) > line + stepOut)
                         target = team.ToWorld(line + stepOut, team.Lateral(target));
                 }
 
@@ -873,7 +869,7 @@ namespace SoccerVision.Simulation
             // The back line out of possession moves as a unit with the line (steps up and drops together) instead of
             // strolling the last couple of metres - the better the understanding, the sharper.
             bool lineDefender = !inPossession && p.Slot.Line == Line.Defence && (p.Task == PlayerTask.Shape || p.Task == PlayerTask.Mark);
-            if (!Ablate.Contains("unit") && lineDefender && MathF.Abs(team.Forward(target) - team.Forward(p.Pos)) > 0.8f)
+            if (lineDefender && MathF.Abs(team.Forward(target) - team.Forward(p.Pos)) > 0.8f)
                 urgency = MathF.Max(urgency, 0.55f + 0.25f * team.DefensiveChemistry);
             if (dist > 12f) urgency = MathF.Max(urgency, 0.8f);
             // (a marker keeps pace with his man even when close to him)

@@ -183,7 +183,7 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("  sliding", Avg(x => x.SlideTackles), "~15-25% of tackles");
     Row("  slides won", Avg(x => x.SlideTacklesWon), "n/a");
     Row("Tackles won %", 100.0 * r.Sum(x => x.TacklesWon) / Math.Max(1, r.Sum(x => x.Tackles)), "~60-65");
-    Row("Interceptions", Avg(x => x.Interceptions), "~16-17 (PL 25/26: ~8.3 per team)");
+    Row("Passes won by the opponent", Avg(x => x.Interceptions), "every lost pass, keepers incl. (Opta interceptions ~16-17)");
     Row("  read and stepped in front", Avg(x => x.AnticipatedInterceptions), "n/a");
     Row("Through balls (completed)", Avg(x => x.ThroughBalls), Avg(x => x.ThroughBallsCompleted).ToString("0.00"));
     Row("Passes into space", Avg(x => x.PassesIntoSpace), "n/a");

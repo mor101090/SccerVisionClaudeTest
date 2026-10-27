@@ -31,6 +31,19 @@ namespace SoccerVision.Simulation
             {
                 float side = kicking.Opponent.OwnGoalSign;
                 target = new Vec2(11f * side, 13f * side);
+                // Walk round the centre circle, not across it (the players are lining up there).
+                Vec2 r = Referee.Pos;
+                float clear = Pitch.CentreCircleRadius + 2f;
+                if (Vec2.DistanceToSegment(Vec2.Zero, r, target, out _) < clear)
+                {
+                    if (r.Length < clear) target = (r.LengthSq > 0.01f ? r.Normalized : new Vec2(0f, side)) * (clear + 1f);
+                    else
+                    {
+                        float a = r.Angle, b = target.Angle;
+                        float step = MathF.Sign(MathUtil.AngleDiff(a, b)) * 1.2f;
+                        target = Vec2.FromAngle(a + (step == 0f ? 1.2f : step)) * (clear + 1f);
+                    }
+                }
             }
             MoveOfficial(Referee, target, 7.2f, dt, ball);
 

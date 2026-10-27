@@ -2,6 +2,74 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/interceptions-shielding-cover-line-through-balls`
+
+All of this is engine behaviour for **both teams**. The only differences between red and blue are the two team
+instructions chosen in the previous round: Marking (red zonal, blue man-to-man) and Tackling (red Normal, blue Get stuck in).
+
+- **Interceptions (reading the game)**:
+  - When a pass is played to an opponent, his marker (or the nearest defender) works out whether he can get to the ball
+    first. If so, he steps in front of the receiver instead of waiting goal-side.
+    - How early and how safely he reads it depends on Positioning, Decisions and Marking.
+    - Commentary: "... reads it and steps in front of ...".
+  - The pressing player curves his run so his body also blocks the carrier's nearest forward pass (cover shadow).
+- **Body play**:
+  - *Shielding the ball out*: a ball rolling out of play for our restart (goal kick, throw-in), with an opponent
+    chasing it, is not played. The defender who gets there first puts his body between the ball and the chaser and
+    escorts it out.
+    - The chaser is held off according to physical strength.
+    - Commentary: "... shields it out from ... for a goal kick".
+  - *Shoulder to shoulder*: two opponents racing side by side for a loose ball lean into each other. The stronger,
+    taller and more determined one holds his line and gets there first; the other is knocked off stride.
+    - Rarely, it's a careless push (a foul).
+    - Commentary: "... muscles ... off the ball".
+- **Pressure, cover, balance** (diagonal defending): when the ball carrier is pressed in or near our half, the nearest
+  team-mate takes up a position about 6 m diagonally behind the presser, on the inside (cover). The far-side full-back
+  tucks in so there is no gap through the middle (balance).
+- **A disciplined back line**:
+  - Each team has a *defensive chemistry* score, built from its defenders' Teamwork, Positioning and Decisions.
+  - With good chemistry the back four:
+    - stays flat;
+    - steps up together when the opponent has to turn back or plays the ball backwards;
+    - leaves a forward standing beyond the line offside instead of dropping off with him (only while the ball is
+      under pressure; an unpressured passer could play it over the top, so then the line drops);
+    - in a zonal team, does not step out of the line to follow a man into midfield.
+  - Fixed along the way: line defenders strolled the last couple of metres, so the line lagged behind where it
+    should be. They now move with it.
+- **Smarter midfield**:
+  - Through balls are aimed at the widest gap in the back line near the runner (between the centre-backs, or full-back
+    and centre-back).
+  - New: passes **into space**, played ahead of a team-mate who is already running, so he takes it in his stride.
+    Commentary: "... plays it into space for ...".
+  - Central midfielders now arrive late from deep around the box (third-man runs).
+  - The passer's estimate of a through ball's chance was far too optimistic (it predicted about 65-70% success
+    against about 30% in practice), so it now allows for sweeping keepers and recovering defenders.
+- Fixes found by the tests:
+  - the referee now walks round the centre circle at kick-offs, not across it;
+  - a player who ran or slid past a line just before a goal is brought back onto the pitch during the celebration.
+- **Calibration over 200 matches** (both teams together; real-world reference in brackets):
+
+  | Measure | Result |
+  |---|---|
+  | Goals | 3.27 (2.97) |
+  | Shots | 31.6 (25.9) |
+  | Offsides | 3.8 (3.4) |
+  | Pass completion | 80% (80-85%) |
+  | Yellow cards | 4.2 (4.2) |
+  | Through balls | 28, of which 9 arrive |
+  | Passes into space | 17, about half arrive |
+  | Interceptions where the defender read the pass | 20 |
+  | Balls shielded out | 3 |
+  | Shoulder duels won | 28 |
+
+  - Switching each feature off in turn (150 matches each) shows that none of them raises the goal count by itself:
+    3.09 goals with all of them off, 3.21 with all on, within noise.
+  - Together they cut shots from 37 to 32 per match.
+- Tests:
+  - both teams read passes, shield balls out and win shoulder duels;
+  - a back line with better understanding holds a flatter line;
+  - through balls and passes into space are found and some arrive.
+
 ## `feature/defending-marking-and-tackles`
 
 - **Added time** box on the scoreboard: white text instead of green (demo page, React, Unity).

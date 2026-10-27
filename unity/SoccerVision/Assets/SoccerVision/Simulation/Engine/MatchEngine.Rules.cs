@@ -322,6 +322,8 @@ namespace SoccerVision.Simulation
                 }
                 p.FaceBall = false;
                 MovePlayer(p, dt);
+                // Back onto the pitch (a player may have run or slid past a line just before the goal).
+                if (!p.SentOff) p.Pos = Pitch.ClampToField(p.Pos, 0.3f);
             }
 
             if (_phaseTimer >= Config.GoalCelebrationSeconds)
