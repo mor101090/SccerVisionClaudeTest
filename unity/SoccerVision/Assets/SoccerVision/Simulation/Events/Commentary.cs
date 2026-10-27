@@ -156,7 +156,9 @@ namespace SoccerVision.Simulation
                 case MatchEventType.Goal: return CommentaryTone.Goal;
                 case MatchEventType.Foul:
                 case MatchEventType.Offside:
-                case MatchEventType.GoalkeeperHoldViolation: return CommentaryTone.Foul;
+                case MatchEventType.GoalkeeperHoldViolation:
+                case MatchEventType.Injury: return CommentaryTone.Foul;
+                case MatchEventType.Substitution: return CommentaryTone.Info;
                 case MatchEventType.YellowCard:
                 case MatchEventType.RedCard:
                 case MatchEventType.PenaltyAwarded: return CommentaryTone.Card;

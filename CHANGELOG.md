@@ -2,6 +2,17 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/staged-first-demo-match`
+
+- **The demo page opens on a staged match** (seed 7141), so a red card and the injuries can be examined at once. It
+  has exactly one direct red card (#4 Novak, 27'), one light injury (#9 Brakko, 19': he carries on, with the white
+  square and red cross) and one serious injury (#7 Morvak, 26': treated, helped off, #15 Quorin comes on).
+  - "New match" then picks one of the other five at random.
+  - Injuries and substitutions are now listed under "Key moments", so each can be jumped to with one click.
+  - Injuries are shown in the commentary in the foul colour, substitutions in the info colour.
+- **`main` is the main branch**: every round is merged into `main` (fast-forward) as soon as it is done, so `main`
+  always holds the latest code, and the page is published from it as well.
+
 ## `feature/corner-runup-holding-mids-stats-assistant`
 
 - **Corner run-up**: the taker used to step back into the pitch and run at the ball from the wrong side. Now he

@@ -171,7 +171,7 @@ td.l { color: var(--muted); }
       <div class="moments" id="moments"></div>
     </section>
   </div>
-  <p class="foot">This is the real C# match engine (the same code that runs inside Unity), recorded at seed <span id="seedText"></span> and replayed at its real pace. The clock runs 4.5× faster than real time, so 45 minutes take 10. The Unity build draws the same match with full graphics and sound.</p>
+  <p class="foot">This is the real C# match engine (the same code that runs inside Unity), recorded at seed <span id="seedText"></span> and replayed at its real pace. The clock runs 4.5× faster than real time, so 45 minutes take 10. The Unity build draws the same match with full graphics and sound. The first match is staged to contain one red card, one light injury and one serious injury with a substitution; find them under "Key moments".</p>
 </div>
 
 <script>__AUDIO__</script>
@@ -450,7 +450,7 @@ td.l { color: var(--muted); }
   }
 
   // ---- panels ----------------------------------------------------------------------------------------
-  var feed = $("feed"), KEY = { Goal: 1, YellowCard: 1, RedCard: 1, PenaltyAwarded: 1, Offside: 1, HitWoodwork: 1 };
+  var feed = $("feed"), KEY = { Goal: 1, YellowCard: 1, RedCard: 1, PenaltyAwarded: 1, Offside: 1, HitWoodwork: 1, Injury: 1, Substitution: 1 };
   var moments = $("moments");
   function buildMoments() {
     moments.textContent = "";
@@ -498,7 +498,8 @@ td.l { color: var(--muted); }
   function newMatch() {
     var btn = $("newmatch"); btn.disabled = true; btn.textContent = "Loading...";
     var n = PACKED.length, pick = current;
-    while (n > 1 && pick === current) pick = Math.floor(Math.random() * n);
+    if (current < 0) pick = 0; // the page opens with the staged match (a red card and two injuries); after that, at random
+    else while (n > 1 && pick === current) pick = Math.floor(Math.random() * n);
     if (n === 1) pick = 0;
     var p = cache[pick] ? Promise.resolve(cache[pick]) : unpack(PACKED[pick]).then(function (r) { cache[pick] = r; return r; });
     p.then(function (r) { current = pick; load(r); setPlaying(true); btn.textContent = "New match"; })

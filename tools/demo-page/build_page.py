@@ -2,7 +2,10 @@
 #   python3 build_page.py <work dir with e<seed>.json and audio.iife.js> <output html>
 import base64, gzip, json, os, sys
 
-SEEDS = (7014, 7052, 7070, 7099, 7117, 7141)  # demo matches: penalties, free-kick shots, offsides; 7141 has a direct red card and an injury substitution
+# Demo matches. The FIRST one (7141) is the one the page opens with: it is staged to contain exactly one direct red card,
+# one light injury (plays on) and one serious injury (automatic substitution), so they can be examined. The others are
+# shown at random after "New match".
+SEEDS = (7141, 7014, 7052, 7070, 7099, 7117)
 
 here = os.path.dirname(os.path.abspath(__file__))
 work, out = sys.argv[1], sys.argv[2]
