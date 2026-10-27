@@ -189,6 +189,13 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Passes into space", Avg(x => x.PassesIntoSpace), "n/a");
     Row("Shielded out for our restart", Avg(x => x.ShieldedOut), "n/a");
     Row("Shoulder duels won", Avg(x => x.ShoulderDuelsWon), "n/a");
+    Row("Switches of play (completed)", Avg(x => x.Switches), Avg(x => x.SwitchesCompleted).ToString("0.00"));
+    Row("Crosses by full-backs", Avg(x => x.FullBackCrosses), "~35-45% of crosses");
+    Row("Crosses by wingers", Avg(x => x.WingerCrosses), "~35-45% of crosses");
+    Row("Shots by full-backs", Avg(x => x.FullBackShots), "~1-2");
+    Row("Shots by wingers", Avg(x => x.WingerShots), "~5-7");
+    Row("Cut-backs from the by-line", Avg(x => x.CutBacks), "n/a");
+    Row("Crosses (all)", Avg(x => x.CrossesAll), "~18-22 (open play)");
     Row("Goals home / away", Avg(x => x.HomeGoals), Avg(x => x.AwayGoals).ToString("0.00"));
     Row("Shots home / away", Avg(x => x.HomeShots), Avg(x => x.AwayShots).ToString("0.00"));
     Row("Marking switches (zonal home / m2m away)", Avg(x => x.HomeSwitches), Avg(x => x.AwaySwitches).ToString("0.0"));
@@ -201,6 +208,12 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Final clock (min)", Avg(x => x.FinalClock / 60.0), ">= 90");
     Row("Distance per team (km)", Avg(x => x.DistanceKm), "105-115");
     Row("Avg final energy", Avg(x => x.AvgEnergy), "fatigue model");
+    Row("  full-backs", Avg(x => x.EnergyFullBack), "lowest of the outfield group");
+    Row("  centre-backs", Avg(x => x.EnergyCentreBack), "n/a");
+    Row("  wide midfielders", Avg(x => x.EnergyWide), "n/a");
+    Row("  central midfielders", Avg(x => x.EnergyCentral), "n/a");
+    Row("  strikers", Avg(x => x.EnergyStriker), "highest of the outfield group");
+    Row("  goalkeepers", Avg(x => x.EnergyKeeper), "highest");
     Console.WriteLine();
     var hist = r.GroupBy(x => x.Goals).OrderBy(g => g.Key).Select(g => $"{g.Key}:{g.Count()}");
     Console.WriteLine("Goals distribution: " + string.Join("  ", hist));
@@ -308,8 +321,8 @@ sealed class MatchResult
     public bool Finished;
     public int RecoveredErrors;
     public double WallMs;
-    public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots, Interceptions, AnticipatedInterceptions, ThroughBalls, ThroughBallsCompleted, PassesIntoSpace, ShieldedOut, ShoulderDuelsWon;
-    public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy;
+    public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots, Switches, SwitchesCompleted, FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks, CrossesAll, Interceptions, AnticipatedInterceptions, ThroughBalls, ThroughBallsCompleted, PassesIntoSpace, ShieldedOut, ShoulderDuelsWon;
+    public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy, EnergyFullBack, EnergyCentreBack, EnergyWide, EnergyCentral, EnergyStriker, EnergyKeeper;
     public string Score;
 
     public static MatchResult From(MatchEngine e, double ms)
@@ -359,6 +372,14 @@ sealed class MatchResult
             TacklesWon = h.TacklesWon + a.TacklesWon,
             HomeSwitches = h.MarkingSwitches,
             HomeGoals = h.Goals,
+            Switches = h.Switches + a.Switches,
+            SwitchesCompleted = h.SwitchesCompleted + a.SwitchesCompleted,
+            FullBackCrosses = h.FullBackCrosses + a.FullBackCrosses,
+            WingerCrosses = h.WingerCrosses + a.WingerCrosses,
+            FullBackShots = h.FullBackShots + a.FullBackShots,
+            WingerShots = h.WingerShots + a.WingerShots,
+            CutBacks = h.CutBacks + a.CutBacks,
+            CrossesAll = h.Crosses + a.Crosses,
             Interceptions = h.Interceptions + a.Interceptions,
             AnticipatedInterceptions = h.AnticipatedInterceptions + a.AnticipatedInterceptions,
             ThroughBalls = h.ThroughBalls + a.ThroughBalls,
@@ -381,6 +402,12 @@ sealed class MatchResult
             FinalClock = e.Clock.Seconds,
             DistanceKm = (h.DistanceCoveredKm + a.DistanceCoveredKm) / 2,
             AvgEnergy = e.AllPlayers.Average(p => p.Energy),
+            EnergyFullBack = e.AllPlayers.Where(p => !p.IsGoalkeeper && p.Slot.IsFullBack).Average(p => p.Energy),
+            EnergyCentreBack = e.AllPlayers.Where(p => !p.IsGoalkeeper && p.Slot.IsCentreBack).Average(p => p.Energy),
+            EnergyWide = e.AllPlayers.Where(p => p.Slot.IsWideMidfielder).Average(p => p.Energy),
+            EnergyCentral = e.AllPlayers.Where(p => p.Slot.IsCentralMidfielder).Average(p => p.Energy),
+            EnergyStriker = e.AllPlayers.Where(p => p.Slot.Line == Line.Attack).Average(p => p.Energy),
+            EnergyKeeper = e.AllPlayers.Where(p => p.IsGoalkeeper).Average(p => p.Energy),
             Score = $"{e.Home.Score}-{e.Away.Score}",
         };
     }

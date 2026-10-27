@@ -22,6 +22,8 @@ namespace SoccerVision.Simulation
         public float ExpectedGoals;
         /// <summary>A pass played into space ahead of a running team-mate rather than to his feet.</summary>
         public bool IntoSpace;
+        /// <summary>A long diagonal / lateral ball to the other flank that relieves pressure (a switch of play).</summary>
+        public bool IsSwitch;
     }
 
     /// <summary>
@@ -38,7 +40,8 @@ namespace SoccerVision.Simulation
         private float _riskPremium;
         private bool _shotCountedOnTarget;
         private string _lastPassKey;
-        private bool _pendingThrough, _pendingIntoSpace;
+        internal static readonly string Ablate = System.Environment.GetEnvironmentVariable("SV_ABLATE") ?? "";
+        private bool _pendingThrough, _pendingIntoSpace, _pendingSwitch;
         private bool _nextPassIntoSpace;
 
         private void ThinkOnBall(PlayerAgent p, float dt)
@@ -125,9 +128,10 @@ namespace SoccerVision.Simulation
             if (distGoal < 34f && f > 18f)
             {
                 float xg = EstimateShotXG(p, pos);
-                float tendency = p.Slot.Line == Line.Attack ? 1.25f : (p.Slot.Line == Line.Midfield ? 1.05f : 0.8f);
+                float tendency = p.Slot.Line == Line.Attack ? 1.1f : (p.Slot.Line == Line.Midfield ? 1.05f : 0.8f);
+                if (p.Slot.IsFullBack && f > 30f) tendency *= 1.3f + 0.4f * MathUtil.A(p.Attr.LongShots); // an attacking full-back at the edge of the box has a go
                 tendency *= 0.9f + 0.4f * team.Tactics.Mentality;
-                if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 2.0f; xg *= 1.15f; }
+                if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 2.3f; xg *= 1.1f; }
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
                 float afterShotLoss = 0.006f + 0.25f * _riskPremium;
@@ -348,6 +352,12 @@ namespace SoccerVision.Simulation
             // than the simple estimate suggests (measured: well below the predicted success).
             else if (kind == KickKind.ThroughBall) success *= 0.68f;
             float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure);
+            float relief = SwitchRelief(p, from, target, pressure);
+            value += relief;
+            // Cut-back: from the by-line, low and square to a team-mate arriving in the middle of the box.
+            if (team.Forward(from) > 38f && MathF.Abs(team.Lateral(from)) > 13f && team.Forward(target) > 34f && team.Forward(target) < team.Forward(from) - 2f
+                && MathF.Abs(team.Lateral(target)) < 11f && kind == KickKind.Pass && !Ablate.Contains("cutback"))
+                value *= 1.5f;
             float progress = team.Forward(target) - team.Forward(from);
             value += MathF.Max(0f, progress) * 0.00022f * (0.6f + 0.8f * team.Tactics.Tempo);
             if (progress < -5f) value -= 0.0006f * (team.Tactics.Tempo - 0.3f) * (-progress / 10f);
@@ -366,7 +376,29 @@ namespace SoccerVision.Simulation
                 Success = success,
                 Utility = utility,
                 IntoSpace = _nextPassIntoSpace,
+                IsSwitch = relief > 0.014f && kind != KickKind.ThroughBall,
             });
+        }
+
+        /// <summary>
+        /// The value of a switch of play: when the carrier is hemmed in on one flank (a crowd of opponents round him, or
+        /// real pressure), a ball to a free team-mate on the other side takes the pressure off. A full-back doing it
+        /// from the touchline is the classic case. Zero for anything that is not a lateral ball to open space.
+        /// </summary>
+        private float SwitchRelief(PlayerAgent p, Vec2 from, Vec2 target, float pressure)
+        {
+            var team = p.Team;
+            if (MathF.Abs(team.Lateral(target) - team.Lateral(from)) < 22f) return 0f;
+            if (team.Forward(target) < team.Forward(from) - 10f) return 0f;
+            int crowd = 0;
+            foreach (var o in team.Opponent.Players)
+            {
+                if (!o.SentOff && Vec2.DistanceSq(o.Pos, from) < 13f * 13f) crowd++;
+            }
+            if (crowd < 2 && pressure < 0.35f) return 0f;
+            float free = MathUtil.Clamp01((SpaceAround(team, target) - 4f) / 8f);
+            float vision = 0.6f + 0.6f * MathUtil.Clamp01((p.Attr.Passing + p.Attr.Decisions) / 200f);
+            return (0.005f * MathF.Min(crowd, 4) + 0.012f * pressure) * free * vision * (p.Slot.IsFullBack ? 1.8f : 1f);
         }
 
         /// <summary>Distance from a point to the nearest opponent outfield player (how much space there is).</summary>
@@ -447,6 +479,8 @@ namespace SoccerVision.Simulation
             float success = pWin * pControl * pAccuracy;
             if (kind == KickKind.ThroughBall) success *= 0.8f; // the keeper and the recovering defenders (see AddGroundPass)
             float value = ExpectedThreat.At(team, target);
+            float relief = SwitchRelief(p, from, target, pressure);
+            value += relief;
             float progress = team.Forward(target) - team.Forward(from);
             value += MathF.Max(0f, progress) * 0.0002f * (0.6f + 0.8f * team.Tactics.Tempo);
             float utility = success * value - (1f - success) * (LossCost(team, target) * 0.85f + _riskPremium);
@@ -463,6 +497,7 @@ namespace SoccerVision.Simulation
                 Heading = delta.Angle,
                 Success = success,
                 Utility = utility,
+                IsSwitch = relief > 0.014f && kind != KickKind.ThroughBall,
             });
         }
 
@@ -555,6 +590,13 @@ namespace SoccerVision.Simulation
                 bool inward = MathF.Abs(team.Lateral(target)) < MathF.Abs(team.Lateral(pos)) - 2f;
                 if (cutIn && inward && f > 14f && MathF.Abs(team.Lateral(pos)) > 14f) value += 0.03f * cutInSkill;
                 else if (inverted && team.Forward(pos) > 15f && inward) value += 0.003f;
+                // Wide players (wingers, attacking full-backs) love to take it down the line towards the by-line,
+                // where they can deliver; the ones who cut in (strong foot inside) prefer to come inside instead.
+                bool wideRunner = (p.Slot.IsWideMidfielder || p.Slot.IsFullBack || (p.Slot.Line == Line.Attack && MathF.Abs(p.Slot.BaseLateral) > 12f))
+                                  && !(cutIn && inverted);
+                if (!Ablate.Contains("wide") && wideRunner && f > 5f && MathF.Abs(team.Lateral(pos)) > 19f && MathF.Abs(team.Lateral(target)) > 21f
+                    && team.Forward(target) - team.Forward(pos) > 3f)
+                    value += 0.006f + 0.008f * dribbling;
                 bool progressive = team.Forward(target) - team.Forward(pos) > 3f;
                 float stale = MathF.Max(0f, p.HoldTime - (progressive ? 3f : 1.5f)) * 0.005f;
                 float utility = keep * value - (1f - keep) * (lossNow + _riskPremium) - stale;
@@ -684,11 +726,17 @@ namespace SoccerVision.Simulation
             {
                 _pendingThrough = plan.Kind == KickKind.ThroughBall && !plan.IntoSpace;
                 _pendingIntoSpace = plan.IntoSpace;
+                _pendingSwitch = plan.IsSwitch;
+                if (_pendingSwitch)
+                {
+                    p.Team.Stats.Switches++;
+                    if (CollectDiagnostics) Count("pass.switch" + (p.Slot.IsFullBack ? ".fullback" : ""));
+                }
                 if (_pendingThrough) p.Team.Stats.ThroughBalls++;
                 if (_pendingIntoSpace) p.Team.Stats.PassesIntoSpace++;
                 if (CollectDiagnostics && plan.IntoSpace) Count("pass.intospace");
             }
-            else _pendingThrough = _pendingIntoSpace = false;
+            else _pendingThrough = _pendingIntoSpace = _pendingSwitch = false;
             float pressure = Pressure(p, out _);
             switch (plan.Action)
             {
@@ -697,12 +745,17 @@ namespace SoccerVision.Simulation
                     break;
                 case BallAction.Cross:
                     p.Team.Stats.Crosses++;
+                    if (p.Slot.IsFullBack) p.Team.Stats.FullBackCrosses++;
+                    else if (p.Slot.IsWideMidfielder || (p.Slot.Line == Line.Attack && MathF.Abs(p.Slot.BaseLateral) > 12f)) p.Team.Stats.WingerCrosses++;
                     KickLofted(p, plan.Target, plan.LaunchAngle, KickKind.Cross, plan.Receiver, pressure, MathUtil.A(p.Attr.Crossing), curl: true);
                     break;
                 case BallAction.Clear:
                     KickLofted(p, plan.Target, plan.LaunchAngle, KickKind.Clearance, null, pressure, 0.35f + 0.3f * MathUtil.A(p.Attr.Passing), curl: false);
                     break;
                 case BallAction.Pass:
+                    if (!plan.Lofted && plan.Kind == KickKind.Pass && p.Team.Forward(Ball.Pos) > 38f && MathF.Abs(p.Team.Lateral(Ball.Pos)) > 13f
+                        && p.Team.Forward(plan.Target) > 34f && MathF.Abs(p.Team.Lateral(plan.Target)) < 11f && p.Team.Forward(plan.Target) < p.Team.Forward(Ball.Pos) - 2f)
+                        p.Team.Stats.CutBacks++;
                     if (plan.Lofted) KickLofted(p, plan.Target, plan.LaunchAngle, plan.Kind, plan.Receiver, pressure, MathUtil.A(p.Attr.Passing), curl: false);
                     else KickGround(p, plan, pressure);
                     break;
@@ -768,7 +821,7 @@ namespace SoccerVision.Simulation
 
         private void EmitPass(PlayerAgent p, PlayerAgent receiver, KickKind kind)
         {
-            float value = kind != KickKind.ThroughBall ? 0f : _pendingIntoSpace ? 2f : 1f;
+            float value = _pendingSwitch ? 3f : (kind != KickKind.ThroughBall ? 0f : _pendingIntoSpace ? 2f : 1f);
             Emit(kind == KickKind.LongPass ? MatchEventType.LongBall : MatchEventType.Pass, p.Team, p, receiver, Ball.Pos, value);
         }
 
@@ -788,9 +841,12 @@ namespace SoccerVision.Simulation
             else if (dist > 20f) skill = MathUtil.A(p.Attr.LongShots);
             else skill = MathUtil.A(p.Attr.Finishing);
 
+            // A winger who has cut inside onto his strong foot curls it round the keeper into the far corner.
+            bool cutInCurl = !Ablate.Contains("curl") && !header && !penalty && !volley && p.CutInUntil > SimTime && MathF.Abs(from.Y) > 6f && dist > 12f;
             // Aim: far side from the keeper (or a random side when he is central), corners or low.
             float keeperY = keeper != null ? keeper.Pos.Y : 0f;
             float side = MathF.Abs(keeperY) > 0.6f ? -MathF.Sign(keeperY) : (_rng.Chance(0.5f) ? 1f : -1f);
+            if (cutInCurl) side = -MathF.Sign(from.Y); // the far post
             if (penalty) side = _rng.Chance(0.5f) ? 1f : -1f;
             float margin = penalty ? 0.45f + 0.5f * (1f - skill) + _rng.Range(0f, 0.4f) : 0.35f + 0.9f * (1f - skill) + _rng.Range(0f, 0.5f);
             float aimY = side * MathF.Max(0.2f, Pitch.GoalHalfWidth - margin);
@@ -805,7 +861,17 @@ namespace SoccerVision.Simulation
             Vec2 dir = (aim - from).Normalized;
             float distToAim = Vec2.Distance(from, aim);
             Vec2 horizontal = dir * power;
-            float vz = KickSolver.VerticalSpeedFor(horizontal, startZ, distToAim, aimZ, Config);
+            float curlMag = 0f, curlSign = 0f;
+            if (cutInCurl)
+            {
+                // Start wide of the far post and let the curl bring it back in (the same shape as a free kick).
+                curlSign = -MathF.Sign(Vec2.Cross(dir, new Vec2(0f, side)));
+                curlMag = _rng.Range(9f, 17f) * (0.7f + 0.5f * skill);
+                dir = dir.Rotate(-curlSign * (0.04f + 0.02f * curlMag / 10f));
+                horizontal = dir * power;
+                aimZ = _rng.Range(0.5f, 1.6f);
+            }
+            float vz = KickSolver.VerticalSpeedFor(horizontal, startZ, distToAim, aimZ, Config, curlSign * curlMag, 0f);
 
             float pressure = penalty ? 0f : Pressure(p, out _);
             float composure = MathUtil.A(p.Attr.Composure);
@@ -815,6 +881,7 @@ namespace SoccerVision.Simulation
             if (!header && !penalty) sigmaA *= WeakFootFactor(p, dir);
             if (header) sigmaA *= 1.0f;
             if (volley) sigmaA *= 1.35f;
+            if (cutInCurl) sigmaA *= 1.6f; // a curler into the far corner is a fine margin
             float sigmaZ = (0.6f + 1.8f * (1f - skill)) * (1f + 0.5f * pressure) * p.FatigueError;
             if (penalty) sigmaZ *= 0.35f;
             // Technique error that does not shrink with distance (snatched/skied finishes at close range).
@@ -824,7 +891,7 @@ namespace SoccerVision.Simulation
             float angle = dir.Angle + _rng.Gaussian(0f, sigmaA) + _rng.Gaussian(0f, fixedLateral / MathF.Max(3f, distToAim));
             vz += _rng.Gaussian(0f, sigmaZ) + _rng.Gaussian(0f, fixedHeight / flight);
             Vec2 v = Vec2.FromAngle(angle) * power;
-            float curl = header ? 0f : _rng.Gaussian(0f, 6f);
+            float curl = header ? 0f : (cutInCurl ? curlSign * curlMag + _rng.Gaussian(0f, 2.5f) : _rng.Gaussian(0f, 6f));
 
             KickBall(p, from, v, vz, curl, 0f, header ? KickKind.Header : KickKind.Shot, null, aim, penalty, false, startZ);
             Ball.IsShot = true;
@@ -834,6 +901,8 @@ namespace SoccerVision.Simulation
             _shotCountedOnTarget = false;
             team.Stats.Shots++;
             team.Stats.ExpectedGoals += xg;
+            if (p.Slot.IsFullBack) team.Stats.FullBackShots++;
+            else if (p.Slot.IsWideMidfielder || (p.Slot.Line == Line.Attack && MathF.Abs(p.Slot.BaseLateral) > 12f)) team.Stats.WingerShots++;
             p.Shots++;
             if (CollectDiagnostics) Count("shot." + (header ? "header" : penalty ? "penalty" : "foot") + ".d" + ((int)(dist / 6f) * 6));
 
@@ -879,6 +948,7 @@ namespace SoccerVision.Simulation
             Ball.ShotOnTarget = onTarget;
             Ball.ShotGoalkeeperDistance = keeper != null ? Vec2.DistanceToSegment(keeper.Pos, from, crossing, out _) : 3f;
             bool cutIn = !header && !penalty && !volley && p.CutInUntil > SimTime;
+            if (cutInCurl && CollectDiagnostics) Count("shot.cutin.curl");
             if (volley) team.Stats.Volleys++;
             if (cutIn) team.Stats.CutInShots++;
             if (header) team.Stats.Headers++;
@@ -898,7 +968,7 @@ namespace SoccerVision.Simulation
             bool inverted = (slot.BaseLateral > 0f) == (p.Attr.StrongFoot == Foot.Right);
             if (!inverted) return false;
             float skill = (p.Attr.Dribbling + p.Attr.LongShots + p.Attr.Finishing + p.Attr.BallControl) / 4f;
-            return skill >= 62f;
+            return skill >= 55f;
         }
 
         /// <summary>Releases the ball from a player with the given velocity and updates all bookkeeping.</summary>
@@ -965,8 +1035,8 @@ namespace SoccerVision.Simulation
             var passer = Ball.PendingPassFrom;
             if (passer == null) return;
             Ball.PendingPassFrom = null;
-            bool through = _pendingThrough, intoSpace = _pendingIntoSpace;
-            _pendingThrough = _pendingIntoSpace = false;
+            bool through = _pendingThrough, intoSpace = _pendingIntoSpace, wasSwitch = _pendingSwitch;
+            _pendingThrough = _pendingIntoSpace = _pendingSwitch = false;
             string key = _lastPassKey;
             if (controller == null)
             {
@@ -982,6 +1052,7 @@ namespace SoccerVision.Simulation
                     passer.PassesCompleted++;
                     if (through) passer.Team.Stats.ThroughBallsCompleted++;
                     if (intoSpace && CollectDiagnostics) Count("pass.intospace.ok");
+                    if (wasSwitch) passer.Team.Stats.SwitchesCompleted++;
                     if (CollectDiagnostics)
                     {
                         Count("pass.completed");

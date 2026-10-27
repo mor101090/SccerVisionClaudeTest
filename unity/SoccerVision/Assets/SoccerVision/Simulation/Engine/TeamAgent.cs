@@ -135,6 +135,11 @@ namespace SoccerVision.Simulation
         public int ThroughBalls;
         public int ThroughBallsCompleted;
         public int PassesIntoSpace;
+        /// <summary>Switches of play (a ball to the other flank to relieve pressure) and how many reached a team-mate.</summary>
+        public int Switches;
+        public int SwitchesCompleted;
+        /// <summary>Crosses and shots by role (full-backs / wide players).</summary>
+        public int FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks;
         public int Fouls;
         public int YellowCards;
         public int RedCards;

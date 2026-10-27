@@ -209,10 +209,27 @@ namespace SoccerVision.Simulation
             {
                 if (inPossession && slot.IsFullBack)
                 {
-                    // Fullbacks overlap the winger on the ball side (design doc), and push up anyway.
-                    bool ballSide = MathF.Sign(ballL) == MathF.Sign(slot.BaseLateral) && MathF.Abs(ballL) > 6f;
-                    f += 4f + (ballSide && ballF > -5f ? 12f * (0.5f + tac.Mentality) : 0f);
-                    l = MathF.Sign(slot.BaseLateral) * (26f + 4f * tac.Width);
+                    // Fullbacks overlap the winger on the ball side (design doc) and push up anyway. How far they go is
+                    // the team's choice (mentality) and the player's: a quick, fit full-back who crosses well goes forward
+                    // far more, and leaves a bigger hole behind him.
+                    float side = MathF.Sign(slot.BaseLateral);
+                    bool ballSide = MathF.Sign(ballL) == side && MathF.Abs(ballL) > 6f;
+                    float drive = FullBackDrive(p);
+                    float push = (0.35f + 0.65f * tac.Mentality) * (0.55f + 0.45f * drive);   // 0 .. 1
+                    f += 4f + (ballSide && ballF > -5f ? 12f * (0.5f + tac.Mentality) * (0.65f + 0.7f * drive) : 0f);
+                    l = side * (26f + 4f * tac.Width);
+                    if (!Ablate.Contains("fbpush") && ballSide && ballF > 22f && push > 0.5f)
+                    {
+                        // Attacking full-back in the final third: up beside the winger and beyond the ball, into the by-line.
+                        f = MathF.Max(f, MathF.Min(ballF + 3f + 5f * push, 38f + 8f * push));
+                        l = side * (24f + 3f * tac.Width);
+                    }
+                    else if (!ballSide && ballF > 8f)
+                    {
+                        // Far-side full-back tucks in and holds the line (balance): he is the safety for the counter.
+                        f = MathF.Min(f, ballF - 10f + 8f * push);
+                        l = side * (17f + 3f * tac.Width);
+                    }
                 }
                 if (inPossession && slot.IsCentreBack) f = MathF.Min(f, 0f); // CBs: no further than halfway
                 if (!inPossession && slot.IsFullBack) f += 1.5f * (1f - team.DefensiveChemistry); // a well-drilled line is flat
@@ -1091,13 +1108,33 @@ namespace SoccerVision.Simulation
             }
         }
 
+        /// <summary>How attacking a full-back is by nature (0..1): crossing, pace, stamina and running off the ball.</summary>
+        public static float FullBackDrive(PlayerAgent p) =>
+            MathUtil.Clamp01((p.Attr.Crossing + p.Attr.Speed + p.Attr.Stamina + p.Attr.OffTheBall) / 400f);
+
+        /// <summary>
+        /// How hard a position works, as a multiplier on the energy drain. Defenders run all the time (full-backs up and
+        /// down the flank, centre-backs stepping out and recovering), wide midfielders and central midfielders cover the
+        /// most ground, strikers press in bursts, and a goalkeeper hardly tires.
+        /// </summary>
+        public static float WorkRate(PlayerAgent p)
+        {
+            var slot = p.Slot;
+            if (p.IsGoalkeeper) return 0.35f;
+            if (slot.IsFullBack) return 1.25f;
+            if (slot.IsWideMidfielder) return 1.15f;
+            if (slot.IsCentralMidfielder) return 1.1f;
+            if (slot.IsCentreBack) return 1.05f;
+            return 0.95f;
+        }
+
         private void UpdateEnergy(PlayerAgent p, float speed, float dt)
         {
             float clockDt = dt * Config.ClockSecondsPerSimSecond;
             float intensity = speed / MathF.Max(1f, p.MaxSpeed);
             float staminaFactor = 1.35f - 0.7f * MathUtil.A(p.Attr.Stamina);
-            float drain = (0.00006f + 0.00085f * intensity * intensity * intensity) * staminaFactor;
-            if (p.IsGoalkeeper) drain *= 0.5f;
+            float drain = (0.00005f + 0.00066f * intensity * intensity * intensity) * staminaFactor;
+            drain *= WorkRate(p);
             float recover = speed < 2.2f ? 0.00004f : 0f;
             p.Energy = MathUtil.Clamp(p.Energy - (drain - recover) * clockDt, 0.25f, 1f);
         }

@@ -485,36 +485,111 @@ namespace SoccerVision.Simulation
             var gk = def.Goalkeeper;
             if (gk != null) gk.ShapeTarget = new Vec2((Pitch.HalfLength - 0.7f) * goalSign, -nearSide * 0.9f);
 
-            // Attackers line up onside on the defensive line; defenders hold the line at the edge of the box.
-            float defLineLocal = MathF.Min(-37f, def.Forward(r.Spot) - 6f); // defending team's local frame
-            float attOnside = -defLineLocal - 0.4f;                          // same line, attacking frame
-            var attackers = new List<PlayerAgent>();
-            foreach (var p in att.Players) if (!p.SentOff && !p.IsGoalkeeper && p != r.Taker) attackers.Add(p);
-            attackers.Sort((x, y) => (y.Attr.Heading + y.Attr.OffTheBall).CompareTo(x.Attr.Heading + x.Attr.OffTheBall));
-            int n = Math.Min(5, attackers.Count);
-            for (int i = 0; i < n; i++)
+            if (!Ablate.Contains("fkbox")) LayoutFreeKickBox(r, centre);
+        }
+
+        /// <summary>
+        /// The box at a free kick in the attacking third, as at a corner: the best headers are spread over the near post,
+        /// far post, penalty spot and the edges of the area, each with a defender goal-side of him (a pair, shoulder to
+        /// shoulder), a couple of players at the edge of the box for the second ball, and the rest guarding the counter.
+        /// Nobody stands in a straight line.
+        /// </summary>
+        private void LayoutFreeKickBox(Restart r, Vec2 wallCentre)
+        {
+            var att = r.Team;
+            var def = att.Opponent;
+            float dist = Vec2.Distance(r.Spot, att.AttackGoal);
+            bool shooting = r.Type == RestartType.DirectFreeKick && dist < 33f && MathF.Abs(r.Spot.Y) < 22f;
+            float side = MathF.Abs(att.Lateral(r.Spot)) > 1f ? MathF.Sign(att.Lateral(r.Spot)) : (_rng.Chance(0.5f) ? 1f : -1f);
+            var zones = new[]
             {
-                float lat = -10f + i * 5f;
-                attackers[i].ShapeTarget = att.ToWorld(attOnside, lat);
+                new Vec2(47.0f, side * 2.6f),    // near post
+                new Vec2(47.2f, -side * 3.6f),   // far post
+                new Vec2(42.0f, side * 0.8f),    // penalty spot
+                new Vec2(43.5f, -side * 8.5f),   // far side of the area
+                new Vec2(44.0f, side * 9.0f),    // near side of the area
+                new Vec2(38.5f, -side * 3.5f),   // edge of the box, second ball
+            };
+            int nBox = shooting ? 3 : (dist > 28f ? 4 : 5);
+
+            var candidates = new List<PlayerAgent>();
+            foreach (var p in att.Players) if (!p.SentOff && !p.IsGoalkeeper && p != r.Taker) candidates.Add(p);
+            float Aerial(PlayerAgent p) => p.Attr.Heading + p.Attr.Jumping + (p.Profile.HeightCm - 180) * 1.2f;
+            candidates.Sort((x, y) => Aerial(y).CompareTo(Aerial(x)));
+            // One centre-back (the weakest in the air) and the full-backs stay back against the counter.
+            PlayerAgent stayCb = null;
+            foreach (var p in candidates) if (p.Slot.IsCentreBack) stayCb = p;
+            var inBox = new List<PlayerAgent>();
+            var rest = new List<PlayerAgent>();
+            foreach (var p in candidates)
+            {
+                if (inBox.Count < nBox && !p.Slot.IsFullBack && p != stayCb && p.Slot.Line != Line.Goalkeeper) inBox.Add(p);
+                else rest.Add(p);
             }
-            var markedBy = new HashSet<PlayerAgent>(r.Wall);
-            for (int i = 0; i < n; i++)
+            int zi = 0;
+            foreach (var p in inBox)
             {
-                var m = NearestTo(def, attackers[i].ShapeTarget, markedBy);
+                Vec2 z = zones[zi % zones.Length];
+                for (int guard = 0; guard < zones.Length && Vec2.Distance(att.ToWorld(z.X, z.Y), r.Spot) < 4.5f; guard++)
+                {
+                    zi++;
+                    z = zones[zi % zones.Length];
+                }
+                zi++;
+                p.ShapeTarget = att.ToWorld(z.X + _rng.Range(-1.0f, 1.0f), z.Y + _rng.Range(-0.8f, 0.8f));
+            }
+            int recycle = 0;
+            foreach (var p in rest)
+            {
+                if (p.Slot.IsFullBack) p.ShapeTarget = att.ToWorld(_rng.Range(4f, 12f), (recycle++ % 2 == 0 ? 1f : -1f) * _rng.Range(10f, 16f));
+                else if (p == stayCb) p.ShapeTarget = att.ToWorld(_rng.Range(10f, 15f), _rng.Range(-4f, 4f));
+                else if (recycle < 4) p.ShapeTarget = att.ToWorld(_rng.Range(31f, 35f), (recycle++ % 2 == 0 ? 1f : -1f) * _rng.Range(8f, 14f));
+            }
+
+            // Defenders: pair up goal-side of each attacker; the others cover the edge of the box and the second ball.
+            var pairUsed = new HashSet<PlayerAgent>(r.Wall);
+            foreach (var p in inBox)
+            {
+                var m = NearestTo(def, p.ShapeTarget, pairUsed);
                 if (m == null) break;
-                markedBy.Add(m);
-                Vec2 local = def.ToLocal(attackers[i].ShapeTarget);
-                m.ShapeTarget = def.ToWorld(MathF.Max(local.X - 0.8f, defLineLocal - 0.3f), local.Y + 0.5f);
+                pairUsed.Add(m);
+                Vec2 toGoal = (def.OwnGoal - p.ShapeTarget).Normalized;
+                // some mark tight (man to man), some stand off in a zone
+                float gap = m.Attr.Marking > 55 ? 0.95f : 1.7f;
+                m.ShapeTarget = p.ShapeTarget + toGoal * gap + toGoal.Perp * _rng.Range(-0.4f, 0.4f);
             }
-            // Keep everyone legal: 9.15 m from the ball, attackers 1 m from the wall.
+            int edge = 0;
+            foreach (var d in def.Players)
+            {
+                if (d.SentOff || d.IsGoalkeeper || pairUsed.Contains(d)) continue;
+                if (d.Slot.Line == Line.Attack) continue; // strikers stay high for the counter
+                if (edge < 3)
+                {
+                    d.ShapeTarget = def.ToWorld(_rng.Range(-37f, -34f) , (edge % 2 == 0 ? 1f : -1f) * (_rng.Range(5f, 13f)) * (edge == 2 ? 0.4f : 1f));
+                    edge++;
+                }
+            }
+
+            // Keep everyone legal: defenders 9.15 m from the ball, attackers 1.3 m from the wall and onside at the kick.
             foreach (var p in def.Players)
             {
                 if (p.SentOff || r.Wall.Contains(p)) continue;
                 p.ShapeTarget = OutsideCircle(p.ShapeTarget, r.Spot, Pitch.RestartDistance + 0.4f);
             }
+            float second = float.NegativeInfinity, last = float.NegativeInfinity;
+            foreach (var p in def.Players)
+            {
+                if (p.SentOff) continue;
+                float f = att.Forward(p.ShapeTarget);
+                if (f > last) { second = last; last = f; }
+                else if (f > second) second = f;
+            }
+            float ballF = att.Forward(r.Spot);
             foreach (var p in att.Players)
             {
                 if (p.SentOff || p == r.Taker) continue;
+                float f = att.Forward(p.ShapeTarget);
+                if (f > ballF && f > second - 0.3f) p.ShapeTarget = att.ToWorld(MathF.Max(ballF, second - 0.4f), att.Lateral(p.ShapeTarget));
                 foreach (var w in r.Wall)
                 {
                     if (Vec2.Distance(p.ShapeTarget, w.ShapeTarget) < 1.3f) p.ShapeTarget = w.ShapeTarget + (p.ShapeTarget - w.ShapeTarget).Normalized * 1.4f;
@@ -1034,16 +1109,36 @@ namespace SoccerVision.Simulation
             }
             if (dangerous)
             {
-                // Deliver into the box like a corner.
+                // Deliver into the box like a corner: to one of the players waiting there (the better in the air, the likelier).
                 var zoneLocal = new Vec2(_rng.Range(41f, 46f), _rng.Range(-5f, 5f));
                 Vec2 target = team.ToWorld(zoneLocal.X, zoneLocal.Y);
                 PlayerAgent receiver = null;
-                float bestD = float.PositiveInfinity;
+                float total = 0f;
                 foreach (var q in team.Players)
                 {
-                    if (q.SentOff || q == taker || q.IsGoalkeeper) continue;
-                    float d = Vec2.Distance(q.Pos, target);
-                    if (d < bestD) { bestD = d; receiver = q; }
+                    if (q.SentOff || q == taker || q.IsGoalkeeper || team.Forward(q.Pos) < 36f || MathF.Abs(team.Lateral(q.Pos)) > 18f) continue;
+                    total += 1f + MathF.Max(0f, (q.Attr.Heading + q.Attr.Jumping) / 100f);
+                }
+                if (total > 0f)
+                {
+                    float pick = _rng.NextFloat() * total;
+                    foreach (var q in team.Players)
+                    {
+                        if (q.SentOff || q == taker || q.IsGoalkeeper || team.Forward(q.Pos) < 36f || MathF.Abs(team.Lateral(q.Pos)) > 18f) continue;
+                        pick -= 1f + MathF.Max(0f, (q.Attr.Heading + q.Attr.Jumping) / 100f);
+                        if (pick <= 0f) { receiver = q; break; }
+                    }
+                    if (receiver != null) target = Pitch.ClampToField(receiver.Pos, 1f);
+                }
+                if (receiver == null)
+                {
+                    float bestD = float.PositiveInfinity;
+                    foreach (var q in team.Players)
+                    {
+                        if (q.SentOff || q == taker || q.IsGoalkeeper) continue;
+                        float d = Vec2.Distance(q.Pos, target);
+                        if (d < bestD) { bestD = d; receiver = q; }
+                    }
                 }
                 team.Stats.Crosses++;
                 KickLofted(taker, target, 0.4f, KickKind.Cross, receiver, 0f, MathUtil.A((taker.Attr.Crossing + taker.Attr.FreeKicks) / 2), true);

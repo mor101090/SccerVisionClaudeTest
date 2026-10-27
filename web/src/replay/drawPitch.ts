@@ -277,7 +277,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
       }
       return;
     }
-    const grow = 1 + h * 0.2;
+    const grow = 1 + h * 0.06;
     const shrink = 1 - h * 0.6;
     ctx.fillStyle = `rgba(0,0,0,${0.5 * shrink})`;
     ctx.beginPath();
@@ -352,14 +352,14 @@ function drawDownPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
   const c = Math.cos(a);
   const sn = Math.sin(a);
   if (sliding) {
-    const g = ctx.createLinearGradient(x - c * r * 4, y - sn * r * 4, x, y);
+    const g = ctx.createLinearGradient(x - c * r * 2.4, y - sn * r * 2.4, x, y);
     g.addColorStop(0, "rgba(225,240,205,0)");
-    g.addColorStop(1, "rgba(225,240,205,0.45)");
+    g.addColorStop(1, "rgba(225,240,205,0.3)");
     ctx.strokeStyle = g;
-    ctx.lineWidth = r * 1.1;
+    ctx.lineWidth = r * 0.5;
     ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.moveTo(x - c * r * 4, y - sn * r * 4);
+    ctx.moveTo(x - c * r * 2.4, y - sn * r * 2.4);
     ctx.lineTo(x - c * r * 0.6, y - sn * r * 0.6);
     ctx.stroke();
   }
@@ -368,10 +368,10 @@ function drawDownPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
   ctx.rotate(a);
   ctx.fillStyle = "rgba(0,0,0,0.45)";
   ctx.beginPath();
-  ctx.ellipse(0.15 * s, 0.2 * s, r * 1.7, r * 0.95, 0, 0, Math.PI * 2);
+  ctx.ellipse(0.15 * s, 0.2 * s, r * 1.1, r * 0.98, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(0, 0, r * 1.6, r * 0.85, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, r * 1.12, r * 0.96, 0, 0, Math.PI * 2);
   ctx.fillStyle = fill;
   ctx.fill();
   ctx.lineWidth = Math.max(1, r * 0.18);

@@ -34,7 +34,7 @@ namespace SoccerVision.Runtime
             _body.SetParent(_lift, false);
             _fill = SpriteFactory.AddSprite(_body, "Fill", SpriteFactory.Circle, kit, 12, 1f);
             _ring = SpriteFactory.AddSprite(_body, "Ring", SpriteFactory.Ring, ringColor, 13, 1f);
-            _streak = SpriteFactory.AddSprite(transform, "SlideStreak", SpriteFactory.Square, new Color(0.88f, 0.94f, 0.8f, 0.4f), 11, 1f);
+            _streak = SpriteFactory.AddSprite(transform, "SlideStreak", SpriteFactory.Square, new Color(0.88f, 0.94f, 0.8f, 0.3f), 11, 1f);
             _streak.enabled = false;
             // TextMesh world height ~= fontSize * characterSize * 0.1 (relative to the 1-unit body here).
             _number = SpriteFactory.AddText(_body, "Number", agent.Number.ToString(), numberColor, 14, 0.085f);
@@ -110,7 +110,7 @@ namespace SoccerVision.Runtime
             // shadow stays on the grass and shrinks and fades in proportion to the height, so the height reads at a glance.
             float h = Mathf.Clamp(jump, 0f, 1f);
             _lift.localPosition = new Vector3(0f, h * 2.2f, 0f);
-            float s = Diameter * (1f + h * 0.2f);
+            float s = Diameter * (1f + h * 0.06f);
             _body.localScale = new Vector3(s, s, 1f);
             float shadow = Diameter * 1.25f * (1f - h * 0.6f);
             _shadow.transform.localScale = new Vector3(shadow, shadow, 1f);
@@ -123,7 +123,7 @@ namespace SoccerVision.Runtime
         private void UpdateDown(bool sliding, bool down, float facing)
         {
             var rot = down ? Quaternion.Euler(0f, 0f, facing * Mathf.Rad2Deg) : Quaternion.identity;
-            var scale = down ? new Vector3(1.6f, 0.85f, 1f) : Vector3.one;
+            var scale = down ? new Vector3(1.12f, 0.96f, 1f) : Vector3.one;
             _fill.transform.localRotation = rot;
             _ring.transform.localRotation = rot;
             _fill.transform.localScale = scale;
@@ -131,11 +131,11 @@ namespace SoccerVision.Runtime
             _streak.enabled = sliding;
             if (sliding)
             {
-                const float len = 3.2f;
+                const float len = 2.0f;
                 Vector2 dir = new Vector2(Mathf.Cos(facing), Mathf.Sin(facing));
                 _streak.transform.localPosition = new Vector3(-dir.x * len * 0.5f, -dir.y * len * 0.5f, 0f);
                 _streak.transform.localRotation = Quaternion.Euler(0f, 0f, facing * Mathf.Rad2Deg);
-                _streak.transform.localScale = new Vector3(len, Diameter * 0.9f, 1f);
+                _streak.transform.localScale = new Vector3(len, Diameter * 0.45f, 1f);
             }
         }
 
