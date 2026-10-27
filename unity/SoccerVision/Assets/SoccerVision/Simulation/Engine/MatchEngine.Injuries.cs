@@ -204,7 +204,7 @@ namespace SoccerVision.Simulation
             p.Substitute(sub.Profile);
             // Law 3: the substitute enters at the halfway line.
             float benchX = team == Home ? -6f : 6f;
-            Vec2 entry = new Vec2(benchX, Pitch.HalfWidth + 0.8f);
+            Vec2 entry = new Vec2(benchX, Pitch.HalfWidth - 0.3f);
             p.Pos = p.PrevPos = walkOn ? entry : p.ShapeTarget;
             p.Vel = Vec2.Zero;
             p.Target = p.ShapeTarget;
