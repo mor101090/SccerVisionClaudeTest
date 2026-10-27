@@ -65,17 +65,20 @@ namespace SoccerVision.Simulation
             x = MathUtil.Clamp(x * goalSign, 0f, Pitch.HalfLength) * goalSign;
             if (a.HoldPosition && a.FlagTimer > 0f) x = a.HoldX; // flag up, standing in line with the offence
             else a.HoldPosition = false;
-            var target = new Vec2(x, (Pitch.HalfWidth + 1.2f) * a.TouchlineSign);
-            // A corner in his half: he stands back behind the goal line, a few metres from the corner flag, out of the
-            // taker's way (not next to the ball).
+            // He runs along his own touchline, on the line, in his own half only.
+            const float onLine = Pitch.HalfWidth + 0.45f;
+            var target = new Vec2(x, onLine * a.TouchlineSign);
+            // A corner in his half: still on his touchline, a few metres up from the corner flag (out of the taker's way),
+            // where he can see the goal line.
             if (Phase == MatchPhase.Stoppage && _restart != null && _restart.Type == RestartType.CornerKick && MathF.Sign(_restart.Spot.X) == goalSign)
             {
-                float ySide = MathF.Sign(_restart.Spot.Y);
-                target = ySide == a.TouchlineSign
-                    ? new Vec2((Pitch.HalfLength + 1.6f) * goalSign, (Pitch.HalfWidth - 4f) * ySide)       // near corner: behind the goal line
-                    : new Vec2((Pitch.HalfLength - 2.5f) * goalSign, (Pitch.HalfWidth + 1.2f) * a.TouchlineSign); // far corner: own touchline
+                bool nearSide = MathF.Sign(_restart.Spot.Y) == a.TouchlineSign;
+                target = new Vec2((Pitch.HalfLength - (nearSide ? 5.5f : 1.5f)) * goalSign, onLine * a.TouchlineSign);
             }
             MoveOfficial(a, target, 7f, dt, ball);
+            // He never runs past the corner flag or into the other half (no overshoot).
+            float limitX = MathUtil.Clamp(a.Pos.X * goalSign, -0.5f, Pitch.HalfLength - 0.3f) * goalSign;
+            if (limitX != a.Pos.X) { a.Pos = new Vec2(limitX, a.Pos.Y); a.Vel = new Vec2(0f, a.Vel.Y); }
         }
 
         private static void MoveOfficial(Official o, Vec2 target, float maxSpeed, float dt, Vec2 lookAt)

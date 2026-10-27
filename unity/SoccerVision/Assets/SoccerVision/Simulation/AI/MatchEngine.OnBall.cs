@@ -929,7 +929,7 @@ namespace SoccerVision.Simulation
             float pressure = penalty ? 0f : Pressure(p, out _);
             float composure = MathUtil.A(p.Attr.Composure);
             float stake = penalty ? 0.25f : 0f;
-            float sigmaA = (0.085f + 0.16f * (1f - skill)) * (1f + 0.75f * pressure * (1.2f - composure) + stake) * p.FatigueError;
+            float sigmaA = (0.105f + 0.19f * (1f - skill)) * (1f + 0.75f * pressure * (1.2f - composure) + stake) * p.FatigueError;
             if (penalty) sigmaA *= 0.2f;
             // (the techniques for the weaker side already price in which foot is used)
             if (tech == ShotTechnique.Power || tech == ShotTechnique.PlacedNear || tech == ShotTechnique.PlacedFar) sigmaA *= WeakFootFactor(p, dir);
@@ -972,8 +972,9 @@ namespace SoccerVision.Simulation
                     if (d.SentOff || d.IsGoalkeeper || d.StunTimer > 0f) continue;
                     Vec2 rel = d.Pos - from;
                     float gap = rel.Length;
-                    if (gap > 2.2f || Vec2.Dot(rel, dir) <= 0.2f * gap) continue;
-                    float pBlock = 0.42f * (1f - gap / 2.2f) + 0.12f * MathUtil.A(d.Attr.Tackling) + 0.06f * MathUtil.A(d.Attr.Positioning);
+                    // He must get a leg or his body to the ball: within reach of where it is struck.
+                    if (gap > 1.3f || Vec2.Dot(rel, dir) <= 0.2f * gap) continue;
+                    float pBlock = 0.45f * (1f - gap / 1.3f) + 0.12f * MathUtil.A(d.Attr.Tackling) + 0.06f * MathUtil.A(d.Attr.Positioning);
                     if (_rng.Chance(pBlock))
                     {
                         Emit(MatchEventType.Shot, team, p, null, from, xg);
@@ -1117,6 +1118,7 @@ namespace SoccerVision.Simulation
                               KickKind kind, PlayerAgent receiver, Vec2 target, bool restartKick, bool offsideException,
                               float startZ = Pitch.BallRadius)
         {
+            if (CollectDiagnostics) ContactCheck(p, from, startZ, "kick." + kind + (_restartKick ? ".restart" + (_restart != null ? _restart.Type.ToString() : "") : "") + (Ball.Owner == p ? ".owned" : ".loose"));
             Ball.Owner = null;
             Ball.InHands = false;
             Ball.M = new BallMotion
@@ -1187,6 +1189,9 @@ namespace SoccerVision.Simulation
             }
             if (controller.Team == passer.Team)
             {
+                if (CollectDiagnostics)
+                    foreach (var d in passer.Team.Opponent.Players)
+                        if (d.AnticipatedAt >= Ball.LastKickTime) { _diagAnticipateMissAt[passer.Team.Opponent.Index] = SimTime; Count("anticipate.missed"); break; }
                 if (controller != passer)
                 {
                     passer.Team.Stats.PassesCompleted++;

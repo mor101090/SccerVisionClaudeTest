@@ -224,36 +224,12 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     fillCentered(ctx, i === 0 ? "R" : "L", px(v, o.x), py(v, o.y));
-    if (i > 0 && o.flag) {
-      // Flag held up above the assistant, waving gently (offside flags stay up for several seconds).
-      const wave = Math.sin(time * 6) * 0.15;
-      const fx = px(v, o.x);
-      const fy = py(v, o.y);
-      ctx.strokeStyle = "#222";
-      ctx.lineWidth = Math.max(1.5, 0.15 * s);
-      ctx.beginPath();
-      ctx.moveTo(fx + 0.3 * s, fy - 0.5 * s);
-      ctx.lineTo(fx + 0.3 * s, fy - 2.6 * s);
-      ctx.stroke();
-      ctx.fillStyle = "#ffd21a";
-      ctx.beginPath();
-      ctx.moveTo(fx + 0.3 * s, fy - 2.6 * s);
-      ctx.lineTo(fx + (1.9 + wave) * s, fy - (2.2 + wave) * s);
-      ctx.lineTo(fx + 0.3 * s, fy - 1.6 * s);
-      ctx.fill();
-    }
+    if (i > 0) assistantFlag(ctx, px(v, o.x), py(v, o.y), s, time, o.flag, o.x < 0 ? -1 : 1);
+    if (i === 0 && o.card) refereeCard(ctx, px(v, o.x), py(v, o.y), s, o.card);
   });
   // Corner flags
-  for (const cx of [-HL, HL])
-    for (const cy of [-HW, HW]) {
-      const wave = Math.sin(time * 3.2 + cx + cy) * 0.15;
-      ctx.fillStyle = "#ffc400";
-      ctx.beginPath();
-      ctx.moveTo(px(v, cx), py(v, cy) - 1.4 * s);
-      ctx.lineTo(px(v, cx) + 0.9 * s, py(v, cy) - (1.15 + wave) * s);
-      ctx.lineTo(px(v, cx), py(v, cy) - 0.9 * s);
-      ctx.fill();
-    }
+  let flagIndex = 0;
+  for (const cx of [-HL, HL]) for (const cy of [-HW, HW]) cornerFlag(ctx, px(v, cx), py(v, cy), s, time, flagIndex++, cx < 0 ? 1 : -1);
   // Players: circle with border and number; lifted while jumping.
   snap.players.forEach((p, i) => {
     if (p.sentOff && Math.abs(p.y) > 35.5) return;
@@ -344,6 +320,103 @@ export function fillCentered(ctx: CanvasRenderingContext2D, text: string, x: num
   ctx.textBaseline = "alphabetic";
   const m = ctx.measureText(text);
   ctx.fillText(text, x - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, y + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
+}
+
+/**
+ * Cloth that moves the way a real flag does in a light breeze: no flapping, a slow sway of the whole flag and a soft
+ * ripple running from the pole to the free edge, growing towards the free edge. Returns the top edge points.
+ */
+function clothEdge(x0: number, y0: number, w: number, h: number, t: number, seed: number, dir: number): [number, number][] {
+  const sway = Math.sin(t * 0.45 + seed) * 0.06 + Math.sin(t * 0.17 + seed * 2) * 0.04;
+  const pts: [number, number][] = [];
+  const n = 6;
+  for (let k = 0; k <= n; k++) {
+    const u = k / n;
+    const ripple = Math.sin(t * 1.7 + seed - u * 2.4) * 0.07 * u * h;
+    pts.push([x0 + dir * u * w * (1 - 0.04 * u), y0 + ripple + sway * u * h + 0.1 * u * u * h]);
+  }
+  return pts;
+}
+
+function clothPath(ctx: CanvasRenderingContext2D, pts: [number, number][], y0: number, y1: number, from: number, to: number) {
+  ctx.beginPath();
+  for (let k = from; k <= to; k++) ctx.lineTo(pts[k][0], pts[k][1] + y0);
+  for (let k = to; k >= from; k--) ctx.lineTo(pts[k][0], pts[k][1] + y1);
+  ctx.closePath();
+}
+
+/** Corner flag: white pole, yellow cloth. */
+function cornerFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number, seed: number, dir: number) {
+  const top = y - 2.6 * s;
+  ctx.strokeStyle = "rgba(0,0,0,0.25)";
+  ctx.lineWidth = Math.max(1, 0.12 * s);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + 0.5 * s, y + 0.25 * s);
+  ctx.stroke();
+  ctx.strokeStyle = "#f4f4f2";
+  ctx.lineWidth = Math.max(1.5, 0.2 * s);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, top);
+  ctx.stroke();
+  const h = 0.95 * s;
+  const pts = clothEdge(x, top, 1.35 * s, h, t, seed * 1.7, dir);
+  clothPath(ctx, pts, 0, h, 0, pts.length - 1);
+  ctx.fillStyle = "#ffd21f";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(160,110,0,0.55)";
+  ctx.lineWidth = Math.max(0.8, 0.05 * s);
+  ctx.stroke();
+}
+
+/** The assistant's flag: black handle, checked orange / neon-yellow cloth; held down at his side, or up for offside. */
+function assistantFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number, up: boolean, side: number) {
+  const hx = x + side * 0.55 * s;
+  ctx.strokeStyle = "#111";
+  ctx.lineWidth = Math.max(1.4, 0.16 * s);
+  ctx.beginPath();
+  if (up) {
+    ctx.moveTo(hx, y - 0.3 * s);
+    ctx.lineTo(hx, y - 3.2 * s);
+  } else {
+    ctx.moveTo(hx, y + 0.1 * s);
+    ctx.lineTo(hx, y + 0.9 * s);
+  }
+  ctx.stroke();
+  const w = (up ? 1.6 : 0.95) * s;
+  const h = (up ? 1.2 : 0.72) * s;
+  const top = up ? y - 3.2 * s : y + 0.5 * s;
+  const pts = clothEdge(hx, top, w, h, t * (up ? 1.6 : 0.8), 3.1, side);
+  for (let qx = 0; qx < 2; qx++)
+    for (let qy = 0; qy < 2; qy++) {
+      clothPath(ctx, pts, (qy * h) / 2, ((qy + 1) * h) / 2, qx * 3, qx * 3 + 3);
+      ctx.fillStyle = (qx + qy) % 2 ? "#ff5a1f" : "#e4f53c";
+      ctx.fill();
+    }
+  clothPath(ctx, pts, 0, h, 0, pts.length - 1);
+  ctx.strokeStyle = "#ff5a1f";
+  ctx.lineWidth = Math.max(0.8, 0.07 * s);
+  ctx.stroke();
+}
+
+/** The referee holds a card up above his head: yellow, or red. */
+function refereeCard(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, card: number) {
+  const w = 1.05 * s;
+  const h = 1.45 * s;
+  const cx = x + 0.45 * s;
+  const top = y - 3.6 * s;
+  ctx.strokeStyle = "#121212";
+  ctx.lineWidth = Math.max(1.2, 0.14 * s);
+  ctx.beginPath();
+  ctx.moveTo(x + 0.25 * s, y - 0.5 * s);
+  ctx.lineTo(cx, top + h);
+  ctx.stroke();
+  ctx.fillStyle = card === 2 ? "#e0262b" : "#ffd21a";
+  ctx.fillRect(cx - w / 2, top, w, h);
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.lineWidth = Math.max(1, 0.06 * s);
+  ctx.strokeRect(cx - w / 2, top, w, h);
 }
 
 /** An injured player (playing on): a small white square with a red cross, opposite the card marker. */

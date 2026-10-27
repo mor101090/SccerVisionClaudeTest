@@ -46,7 +46,7 @@ namespace SoccerVision.Simulation
                 {
                     // The full-back closing the crosser gets a leg in the way.
                     surprised = false;
-                    footReach = 1.1f;
+                    footReach = 0.95f;
                 }
                 if (blocker)
                 {
@@ -241,6 +241,7 @@ namespace SoccerVision.Simulation
 
         private void GainControl(PlayerAgent p, float relSpeed)
         {
+            if (CollectDiagnostics) ContactCheck(p, Ball.Pos, Ball.Z, "control");
             bool changeOfPossession = Ball.LastTouchTeam != p.Team;
             ResolvePendingPass(p);
             if (changeOfPossession) ClearOffside();
@@ -270,8 +271,21 @@ namespace SoccerVision.Simulation
         }
 
         /// <summary>Gives the ball a new free velocity after touching <paramref name="p"/>.</summary>
-        private void SetDeflection(PlayerAgent p, Vec2 horizontal, float vz)
+        /// <summary>
+        /// Diagnostics: how far the player was from the ball when he touched it. A touch from further than a leg (or, for a
+        /// keeper, an arm and a dive) can reach would look like the ball moving on its own.
+        /// </summary>
+        internal void ContactCheck(PlayerAgent p, Vec2 ballPos, float ballZ, string what)
         {
+            float d = Vec2.Distance(p.Pos, ballPos);
+            float limit = p.IsGoalkeeper ? 2.6f : 1.25f;
+            if (d > limit) Count("contact.far." + what + (p.IsGoalkeeper ? ".gk" : "") + (d > limit + 1f ? ".gt1m" : ".lt1m"));
+            Count("contact.all");
+        }
+
+        private void SetDeflection(PlayerAgent p, Vec2 horizontal, float vz, [System.Runtime.CompilerServices.CallerMemberName] string caller = "")
+        {
+            if (CollectDiagnostics) ContactCheck(p, Ball.Pos, Ball.Z, "deflect." + caller);
             Ball.Owner = null;
             Ball.InHands = false;
             Ball.M.Vx = horizontal.X;
@@ -517,13 +531,14 @@ namespace SoccerVision.Simulation
                 return;
             }
             gk.Team.Stats.KeeperParries++;
+            _diagParryAt[gk.Team.Index] = SimTime;
             // Parry: tipped over / round the post for a corner, or pushed away (sometimes into danger).
             Vec2 goal = gk.Team.OwnGoal;
             Vec2 outward = (Ball.Pos - goal);
             Vec2 lateral = new Vec2(0f, outward.Y >= 0f ? 1f : -1f);
             Vec2 forward = (gk.Team.DirToWorld(Vec2.UnitX));
             Ball.IsShot = false;
-            if (_rng.Chance(0.6f))
+            if (_rng.Chance(0.7f))
             {
                 // Over the bar or round the post: aim outside the frame so it can never trickle in.
                 bool overBar = Ball.Z > 1.4f;
@@ -541,8 +556,9 @@ namespace SoccerVision.Simulation
             else
             {
                 Emit(MatchEventType.Save, gk.Team, gk, shooter, savePos, 0f, WhistleKind.Short, 3);
-                Vec2 dir = (lateral * _rng.Range(0.6f, 1.2f) + forward * _rng.Range(0.25f, 0.9f)).Normalized;
-                SetDeflection(gk, dir * MathF.Max(4f, speed * _rng.Range(0.25f, 0.5f)), _rng.Range(0.5f, 4f));
+                // Pushed away to the side, low, out of the danger area - a keeper never palms it back into the middle.
+                Vec2 dir = (lateral * _rng.Range(1.0f, 1.6f) + forward * _rng.Range(0.1f, 0.5f)).Normalized;
+                SetDeflection(gk, dir * MathF.Max(5f, speed * _rng.Range(0.3f, 0.5f)), _rng.Range(0.2f, 1.6f));
             }
             gk.TouchCooldown = 0.6f;
         }
@@ -602,14 +618,17 @@ namespace SoccerVision.Simulation
                 float toGoal = Vec2.Distance(carrier.Pos, d.Team.OwnGoal);
                 bool breakaway = IsDenyingObviousGoalScoringOpportunity(carrier, d);
 
-                if (dist > 1.45f)
+                // A standing tackle or a take-on duel needs the ball within reach of the defender's leg, not just the man.
+                float toBall = Vec2.Distance(d.Pos, Ball.Pos);
+                if (dist > 1.45f || toBall > 1.1f)
                 {
-                    if (!d.IsGoalkeeper && dist > 1.5f && carrierSpeed > 3f && TrySlide(d, carrier, dist, inBox, breakaway, dt)) return;
+                    if (!d.IsGoalkeeper && dist > 1.5f && dist <= 2.8f && carrierSpeed > 3f && TrySlide(d, carrier, dist, inBox, breakaway, dt)) return;
                     continue;
                 }
 
                 // Standing tackle: defenders mostly jockey and wait for the moment the carrier is exposed.
-                float rate = (0.045f + 0.1f * aggression + 0.08f * defenders.Tactics.PressingIntensity) * TackleStyleFactor(defenders);
+                // (only once the ball itself is within reach, so the moment is short: a higher rate per second)
+                float rate = (0.1f + 0.22f * aggression + 0.17f * defenders.Tactics.PressingIntensity) * TackleStyleFactor(defenders);
                 if (d.Slot.IsCentralMidfielder) rate *= d == defenders.Anchor ? 1.45f : 1.35f; // the midfield ball-winners
                 float exposed = 1f;
                 if (carrier.HoldTime < 0.45f) exposed += 0.9f;                                         // still controlling the ball
@@ -690,6 +709,7 @@ namespace SoccerVision.Simulation
             d.Facing = d.SlideDir.Angle;
             team.Stats.Tackles++;
             team.Stats.SlideTackles++;
+            _diagSlideAt[team.Index] = SimTime;
             d.Tackles++;
             d.SlideTackles++;
             if (CollectDiagnostics) Count("tackle.slide");
@@ -703,9 +723,9 @@ namespace SoccerVision.Simulation
             {
                 if (d.SlideTimer <= 0f || d.SlideResolved || d.SentOff) continue;
                 var victim = d.SlideVictim;
-                float toBall = Vec2.Distance(d.Pos + d.SlideDir * 0.7f, Ball.Pos); // the leading foot
+                float toBall = Vec2.Distance(d.Pos + d.SlideDir * 0.6f, Ball.Pos); // the leading foot
                 bool ballLow = Ball.Z < 0.6f && !Ball.InHands;
-                if (ballLow && toBall < 0.85f && (Ball.Owner == null || Ball.Owner.Team != d.Team))
+                if (ballLow && toBall < 0.6f && (Ball.Owner == null || Ball.Owner.Team != d.Team))
                 {
                     d.SlideResolved = true;
                     ResolveSlideContact(d, Ball.Owner);
@@ -879,7 +899,7 @@ namespace SoccerVision.Simulation
             float defend = (0.55f * da.Tackling + 0.2f * da.Positioning + 0.15f * da.PhysicalPower + 0.1f * da.Aggression) * d.FatigueFactor;
             if (d.IsGoalkeeper) defend = (0.6f * da.OneOnOne + 0.4f * da.Reflexes) * d.FatigueFactor;
             float pWin = MathUtil.Clamp(0.58f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.15f : 0f) + 0.1f * exposed, 0.12f, 0.88f);
-            float pFoul = 0.1f + 0.12f * MathUtil.A(da.Aggression) + (fromBehind ? 0.18f : 0f) - 0.06f * MathUtil.A(da.Tackling)
+            float pFoul = 0.22f + 0.15f * MathUtil.A(da.Aggression) + (fromBehind ? 0.18f : 0f) - 0.06f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
             if (d == d.Team.Anchor) pFoul += 0.025f; // the holding midfielder's challenges are the most robust
             if (d.YellowCards > 0) pFoul *= 0.45f;

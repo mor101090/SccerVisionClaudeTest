@@ -10,7 +10,7 @@
 export const BRIDGE_OBJECT = "SoccerVisionBridge";
 export const BRIDGE_METHOD = "OnCommand";
 
-export type Tone = "Normal" | "Goal" | "Foul" | "Card" | "Chance" | "Info";
+export type Tone = "Normal" | "Goal" | "Foul" | "Card" | "Chance" | "Info" | "Red";
 
 export interface PlayerInfo {
   index: number;

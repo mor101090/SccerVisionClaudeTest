@@ -128,22 +128,26 @@ namespace SoccerVision.Simulation
                 if (p.TreatmentTimer <= 0f) p.LeavingInjured = true;
                 return true;
             }
-            float side = p.Pos.Y >= 0f ? 1f : -1f;
-            p.Target = new Vec2(MathUtil.Clamp(p.Pos.X, -Pitch.HalfLength + 2f, Pitch.HalfLength - 2f), (Pitch.HalfWidth + 1.2f) * side);
-            p.Urgency = 0.2f; // a slow walk, helped off
+            // Helped off towards his team's bench (by the halfway line, on the dug-out side), where the substitute waits.
+            p.Target = BenchSpot(p.Team);
+            p.Urgency = 0.2f;
             p.StunTimer = 0f;
             p.Task = PlayerTask.Leave;
             p.FaceBall = false;
             MovePlayerOffPitch(p, dt);
-            if (MathF.Abs(p.Pos.Y) >= Pitch.HalfWidth + 0.9f) CompleteInjuryChange(p, true);
+            // At the touchline the change is made: the substitute comes on right there (no jump across the pitch).
+            if (Vec2.Distance(p.Pos, p.Target) < 0.3f) CompleteInjuryChange(p, true);
             return true;
         }
+
+        /// <summary>Where players leave and come on: the touchline in front of the team's bench, by the halfway line.</summary>
+        private Vec2 BenchSpot(TeamAgent team) => new Vec2(team == Home ? -5f : 5f, Pitch.HalfWidth - 0.2f);
 
         private void MovePlayerOffPitch(PlayerAgent p, float dt)
         {
             Vec2 to = p.Target - p.Pos;
             float d = to.Length;
-            float v = 1.6f;
+            float v = 2.6f; // helped off at a brisk walk
             if (d > 0.05f) p.Pos += to / d * MathF.Min(d, v * dt);
             p.Vel = d > 0.05f ? to / d * v : Vec2.Zero;
             if (d > 0.05f) p.Facing = (to / d).Angle;
@@ -202,10 +206,8 @@ namespace SoccerVision.Simulation
             team.Stats.Substitutions++;
             string outLabel = p.Label;
             p.Substitute(sub.Profile);
-            // Law 3: the substitute enters at the halfway line.
-            float benchX = team == Home ? -6f : 6f;
-            Vec2 entry = new Vec2(benchX, Pitch.HalfWidth - 0.3f);
-            p.Pos = p.PrevPos = walkOn ? entry : p.ShapeTarget;
+            // Law 3: the substitute enters at the halfway line, by his bench - where the injured player went off.
+            p.Pos = p.PrevPos = walkOn ? BenchSpot(team) : p.ShapeTarget;
             p.Vel = Vec2.Zero;
             p.Target = p.ShapeTarget;
             if (CollectDiagnostics) Count("substitution");

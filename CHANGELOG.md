@@ -2,6 +2,53 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/goals-contacts-substitution-assistants-flags`
+
+- **Ugly goals**: measured over 60 matches before and after the attacking round. Rebounds were 20% of goals both
+  times, but goals had risen from 2.88 to 3.55 per match. Every goal now records what the defence had just done, and
+  that showed where the bad ones came from:
+  - **Defenders gambling on reading a pass**: for every 3 successful reads there were 4 failed gambles, and a failed
+    gamble came before 19% of goals. That is the defender running the wrong way while the striker scores. Now a back
+    never gambles in his own third (he stays between his man and the goal), and elsewhere a defender goes only when he
+    is clearly first. Goals after a missed read: 0.60 to 0.28 per match.
+  - **Parries**: a keeper used to push 40% of his parries back into the middle, sometimes up into the air. Now 70% go
+    over the bar or round the post, and the rest are pushed wide and low.
+  - **Letting a ball run out**: only when it is clearly going out (well past the line) and close to the line.
+  - **Shooting accuracy** slightly lower: there were too many shots on target and saves, hence rebounds.
+  - Goals per match: about 3.2.
+- **The ball only moves when something touches it**: every kick, deflection and control now checks how far the player
+  was from the ball. About 2% of touches (22 per match) came from out of reach. Causes and fixes:
+  - **Set pieces**: the taker played the ball from up to 1.5 m away (a penalty from 2.2 m!). The restart now waits
+    until he is at the ball, and the penalty taker strikes it from right behind it.
+  - **Standing tackles**: the reach was measured to the man, not the ball. A tackle now needs the ball within reach
+    of the defender's leg; the rate was re-tuned so fouls stay realistic.
+  - **Slide tackles**: shorter foot reach.
+  - **Blocked shots**: the blocker must be within reach of the ball (it was up to 2.2 m).
+  - **Blocked crosses**: shorter reach.
+  - Now 0.5 per match, all blocks a few centimetres over the limit (measured on a moving ball). Test:
+    `TheBallIsOnlyKickedOrDeflectedByAPlayerWhoCanReachIt`.
+- **Injury substitution**: the injured player is now helped off towards his team's bench (top touchline, by the
+  halfway line). The substitute comes on at that same spot, so nobody jumps across the pitch.
+- **Assistant referees**:
+  - Each runs on his own touchline (on the line), in his own half only, and no longer overshoots past the corner flag.
+  - At a corner he stays on his line a few metres from the flag.
+  - Test: `AssistantsStayOnTheirOwnTouchlineInTheirOwnHalf`.
+- **Flags** (demo page, React, Unity), like the photos:
+  - the **corner flag** is a white pole with a yellow cloth;
+  - the **assistant's flag** has a black handle and four orange / neon-yellow quadrants, held down at his side, or up
+    above his head for offside;
+  - the cloth no longer flaps: a slow sway and a soft ripple towards the free edge, as in a light breeze.
+- **Cards**:
+  - "Red card ... sent off" is written in red (new commentary tone `Red`; demo page, React, Unity).
+  - For a **second yellow** the referee first shows the yellow card, then about 1.6 s later the red one; the player
+    leaves with the red.
+  - The **referee holds the card up** above his head (yellow or red) for a couple of seconds, a marker like the
+    offside and injury ones. It is in the replay (official flag 2 = yellow, 3 = red) and drawn in all three viewers.
+  - Test: `ARefereeShowsTheCardAndASecondYellowIsFollowedByTheRed`.
+- **Fouls and cautions** re-tuned after the tackle change: 19 fouls and 3.4 yellows per match.
+- **Demo**: the staged first match is now **seed 7274**, re-picked because the engine changed. It has exactly one
+  direct red card (66'), one light injury (42') and one serious injury with a substitution (58'), plus 2 goals.
+
 ## `feature/staged-first-demo-match`
 
 - **The demo page opens on a staged match** (seed 7141), so a red card and the injuries can be examined at once. It

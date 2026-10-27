@@ -196,7 +196,7 @@ namespace SoccerVision.Simulation
                     if (r.HasRunUp) return r.Spot + (r.RunUpStart - r.Spot).Normalized * 0.6f;
                     return r.Spot + new Vec2(MathF.Sign(r.Spot.X) * 0.45f, MathF.Sign(r.Spot.Y) * 0.45f);
                 case RestartType.PenaltyKick:
-                    return r.Spot - (team.AttackGoal - r.Spot).Normalized * 2.2f;
+                    return r.Spot - (team.AttackGoal - r.Spot).Normalized * 0.5f; // he strikes it from right behind the ball
                 case RestartType.KickOff:
                     return r.Spot - forward * 0.45f + new Vec2(0f, 0.15f);
                 default:
@@ -786,7 +786,8 @@ namespace SoccerVision.Simulation
                 return;
             }
             if (r.Taker == null || r.Taker.SentOff) r.Taker = ChooseTaker(r);
-            bool takerReady = r.Taker != null && Vec2.Distance(r.Taker.Pos, moveTo) < 0.7f;
+            // (the taker must really be at the ball: it only moves when it is kicked)
+            bool takerReady = r.Taker != null && Vec2.Distance(r.Taker.Pos, moveTo) < 0.3f;
             bool ready = r.RunningUp || r.WhistleAt >= 0f || (r.BallPlaced && r.Timer >= r.SetupTime && takerReady && PlayersSettled(r));
             if (!ready && r.Timer >= Config.MaxSetupSeconds)
             {
@@ -818,7 +819,7 @@ namespace SoccerVision.Simulation
                 r.RunUpBegan = r.Timer;
                 return;
             }
-            if (ready && r.RunningUp && r.HasRunUp && r.Taker != null && Vec2.Distance(r.Taker.Pos, approach) > 0.5f && r.Timer - r.RunUpBegan < 4f * Config.MotionSpeed) return;
+            if (ready && r.RunningUp && r.HasRunUp && r.Taker != null && Vec2.Distance(r.Taker.Pos, approach) > 0.3f && r.Timer - r.RunUpBegan < 4f * Config.MotionSpeed) return;
             if (ready)
             {
                 if (CollectDiagnostics) for (int k = 0; k < (int)r.Timer; k++) Count("restart.seconds." + r.Type);

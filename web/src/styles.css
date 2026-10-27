@@ -355,6 +355,10 @@ main {
   color: var(--card);
 }
 
+.tone-red {
+  color: #ff4a4a;
+}
+
 .tone-chance {
   color: var(--chance);
 }

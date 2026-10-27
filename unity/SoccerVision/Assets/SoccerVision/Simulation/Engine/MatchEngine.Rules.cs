@@ -109,11 +109,23 @@ namespace SoccerVision.Simulation
             }
         }
 
+        internal readonly float[] _diagShieldAt = { -99f, -99f }, _diagAnticipateAt = { -99f, -99f }, _diagParryAt = { -99f, -99f }, _diagSlideAt = { -99f, -99f }, _diagAnticipateMissAt = { -99f, -99f };
+
         private void OnGoal(int goalSign)
         {
             var defending = TeamDefendingGoal(goalSign);
             var scoringTeam = defending.Opponent;
             var toucher = Ball.LastToucher;
+            if (CollectDiagnostics)
+            {
+                // What the defence was doing in the build-up to the goal (to find ugly, unrealistic goals).
+                if (SimTime - _diagShieldAt[defending.Index] < 3f) Count("goal.ctx.shield");
+                if (SimTime - _diagAnticipateAt[defending.Index] < 3f) Count("goal.ctx.anticipate");
+                if (SimTime - _diagAnticipateMissAt[defending.Index] < 8f) Count("goal.ctx.anticipateMissed");
+                if (SimTime - _diagParryAt[defending.Index] < 3f) Count("goal.ctx.afterParry");
+                if (SimTime - _diagSlideAt[defending.Index] < 3f) Count("goal.ctx.afterSlide");
+                Count("goal.all");
+            }
             // A shot deflected in (keeper parry, defender) is still the shooter's goal.
             if (toucher != null && toucher.Team != scoringTeam && Ball.Shooter != null && Ball.Shooter.Team == scoringTeam && SimTime - _lastShotTime < 3f)
             {
@@ -426,7 +438,7 @@ namespace SoccerVision.Simulation
             }
 
             bool promising = IsStoppingPromisingAttack(victim, offender);
-            float pYellow = 0.03f + (fromBehind ? 0.13f : 0f) + 0.08f * aggression + (promising ? 0.55f : 0f)
+            float pYellow = 0.06f + (fromBehind ? 0.13f : 0f) + 0.08f * aggression + (promising ? 0.55f : 0f)
                             + (offender.FoulsCommitted >= 3 ? 0.2f : 0f);
             if (!playedForBall) pYellow += 0.1f;
             if (_slideFoul) pYellow += fromBehind ? 0.15f : 0.05f; // a mistimed slide is usually reckless
@@ -481,6 +493,7 @@ namespace SoccerVision.Simulation
             {
                 p.Team.Stats.RedCards++;
                 Emit(MatchEventType.RedCard, p.Team, p, null, p.Pos, 0f);
+                ShowCard(2);
                 SendOff(p);
                 return;
             }
@@ -489,14 +502,40 @@ namespace SoccerVision.Simulation
                 p.YellowCards++;
                 p.Team.Stats.YellowCards++;
                 Emit(MatchEventType.YellowCard, p.Team, p, null, p.Pos, p.YellowCards);
+                ShowCard(1);
                 if (p.YellowCards >= 2)
                 {
+                    // Second caution: the referee shows the yellow card first, then the red one.
                     if (CollectDiagnostics) Count("card.secondyellow");
-                    p.Team.Stats.RedCards++;
-                    Emit(MatchEventType.RedCard, p.Team, p, null, p.Pos, 1f);
-                    SendOff(p);
+                    _secondYellowRed = p;
+                    _secondYellowRedAt = SimTime + SecondCardDelay;
                 }
             }
+        }
+
+        /// <summary>Sim seconds between the second yellow card and the red card that follows it.</summary>
+        private float SecondCardDelay => 1.6f * Config.MotionSpeed;
+        private PlayerAgent _secondYellowRed;
+        private float _secondYellowRedAt;
+
+        /// <summary>The referee holds a card up (1 yellow, 2 red) for a moment.</summary>
+        private void ShowCard(int card)
+        {
+            Referee.CardShown = card;
+            Referee.CardTimer = (card == 2 ? 3f : 2.2f) * Config.MotionSpeed;
+        }
+
+        /// <summary>After a second yellow: the red card, and the player is off.</summary>
+        private void UpdatePendingRedCard()
+        {
+            if (_secondYellowRed == null || SimTime < _secondYellowRedAt) return;
+            var p = _secondYellowRed;
+            _secondYellowRed = null;
+            if (p.SentOff) return;
+            p.Team.Stats.RedCards++;
+            Emit(MatchEventType.RedCard, p.Team, p, null, p.Pos, 1f);
+            ShowCard(2);
+            SendOff(p);
         }
 
         /// <summary>A sent-off player leaves and cannot be replaced (design doc); the team re-shapes with ten.</summary>

@@ -13,6 +13,8 @@ namespace SoccerVision.Runtime
         private static Sprite _shadow;
         private static Sprite _square;
         private static Sprite _flag;
+        private static Sprite _cloth;
+        private static Sprite _checker;
         private static Font _font;
 
         public static Sprite Circle => _circle != null ? _circle : (_circle = MakeDisc(128, 0f, false));
@@ -20,6 +22,10 @@ namespace SoccerVision.Runtime
         public static Sprite Shadow => _shadow != null ? _shadow : (_shadow = MakeDisc(64, 0f, true));
         public static Sprite Square => _square != null ? _square : (_square = MakeSquare());
         public static Sprite Flag => _flag != null ? _flag : (_flag = MakeFlag());
+        /// <summary>A rectangular cloth (corner flag), pivot at the pole side.</summary>
+        public static Sprite Cloth => _cloth != null ? _cloth : (_cloth = MakeCloth(false));
+        /// <summary>The assistant referee's flag: four quadrants, neon yellow and orange, with an orange border.</summary>
+        public static Sprite CheckerFlag => _checker != null ? _checker : (_checker = MakeCloth(true));
 
         /// <summary>Built-in font (LegacyRuntime.ttf since Unity 2022.2, Arial.ttf before).</summary>
         public static Font Font
@@ -99,6 +105,30 @@ namespace SoccerVision.Runtime
                     px[y * w + x] = new Color32(255, 255, 255, (byte)(a * 255f));
                 }
             }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0f, 0.5f), w, 0, SpriteMeshType.FullRect);
+        }
+
+        private static Sprite MakeCloth(bool checker)
+        {
+            const int w = 64, h = 48;
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, name = checker ? "sv_checker_flag" : "sv_cloth" };
+            var px = new Color32[w * h];
+            var orange = new Color32(255, 90, 31, 255);
+            var neon = new Color32(228, 245, 60, 255);
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    Color32 c = new Color32(255, 255, 255, 255);
+                    if (checker)
+                    {
+                        bool border = x < 3 || y < 3 || x >= w - 3 || y >= h - 3;
+                        bool left = x < w / 2, top = y >= h / 2;
+                        c = border ? orange : (left == top ? neon : orange);
+                    }
+                    px[y * w + x] = c;
+                }
             tex.SetPixels32(px);
             tex.Apply(false, true);
             return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0f, 0.5f), w, 0, SpriteMeshType.FullRect);

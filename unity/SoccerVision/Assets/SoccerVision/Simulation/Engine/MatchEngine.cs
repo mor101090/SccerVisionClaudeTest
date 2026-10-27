@@ -387,7 +387,12 @@ namespace SoccerVision.Simulation
                 }
                 else if (p.GroundTimer > 0f) p.GroundTimer -= dt;
             }
-            foreach (var o in Officials) if (o.FlagTimer > 0f) o.FlagTimer -= dt;
+            foreach (var o in Officials)
+            {
+                if (o.FlagTimer > 0f) o.FlagTimer -= dt;
+                if (o.CardTimer > 0f) { o.CardTimer -= dt; if (o.CardTimer <= 0f) o.CardShown = 0; }
+            }
+            UpdatePendingRedCard();
             if (_advantageTimer > 0f)
             {
                 _advantageTimer -= dt;

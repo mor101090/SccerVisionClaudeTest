@@ -297,7 +297,7 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
         {
             f.Add(Q(o.Pos.X));
             f.Add(Q(o.Pos.Y));
-            f.Add(o.FlagRaised ? 1 : 0);
+            f.Add(o.FlagRaised ? 1 : o.CardShown == 1 ? 2 : o.CardShown == 2 ? 3 : 0); // flag up, or the referee showing a yellow (2) or red (3) card
         }
         frames.Add(f.ToArray());
     }

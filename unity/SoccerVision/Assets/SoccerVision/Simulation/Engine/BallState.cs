@@ -94,5 +94,8 @@ namespace SoccerVision.Simulation
         /// <summary>Assistant stands still in line with the offence while the flag is up (offside).</summary>
         public bool HoldPosition;
         public float HoldX;
+        /// <summary>Referee: the card he is holding up (0 none, 1 yellow, 2 red) and for how long (sim seconds).</summary>
+        public int CardShown;
+        public float CardTimer;
     }
 }

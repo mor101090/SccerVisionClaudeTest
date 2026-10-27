@@ -374,6 +374,7 @@ namespace SoccerVision.Runtime
                 case CommentaryTone.Goal: return GoalColor;
                 case CommentaryTone.Foul: return FoulColor;
                 case CommentaryTone.Card: return CardColor;
+                case CommentaryTone.Red: return new Color(1f, 0.29f, 0.29f);
                 case CommentaryTone.Chance: return ChanceColor;
                 case CommentaryTone.Info: return InfoColor;
                 default: return new Color(0.92f, 0.94f, 0.96f);

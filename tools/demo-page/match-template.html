@@ -91,6 +91,7 @@ button[aria-pressed="true"] { background: var(--amber); color: #120d00; border-c
 .tone-Goal { color: var(--goal); font-weight: 600; }
 .tone-Foul { color: var(--foul); }
 .tone-Card { color: var(--card); }
+.tone-Red { color: #ff4a4a; }
 .tone-Chance { color: var(--chance); }
 .tone-Info { color: #9fd0ff; }
 .pass { color: #b8c6bd; }
@@ -207,7 +208,7 @@ td.l { color: var(--muted); }
       ps.push({ x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, f: lerpA(a[o + 2] / 100, b[o + 2] / 100, k), j: lerp(a[o + 3], b[o + 3], k) / 100, off: (a[o + 4] & 1) !== 0, gk: (a[o + 4] & 2) !== 0, bk: (a[o + 4] & 4) !== 0, os: (a[o + 4] & 8) !== 0, sl: (a[o + 4] & 16) !== 0, gr: (a[o + 4] & 32) !== 0, inj: (a[o + 4] & 64) !== 0 });
     }
     var os = [];
-    for (var q = 0; q < 3; q++) { var oo = OB + q * 3; os.push({ x: lerp(a[oo], b[oo], k) / 10, y: lerp(a[oo + 1], b[oo + 1], k) / 10, flag: a[oo + 2] === 1 }); }
+    for (var q = 0; q < 3; q++) { var oo = OB + q * 3; os.push({ x: lerp(a[oo], b[oo], k) / 10, y: lerp(a[oo + 1], b[oo + 1], k) / 10, flag: a[oo + 2] === 1, card: a[oo + 2] === 2 ? 1 : a[oo + 2] === 3 ? 2 : 0 }); }
     var jump = Math.hypot(b[5] - a[5], b[6] - a[6]) > 150, bk = jump ? 0 : k;
     return { clock: lerp(a[1], b[1], half ? 0 : k), phase: a[2], hs: a[3], as: a[4], bx: lerp(a[5], b[5], bk) / 10, by: lerp(a[6], b[6], bk) / 10, bz: lerp(a[7], b[7], bk) / 100, owner: a[8], ps: ps, os: os, half: half };
   }
@@ -370,6 +371,59 @@ td.l { color: var(--muted); }
     ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.lineWidth = Math.max(.6, rad * .08); ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.stroke();
   }
   // Offside: a small chequered square above the player who was caught (no text, no pole).
+  // Cloth that moves the way a real flag does in a light breeze: no flapping, a slow sway of the whole flag and a soft
+  // ripple running from the pole to the free edge, its size growing towards the free edge.
+  function cloth(x0, y0, w, h, t, seed, dir, fillFn) {
+    var sway = Math.sin(t * .45 + seed) * .06 + Math.sin(t * .17 + seed * 2) * .04;
+    var pts = [], n = 6;
+    for (var k = 0; k <= n; k++) {
+      var u = k / n, ripple = Math.sin(t * 1.7 + seed - u * 2.4) * .07 * u * h;
+      pts.push([x0 + dir * u * w * (1 - .04 * u), y0 + ripple + sway * u * h + .1 * u * u * h]);
+    }
+    fillFn(pts, h);
+  }
+  function cornerFlag(x, y, s, t, i) {
+    var pole = 2.6 * s, top = y - pole, dir = x < view.ox ? 1 : -1;
+    ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = Math.max(1, .12 * s); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + .5 * s, y + .25 * s); ctx.stroke(); // shadow
+    ctx.strokeStyle = "#f4f4f2"; ctx.lineWidth = Math.max(1.5, .2 * s); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, top); ctx.stroke();
+    cloth(x, top, 1.35 * s, .95 * s, t, i * 1.7, dir, function (pts, h) {
+      ctx.fillStyle = "#ffd21f"; ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+      for (var k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1]);
+      for (var k2 = pts.length - 1; k2 >= 0; k2--) ctx.lineTo(pts[k2][0], pts[k2][1] + h);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(160,110,0,.55)"; ctx.lineWidth = Math.max(.8, .05 * s); ctx.stroke();
+    });
+  }
+  // The assistant's flag: black handle, checked orange / neon-yellow cloth. Held down at his side, or up for offside.
+  function assistantFlag(x, y, s, t, up, side) {
+    var hx = x + side * .55 * s;
+    ctx.strokeStyle = "#111"; ctx.lineWidth = Math.max(1.4, .16 * s); ctx.beginPath();
+    if (up) { ctx.moveTo(hx, y - .3 * s); ctx.lineTo(hx, y - 3.2 * s); }
+    else { ctx.moveTo(hx, y + .1 * s); ctx.lineTo(hx, y + .9 * s); }
+    ctx.stroke();
+    var w = (up ? 1.6 : .95) * s, h = (up ? 1.2 : .72) * s, top = up ? y - 3.2 * s : y + .5 * s;
+    cloth(hx, top, w, h, t * (up ? 1.6 : .8), 3.1, side, function (pts, hh) {
+      // four quadrants: neon yellow top-left / bottom-right, orange top-right / bottom-left
+      for (var qx = 0; qx < 2; qx++) for (var qy = 0; qy < 2; qy++) {
+        ctx.fillStyle = (qx + qy) % 2 ? "#ff5a1f" : "#e4f53c"; ctx.beginPath();
+        var a0 = qx * 3, a1 = qx * 3 + 3;
+        for (var k = a0; k <= a1; k++) ctx.lineTo(pts[k][0], pts[k][1] + qy * hh / 2);
+        for (var k2 = a1; k2 >= a0; k2--) ctx.lineTo(pts[k2][0], pts[k2][1] + (qy + 1) * hh / 2);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.strokeStyle = "#ff5a1f"; ctx.lineWidth = Math.max(.8, .07 * s); ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+      for (var k3 = 1; k3 < pts.length; k3++) ctx.lineTo(pts[k3][0], pts[k3][1]);
+      for (var k4 = pts.length - 1; k4 >= 0; k4--) ctx.lineTo(pts[k4][0], pts[k4][1] + hh);
+      ctx.closePath(); ctx.stroke();
+    });
+  }
+  // The referee holds a card up above his head: yellow, or red.
+  function refereeCard(x, y, s, card) {
+    var w = 1.05 * s, h = 1.45 * s, cx = x + .45 * s, top = y - 3.6 * s;
+    ctx.strokeStyle = "#121212"; ctx.lineWidth = Math.max(1.2, .14 * s); ctx.beginPath(); ctx.moveTo(x + .25 * s, y - .5 * s); ctx.lineTo(cx, top + h); ctx.stroke(); // raised arm
+    ctx.fillStyle = card === 2 ? "#e0262b" : "#ffd21a"; ctx.fillRect(cx - w / 2, top, w, h);
+    ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.lineWidth = Math.max(1, .06 * s); ctx.strokeRect(cx - w / 2, top, w, h);
+  }
   function offsideMark(x, y, s) {
     var size = 1.3 * s, left = x - size / 2, top = y - 2.6 * s;
     for (var cx2 = 0; cx2 < 2; cx2++) for (var cy2 = 0; cy2 < 2; cy2++) { ctx.fillStyle = (cx2 + cy2) % 2 ? "#e53935" : "#ffd21a"; ctx.fillRect(left + cx2 * size / 2, top + cy2 * size / 2, size / 2, size / 2); }
@@ -412,18 +466,13 @@ td.l { color: var(--muted); }
   function disc(x, y, r, fill, stroke) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = stroke; ctx.stroke(); }
   function entities(S, now, dt) {
     var s = view.s, r = .95 * s;
+    [[-52.5, -34], [-52.5, 34], [52.5, -34], [52.5, 34]].forEach(function (c, i) { cornerFlag(X(c[0]), Y(c[1]), s, now, i); });
     S.os.forEach(function (o, i) {
-      disc(X(o.x), Y(o.y), r, "#121212", "#f2c230"); // same size as the players
-      ctx.fillStyle = "#f2c230"; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", X(o.x), Y(o.y));
-      if (i > 0 && o.flag) {
-        var wv = Math.sin(now * 6) * .15, fx0 = X(o.x) + .3 * s, fy0 = Y(o.y);
-        ctx.strokeStyle = "#222"; ctx.lineWidth = Math.max(1.5, .15 * s); ctx.beginPath(); ctx.moveTo(fx0, fy0 - .5 * s); ctx.lineTo(fx0, fy0 - 2.6 * s); ctx.stroke();
-        ctx.fillStyle = "#ffd21a"; ctx.beginPath(); ctx.moveTo(fx0, fy0 - 2.6 * s); ctx.lineTo(fx0 + (1.6 + wv) * s, fy0 - (2.2 + wv) * s); ctx.lineTo(fx0, fy0 - 1.6 * s); ctx.fill();
-      }
-    });
-    [[-52.5, -34], [-52.5, 34], [52.5, -34], [52.5, 34]].forEach(function (c, i) {
-      var w = Math.sin(now * 3.2 + i) * .15; ctx.fillStyle = "#ffc21a"; ctx.beginPath();
-      ctx.moveTo(X(c[0]), Y(c[1]) - 1.4 * s); ctx.lineTo(X(c[0]) + .9 * s, Y(c[1]) - (1.15 + w) * s); ctx.lineTo(X(c[0]), Y(c[1]) - .9 * s); ctx.fill();
+      var ox = X(o.x), oy = Y(o.y);
+      if (i > 0) assistantFlag(ox, oy, s, now, o.flag, o.x < 0 ? -1 : 1);
+      disc(ox, oy, r, "#121212", "#f2c230"); // same size as the players
+      ctx.fillStyle = "#f2c230"; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
+      if (i === 0 && o.card) refereeCard(ox, oy, s, o.card);
     });
     S.ps.forEach(function (p, i) {
       if (p.off && Math.abs(p.y) > 35.5) return;

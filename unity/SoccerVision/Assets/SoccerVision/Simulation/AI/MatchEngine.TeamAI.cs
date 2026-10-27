@@ -547,15 +547,22 @@ namespace SoccerVision.Simulation
                 if (d < bestD) { bestD = d; marker = p; }
             }
             if (marker == null) return;
+            // In his own third a back does not gamble at all: if he misses, the striker is through on goal. He stays
+            // between his man and the goal and defends the next touch.
+            if (marker.Slot.Line == Line.Defence && team.Forward(receiver.Pos) < -17f) return;
             UpdateIntercept(marker);
             UpdateIntercept(receiver);
             float read = 0.5f * MathUtil.A(marker.Attr.Positioning) + 0.3f * MathUtil.A(marker.Attr.Decisions) + 0.2f * MathUtil.A(marker.Attr.Marking);
             if (marker.Slot.IsCentralMidfielder) read += marker == team.Anchor ? 0.25f : 0.12f; // midfielders live off reading passes
             // A good reader goes when he is sure to get there first; a poor one too late, or gambles and misses.
-            float margin = -0.1f + 0.25f * read;
-            if (marker.InterceptTime < receiver.InterceptTime + margin - 0.12f)
+            // He only goes when he is sure to get there first (a good reader a little earlier). A failed gamble leaves
+            // his man free; in his own third it leaves a striker clean through.
+            float margin = -0.1f + 0.15f * read;
+            float caution = receiver.Team.Forward(receiver.Pos) > 18f ? 0.45f : 0.3f;
+            if (marker.InterceptTime < receiver.InterceptTime + margin - caution)
             {
                 team.Anticipator = marker;
+                _diagAnticipateAt[team.Index] = SimTime;
                 if (marker.AnticipatedAt < Ball.LastKickTime && CollectDiagnostics) Count("anticipate");
                 marker.AnticipatedAt = SimTime;
             }
@@ -568,9 +575,14 @@ namespace SoccerVision.Simulation
         private void AssignShielding()
         {
             if (Ball.Owner != null || Ball.Z > 0.5f || Ball.LastTouchTeam == null) return;
+            if (_trajectoryDirty) return; // only on a fresh prediction
             Vec2 end = _trajectory.FinalPosition;
-            bool outOver = MathF.Abs(end.X) > Pitch.HalfLength + 0.5f || MathF.Abs(end.Y) > Pitch.HalfWidth + 0.5f;
+            // Only when it is clearly going out (well past the line, and not far from it now): a ball that stops short
+            // would be left for the attacker.
+            bool outOver = MathF.Abs(end.X) > Pitch.HalfLength + 2.5f || MathF.Abs(end.Y) > Pitch.HalfWidth + 2.5f;
             if (!outOver) return;
+            float toLine = MathF.Min(Pitch.HalfLength - MathF.Abs(Ball.Pos.X), Pitch.HalfWidth - MathF.Abs(Ball.Pos.Y));
+            if (toLine > 12f) return;
             float speed = Ball.Velocity.Length;
             if (speed < 1.5f || speed > 11f) return;
             var team = Ball.LastTouchTeam.Opponent; // the team that gets the restart
@@ -596,6 +608,7 @@ namespace SoccerVision.Simulation
             // He must be there first, and strong enough to hold the chaser off.
             if (best == null || bestT > oppT + 0.15f) return;
             team.Shielder = best;
+            _diagShieldAt[team.Index] = SimTime;
             if (team.Chaser == best) team.Chaser = null;
         }
 

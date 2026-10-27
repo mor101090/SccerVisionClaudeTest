@@ -27,6 +27,7 @@ namespace SoccerVision.Simulation.Tests
                 PlayerAgent hurt = null;
                 string hurtName = null;
                 float hurtAt = 0f;
+                var hurtPeriod = MatchPeriod.NotStarted;
                 while (!e.IsFinished)
                 {
                     e.Advance(0.1f);
@@ -38,6 +39,7 @@ namespace SoccerVision.Simulation.Tests
                             hurt = e.AllPlayers[ev.Player];
                             hurtName = hurt.Profile.ShortName;
                             hurtAt = e.RealTimeElapsed;
+                            hurtPeriod = e.Clock.Period;
                             Assert.True(hurt.IsDown, "a seriously injured player stays down");
                         }
                         if (ev.Type == MatchEventType.Substitution)
@@ -49,7 +51,9 @@ namespace SoccerVision.Simulation.Tests
                             Assert.Equal(InjuryLevel.None, p.Injury);
                             Assert.Contains("comes on for", ev.Text);
                             Assert.Equal(p.Number + "|" + p.Profile.ShortName, ev.Info);
-                            Assert.True(e.RealTimeElapsed - hurtAt < 60f, "the change took " + (e.RealTimeElapsed - hurtAt) + " s");
+                            // (hurt just before half-time: the change is made during the break)
+                            if (e.Clock.Period == hurtPeriod)
+                                Assert.True(e.RealTimeElapsed - hurtAt < 60f, "the change took " + (e.RealTimeElapsed - hurtAt) + " s");
                             Assert.True(e.Phase != MatchPhase.Live, "the change is made while play is stopped");
                             checkedChanges++;
                             hurt = null;
@@ -109,11 +113,17 @@ namespace SoccerVision.Simulation.Tests
             {
                 foreach (var ev in e.EventLog.Where(x => x.Type == MatchEventType.RedCard))
                     Assert.True(e.AllPlayers[ev.Player].SentOff || e.AllPlayers[ev.Player].Profile.ShortName != null);
-                // Two yellows always mean a red (the second is followed straight away by the red card).
+                // Two yellows always mean a red: the referee shows the yellow card, then a moment later the red one.
                 var log = e.EventLog;
                 for (int i = 0; i < log.Count; i++)
                     if (log[i].Type == MatchEventType.YellowCard && log[i].Value >= 2f)
-                        Assert.Contains(log.Skip(i + 1).Take(3), x => x.Type == MatchEventType.RedCard && x.Player == log[i].Player && x.Value > 0.5f);
+                    {
+                        var red = log.Skip(i + 1).FirstOrDefault(x => x.Type == MatchEventType.RedCard && x.Player == log[i].Player);
+                        Assert.NotNull(red);
+                        Assert.True(red.Value > 0.5f);
+                        float gap = red.ClockSeconds - log[i].ClockSeconds;
+                        Assert.True(gap > 0f && gap < 30f, "red card " + gap + " clock s after the second yellow");
+                    }
             }
         }
 

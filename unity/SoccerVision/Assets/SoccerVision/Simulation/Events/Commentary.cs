@@ -1,6 +1,6 @@
 namespace SoccerVision.Simulation
 {
-    public enum CommentaryTone { Normal, Goal, Foul, Card, Chance, Info }
+    public enum CommentaryTone { Normal, Goal, Foul, Card, Chance, Info, Red }
 
     /// <summary>
     /// Text commentary for the live commentary box (design doc examples: "#10 passes to #7", "Foul by #3").
@@ -159,8 +159,8 @@ namespace SoccerVision.Simulation
                 case MatchEventType.GoalkeeperHoldViolation:
                 case MatchEventType.Injury: return CommentaryTone.Foul;
                 case MatchEventType.Substitution: return CommentaryTone.Info;
+                case MatchEventType.RedCard: return CommentaryTone.Red;
                 case MatchEventType.YellowCard:
-                case MatchEventType.RedCard:
                 case MatchEventType.PenaltyAwarded: return CommentaryTone.Card;
                 case MatchEventType.Shot:
                 case MatchEventType.Save:
