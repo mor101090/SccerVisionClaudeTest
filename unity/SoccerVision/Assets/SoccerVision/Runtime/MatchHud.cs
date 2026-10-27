@@ -292,6 +292,8 @@ namespace SoccerVision.Runtime
             GUI.Label(new Rect(rx, y, rw, rowH), "<b>" + m.Home.ShortName + "</b>  possession  <b>" + m.Away.ShortName + "</b>", _small); y += rowH;
             GUI.Label(new Rect(rx, y, rw, rowH), hp + "%   ·   " + (100 - hp) + "%", _small); y += rowH;
             GUI.Label(new Rect(rx, y, rw, rowH), "Shots " + hs.Shots + " (" + hs.ShotsOnTarget + ")  ·  " + aw.Shots + " (" + aw.ShotsOnTarget + ")", _small); y += rowH;
+            GUI.Label(new Rect(rx, y, rw, rowH), "Tackles " + hs.Tackles + " (" + hs.TacklesWon + ")  ·  " + aw.Tackles + " (" + aw.TacklesWon + ")", _small); y += rowH;
+            GUI.Label(new Rect(rx, y, rw, rowH), "Dribbles " + hs.Dribbles + " (" + hs.DribblesWon + ")  ·  " + aw.Dribbles + " (" + aw.DribblesWon + ")", _small); y += rowH;
             GUI.Label(new Rect(rx, y, rw, rowH), "Corners " + hs.Corners + " · " + aw.Corners + "   Fouls " + hs.Fouls + " · " + aw.Fouls, _small); y += rowH * 1.3f;
 
             // Play / pause sits top right of the pitch.
@@ -327,7 +329,7 @@ namespace SoccerVision.Runtime
         private void DrawStatsOverlay(MatchEngine m, string title, string subtitle)
         {
             float s = _scale;
-            float w = 520f * s, h = 430f * s;
+            float w = 520f * s, h = 480f * s;
             float top = Screen.height * (1f - PanelFraction);
             var r = new Rect((Screen.width - w) * 0.5f, Mathf.Max(20f, (top - h) * 0.5f), w, h);
             Fill(r, new Color(0.03f, 0.05f, 0.08f, 0.92f));
@@ -351,6 +353,8 @@ namespace SoccerVision.Runtime
             Row("Possession", hp + "%", (100 - hp) + "%");
             Row("Shots (on target)", hs.Shots + " (" + hs.ShotsOnTarget + ")", aw.Shots + " (" + aw.ShotsOnTarget + ")");
             Row("Expected goals", hs.ExpectedGoals.ToString("0.00"), aw.ExpectedGoals.ToString("0.00"));
+            Row("Tackles (won)", hs.Tackles + " (" + hs.TacklesWon + ")", aw.Tackles + " (" + aw.TacklesWon + ")");
+            Row("Dribbles (won)", hs.Dribbles + " (" + hs.DribblesWon + ")", aw.Dribbles + " (" + aw.DribblesWon + ")");
             Row("Passes completed", hs.PassesCompleted + "/" + hs.Passes, aw.PassesCompleted + "/" + aw.Passes);
             Row("Corners", hs.Corners.ToString(), aw.Corners.ToString());
             Row("Fouls", hs.Fouls.ToString(), aw.Fouls.ToString());

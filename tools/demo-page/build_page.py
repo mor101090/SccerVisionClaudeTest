@@ -2,7 +2,7 @@
 #   python3 build_page.py <work dir with e<seed>.json and audio.iife.js> <output html>
 import base64, gzip, json, os, sys
 
-SEEDS = (7014, 7052, 7070, 7099, 7117, 7130)  # demo matches: each has a penalty, a free-kick shot and offsides
+SEEDS = (7014, 7052, 7070, 7099, 7117, 7141)  # demo matches: penalties, free-kick shots, offsides; 7141 has a direct red card and an injury substitution
 
 here = os.path.dirname(os.path.abspath(__file__))
 work, out = sys.argv[1], sys.argv[2]

@@ -279,7 +279,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
       if (p.injured) injuryMark(ctx, x, gy, r);
       return;
     }
-    const grow = 1 + h * 0.06;
+    const grow = 1 + h * 0.1;
     const shrink = 1 - h * 0.6;
     ctx.fillStyle = `rgba(0,0,0,${0.5 * shrink})`;
     ctx.beginPath();
@@ -348,9 +348,9 @@ export function fillCentered(ctx: CanvasRenderingContext2D, text: string, x: num
 
 /** An injured player (playing on): a small white square with a red cross, opposite the card marker. */
 function injuryMark(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
-  const w = r * 0.42;
-  const cx = x - r * 0.78;
-  const cy = y - r * 0.82;
+  const w = r * 0.56;
+  const cx = x - r * 0.8;
+  const cy = y - r * 0.85;
   ctx.fillStyle = "#fff";
   ctx.fillRect(cx - w / 2, cy - w / 2, w, w);
   ctx.fillStyle = "#e0262b";
@@ -370,7 +370,7 @@ function drawDownPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
     g.addColorStop(0, "rgba(225,240,205,0)");
     g.addColorStop(1, "rgba(225,240,205,0.3)");
     ctx.strokeStyle = g;
-    ctx.lineWidth = r * 0.5;
+    ctx.lineWidth = r * 0.6;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(x - c * r * 2.4, y - sn * r * 2.4);
@@ -382,10 +382,10 @@ function drawDownPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
   ctx.rotate(a);
   ctx.fillStyle = "rgba(0,0,0,0.45)";
   ctx.beginPath();
-  ctx.ellipse(0.15 * s, 0.2 * s, r * 1.1, r * 0.98, 0, 0, Math.PI * 2);
+  ctx.ellipse(0.15 * s, 0.2 * s, r * 1.2, r * 0.96, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(0, 0, r * 1.12, r * 0.96, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, r * 1.22, r * 0.93, 0, 0, Math.PI * 2);
   ctx.fillStyle = fill;
   ctx.fill();
   ctx.lineWidth = Math.max(1, r * 0.18);

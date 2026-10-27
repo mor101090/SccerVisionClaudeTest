@@ -66,6 +66,15 @@ namespace SoccerVision.Simulation
             if (a.HoldPosition && a.FlagTimer > 0f) x = a.HoldX; // flag up, standing in line with the offence
             else a.HoldPosition = false;
             var target = new Vec2(x, (Pitch.HalfWidth + 1.2f) * a.TouchlineSign);
+            // A corner in his half: he stands back behind the goal line, a few metres from the corner flag, out of the
+            // taker's way (not next to the ball).
+            if (Phase == MatchPhase.Stoppage && _restart != null && _restart.Type == RestartType.CornerKick && MathF.Sign(_restart.Spot.X) == goalSign)
+            {
+                float ySide = MathF.Sign(_restart.Spot.Y);
+                target = ySide == a.TouchlineSign
+                    ? new Vec2((Pitch.HalfLength + 1.6f) * goalSign, (Pitch.HalfWidth - 4f) * ySide)       // near corner: behind the goal line
+                    : new Vec2((Pitch.HalfLength - 2.5f) * goalSign, (Pitch.HalfWidth + 1.2f) * a.TouchlineSign); // far corner: own touchline
+            }
             MoveOfficial(a, target, 7f, dt, ball);
         }
 

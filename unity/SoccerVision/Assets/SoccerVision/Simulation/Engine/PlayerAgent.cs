@@ -121,7 +121,7 @@ namespace SoccerVision.Simulation
         public float InjuryFactor => Injury == InjuryLevel.Light ? 0.9f : 1f;
 
         // Per-match stats
-        public int Touches, PassesAttempted, PassesCompleted, Shots, Goals, Tackles, SlideTackles, Saves;
+        public int Touches, PassesAttempted, PassesCompleted, Shots, Goals, Tackles, SlideTackles, Saves, Interceptions;
         public float DistanceCovered;
 
         public PlayerAgent(int index, PlayerProfile profile, TeamAgent team, int slotIndex)
@@ -216,7 +216,7 @@ namespace SoccerVision.Simulation
             HasPendingPlan = false;
             RunTimer = 0f;
             Task = PlayerTask.Shape;
-            Touches = PassesAttempted = PassesCompleted = Shots = Goals = Tackles = SlideTackles = Saves = 0;
+            Touches = PassesAttempted = PassesCompleted = Shots = Goals = Tackles = SlideTackles = Saves = Interceptions = 0;
             DistanceCovered = 0f;
         }
 

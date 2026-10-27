@@ -50,11 +50,11 @@ namespace SoccerVision.Runtime
             _injury = new GameObject("Injury");
             _injury.transform.SetParent(_body, false);
             _injury.transform.localPosition = new Vector3(-0.4f, 0.4f, 0f);
-            SpriteFactory.AddSprite(_injury.transform, "Square", SpriteFactory.Square, Color.white, 15, 0.22f);
+            SpriteFactory.AddSprite(_injury.transform, "Square", SpriteFactory.Square, Color.white, 15, 0.3f);
             var bar = SpriteFactory.AddSprite(_injury.transform, "CrossV", SpriteFactory.Square, new Color(0.88f, 0.15f, 0.17f), 16, 1f);
-            bar.transform.localScale = new Vector3(0.04f, 0.15f, 1f);
+            bar.transform.localScale = new Vector3(0.055f, 0.2f, 1f);
             bar = SpriteFactory.AddSprite(_injury.transform, "CrossH", SpriteFactory.Square, new Color(0.88f, 0.15f, 0.17f), 16, 1f);
-            bar.transform.localScale = new Vector3(0.15f, 0.04f, 1f);
+            bar.transform.localScale = new Vector3(0.2f, 0.055f, 1f);
             _injury.SetActive(false);
             _shownProfile = agent.Profile;
             _label = SpriteFactory.AddText(transform, "Label", agent.Profile.ShortName, Color.white, 30, 0.15f, 56);
@@ -135,7 +135,7 @@ namespace SoccerVision.Runtime
             // shadow stays on the grass and shrinks and fades in proportion to the height, so the height reads at a glance.
             float h = Mathf.Clamp(jump, 0f, 1f);
             _lift.localPosition = new Vector3(0f, h * 2.2f, 0f);
-            float s = Diameter * (1f + h * 0.06f);
+            float s = Diameter * (1f + h * 0.1f);
             _body.localScale = new Vector3(s, s, 1f);
             float shadow = Diameter * 1.25f * (1f - h * 0.6f);
             _shadow.transform.localScale = new Vector3(shadow, shadow, 1f);
@@ -148,7 +148,7 @@ namespace SoccerVision.Runtime
         private void UpdateDown(bool sliding, bool down, float facing)
         {
             var rot = down ? Quaternion.Euler(0f, 0f, facing * Mathf.Rad2Deg) : Quaternion.identity;
-            var scale = down ? new Vector3(1.12f, 0.96f, 1f) : Vector3.one;
+            var scale = down ? new Vector3(1.22f, 0.93f, 1f) : Vector3.one;
             _fill.transform.localRotation = rot;
             _ring.transform.localRotation = rot;
             _fill.transform.localScale = scale;
@@ -160,7 +160,7 @@ namespace SoccerVision.Runtime
                 Vector2 dir = new Vector2(Mathf.Cos(facing), Mathf.Sin(facing));
                 _streak.transform.localPosition = new Vector3(-dir.x * len * 0.5f, -dir.y * len * 0.5f, 0f);
                 _streak.transform.localRotation = Quaternion.Euler(0f, 0f, facing * Mathf.Rad2Deg);
-                _streak.transform.localScale = new Vector3(len, Diameter * 0.45f, 1f);
+                _streak.transform.localScale = new Vector3(len, Diameter * 0.55f, 1f);
             }
         }
 

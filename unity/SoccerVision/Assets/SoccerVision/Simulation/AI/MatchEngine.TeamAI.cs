@@ -247,6 +247,21 @@ namespace SoccerVision.Simulation
                 if (!inPossession && slot.IsWideMidfielder) f -= 1.5f;
                 // Out of possession the midfield stays goal-side of the ball (screens the back four).
                 if (!inPossession) f = MathF.Min(f, MathF.Max(ballF + 2.5f, line + 4f));
+                if (p == team.Anchor)
+                {
+                    if (!inPossession)
+                    {
+                        // The holding midfielder sits just in front of the back four, in the middle, towards the ball.
+                        f = MathF.Min(f, line + 7f);
+                        l = MathUtil.Clamp(ballL * 0.45f, -10f, 10f);
+                    }
+                    else
+                    {
+                        // ...and in possession he stays behind the ball as the safe pass back and the pivot of the build-up.
+                        f = MathF.Min(f, MathF.Max(ballF - 7f, line + 5f));
+                        l = MathUtil.Clamp(ballL * 0.35f, -9f, 9f);
+                    }
+                }
             }
             else if (slot.Line == Line.Attack)
             {
@@ -317,6 +332,8 @@ namespace SoccerVision.Simulation
             {
                 if (p.SentOff || p.IsGoalkeeper || p == carrier || p == Ball.IntendedReceiver) continue;
                 float d = Vec2.DistanceSq(p.Pos, focus);
+                // Central midfielders always want the ball: they come to show for it from further away.
+                if (p.Slot.IsCentralMidfielder) d *= 0.4f;
                 if (d < d1) { second = first; d2 = d1; first = p; d1 = d; }
                 else if (d < d2) { second = p; d2 = d; }
             }
@@ -425,6 +442,9 @@ namespace SoccerVision.Simulation
                     if (d.SentOff || d.IsGoalkeeper || d.IsDown) continue;
                     float t = d.TimeToReach(goalSide);
                     if (d == def.Presser) t *= 0.8f; // hysteresis: keep the same presser
+                    // In the middle third the central midfielders go and win it (the holding one first).
+                    float carrierF = def.Forward(carrier.Pos);
+                    if (d.Slot.IsCentralMidfielder && carrierF > -28f && carrierF < 18f) t *= d == def.Anchor ? 0.8f : 0.9f;
                     if (t < t1) { second = best; t2 = t1; best = d; t1 = t; }
                     else if (t < t2) { second = d; t2 = t; }
                 }
@@ -523,12 +543,14 @@ namespace SoccerVision.Simulation
                 if (p.SentOff || p.IsGoalkeeper || p.IsDown) continue;
                 float d = Vec2.Distance(p.Pos, receiver.Pos);
                 if (p.MarkTarget == receiver) d -= 3f;
+                if (p.Slot.IsCentralMidfielder) d -= 2f;
                 if (d < bestD) { bestD = d; marker = p; }
             }
             if (marker == null) return;
             UpdateIntercept(marker);
             UpdateIntercept(receiver);
             float read = 0.5f * MathUtil.A(marker.Attr.Positioning) + 0.3f * MathUtil.A(marker.Attr.Decisions) + 0.2f * MathUtil.A(marker.Attr.Marking);
+            if (marker.Slot.IsCentralMidfielder) read += marker == team.Anchor ? 0.25f : 0.12f; // midfielders live off reading passes
             // A good reader goes when he is sure to get there first; a poor one too late, or gambles and misses.
             float margin = -0.1f + 0.25f * read;
             if (marker.InterceptTime < receiver.InterceptTime + margin - 0.12f)
@@ -1020,7 +1042,8 @@ namespace SoccerVision.Simulation
             float speed = p.Vel.Length;
             if (speed > vmax) { p.Vel = p.Vel / speed * vmax; speed = vmax; }
             p.Pos += p.Vel * dt;
-            p.Pos = Pitch.ClampToField(p.Pos, p.SentOff ? 8f : 1.5f);
+            // (a corner taker steps back off the pitch for his run-up)
+            p.Pos = Pitch.ClampToField(p.Pos, p.SentOff ? 8f : (Phase == MatchPhase.Stoppage && _restart != null && _restart.Taker == p ? 3.5f : 1.5f));
             p.DistanceCovered += speed * dt;
 
             // Facing: run direction when moving, otherwise the ball. A pending kick turns the body first.

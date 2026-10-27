@@ -93,9 +93,16 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void DirectRedCardsAndSecondYellowsBothSendPlayersOff()
         {
-            var engines = Play(6300, 40, true);
-            int direct = engines.Sum(e => e.Diagnostics.GetValueOrDefault("card.dogso.red") + e.Diagnostics.GetValueOrDefault("card.sfp.red"));
-            int second = engines.Sum(e => e.Diagnostics.GetValueOrDefault("card.secondyellow"));
+            // Red cards are rare (about one in seven matches): play batches until both kinds have been seen.
+            var engines = new List<MatchEngine>();
+            int direct = 0, second = 0;
+            for (ulong first = 6300; first < 6460 && (direct == 0 || second == 0); first += 40)
+            {
+                var batch = Play(first, 40, true);
+                engines.AddRange(batch);
+                direct += batch.Sum(e => e.Diagnostics.GetValueOrDefault("card.dogso.red") + e.Diagnostics.GetValueOrDefault("card.sfp.red"));
+                second += batch.Sum(e => e.Diagnostics.GetValueOrDefault("card.secondyellow"));
+            }
             Assert.True(direct >= 1, "direct red cards " + direct);
             Assert.True(second >= 1, "second yellows " + second);
             foreach (var e in engines)

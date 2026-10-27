@@ -81,9 +81,15 @@ namespace SoccerVision.Simulation
                     r.RunUpStart = r.Spot - dir * back + dir.Perp * (r.Taker.Attr.StrongFoot == Foot.Right ? 1.1f : -1.1f);
                     break;
                 case RestartType.CornerKick:
-                    // Real corner takers step back diagonally into the pitch and run at the ball.
-                    r.RunUpStart = r.Spot + new Vec2(-MathF.Sign(r.Spot.X) * 3.6f, -MathF.Sign(r.Spot.Y) * 3.0f);
-                    break;
+                {
+                    // The ball goes into the box, so the taker stands behind it: he steps back off the pitch (behind the
+                    // corner, on the side of his kicking foot) and runs at the ball facing the goal area.
+                    dir = (team.ToWorld(44f, 0f) - r.Spot).Normalized;
+                    float footSide = r.Taker.Attr.StrongFoot == Foot.Right ? 1f : -1f;
+                    r.RunUpStart = r.Spot - dir * 3.3f + dir.Perp * (footSide * 0.9f);
+                    r.HasRunUp = true;
+                    return; // (off the pitch: not clamped to the field)
+                }
                 case RestartType.GoalKick:
                     dir = team.DirToWorld(Vec2.UnitX);
                     r.RunUpStart = r.Spot - dir * 3.6f;
@@ -186,7 +192,8 @@ namespace SoccerVision.Simulation
                 case RestartType.ThrowIn:
                     return new Vec2(r.Spot.X, r.Spot.Y + MathF.Sign(r.Spot.Y) * 0.35f);
                 case RestartType.CornerKick:
-                    if (r.HasRunUp) return r.Spot + (r.RunUpStart - r.Spot).Normalized * 0.7f;
+                    // Just behind the ball, on the line of the run-up: the ball is in front of him.
+                    if (r.HasRunUp) return r.Spot + (r.RunUpStart - r.Spot).Normalized * 0.6f;
                     return r.Spot + new Vec2(MathF.Sign(r.Spot.X) * 0.45f, MathF.Sign(r.Spot.Y) * 0.45f);
                 case RestartType.PenaltyKick:
                     return r.Spot - (team.AttackGoal - r.Spot).Normalized * 2.2f;

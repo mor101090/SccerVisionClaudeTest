@@ -2,6 +2,46 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/corner-runup-holding-mids-stats-assistant`
+
+- **Corner run-up**: the taker used to step back into the pitch and run at the ball from the wrong side. Now he
+  stands behind the ball: he steps back off the pitch, behind the corner, on the side of his kicking foot, and runs
+  at it towards the goal area, so the ball is in front of him. (He may stand up to 3.5 m off the pitch for this.)
+- **Holding and central midfielders**:
+  - Of the two central midfielders, the one built for the dirty work (tackling, positioning, marking, aggression) is
+    the **holding midfielder**:
+    - out of possession he sits in front of the back four, in the middle, towards the ball;
+    - in possession he stays behind the ball as the safe pass and the pivot of the build-up;
+    - he presses first in the middle third, reads passes best, tackles most and has the most robust challenges;
+    - he is the one most likely to stop a counter-attack with a foul.
+  - Both central midfielders come to show for the ball, look for the forward pass and are where the build-up goes
+    (defenders look for them first). They tackle and intercept more than the others.
+  - Over 200 matches, per player:
+    - holding midfielder: 1.5 fouls, 5.6 tackles, 31 passes (the most of anyone);
+    - other central midfielder: 0.9 fouls, 4.3 tackles, 29 passes;
+    - centre-backs: 0.7 fouls, 22 passes;
+    - strikers: 10 passes.
+- **New statistics**: possession, shots on target, tackles, tackles won, dribbles and dribbles won (take-ons; new
+  `Dribbles` / `DribblesWon`).
+  - Demo page: the "Match facts" table now shows them all, updating as the replay plays, from a stats timeline the
+    engine writes into the replay once a second.
+  - React: full-time table. Unity: side panel and the half-time / full-time table. Bridge: the new fields.
+- **Assistant referee at corners**: at a corner on his side he no longer stands next to the ball. He waits behind
+  the goal line about 4 m from the corner flag; at a corner on the far side he stands on his touchline near the
+  goal line. (This is the same kind of fix as the referee keeping out of the centre circle at kick-offs.)
+- **Squash and stretch** a little more visible: a lying player 1.22 x 0.93 (was 1.12 x 0.96), jumping +10% (was 6%),
+  a slightly wider slide trail. The injury marker is a bit bigger.
+- **Demo**: seed 7130 replaced by **7141**, a match with a direct red card, a light injury and a serious one with an
+  automatic substitution.
+- **Calibration over 200 matches**: goals 3.38 (real 2.97), shots 32.5, yellows 4.5, reds 0.18, offsides 3.1, pass
+  completion 82%, 0.8 light and 0.2 serious injuries per match.
+- The red-card test now plays batches of matches until it has seen both a direct red and a second yellow (red
+  cards are rare, so a fixed set of 40 matches could happen to contain no direct red).
+- Tests (`MidfieldCornerStatsTests`):
+  - the holding midfielder does the dirty work and the central midfielders move the game;
+  - corner takers run up from behind the ball towards the box, and the assistant keeps more than 3 m away;
+  - the new team stats are counted.
+
 ## `feature/shot-techniques-red-cards-injuries`
 
 - **`main` brought up to date**: it was still at the initial commit and now carries everything up to the previous

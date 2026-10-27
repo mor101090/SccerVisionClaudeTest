@@ -242,7 +242,14 @@ function Player({ replay }: { replay: Replay }) {
             <StatsTable
               title="Full time"
               rows={[
+                {
+                  label: "Possession",
+                  home: `${Math.round((100 * hs.stats.PossessionSeconds) / Math.max(1, hs.stats.PossessionSeconds + as.stats.PossessionSeconds))}%`,
+                  away: `${Math.round((100 * as.stats.PossessionSeconds) / Math.max(1, hs.stats.PossessionSeconds + as.stats.PossessionSeconds))}%`,
+                },
                 { label: "Shots (on target)", home: `${hs.stats.Shots} (${hs.stats.ShotsOnTarget})`, away: `${as.stats.Shots} (${as.stats.ShotsOnTarget})` },
+                { label: "Tackles (won)", home: `${hs.stats.Tackles} (${hs.stats.TacklesWon})`, away: `${as.stats.Tackles} (${as.stats.TacklesWon})` },
+                { label: "Dribbles (won)", home: `${hs.stats.Dribbles} (${hs.stats.DribblesWon})`, away: `${as.stats.Dribbles} (${as.stats.DribblesWon})` },
                 { label: "xG", home: hs.stats.ExpectedGoals.toFixed(2), away: as.stats.ExpectedGoals.toFixed(2) },
                 { label: "Corners", home: hs.stats.Corners, away: as.stats.Corners },
                 { label: "Fouls", home: hs.stats.Fouls, away: as.stats.Fouls },

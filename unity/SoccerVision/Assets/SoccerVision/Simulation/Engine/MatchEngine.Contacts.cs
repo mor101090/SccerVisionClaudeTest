@@ -610,6 +610,7 @@ namespace SoccerVision.Simulation
 
                 // Standing tackle: defenders mostly jockey and wait for the moment the carrier is exposed.
                 float rate = (0.045f + 0.1f * aggression + 0.08f * defenders.Tactics.PressingIntensity) * TackleStyleFactor(defenders);
+                if (d.Slot.IsCentralMidfielder) rate *= d == defenders.Anchor ? 1.45f : 1.35f; // the midfield ball-winners
                 float exposed = 1f;
                 if (carrier.HoldTime < 0.45f) exposed += 0.9f;                                         // still controlling the ball
                 Vec2 attackDir = carrier.Team.DirToWorld(Vec2.UnitX);
@@ -639,7 +640,9 @@ namespace SoccerVision.Simulation
                 if (dist < 1.4f && d.YellowCards == 0 && IsStoppingPromisingAttack(carrier, d) && !breakaway)
                 {
                     float smart = MathUtil.A(d.Attr.Decisions) * (0.4f + 0.6f * aggression);
-                    if (smart > 0.35f && _rng.Chance(0.45f * smart * dt))
+                    // Breaking up counters is the holding midfielder's job above all.
+                    float role = d == defenders.Anchor ? 2.5f : d.Slot.IsCentralMidfielder ? 1.6f : 1f;
+                    if (smart > 0.35f && _rng.Chance(0.45f * smart * role * dt))
                     {
                         d.Team.Stats.Tackles++;
                         CommitFoul(d, carrier, true, false, carrier.Pos);
@@ -839,6 +842,7 @@ namespace SoccerVision.Simulation
         private void TakeOn(PlayerAgent carrier, PlayerAgent d)
         {
             if (CollectDiagnostics) Count("takeon");
+            carrier.Team.Stats.Dribbles++;
             var ca = carrier.Attr;
             var da = d.Attr;
             float attack = (0.5f * ca.Dribbling + 0.2f * ca.BallControl + 0.2f * ca.Acceleration + 0.1f * ca.Composure) * carrier.FatigueFactor;
@@ -848,6 +852,7 @@ namespace SoccerVision.Simulation
             if (_rng.Chance(pBeat))
             {
                 if (CollectDiagnostics) Count("takeon.won");
+                carrier.Team.Stats.DribblesWon++;
                 d.StunTimer = 0.5f + 0.35f * (1f - MathUtil.A(da.Positioning));
                 // Burst past: nudge the carrier round the defender.
                 Vec2 side = (carrier.Vel.Normalized.Perp * (Vec2.Cross(carrier.Vel, d.Pos - carrier.Pos) > 0f ? -1f : 1f));
@@ -876,6 +881,7 @@ namespace SoccerVision.Simulation
             float pWin = MathUtil.Clamp(0.58f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.15f : 0f) + 0.1f * exposed, 0.12f, 0.88f);
             float pFoul = 0.1f + 0.12f * MathUtil.A(da.Aggression) + (fromBehind ? 0.18f : 0f) - 0.06f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
+            if (d == d.Team.Anchor) pFoul += 0.025f; // the holding midfielder's challenges are the most robust
             if (d.YellowCards > 0) pFoul *= 0.45f;
             if (IsDenyingObviousGoalScoringOpportunity(carrier, d)) pFoul *= 0.4f; // tries to stay clean
             if (Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign)) pFoul *= 0.25f; // careful in the box

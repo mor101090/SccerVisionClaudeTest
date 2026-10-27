@@ -24,6 +24,27 @@ namespace SoccerVision.Simulation
         public float LineForward = -33f;     // current back line (local forward)
         public float LastAttackSeconds;      // sim time of the last possession change in favour of this team
         public PlayerAgent Presser, SecondPresser, Chaser;
+        /// <summary>
+        /// The holding midfielder ("anchor"): of the central midfielders, the one built for the dirty work (tackling,
+        /// positioning, marking, aggression). He screens the back four, wins the ball back, breaks up counter-attacks
+        /// (with a foul if he must) and is the first pass out of defence. The other central midfielder runs the game.
+        /// </summary>
+        public PlayerAgent Anchor
+        {
+            get
+            {
+                PlayerAgent best = null;
+                int bestScore = int.MinValue;
+                foreach (var p in Players)
+                {
+                    if (p.SentOff || p.IsGoalkeeper || !p.Slot.IsCentralMidfielder) continue;
+                    int score = p.Attr.Tackling + p.Attr.Positioning + p.Attr.Marking + p.Attr.Aggression;
+                    if (score > bestScore) { bestScore = score; best = p; }
+                }
+                return best;
+            }
+        }
+
         /// <summary>Substitutions made so far (IFAB: at most five in a match).</summary>
         public int SubstitutionsUsed;
         /// <summary>Covering defender: diagonally behind the presser, inside him (pressure - cover - balance).</summary>
@@ -122,6 +143,9 @@ namespace SoccerVision.Simulation
         public int Tackles;
         public int TacklesWon;
         public int StandingTackles;
+        /// <summary>Dribbles: take-ons (running at a defender to beat him) and how many beat their man.</summary>
+        public int Dribbles;
+        public int DribblesWon;
         public int SlideTackles;
         public int SlideTacklesWon;
         /// <summary>Times a marker changed the opponent he follows (hand-overs in zonal, switches in man-to-man).</summary>

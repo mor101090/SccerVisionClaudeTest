@@ -57,6 +57,10 @@ export interface TeamStats {
   saves: number;
   xg: number;
   possession: number;
+  tackles: number;
+  tacklesWon: number;
+  dribbles: number;
+  dribblesWon: number;
 }
 
 export interface MatchState {

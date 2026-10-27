@@ -88,6 +88,7 @@ namespace SoccerVision.Runtime
     public sealed class TeamStatsDto
     {
         public int goals, shots, shotsOnTarget, corners, fouls, yellowCards, redCards, offsides, passes, passesCompleted, saves;
+        public int tackles, tacklesWon, dribbles, dribblesWon;
         public float xg, possession;
 
         public static TeamStatsDto From(TeamStats s, float possessionShare) => new TeamStatsDto
@@ -103,6 +104,10 @@ namespace SoccerVision.Runtime
             passes = s.Passes,
             passesCompleted = s.PassesCompleted,
             saves = s.Saves,
+            tackles = s.Tackles,
+            tacklesWon = s.TacklesWon,
+            dribbles = s.Dribbles,
+            dribblesWon = s.DribblesWon,
             xg = s.ExpectedGoals,
             possession = possessionShare,
         };

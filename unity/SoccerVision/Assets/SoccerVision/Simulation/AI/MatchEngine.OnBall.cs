@@ -362,6 +362,10 @@ namespace SoccerVision.Simulation
                 && MathF.Abs(team.Lateral(target)) < 11f && kind == KickKind.Pass)
                 value *= 1.5f;
             float progress = team.Forward(target) - team.Forward(from);
+            // Central midfielders are the ones who move the game on: they look for the forward pass.
+            if (p.Slot.IsCentralMidfielder && progress > 5f) value *= 1.12f;
+            // ...and the build-up goes through them: defenders look for the midfielder first.
+            if (q.Slot.IsCentralMidfielder && p.Slot.Line == Line.Defence && kind == KickKind.Pass) value *= 1.15f;
             value += MathF.Max(0f, progress) * 0.00022f * (0.6f + 0.8f * team.Tactics.Tempo);
             if (progress < -5f) value -= 0.0006f * (team.Tactics.Tempo - 0.3f) * (-progress / 10f);
             float loss = LossCost(team, pIntercept > 0.3f ? riskPoint : target) + _riskPremium;
@@ -1200,6 +1204,7 @@ namespace SoccerVision.Simulation
             else
             {
                 controller.Team.Stats.Interceptions++;
+                controller.Interceptions++;
                 bool read = controller.AnticipatedAt >= Ball.LastKickTime && Ball.IntendedReceiver != null && Ball.IntendedReceiver.Team == passer.Team;
                 if (read) controller.Team.Stats.AnticipatedInterceptions++;
                 if (CollectDiagnostics)

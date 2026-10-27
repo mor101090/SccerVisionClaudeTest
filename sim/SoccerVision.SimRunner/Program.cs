@@ -210,6 +210,10 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Real 2nd half (s)", Avg(x => x.Real2), "600 + added");
     Row("Final clock (min)", Avg(x => x.FinalClock / 60.0), ">= 90");
     Row("Distance per team (km)", Avg(x => x.DistanceKm), "105-115");
+    Row("Per player: fouls  anchor / CM / CB / FB / wide / striker", Avg(x => x.FoulsAnchor), $"{Avg(x => x.FoulsCm):0.00} / {Avg(x => x.FoulsCb):0.00} / {Avg(x => x.FoulsFb):0.00} / {Avg(x => x.FoulsWide):0.00} / {Avg(x => x.FoulsSt):0.00}");
+    Row("Per player: tackles anchor / CM / CB / FB / wide / striker", Avg(x => x.TacklesAnchor), $"{Avg(x => x.TacklesCm):0.00} / {Avg(x => x.TacklesCb):0.00} / {Avg(x => x.TacklesFb):0.00} / {Avg(x => x.TacklesWide):0.00} / {Avg(x => x.TacklesSt):0.00}");
+    Row("Per player: intercepts anchor / CM / CB / FB / wide / striker", Avg(x => x.IntAnchor), $"{Avg(x => x.IntCm):0.00} / {Avg(x => x.IntCb):0.00} / {Avg(x => x.IntFb):0.00} / {Avg(x => x.IntWide):0.00} / {Avg(x => x.IntSt):0.00}");
+    Row("Per player: passes   anchor / CM / CB / FB / wide / striker", Avg(x => x.PassAnchor), $"{Avg(x => x.PassCm):0.0} / {Avg(x => x.PassCb):0.0} / {Avg(x => x.PassFb):0.0} / {Avg(x => x.PassWide):0.0} / {Avg(x => x.PassSt):0.0}");
     Row("Avg final energy", Avg(x => x.AvgEnergy), "fatigue model");
     Row("  full-backs", Avg(x => x.EnergyFullBack), "lowest of the outfield group");
     Row("  centre-backs", Avg(x => x.EnergyCentreBack), "n/a");
@@ -228,6 +232,10 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
     var engine = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed, config);
     var frames = new List<int[]>();
     var events = new List<object>();
+    // Running team stats once a real second: [t*100, possession h/a (s*10), shots h/a, on target h/a, tackles h/a,
+    // tackles won h/a, dribbles h/a, dribbles won h/a] - what the stats table shows at any moment of the replay.
+    var stats = new List<int[]>();
+    float nextStats = 0f;
     float dt = 1f / fps;
     int guard = 0;
     while (!engine.IsFinished && guard++ < 200000)
@@ -250,6 +258,20 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
                 v = Math.Round(e.Value, 1),
                 p = e.Player,
                 s = string.IsNullOrEmpty(e.Info) ? null : e.Info,
+            });
+        }
+        if (engine.RealTimeElapsed >= nextStats)
+        {
+            nextStats = engine.RealTimeElapsed + 1f;
+            var hs = engine.Home.Stats;
+            var aw = engine.Away.Stats;
+            stats.Add(new[]
+            {
+                (int)MathF.Round(engine.RealTimeElapsed * 100f),
+                (int)(hs.PossessionSeconds * 10f), (int)(aw.PossessionSeconds * 10f),
+                hs.Shots, aw.Shots, hs.ShotsOnTarget, aw.ShotsOnTarget,
+                hs.Tackles, aw.Tackles, hs.TacklesWon, aw.TacklesWon,
+                hs.Dribbles, aw.Dribbles, hs.DribblesWon, aw.DribblesWon,
             });
         }
         if (engine.Phase == MatchPhase.HalfTimeBreak) continue;
@@ -309,9 +331,11 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
         halftimeRealSeconds = config.HalftimeRealSeconds,
         home = Team(engine.Home),
         away = Team(engine.Away),
-        frameLayout = "t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked,8=caught offside)] x22, then officials [x*10, y*10, flag] x3",
+        frameLayout = "t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked,8=caught offside,16=sliding,32=on the ground,64=injured)] x22, then officials [x*10, y*10, flag] x3",
         frames,
         events,
+        statsLayout = "t*100, possession home/away (s*10), shots h/a, on target h/a, tackles h/a, tackles won h/a, dribbles h/a, dribbles won h/a",
+        stats,
     };
     Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
     File.WriteAllText(path, JsonSerializer.Serialize(replay, new JsonSerializerOptions { IncludeFields = true }));
@@ -326,7 +350,7 @@ sealed class MatchResult
     public int RecoveredErrors;
     public double WallMs;
     public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots, LightInjuries, SeriousInjuries, Substitutions, Switches, SwitchesCompleted, FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks, CrossesAll, Interceptions, AnticipatedInterceptions, ThroughBalls, ThroughBallsCompleted, PassesIntoSpace, ShieldedOut, ShoulderDuelsWon;
-    public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy, EnergyFullBack, EnergyCentreBack, EnergyWide, EnergyCentral, EnergyStriker, EnergyKeeper;
+    public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy, FoulsAnchor, FoulsCm, FoulsCb, FoulsFb, FoulsWide, FoulsSt, TacklesAnchor, TacklesCm, TacklesCb, TacklesFb, TacklesWide, TacklesSt, IntAnchor, IntCm, IntCb, IntFb, IntWide, IntSt, PassAnchor, PassCm, PassCb, PassFb, PassWide, PassSt, EnergyFullBack, EnergyCentreBack, EnergyWide, EnergyCentral, EnergyStriker, EnergyKeeper;
     public string Score;
 
     public static MatchResult From(MatchEngine e, double ms)
@@ -409,6 +433,14 @@ sealed class MatchResult
             FinalClock = e.Clock.Seconds,
             DistanceKm = (h.DistanceCoveredKm + a.DistanceCoveredKm) / 2,
             AvgEnergy = e.AllPlayers.Average(p => p.Energy),
+            FoulsAnchor = RoleStats.Of(e, 0, p => p.FoulsCommitted), FoulsCm = RoleStats.Of(e, 1, p => p.FoulsCommitted), FoulsCb = RoleStats.Of(e, 2, p => p.FoulsCommitted),
+            FoulsFb = RoleStats.Of(e, 3, p => p.FoulsCommitted), FoulsWide = RoleStats.Of(e, 4, p => p.FoulsCommitted), FoulsSt = RoleStats.Of(e, 5, p => p.FoulsCommitted),
+            TacklesAnchor = RoleStats.Of(e, 0, p => p.Tackles), TacklesCm = RoleStats.Of(e, 1, p => p.Tackles), TacklesCb = RoleStats.Of(e, 2, p => p.Tackles),
+            TacklesFb = RoleStats.Of(e, 3, p => p.Tackles), TacklesWide = RoleStats.Of(e, 4, p => p.Tackles), TacklesSt = RoleStats.Of(e, 5, p => p.Tackles),
+            IntAnchor = RoleStats.Of(e, 0, p => p.Interceptions), IntCm = RoleStats.Of(e, 1, p => p.Interceptions), IntCb = RoleStats.Of(e, 2, p => p.Interceptions),
+            IntFb = RoleStats.Of(e, 3, p => p.Interceptions), IntWide = RoleStats.Of(e, 4, p => p.Interceptions), IntSt = RoleStats.Of(e, 5, p => p.Interceptions),
+            PassAnchor = RoleStats.Of(e, 0, p => p.PassesAttempted), PassCm = RoleStats.Of(e, 1, p => p.PassesAttempted), PassCb = RoleStats.Of(e, 2, p => p.PassesAttempted),
+            PassFb = RoleStats.Of(e, 3, p => p.PassesAttempted), PassWide = RoleStats.Of(e, 4, p => p.PassesAttempted), PassSt = RoleStats.Of(e, 5, p => p.PassesAttempted),
             EnergyFullBack = e.AllPlayers.Where(p => !p.IsGoalkeeper && p.Slot.IsFullBack).Average(p => p.Energy),
             EnergyCentreBack = e.AllPlayers.Where(p => !p.IsGoalkeeper && p.Slot.IsCentreBack).Average(p => p.Energy),
             EnergyWide = e.AllPlayers.Where(p => p.Slot.IsWideMidfielder).Average(p => p.Energy),
@@ -417,5 +449,26 @@ sealed class MatchResult
             EnergyKeeper = e.AllPlayers.Where(p => p.IsGoalkeeper).Average(p => p.Energy),
             Score = $"{e.Home.Score}-{e.Away.Score}",
         };
+    }
+}
+
+static class RoleStats
+{
+    /// <summary>Average of a per-player count over one role: 0 holding midfielder, 1 other central midfielder, 2 centre-back,
+    /// 3 full-back, 4 wide midfielder, 5 striker (both teams).</summary>
+    public static double Of(MatchEngine e, int role, Func<PlayerAgent, int> f)
+    {
+        var players = e.AllPlayers.Where(p => !p.IsGoalkeeper && RoleOf(p) == role).ToList();
+        return players.Count == 0 ? 0 : players.Average(p => (double)f(p));
+
+        static int RoleOf(PlayerAgent p)
+        {
+            var s = p.Slot;
+            if (s.IsCentralMidfielder) return p == p.Team.Anchor ? 0 : 1;
+            if (s.IsCentreBack) return 2;
+            if (s.IsFullBack) return 3;
+            if (s.IsWideMidfielder) return 4;
+            return 5;
+        }
     }
 }

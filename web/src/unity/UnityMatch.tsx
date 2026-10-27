@@ -161,6 +161,8 @@ function UnityPlayer() {
               rows={[
                 { label: "Possession", home: Math.round(state.homeStats.possession) + "%", away: Math.round(state.awayStats.possession) + "%" },
                 { label: "Shots (on target)", home: `${state.homeStats.shots} (${state.homeStats.shotsOnTarget})`, away: `${state.awayStats.shots} (${state.awayStats.shotsOnTarget})` },
+                { label: "Tackles (won)", home: `${state.homeStats.tackles} (${state.homeStats.tacklesWon})`, away: `${state.awayStats.tackles} (${state.awayStats.tacklesWon})` },
+                { label: "Dribbles (won)", home: `${state.homeStats.dribbles} (${state.homeStats.dribblesWon})`, away: `${state.awayStats.dribbles} (${state.awayStats.dribblesWon})` },
                 { label: "Corners", home: state.homeStats.corners, away: state.awayStats.corners },
                 { label: "Fouls", home: state.homeStats.fouls, away: state.awayStats.fouls },
                 { label: "Cards", home: `${state.homeStats.yellowCards}/${state.homeStats.redCards}`, away: `${state.awayStats.yellowCards}/${state.awayStats.redCards}` },
