@@ -24,6 +24,8 @@ namespace SoccerVision.Simulation
         public float LineForward = -33f;     // current back line (local forward)
         public float LastAttackSeconds;      // sim time of the last possession change in favour of this team
         public PlayerAgent Presser, SecondPresser, Chaser;
+        /// <summary>Substitutions made so far (IFAB: at most five in a match).</summary>
+        public int SubstitutionsUsed;
         /// <summary>Covering defender: diagonally behind the presser, inside him (pressure - cover - balance).</summary>
         public PlayerAgent Cover;
         public Vec2 CoverSpot;
@@ -125,6 +127,10 @@ namespace SoccerVision.Simulation
         /// <summary>Times a marker changed the opponent he follows (hand-overs in zonal, switches in man-to-man).</summary>
         public int MarkingSwitches;
         public int Interceptions;
+        /// <summary>Injuries: light knocks (played on) and serious ones (the player had to go off).</summary>
+        public int LightInjuries;
+        public int SeriousInjuries;
+        public int Substitutions;
         /// <summary>Interceptions where a marker read the pass to his man and stepped in front of him.</summary>
         public int AnticipatedInterceptions;
         /// <summary>Balls shielded out of play for our own restart (goal kick / throw-in).</summary>

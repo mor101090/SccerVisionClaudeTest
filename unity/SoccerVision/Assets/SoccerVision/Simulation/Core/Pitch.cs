@@ -28,6 +28,8 @@ namespace SoccerVision.Simulation
         public const float PenaltyArcRadius = 9.15f;
         public const float CornerArcRadius = 1f;
         public const float RestartDistance = 9.15f;   // opponents' distance at kick-offs, free kicks, corners
+        /// <summary>Law 8: at a dropped ball all other players stay at least 4 m away.</summary>
+        public const float DroppedBallDistance = 4f;
         public const float ThrowInDistance = 2f;
 
         public const float BallRadius = 0.11f;        // size 5 ball: 68-70 cm circumference

@@ -125,7 +125,7 @@ namespace SoccerVision.Simulation
             float bestScore = float.NegativeInfinity;
             foreach (var p in team.Players)
             {
-                if (p.SentOff) continue;
+                if (p.SentOff || p.Injury == InjuryLevel.Serious) continue;
                 float score;
                 switch (r.Type)
                 {
@@ -221,6 +221,11 @@ namespace SoccerVision.Simulation
                     break;
                 case RestartType.PenaltyKick:
                     LayoutPenalty(r);
+                    break;
+                case RestartType.DroppedBall:
+                    LayoutShapeAround(r.Spot, att);
+                    foreach (var p in def.Players)
+                        if (!p.SentOff) p.ShapeTarget = OutsideCircle(p.ShapeTarget, r.Spot, Pitch.DroppedBallDistance + 0.5f);
                     break;
                 default:
                     if (IsDangerousFreeKick(r)) LayoutDangerousFreeKick(r);
@@ -738,6 +743,7 @@ namespace SoccerVision.Simulation
                     MovePlayer(p, dt);
                     continue;
                 }
+                if (StepInjuredPlayer(p, dt)) continue;
                 p.Task = PlayerTask.SetPiece;
                 p.FaceBall = true;
                 if (p == r.Taker)
@@ -764,6 +770,15 @@ namespace SoccerVision.Simulation
                 Ball.Place(r.Taker.Pos + r.Taker.FacingDir * 0.15f, 2.15f);
             }
 
+            // Nobody restarts while an injured player is being treated or helped off (the time is added on).
+            if (InjuryBeingHandled())
+            {
+                r.CountsAsLostTime = true;
+                r.Timer = MathF.Min(r.Timer, r.SetupTime);
+                if (r.Taker != null && r.Taker.Injury == InjuryLevel.Serious) r.Taker = null;
+                return;
+            }
+            if (r.Taker == null || r.Taker.SentOff) r.Taker = ChooseTaker(r);
             bool takerReady = r.Taker != null && Vec2.Distance(r.Taker.Pos, moveTo) < 0.7f;
             bool ready = r.RunningUp || r.WhistleAt >= 0f || (r.BallPlaced && r.Timer >= r.SetupTime && takerReady && PlayersSettled(r));
             if (!ready && r.Timer >= Config.MaxSetupSeconds)
@@ -856,6 +871,10 @@ namespace SoccerVision.Simulation
                         break;
                     case RestartType.CornerKick:
                         if (p.Team == def && Vec2.Distance(pos, r.Spot) < Pitch.RestartDistance) pos = OutsideCircle(pos, r.Spot, Pitch.RestartDistance + 0.2f);
+                        break;
+                    case RestartType.DroppedBall:
+                        // Law 8: everybody else at least 4 m from the ball.
+                        if (p.Team == def && Vec2.Distance(pos, r.Spot) < Pitch.DroppedBallDistance) pos = OutsideCircle(pos, r.Spot, Pitch.DroppedBallDistance + 0.2f);
                         break;
                     case RestartType.PenaltyKick:
                         if (p == def.Goalkeeper)

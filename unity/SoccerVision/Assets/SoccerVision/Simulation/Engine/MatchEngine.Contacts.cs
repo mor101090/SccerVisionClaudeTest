@@ -761,6 +761,7 @@ namespace SoccerVision.Simulation
                     dir = new Vec2(dir.X * 0.4f, MathF.Sign(carrier.Pos.Y)).Normalized;
                 SetDeflection(d, dir * _rng.Range(5f, 10f), _rng.Range(0f, 1f));
                 carrier.StunTimer = MathF.Max(carrier.StunTimer, 0.6f);
+                MaybeInjure(carrier, 0.015f, 0.003f, "slide");
                 return;
             }
             // Skipped over the challenge: the carrier rides it and goes on.
@@ -831,6 +832,7 @@ namespace SoccerVision.Simulation
             loser.Vel = loser.Vel * 0.55f + away * 0.8f;
             loser.StunTimer = MathF.Max(loser.StunTimer, 0.3f);
             Emit(MatchEventType.ShoulderDuel, winner.Team, winner, loser, winner.Pos);
+            MaybeInjure(loser, 0.004f, 0.0006f, "duel");
         }
 
         /// <summary>1v1 dribble: beat the man (he is left behind) or lose it (tackle / foul).</summary>
@@ -904,6 +906,7 @@ namespace SoccerVision.Simulation
                 }
                 carrier.StunTimer = 0.5f;
                 d.TackleCooldown = 1f;
+                MaybeInjure(carrier, 0.006f, 0.0012f, "tackle");
             }
             else
             {

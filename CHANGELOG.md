@@ -2,6 +2,71 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/shot-techniques-red-cards-injuries`
+
+- **`main` brought up to date**: it was still at the initial commit and now carries everything up to the previous
+  round (a fast-forward, no history rewritten).
+- **Ways of striking a shot**: the player picks one from the situation (distance, angle, where the keeper stands,
+  which foot the ball is on) and from his own technique, composure and weaker foot. Each has its own physics.
+  - **Side-footed into the near corner** (finesse): a "pass into the net" close in. Less pace, more control, kept low.
+    Near post when the angle is tight or the keeper leaves it open.
+  - **Side-footed into the far corner**: across the keeper, the same technique.
+  - **Curler into the far corner**: from the edge of the box at an angle. Only when the strong foot's natural curl
+    brings the ball back in. It starts wide of the post and bends back, with a fine margin. Cutting-in wingers always
+    try it.
+  - **Volley**: as before.
+  - **Chip**: only when the keeper has come well off his line and stands between the shooter and the goal. A soft,
+    high ball dropping under the bar. Rare (about 0.3 per match).
+  - **Outside of the boot** (trivela): the ball is on the weaker side and the player is very technical with a poor
+    weaker foot. The outside of the strong foot bends it the other way, towards the corner that curl brings it back
+    to. Hard to get right, rare (about 0.5 per match).
+  - **Weaker foot**: everybody else when the ball is on the weaker side (about a fifth of the time, less with good
+    close control). Less pace and control the poorer that foot is (rating 1-3).
+  - **Driven shot**: the rest.
+  - Commentary for each shot and each goal ("curls it into the far corner", "chips the keeper", "with the outside of
+    the boot", "on his weaker foot" ...). Side-footed shots and chips sound softer (demo page, React, Unity).
+  - Per match: about 7 driven, 5 into the far corner, 2.6 into the near corner, 3.4 curlers, 4.5 volleys, 3 on the
+    weaker foot, 0.5 with the outside of the boot, 0.3 chips, 6.7 headers.
+- **Red cards (checked)**: over 300 matches, 38 reds, about 0.13 per match (0.10-0.15 in the top leagues).
+  - 14 were direct: 6 for denying an obvious goal-scoring opportunity and 8 for serious foul play.
+  - 24 were for a second yellow. The second yellow card is always followed by the red card.
+  - None of the six demo matches happened to have one; the demo now includes a match with a direct red.
+  - Test: `DirectRedCardsAndSecondYellowsBothSendPlayersOff`.
+- **Injuries**:
+  - Elite men's football has roughly 20-30 time-loss injuries per 1000 match hours (UEFA Elite Club Injury Study),
+    close to one per match.
+  - Causes: fouls (more often from behind or in a slide, and much more with a red-card challenge), tackles, slide
+    tackles, shoulder duels, and muscle strains from sprinting on tired legs.
+  - **Light**: the player goes down for a moment and plays on, 10% slower and less precise. He shows a white square
+    with a red cross, like the card marker (demo page, React, Unity).
+  - **Serious**: he stays down.
+    - The referee stops play if it is still going.
+    - The physio treats him, he is helped off at the nearest touchline, and a substitute from the bench comes on at
+      the halfway line by his team's bench: same position, a keeper for a keeper, at most five changes (Law 3).
+    - The time is added on.
+    - Play restarts with the free kick if there was a foul, otherwise with a **dropped ball** (Law 8) for the team
+      that last touched it (the keeper in his own area), with everybody else 4 m away.
+    - With no change left, the team plays a man short.
+  - The substitute takes over the injured player's shirt slot. The viewers show his number and name from the moment
+    he comes on, using a `Substitution` event in the replay.
+  - Per match: 0.8 light injuries, 0.25 serious (each followed by a substitution).
+- Tests (`InjuryAndShotTests`):
+  - a serious injury: treatment, the substitute on, play only restarts after it;
+  - light injuries slow a player and are marked;
+  - at most five changes, and a keeper only for a keeper;
+  - both kinds of red card;
+  - all the ways of striking a shot occur, and chips and the outside of the boot are rare.
+- **Calibration over 200 matches** (real-world reference in brackets):
+
+  | Measure | Result |
+  |---|---|
+  | Goals | 3.34 (2.97) |
+  | Shots | 33.9 (25.9) |
+  | Yellow cards | 4.2 (4.2) |
+  | Red cards | 0.15 (0.10-0.15) |
+  | Offsides | 3.2 (3.4) |
+  | Added time | 3.4 + 4.0 min |
+
 ## `feature/freekick-box-fullbacks-wingers-stamina`
 
 All of this applies to both teams.

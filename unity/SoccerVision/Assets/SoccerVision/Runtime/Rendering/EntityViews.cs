@@ -8,6 +8,8 @@ namespace SoccerVision.Runtime
     /// Rises while jumping (its shadow stays on the grass, shrinking with height), shows the player's name, centred on a
     /// dark plate, under the circle while in possession, and a chequered square above him when he is caught offside.
     /// After a slide tackle the body lies stretched along the slide (with a streak of churned-up grass while sliding).
+    /// A player injured but playing on shows a white square with a red cross; a substitute takes over the view of the
+    /// player he replaces (number and name are refreshed).
     /// </summary>
     public sealed class PlayerView : MonoBehaviour
     {
@@ -17,6 +19,8 @@ namespace SoccerVision.Runtime
 
         private Transform _body, _lift;
         private SpriteRenderer _fill, _ring, _shadow, _card, _streak;
+        private GameObject _injury;
+        private PlayerProfile _shownProfile;
         private GameObject _offsideMark;
         private TextMesh _number, _label;
         private SpriteRenderer _labelPlate;
@@ -42,6 +46,17 @@ namespace SoccerVision.Runtime
             _card.transform.localPosition = new Vector3(0.38f, 0.38f, 0f);
             _card.transform.localScale = new Vector3(0.16f, 0.22f, 1f);
             _card.enabled = false;
+            // Injured but playing on: a small white square with a red cross, opposite the card.
+            _injury = new GameObject("Injury");
+            _injury.transform.SetParent(_body, false);
+            _injury.transform.localPosition = new Vector3(-0.4f, 0.4f, 0f);
+            SpriteFactory.AddSprite(_injury.transform, "Square", SpriteFactory.Square, Color.white, 15, 0.22f);
+            var bar = SpriteFactory.AddSprite(_injury.transform, "CrossV", SpriteFactory.Square, new Color(0.88f, 0.15f, 0.17f), 16, 1f);
+            bar.transform.localScale = new Vector3(0.04f, 0.15f, 1f);
+            bar = SpriteFactory.AddSprite(_injury.transform, "CrossH", SpriteFactory.Square, new Color(0.88f, 0.15f, 0.17f), 16, 1f);
+            bar.transform.localScale = new Vector3(0.15f, 0.04f, 1f);
+            _injury.SetActive(false);
+            _shownProfile = agent.Profile;
             _label = SpriteFactory.AddText(transform, "Label", agent.Profile.ShortName, Color.white, 30, 0.15f, 56);
             _label.transform.localPosition = new Vector3(0f, -1.6f, 0f);
             _label.gameObject.SetActive(false);
@@ -83,6 +98,16 @@ namespace SoccerVision.Runtime
             UpdateBodyScale(jump);
             UpdateDown(a.SlideTimer > 0f, a.IsDown && !a.SentOff, a.Facing);
             _card.enabled = a.YellowCards > 0 && !a.SentOff;
+            bool hurt = a.Injury != InjuryLevel.None && !a.SentOff;
+            if (_injury.activeSelf != hurt) _injury.SetActive(hurt);
+            if (_shownProfile != a.Profile)
+            {
+                // A substitute has taken over this shirt slot.
+                _shownProfile = a.Profile;
+                _number.text = a.Number.ToString();
+                _label.text = a.Profile.ShortName;
+                _fade = 1f;
+            }
             if (_label.gameObject.activeSelf != hasBall)
             {
                 _label.gameObject.SetActive(hasBall);

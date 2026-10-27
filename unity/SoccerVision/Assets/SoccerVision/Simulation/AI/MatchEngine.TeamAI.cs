@@ -1137,6 +1137,7 @@ namespace SoccerVision.Simulation
             drain *= WorkRate(p);
             float recover = speed < 2.2f ? 0.00004f : 0f;
             p.Energy = MathUtil.Clamp(p.Energy - (drain - recover) * clockDt, 0.25f, 1f);
+            MaybeStrain(p, intensity, clockDt);
         }
     }
 }

@@ -196,6 +196,9 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Shots by wingers", Avg(x => x.WingerShots), "~5-7");
     Row("Cut-backs from the by-line", Avg(x => x.CutBacks), "n/a");
     Row("Crosses (all)", Avg(x => x.CrossesAll), "~18-22 (open play)");
+    Row("Injuries: light (played on)", Avg(x => x.LightInjuries), "~0.5-0.8 (time-loss ~0.7-1 per match)");
+    Row("Injuries: serious (had to go off)", Avg(x => x.SeriousInjuries), "~0.2-0.4");
+    Row("Substitutions for injury", Avg(x => x.Substitutions), "~0.2-0.4");
     Row("Goals home / away", Avg(x => x.HomeGoals), Avg(x => x.AwayGoals).ToString("0.00"));
     Row("Shots home / away", Avg(x => x.HomeShots), Avg(x => x.AwayShots).ToString("0.00"));
     Row("Marking switches (zonal home / m2m away)", Avg(x => x.HomeSwitches), Avg(x => x.AwaySwitches).ToString("0.0"));
@@ -246,6 +249,7 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
                 y = Math.Round(e.Y, 1),
                 v = Math.Round(e.Value, 1),
                 p = e.Player,
+                s = string.IsNullOrEmpty(e.Info) ? null : e.Info,
             });
         }
         if (engine.Phase == MatchPhase.HalfTimeBreak) continue;
@@ -265,7 +269,7 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
             f.Add(Q(p.Pos.Y));
             f.Add((int)MathF.Round(MathUtil.WrapAngle(p.Facing) * 100f));
             f.Add((int)MathF.Round(p.JumpZ * 100f));
-            f.Add((p.SentOff ? 1 : 0) | (p.IsGoalkeeper ? 2 : 0) | (p.YellowCards > 0 ? 4 : 0) | (p.OffsideMarkTimer > 0f ? 8 : 0) | (p.SlideTimer > 0f ? 16 : 0) | (p.GroundTimer > 0f ? 32 : 0));
+            f.Add((p.SentOff ? 1 : 0) | (p.IsGoalkeeper ? 2 : 0) | (p.YellowCards > 0 ? 4 : 0) | (p.OffsideMarkTimer > 0f ? 8 : 0) | (p.SlideTimer > 0f ? 16 : 0) | (p.IsDown && p.SlideTimer <= 0f ? 32 : 0) | (p.Injury != InjuryLevel.None ? 64 : 0));
         }
         foreach (var o in engine.Officials)
         {
@@ -321,7 +325,7 @@ sealed class MatchResult
     public bool Finished;
     public int RecoveredErrors;
     public double WallMs;
-    public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots, Switches, SwitchesCompleted, FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks, CrossesAll, Interceptions, AnticipatedInterceptions, ThroughBalls, ThroughBallsCompleted, PassesIntoSpace, ShieldedOut, ShoulderDuelsWon;
+    public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots, LightInjuries, SeriousInjuries, Substitutions, Switches, SwitchesCompleted, FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks, CrossesAll, Interceptions, AnticipatedInterceptions, ThroughBalls, ThroughBallsCompleted, PassesIntoSpace, ShieldedOut, ShoulderDuelsWon;
     public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy, EnergyFullBack, EnergyCentreBack, EnergyWide, EnergyCentral, EnergyStriker, EnergyKeeper;
     public string Score;
 
@@ -372,6 +376,9 @@ sealed class MatchResult
             TacklesWon = h.TacklesWon + a.TacklesWon,
             HomeSwitches = h.MarkingSwitches,
             HomeGoals = h.Goals,
+            LightInjuries = h.LightInjuries + a.LightInjuries,
+            SeriousInjuries = h.SeriousInjuries + a.SeriousInjuries,
+            Substitutions = h.Substitutions + a.Substitutions,
             Switches = h.Switches + a.Switches,
             SwitchesCompleted = h.SwitchesCompleted + a.SwitchesCompleted,
             FullBackCrosses = h.FullBackCrosses + a.FullBackCrosses,

@@ -32,6 +32,10 @@ export interface ReplayEvent {
   x?: number;
   y?: number;
   v?: number;
+  /** Shirt slot (player index) the event is about. */
+  p?: number;
+  /** Substitutions: "number|short name" of the player coming on. */
+  s?: string | null;
 }
 
 export interface Replay {
@@ -58,7 +62,7 @@ export interface Snapshot {
   homeScore: number;
   awayScore: number;
   ball: { x: number; y: number; z: number; owner: number };
-  players: { x: number; y: number; facing: number; jump: number; sentOff: boolean; gk: boolean; booked: boolean; offside: boolean; sliding: boolean; grounded: boolean }[];
+  players: { x: number; y: number; facing: number; jump: number; sentOff: boolean; gk: boolean; booked: boolean; offside: boolean; sliding: boolean; grounded: boolean; injured: boolean }[];
   officials: { x: number; y: number; flag: boolean }[];
   /** True when t falls in the half-time gap (no frames are recorded during the break). */
   halftime: boolean;
@@ -118,6 +122,7 @@ export function sample(replay: Replay, t: number): Snapshot {
       offside: (flags & 8) !== 0,
       sliding: (flags & 16) !== 0,
       grounded: (flags & 32) !== 0,
+      injured: (flags & 64) !== 0,
     });
   }
   const officials = [];
@@ -146,4 +151,18 @@ export function minuteText(clock: number, secondHalf: boolean): string {
   const end = secondHalf ? 5400 : 2700;
   if (clock < end) return Math.floor(clock / 60) + 1 + "'";
   return end / 60 + "+" + (Math.floor((clock - end) / 60) + 1) + "'";
+}
+
+/** Who wears shirt slot `index` at time `t`: a substitute takes over the slot of the player he replaces. */
+export function playerAt(replay: Replay, index: number, t: number): { number: number; shortName: string } {
+  const base = (index < 11 ? replay.home : replay.away).players[index % 11];
+  let cur: { number: number; shortName: string } = base;
+  for (const e of replay.events) {
+    if (e.t > t) break;
+    if (e.type === "Substitution" && e.p === index && e.s) {
+      const [num, name] = e.s.split("|");
+      cur = { number: parseInt(num, 10), shortName: name };
+    }
+  }
+  return cur;
 }

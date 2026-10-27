@@ -107,7 +107,8 @@ namespace SoccerVision.Runtime
                     Fx(_header, 0.45f);
                     break;
                 case MatchEventType.Shot:
-                    Fx(_kickHard, e.Detail == 1 || e.Detail == 3 ? 0.8f : 0.65f);
+                    // side-footed finishes and chips are struck softly; volleys and free kicks are hit hardest
+                    Fx(_kickHard, e.Detail == 1 || e.Detail == 3 ? 0.8f : e.Detail == 6 || e.Detail == 7 || e.Detail == 9 ? 0.4f : 0.65f);
                     if (home) Fx(_ooh, 0.45f);
                     else _crowdBoost = Mathf.Max(_crowdBoost, 0.05f);
                     break;

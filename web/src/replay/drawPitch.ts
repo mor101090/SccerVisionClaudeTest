@@ -1,4 +1,5 @@
 import { Ball3D } from "./ball3d";
+import { playerAt } from "./replay";
 import type { Replay, Snapshot } from "./replay";
 
 // Field of play (IFAB Law 1) in metres; world origin at the centre mark.
@@ -257,7 +258,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   snap.players.forEach((p, i) => {
     if (p.sentOff && Math.abs(p.y) > 35.5) return;
     const team = teams[i < 11 ? 0 : 1];
-    const info = team.players[i % 11];
+    const info = playerAt(replay, i, snap.t);
     const x = px(v, p.x);
     const gy = py(v, p.y);
     // Leap of 0.2-0.75 m: the body rises on screen, the shadow stays on the grass and shrinks/fades with height.
@@ -275,6 +276,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
         ctx.fillStyle = "#ffd600";
         ctx.fillRect(x + r * 0.55, gy - r * 1.05, r * 0.32, r * 0.45);
       }
+      if (p.injured) injuryMark(ctx, x, gy, r);
       return;
     }
     const grow = 1 + h * 0.06;
@@ -293,6 +295,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
       ctx.fillStyle = "#ffd600";
       ctx.fillRect(x + r * 0.55, y - r * 1.05, r * 0.32, r * 0.45);
     }
+    if (p.injured) injuryMark(ctx, x, y, r);
   });
   snap.players.forEach((p) => {
     if (p.offside) offsideMark(ctx, px(v, p.x), py(v, p.y), s);
@@ -318,8 +321,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   // The name of the player in possession, centred on a plate under him
   if (b.owner >= 0 && snap.phase === 0) {
     const p = snap.players[b.owner];
-    const team = teams[b.owner < 11 ? 0 : 1];
-    const info = team.players[b.owner % 11];
+    const info = playerAt(replay, b.owner, snap.t);
     const label = info.shortName;
     ctx.font = `600 ${Math.max(10, 0.95 * s)}px system-ui, sans-serif`;
     const m = ctx.measureText(label);
@@ -342,6 +344,18 @@ export function fillCentered(ctx: CanvasRenderingContext2D, text: string, x: num
   ctx.textBaseline = "alphabetic";
   const m = ctx.measureText(text);
   ctx.fillText(text, x - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, y + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
+}
+
+/** An injured player (playing on): a small white square with a red cross, opposite the card marker. */
+function injuryMark(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  const w = r * 0.42;
+  const cx = x - r * 0.78;
+  const cy = y - r * 0.82;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(cx - w / 2, cy - w / 2, w, w);
+  ctx.fillStyle = "#e0262b";
+  ctx.fillRect(cx - w * 0.09, cy - w * 0.34, w * 0.18, w * 0.68);
+  ctx.fillRect(cx - w * 0.34, cy - w * 0.09, w * 0.68, w * 0.18);
 }
 
 /**

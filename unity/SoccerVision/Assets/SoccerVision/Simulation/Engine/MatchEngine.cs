@@ -40,6 +40,8 @@ namespace SoccerVision.Simulation
         DirectFreeKick,
         IndirectFreeKick,
         PenaltyKick,
+        /// <summary>Law 8: after play was stopped for an injury, the ball is dropped for the team that last touched it.</summary>
+        DroppedBall,
     }
 
     public sealed class Restart
@@ -438,6 +440,8 @@ namespace SoccerVision.Simulation
 
             UpdateSlides();
             if (Phase != MatchPhase.Live) return;
+            CheckInjuryStoppage();
+            if (Phase != MatchPhase.Live) return;
             ResolveShoulderDuels();
             if (Phase != MatchPhase.Live) return;
             ResolveTouches();
@@ -676,6 +680,9 @@ namespace SoccerVision.Simulation
                     p.GroundTimer = 0f;
                 }
             }
+            // A player injured just before the break is replaced during it.
+            foreach (var p in AllPlayers)
+                if (!p.SentOff && p.Injury == InjuryLevel.Serious) CompleteInjuryChange(p, false);
             Clock.Period = MatchPeriod.SecondHalf;
             Clock.Seconds = Clock.RegulationHalfSeconds;
             Clock.AddedMinutes = -1;

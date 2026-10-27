@@ -32,6 +32,10 @@ namespace SoccerVision.Simulation
         public int MinAddedMinutesFirstHalf = 1;
         public int MinAddedMinutesSecondHalf = 3;
         public int MaxAddedMinutes = 10;
+        /// <summary>IFAB Law 3: up to five substitutes (competition rules).</summary>
+        public int MaxSubstitutions = 5;
+        /// <summary>Sim seconds a seriously injured player is treated on the pitch before he is helped off.</summary>
+        public float InjuryTreatmentSeconds = 9f;
         /// <summary>
         /// After added time expires the referee waits for a neutral moment, at most this many clock seconds
         /// (an attack in progress is allowed to finish).

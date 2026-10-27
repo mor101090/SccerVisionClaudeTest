@@ -366,6 +366,11 @@ namespace SoccerVision.Simulation
                 return;
             }
 
+            // The victim may be hurt: more often from behind, in a slide, and when it was a red-card challenge.
+            bool redChallenge = sanction != null && sanction.Red && sanction.Reason != "DOGSO";
+            MaybeInjure(victim, 0.03f + (fromBehind ? 0.025f : 0f) + (_slideFoul ? 0.035f : 0f),
+                        0.006f + (fromBehind ? 0.006f : 0f) + (_slideFoul ? 0.012f : 0f) + (redChallenge ? 0.12f : 0f), "foul");
+
             Whistle(penaltyArea || (sanction != null && sanction.Red) ? WhistleKind.Long : WhistleKind.Foul);
             if (sanction != null) ApplySanction(sanction);
 

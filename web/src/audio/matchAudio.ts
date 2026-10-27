@@ -89,7 +89,8 @@ export class MatchSound {
         this.thud(95, 0.1, 0.22);
         break;
       case "Shot":
-        this.thud(70, 0.16, e.detail === 1 || e.detail === 3 ? 0.75 : 0.6);
+        // side-footed finishes and chips are struck softly; volleys and free kicks are hit hardest
+        this.thud(70, 0.16, e.detail === 1 || e.detail === 3 ? 0.75 : e.detail === 6 || e.detail === 7 || e.detail === 9 ? 0.38 : 0.6);
         if (home) this.voices("oo", 210, 290, 1.4, 0.45); // the home end rises with the shot
         else this.addBoost(0.05);
         break;

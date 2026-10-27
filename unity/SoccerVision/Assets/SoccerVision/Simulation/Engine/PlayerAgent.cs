@@ -3,6 +3,8 @@ using System;
 namespace SoccerVision.Simulation
 {
     /// <summary>What a player is currently trying to do (mostly for debugging/visualisation).</summary>
+    public enum InjuryLevel { None, Light, Serious }
+
     public enum PlayerTask
     {
         Idle,
@@ -27,7 +29,8 @@ namespace SoccerVision.Simulation
     public sealed class PlayerAgent
     {
         public readonly int Index;          // 0..21, unique in the match
-        public readonly PlayerProfile Profile;
+        /// <summary>Who plays in this shirt now (a substitute takes over the agent of the player he replaces).</summary>
+        public PlayerProfile Profile;
         public readonly TeamAgent Team;
         public PlayerAttributes Attr => Profile.Attributes;
 
@@ -104,7 +107,18 @@ namespace SoccerVision.Simulation
         public float SlideSpeed;
         public PlayerAgent SlideVictim;
         public bool SlideResolved;
-        public bool IsDown => SlideTimer > 0f || GroundTimer > 0f;
+        public bool IsDown => SlideTimer > 0f || GroundTimer > 0f || (Injury == InjuryLevel.Serious && !LeavingInjured);
+
+        // Injuries: a light knock (plays on, a little slower and sloppier) or a serious one (treated, then substituted).
+        public InjuryLevel Injury;
+        /// <summary>Treatment time left for a seriously injured player lying on the pitch.</summary>
+        public float TreatmentTimer;
+        /// <summary>A seriously injured player walking off to be replaced.</summary>
+        public bool LeavingInjured;
+        /// <summary>Off the pitch injured with no substitute available (the team plays on a man short).</summary>
+        public bool InjuredOff;
+        /// <summary>Speed / control penalty of a light injury.</summary>
+        public float InjuryFactor => Injury == InjuryLevel.Light ? 0.9f : 1f;
 
         // Per-match stats
         public int Touches, PassesAttempted, PassesCompleted, Shots, Goals, Tackles, SlideTackles, Saves;
@@ -138,9 +152,9 @@ namespace SoccerVision.Simulation
         /// <summary>Top sprint speed: 7.0..9.6 m/s (25-35 km/h, elite tracking data range).</summary>
         /// <summary>Taller players are a little slower over the ground (-0.12% per cm above 180), shorter ones a little quicker.</summary>
         public float HeightAgility => 1f - MathUtil.Clamp((Profile.HeightCm - 180) * 0.0012f, -0.025f, 0.03f);
-        public float MaxSpeed => (7.0f + 2.6f * MathUtil.A(Attr.Speed)) * FatigueFactor * HeightAgility * (IsGoalkeeper ? 0.93f : 1f);
+        public float MaxSpeed => (7.0f + 2.6f * MathUtil.A(Attr.Speed)) * FatigueFactor * HeightAgility * InjuryFactor * (IsGoalkeeper ? 0.93f : 1f);
 
-        public float MaxAccel => (3.2f + 2.6f * MathUtil.A(Attr.Acceleration)) * (0.9f + 0.1f * FatigueFactor);
+        public float MaxAccel => (3.2f + 2.6f * MathUtil.A(Attr.Acceleration)) * (0.9f + 0.1f * FatigueFactor) * (0.5f + 0.5f * InjuryFactor);
 
         public float MaxDecel => 6.5f + 1.5f * MathUtil.A(Attr.Acceleration);
 
@@ -158,7 +172,7 @@ namespace SoccerVision.Simulation
         public float GoalkeeperReach => 2.55f + 0.35f * MathUtil.A(Attr.Jumping) + (Profile.HeightCm - 185) * 0.006f;
 
         /// <summary>Accuracy multiplier (&gt;= 1 means larger errors) from fatigue.</summary>
-        public float FatigueError => 1f + (1f - MathUtil.Clamp01(Energy)) * 0.6f;
+        public float FatigueError => (1f + (1f - MathUtil.Clamp01(Energy)) * 0.6f) * (Injury == InjuryLevel.Light ? 1.15f : 1f);
 
         /// <summary>
         /// Time (s) to reach a point, with the classic pitch-control assumptions: keep the current velocity
@@ -181,6 +195,30 @@ namespace SoccerVision.Simulation
         }
 
         public string Label => Profile.Label;
+
+        /// <summary>A substitute takes over this shirt slot: fresh legs, no cards or injuries, his own stats.</summary>
+        internal void Substitute(PlayerProfile incoming)
+        {
+            Profile = incoming;
+            Energy = incoming.Attributes.Fitness == FitnessLevel.Low ? 0.9f : 1f;
+            Injury = InjuryLevel.None;
+            TreatmentTimer = 0f;
+            LeavingInjured = false;
+            YellowCards = 0;
+            FoulsCommitted = 0;
+            StunTimer = 0f;
+            GroundTimer = 0f;
+            SlideTimer = 0f;
+            TackleCooldown = 0f;
+            DuelCooldown = 0f;
+            MarkTarget = null;
+            ManAssignment = null;
+            HasPendingPlan = false;
+            RunTimer = 0f;
+            Task = PlayerTask.Shape;
+            Touches = PassesAttempted = PassesCompleted = Shots = Goals = Tackles = SlideTackles = Saves = 0;
+            DistanceCovered = 0f;
+        }
 
         public override string ToString() => Team.ShortName + " " + Profile.Label;
     }

@@ -5,6 +5,9 @@ namespace SoccerVision.Simulation
 {
     internal enum BallAction { Hold, Dribble, Pass, Shoot, Cross, Clear }
 
+    /// <summary>How a shot is struck.</summary>
+    public enum ShotTechnique { Power, PlacedNear, PlacedFar, Curler, Volley, Chip, OutsideFoot, WeakFoot, Header, Penalty }
+
     /// <summary>A fully specified kick (direction, speed, loft, spin) plus what it is meant to achieve.</summary>
     internal struct KickPlan
     {
@@ -37,6 +40,7 @@ namespace SoccerVision.Simulation
         private float _lastShotTime = -10f;
         /// <summary>How the last shot was struck: 0 foot, 1 volley, 2 cut inside, 3 direct free kick, 4 penalty, 5 header.</summary>
         private int _lastShotKind;
+        private ShotTechnique _lastShotTechnique;
         private float _riskPremium;
         private bool _shotCountedOnTarget;
         private string _lastPassKey;
@@ -840,36 +844,82 @@ namespace SoccerVision.Simulation
             else if (dist > 20f) skill = MathUtil.A(p.Attr.LongShots);
             else skill = MathUtil.A(p.Attr.Finishing);
 
-            // A winger who has cut inside onto his strong foot curls it round the keeper into the far corner.
-            bool cutInCurl = !header && !penalty && !volley && p.CutInUntil > SimTime && MathF.Abs(from.Y) > 6f && dist > 12f;
-            // Aim: far side from the keeper (or a random side when he is central), corners or low.
+            // How he strikes it: picked from the situation (distance, angle, where the keeper is, which foot the ball is
+            // on) and the player (technique, composure, how good his weaker foot is).
+            var tech = header ? ShotTechnique.Header : penalty ? ShotTechnique.Penalty : volley ? ShotTechnique.Volley
+                     : ChooseShotTechnique(p, from, dist, keeper);
             float keeperY = keeper != null ? keeper.Pos.Y : 0f;
+            float nearSide = MathF.Abs(from.Y) > 1f ? MathF.Sign(from.Y) : (_rng.Chance(0.5f) ? 1f : -1f);
+            // Default aim: far side from the keeper (or a random side when he is central).
             float side = MathF.Abs(keeperY) > 0.6f ? -MathF.Sign(keeperY) : (_rng.Chance(0.5f) ? 1f : -1f);
-            if (cutInCurl) side = -MathF.Sign(from.Y); // the far post
-            if (penalty) side = _rng.Chance(0.5f) ? 1f : -1f;
+            float naturalCurl = NaturalCurlSign(p);
+            switch (tech)
+            {
+                case ShotTechnique.Penalty: side = _rng.Chance(0.5f) ? 1f : -1f; break;
+                case ShotTechnique.PlacedNear: side = nearSide; break;
+                case ShotTechnique.PlacedFar:
+                case ShotTechnique.Curler: side = -nearSide; break;
+                case ShotTechnique.OutsideFoot:
+                    // The outside of the strong foot bends the ball the other way: aim at the corner that curl comes back to.
+                    side = NeededCurl(from, goalSign, 1f) == -naturalCurl ? 1f : -1f;
+                    break;
+            }
             float margin = penalty ? 0.45f + 0.5f * (1f - skill) + _rng.Range(0f, 0.4f) : 0.35f + 0.9f * (1f - skill) + _rng.Range(0f, 0.5f);
+            if (tech == ShotTechnique.PlacedNear || tech == ShotTechnique.PlacedFar) margin = 0.3f + 0.6f * (1f - skill) + _rng.Range(0f, 0.35f);
             float aimY = side * MathF.Max(0.2f, Pitch.GoalHalfWidth - margin);
             if (penalty && _rng.Chance(0.12f)) aimY = _rng.Range(-0.8f, 0.8f);
             float r = _rng.NextFloat();
             float aimZ = header ? _rng.Range(0.3f, 1.4f) : (r < 0.58f ? _rng.Range(0.2f, 0.6f) : (r < 0.78f ? _rng.Range(0.7f, 1.4f) : _rng.Range(1.5f, 2.15f)));
-            Vec2 aim = new Vec2(Pitch.HalfLength * goalSign, aimY);
 
             float power = header ? _rng.Range(11f, 15f) + 3f * MathUtil.A(p.Attr.PhysicalPower)
                                  : 20f + 6f * skill + 4f * MathUtil.A(p.Attr.PhysicalPower) + _rng.Range(-1.5f, 1.5f);
             if (penalty) power = _rng.Range(21f, 27f);
+            float curlSign = 0f, curlMag = 0f, accuracy = 1f;
+            switch (tech)
+            {
+                case ShotTechnique.PlacedNear:
+                case ShotTechnique.PlacedFar:
+                    // Side-foot "pass into the net": less pace, much more control, kept low.
+                    power = 15f + 5f * skill + _rng.Range(-1f, 1f);
+                    aimZ = _rng.Range(0.15f, 0.7f);
+                    accuracy = 0.85f;
+                    break;
+                case ShotTechnique.Curler:
+                    power = 19f + 5f * skill + _rng.Range(-1f, 1f);
+                    aimZ = _rng.Range(0.5f, 1.6f);
+                    curlSign = naturalCurl;
+                    curlMag = _rng.Range(9f, 17f) * (0.7f + 0.5f * skill);
+                    accuracy = 1.5f; // a fine margin
+                    break;
+                case ShotTechnique.OutsideFoot:
+                    power = 19f + 5f * skill + _rng.Range(-1f, 1f);
+                    aimZ = _rng.Range(0.4f, 1.6f);
+                    curlSign = -naturalCurl;
+                    curlMag = _rng.Range(7f, 13f) * (0.7f + 0.5f * skill);
+                    accuracy = 1.7f; // hard to get right
+                    break;
+                case ShotTechnique.Chip:
+                    // Scooped up over the keeper who has come off his line, dropping under the bar.
+                    aimY = -MathF.Sign(keeperY == 0f ? 1f : keeperY) * _rng.Range(0f, 1.6f);
+                    aimZ = _rng.Range(1.3f, 2.1f);
+                    power = MathUtil.Clamp(6.5f + 0.36f * dist, 9f, 15f);
+                    accuracy = 1.25f;
+                    break;
+                case ShotTechnique.WeakFoot:
+                    // On the weaker foot: less pace and less control the poorer that foot is.
+                    power *= 0.86f + 0.05f * p.Attr.WeakFootRating;
+                    accuracy = 1f + (3 - MathUtil.Clamp(p.Attr.WeakFootRating, 1, 3)) * 0.3f;
+                    break;
+            }
+            Vec2 aim = new Vec2(Pitch.HalfLength * goalSign, aimY);
             Vec2 dir = (aim - from).Normalized;
             float distToAim = Vec2.Distance(from, aim);
-            Vec2 horizontal = dir * power;
-            float curlMag = 0f, curlSign = 0f;
-            if (cutInCurl)
+            if (curlMag > 0f)
             {
-                // Start wide of the far post and let the curl bring it back in (the same shape as a free kick).
-                curlSign = -MathF.Sign(Vec2.Cross(dir, new Vec2(0f, side)));
-                curlMag = _rng.Range(9f, 17f) * (0.7f + 0.5f * skill);
+                // Start wide of the target and let the curl bring it back in (the same shape as a free kick).
                 dir = dir.Rotate(-curlSign * (0.04f + 0.02f * curlMag / 10f));
-                horizontal = dir * power;
-                aimZ = _rng.Range(0.5f, 1.6f);
             }
+            Vec2 horizontal = dir * power;
             float vz = KickSolver.VerticalSpeedFor(horizontal, startZ, distToAim, aimZ, Config, curlSign * curlMag, 0f);
 
             float pressure = penalty ? 0f : Pressure(p, out _);
@@ -877,20 +927,25 @@ namespace SoccerVision.Simulation
             float stake = penalty ? 0.25f : 0f;
             float sigmaA = (0.085f + 0.16f * (1f - skill)) * (1f + 0.75f * pressure * (1.2f - composure) + stake) * p.FatigueError;
             if (penalty) sigmaA *= 0.2f;
-            if (!header && !penalty) sigmaA *= WeakFootFactor(p, dir);
-            if (header) sigmaA *= 1.0f;
+            // (the techniques for the weaker side already price in which foot is used)
+            if (tech == ShotTechnique.Power || tech == ShotTechnique.PlacedNear || tech == ShotTechnique.PlacedFar) sigmaA *= WeakFootFactor(p, dir);
             if (volley) sigmaA *= 1.35f;
-            if (cutInCurl) sigmaA *= 1.6f; // a curler into the far corner is a fine margin
+            sigmaA *= accuracy;
             float sigmaZ = (0.6f + 1.8f * (1f - skill)) * (1f + 0.5f * pressure) * p.FatigueError;
             if (penalty) sigmaZ *= 0.35f;
+            if (tech == ShotTechnique.PlacedNear || tech == ShotTechnique.PlacedFar) sigmaZ *= 0.6f;
+            if (tech == ShotTechnique.Chip) sigmaZ *= 0.5f; // a soft lob: errors are in length, not height
             // Technique error that does not shrink with distance (snatched/skied finishes at close range).
             float flight = MathF.Max(0.15f, distToAim / MathF.Max(5f, power));
             float fixedLateral = (penalty ? 0.15f : 1.0f) * (1.3f - skill) * (1f + pressure);
             float fixedHeight = (penalty ? 0.15f : 0.55f + 1.0f * (1f - skill)) * (1f + 0.6f * pressure);
+            if (tech == ShotTechnique.Chip) fixedHeight *= 0.3f;
             float angle = dir.Angle + _rng.Gaussian(0f, sigmaA) + _rng.Gaussian(0f, fixedLateral / MathF.Max(3f, distToAim));
             vz += _rng.Gaussian(0f, sigmaZ) + _rng.Gaussian(0f, fixedHeight / flight);
             Vec2 v = Vec2.FromAngle(angle) * power;
-            float curl = header ? 0f : (cutInCurl ? curlSign * curlMag + _rng.Gaussian(0f, 2.5f) : _rng.Gaussian(0f, 6f));
+            float curl = header ? 0f : (curlMag > 0f ? curlSign * curlMag + _rng.Gaussian(0f, 2.5f) : _rng.Gaussian(0f, tech == ShotTechnique.Chip ? 1f : 6f));
+            if (CollectDiagnostics) Count("shot.tech." + tech);
+            _lastShotTechnique = tech;
 
             KickBall(p, from, v, vz, curl, 0f, header ? KickKind.Header : KickKind.Shot, null, aim, penalty, false, startZ);
             Ball.IsShot = true;
@@ -947,13 +1002,96 @@ namespace SoccerVision.Simulation
             Ball.ShotOnTarget = onTarget;
             Ball.ShotGoalkeeperDistance = keeper != null ? Vec2.DistanceToSegment(keeper.Pos, from, crossing, out _) : 3f;
             bool cutIn = !header && !penalty && !volley && p.CutInUntil > SimTime;
-            if (cutInCurl && CollectDiagnostics) Count("shot.cutin.curl");
+            if (cutIn && tech == ShotTechnique.Curler && CollectDiagnostics) Count("shot.cutin.curl");
             if (volley) team.Stats.Volleys++;
             if (cutIn) team.Stats.CutInShots++;
             if (header) team.Stats.Headers++;
             p.CutInUntil = -1f;
-            _lastShotKind = header ? 5 : penalty ? 4 : volley ? 1 : (cutIn ? 2 : 0);
+            _lastShotKind = header ? 5 : penalty ? 4 : volley ? 1 : (cutIn ? 2 : ShotDetail(tech));
             Emit(MatchEventType.Shot, team, p, null, from, xg, WhistleKind.Short, header ? 0 : _lastShotKind);
+        }
+
+        /// <summary>
+        /// Picks the way a shot is struck:
+        /// - a chip when the keeper has come off his line and stands between the shooter and the goal;
+        /// - close in, usually a side-footed "pass" into the near or far corner (finesse) rather than a blast;
+        /// - from the edge of the box at an angle, a curler into the far corner if the strong foot's natural curl brings
+        ///   it back in (a cutting-in winger always tries it);
+        /// - with the ball on the weaker side: a technical player with a poor weaker foot uses the outside of his strong
+        ///   foot, everybody else (and anyone whose weaker foot is decent) hits it with the weaker foot;
+        /// - otherwise a driven shot.
+        /// </summary>
+        private ShotTechnique ChooseShotTechnique(PlayerAgent p, Vec2 from, float dist, PlayerAgent keeper)
+        {
+            var team = p.Team;
+            int goalSign = team.AttackGoalSign;
+            float technique = MathUtil.Clamp01((p.Attr.BallControl + p.Attr.Dribbling + p.Attr.Finishing + p.Attr.Composure) / 400f);
+            if (keeper != null && !keeper.SentOff)
+            {
+                float off = Pitch.HalfLength - keeper.Pos.X * goalSign; // keeper's distance from his goal line
+                float toKeeper = Vec2.Distance(from, keeper.Pos);
+                float inLine = Vec2.DistanceToSegment(keeper.Pos, from, team.AttackGoal, out _);
+                if (off > 6f && inLine < 2.5f && toKeeper > 5f && toKeeper < 15f && dist > 11f && dist < 30f
+                    && _rng.Chance((0.05f + 0.3f * technique) * MathUtil.Clamp01((off - 6f) / 6f + 0.3f)))
+                    return ShotTechnique.Chip;
+            }
+            Vec2 dir = (team.AttackGoal - from).Normalized;
+            if (BallOnWeakSide(p, dir))
+            {
+                // The trivela is a rare, showy skill: only the most technical players, and mostly those whose weaker
+                // foot is poor, try it; everybody else just hits it with the foot the ball is on.
+                bool technical = technique > 0.7f;
+                int weak = p.Attr.WeakFootRating;
+                float trivela = !technical ? 0f : weak <= 1 ? 0.3f : weak == 2 ? 0.12f : 0f;
+                return _rng.Chance(trivela * (0.5f + technique)) ? ShotTechnique.OutsideFoot : ShotTechnique.WeakFoot;
+            }
+            bool wide = MathF.Abs(from.Y) > 3f;
+            if (p.CutInUntil > SimTime && wide && dist > 12f && NeededCurl(from, goalSign, -MathF.Sign(from.Y)) == NaturalCurlSign(p))
+                return ShotTechnique.Curler;
+            if (dist < 17f && _rng.Chance(0.45f + 0.35f * MathUtil.A(p.Attr.Composure)))
+            {
+                // Near post when the angle is tight or the keeper leaves it open, otherwise across him to the far post.
+                float keeperShift = keeper != null ? keeper.Pos.Y * MathF.Sign(from.Y == 0f ? 1f : from.Y) : 0f;
+                bool near = MathF.Abs(from.Y) > 9f ? _rng.Chance(0.55f) : keeperShift < -0.4f ? _rng.Chance(0.7f) : _rng.Chance(0.3f);
+                return near ? ShotTechnique.PlacedNear : ShotTechnique.PlacedFar;
+            }
+            if (dist >= 15f && dist <= 30f && wide && NeededCurl(from, goalSign, -MathF.Sign(from.Y)) == NaturalCurlSign(p)
+                && _rng.Chance(0.25f + 0.45f * technique))
+                return ShotTechnique.Curler;
+            return ShotTechnique.Power;
+        }
+
+        /// <summary>The curl (in NaturalCurlSign terms) that brings a ball from <paramref name="from"/> back into the corner on <paramref name="side"/>.</summary>
+        private static float NeededCurl(Vec2 from, int goalSign, float side)
+        {
+            Vec2 d = (new Vec2(Pitch.HalfLength * goalSign, side * 2f) - from).Normalized;
+            return -MathF.Sign(Vec2.Cross(d, new Vec2(0f, side)));
+        }
+
+        /// <summary>Whether the ball sits for the weaker foot for a kick in <paramref name="direction"/> (he cannot always adjust).</summary>
+        private bool BallOnWeakSide(PlayerAgent p, Vec2 direction)
+        {
+            // About a fifth of shots in top football are struck with the weaker foot: the ball is simply where it is.
+            // Turning across the body makes it likelier; good close control lets a player shift it onto his strong foot.
+            float cross = Vec2.Cross(p.FacingDir, direction);
+            Foot? needs = cross > 0.15f ? Foot.Left : cross < -0.15f ? Foot.Right : (Foot?)null;
+            float chance = 0.22f - 0.1f * MathUtil.A(p.Attr.BallControl);
+            if (needs != null) chance += needs == p.Attr.StrongFoot ? -0.12f : 0.25f;
+            return _rng.Chance(MathUtil.Clamp01(chance));
+        }
+
+        private static int ShotDetail(ShotTechnique t)
+        {
+            switch (t)
+            {
+                case ShotTechnique.PlacedNear: return 6;
+                case ShotTechnique.PlacedFar: return 7;
+                case ShotTechnique.Curler: return 8;
+                case ShotTechnique.Chip: return 9;
+                case ShotTechnique.OutsideFoot: return 10;
+                case ShotTechnique.WeakFoot: return 11;
+                default: return 0;
+            }
         }
 
         /// <summary>

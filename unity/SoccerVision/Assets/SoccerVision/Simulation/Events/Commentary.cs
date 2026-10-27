@@ -41,10 +41,16 @@ namespace SoccerVision.Simulation
                     if (e.Detail == 2) return P(e.Player) + " cuts inside and shoots!";
                     if (e.Detail == 4) return P(e.Player) + " steps up... the penalty!";
                     if (e.Detail == 3) return P(e.Player) + " goes for goal from the free kick - over the wall!";
+                    if (e.Detail == 6) return P(e.Player) + " side-foots it towards the near corner";
+                    if (e.Detail == 7) return P(e.Player) + " passes it towards the far corner";
+                    if (e.Detail == 8) return P(e.Player) + " tries to curl it into the far corner!";
+                    if (e.Detail == 9) return P(e.Player) + " tries to chip the keeper!";
+                    if (e.Detail == 10) return P(e.Player) + " tries the outside of the boot!";
+                    if (e.Detail == 11) return P(e.Player) + " has a go with his weaker foot";
                     return P(e.Player) + " shoots!";
                 case MatchEventType.Goal:
                     if (e.Value > 0.5f) return "GOAL! Own goal by " + P(e.Player) + " - " + T(e.Team) + " lead the way";
-                    return "GOAL! " + P(e.Player) + (e.Detail == 5 ? " heads it in" : e.Detail == 1 ? " with a volley" : e.Detail == 3 ? " straight from the free kick" : e.Detail == 4 ? " from the spot" : " scores")
+                    return "GOAL! " + P(e.Player) + GoalHow(e.Detail)
                            + " for " + T(e.Team) + (e.OtherPlayer >= 0 ? " (assist " + P(e.OtherPlayer) + ")" : "");
                 case MatchEventType.Save:
                     if (e.Detail == 1) return P(e.Player) + " tips it over the bar!";
@@ -69,6 +75,14 @@ namespace SoccerVision.Simulation
                     return e.Detail == 1
                         ? P(e.Player) + " reads it and steps in front of " + P(e.OtherPlayer)
                         : P(e.Player) + " intercepts";
+                case MatchEventType.Injury:
+                    return e.Detail == 1
+                        ? P(e.Player) + " is down injured - the physio is on, he can't continue"
+                        : P(e.Player) + " takes a knock but carries on";
+                case MatchEventType.Substitution:
+                    return "Substitution for " + T(e.Team);
+                case MatchEventType.DroppedBall:
+                    return "The referee restarts with a dropped ball for " + T(e.Team);
                 case MatchEventType.ShieldOut:
                     return P(e.Player) + " shields it out" + (e.OtherPlayer >= 0 ? " from " + P(e.OtherPlayer) : "") + (e.Detail == 0 ? " for a goal kick" : " for a throw-in");
                 case MatchEventType.ShoulderDuel:
@@ -106,6 +120,32 @@ namespace SoccerVision.Simulation
                     return "Full time: " + m.Home.Name + " " + m.Home.Score + " - " + m.Away.Score + " " + m.Away.Name;
                 default:
                     return "";
+            }
+        }
+
+        /// <summary>"Substitution for Red Rovers: #14 Name comes on for #7 Name".</summary>
+        public static string Substitution(TeamAgent team, PlayerAgent incoming, string outgoingLabel)
+        {
+            return "Substitution for " + team.Name + ": " + incoming.Label + " comes on for " + outgoingLabel;
+        }
+
+        /// <summary>How the goal went in, from the shot kind (see MatchEvent.Detail).</summary>
+        private static string GoalHow(int detail)
+        {
+            switch (detail)
+            {
+                case 1: return " with a volley";
+                case 2: return " cuts inside and curls it in";
+                case 3: return " straight from the free kick";
+                case 4: return " from the spot";
+                case 5: return " heads it in";
+                case 6: return " side-foots it into the near corner";
+                case 7: return " passes it into the far corner";
+                case 8: return " curls it into the far corner";
+                case 9: return " chips the keeper";
+                case 10: return " with the outside of the boot";
+                case 11: return " on his weaker foot";
+                default: return " scores";
             }
         }
 

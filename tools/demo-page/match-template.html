@@ -204,7 +204,7 @@ td.l { color: var(--muted); }
     var ps = [];
     for (var p = 0; p < 22; p++) {
       var o = PB + p * PS;
-      ps.push({ x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, f: lerpA(a[o + 2] / 100, b[o + 2] / 100, k), j: lerp(a[o + 3], b[o + 3], k) / 100, off: (a[o + 4] & 1) !== 0, gk: (a[o + 4] & 2) !== 0, bk: (a[o + 4] & 4) !== 0, os: (a[o + 4] & 8) !== 0, sl: (a[o + 4] & 16) !== 0, gr: (a[o + 4] & 32) !== 0 });
+      ps.push({ x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, f: lerpA(a[o + 2] / 100, b[o + 2] / 100, k), j: lerp(a[o + 3], b[o + 3], k) / 100, off: (a[o + 4] & 1) !== 0, gk: (a[o + 4] & 2) !== 0, bk: (a[o + 4] & 4) !== 0, os: (a[o + 4] & 8) !== 0, sl: (a[o + 4] & 16) !== 0, gr: (a[o + 4] & 32) !== 0, inj: (a[o + 4] & 64) !== 0 });
     }
     var os = [];
     for (var q = 0; q < 3; q++) { var oo = OB + q * 3; os.push({ x: lerp(a[oo], b[oo], k) / 10, y: lerp(a[oo + 1], b[oo + 1], k) / 10, flag: a[oo + 2] === 1 }); }
@@ -394,6 +394,21 @@ td.l { color: var(--muted); }
     fillC(String(info.number), x, y);
     if (p.bk) { ctx.fillStyle = "#ffd23f"; ctx.fillRect(x + r * .55, y - r * 1.05, r * .32, r * .45); }
   }
+  // An injured player (playing on): a small white square with a red cross, opposite the card marker.
+  function injuryMark(x, y, r) {
+    var w = r * .42, cx = x - r * .78, cy = y - r * .82;
+    ctx.fillStyle = "#fff"; ctx.fillRect(cx - w / 2, cy - w / 2, w, w);
+    ctx.fillStyle = "#e0262b"; ctx.fillRect(cx - w * .09, cy - w * .34, w * .18, w * .68); ctx.fillRect(cx - w * .34, cy - w * .09, w * .68, w * .18);
+  }
+  // Who wears shirt slot i at the current time: substitutes take over the slot of the player they replace.
+  var SUBS = {};
+  function infoAt(i) {
+    var base = teams[i < 11 ? 0 : 1].players[i % 11], list = SUBS[i];
+    if (!list) return base;
+    var cur = base;
+    for (var k = 0; k < list.length && list[k].t <= t; k++) cur = list[k];
+    return cur;
+  }
   function disc(x, y, r, fill, stroke) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = stroke; ctx.stroke(); }
   function entities(S, now, dt) {
     var s = view.s, r = .95 * s;
@@ -412,13 +427,14 @@ td.l { color: var(--muted); }
     });
     S.ps.forEach(function (p, i) {
       if (p.off && Math.abs(p.y) > 35.5) return;
-      var tm = teams[i < 11 ? 0 : 1], info = tm.players[i % 11], x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * 2.2 * s, g = 1 + jh * .06, sh = 1 - jh * .6;
-      if (p.sl || p.gr) { downPlayer(p, tm, info, x, gy); return; }
+      var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * 2.2 * s, g = 1 + jh * .06, sh = 1 - jh * .6;
+      if (p.sl || p.gr) { downPlayer(p, tm, info, x, gy); if (p.inj) injuryMark(x, gy, r); return; }
       ctx.fillStyle = "rgba(0,0,0," + (.5 * sh) + ")"; ctx.beginPath(); ctx.ellipse(x + .15 * s, gy + .2 * s, r * 1.05 * sh, r * .95 * sh, 0, 0, Math.PI * 2); ctx.fill();
       disc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary, tm.kit.secondary);
       ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * g * 1.05) + "px Barlow, system-ui, sans-serif";
       fillC(String(info.number), x, y);
       if (p.bk) { ctx.fillStyle = "#ffd23f"; ctx.fillRect(x + r * .55, y - r * 1.05, r * .32, r * .45); }
+      if (p.inj) injuryMark(x, y, r);
     });
     S.ps.forEach(function (p) { if (p.os) offsideMark(X(p.x), Y(p.y), s); });
     var h = Math.max(0, S.bz - .11), bx = X(S.bx), by = Y(S.by);
@@ -427,7 +443,7 @@ td.l { color: var(--muted); }
     drawBall(bx, by - Math.min(20, h) * .55 * s, .38 * s * (1 + Math.min(20, h) * .07));
     drawNet(-1, S.bx, S.by, netFx(t, -1)); drawNet(1, S.bx, S.by, netFx(t, 1));
     if (S.owner >= 0 && S.phase === 0) {
-      var o = S.ps[S.owner], tm2 = teams[S.owner < 11 ? 0 : 1], inf = tm2.players[S.owner % 11], label = inf.shortName;
+      var o = S.ps[S.owner], tm2 = teams[S.owner < 11 ? 0 : 1], inf = infoAt(S.owner), label = inf.shortName;
       ctx.font = "600 " + Math.max(11, s) + "px Barlow, system-ui, sans-serif"; var lm = ctx.measureText(label), tw = lm.actualBoundingBoxRight + lm.actualBoundingBoxLeft, th = lm.actualBoundingBoxAscent + lm.actualBoundingBoxDescent, lx = X(o.x), ly = Y(o.y) + r * 2.2;
       ctx.fillStyle = "rgba(5,8,6,.75)"; ctx.fillRect(lx - tw / 2 - .5 * s, ly - th / 2 - .32 * s, tw + s, th + .64 * s); ctx.fillStyle = "#fff"; fillC(label, lx, ly);
     }
@@ -439,7 +455,7 @@ td.l { color: var(--muted); }
   function buildMoments() {
     moments.textContent = "";
     E.forEach(function (e) {
-    if (!KEY[e.type] && !(e.type === "Shot" && e.detail >= 3) && !(e.type === "FreeKick" && e.detail === 1)) return;
+    if (!KEY[e.type] && !(e.type === "Shot" && (e.detail === 3 || e.detail === 4)) && !(e.type === "FreeKick" && e.detail === 1)) return;
     var b = document.createElement("button"); b.type = "button";
     b.innerHTML = '<span class="m"></span><span></span>';
     b.children[0].textContent = e.minute; b.children[1].textContent = e.text; b.children[1].className = "tone-" + e.tone;
@@ -449,6 +465,12 @@ td.l { color: var(--muted); }
   }
   function load(r) {
     R = r; F = R.frames; E = R.events; teams = [R.home, R.away];
+    SUBS = {};
+    E.forEach(function (e) {
+      if (e.type !== "Substitution" || !e.s) return;
+      var parts = String(e.s).split("|");
+      (SUBS[e.p] = SUBS[e.p] || []).push({ t: e.t, number: parseInt(parts[0], 10), shortName: parts[1] });
+    });
     t0 = F[0][0] / 100; tEnd = F[F.length - 1][0] / 100; secondHalfT = Infinity;
     E.forEach(function (e) { if (e.type === "SecondHalfStart" && secondHalfT === Infinity) secondHalfT = e.t; });
     addedMinutes = [0, 0];
