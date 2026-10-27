@@ -58,7 +58,11 @@ namespace SoccerVision.Simulation
                 case MatchEventType.GoalkeeperClaim:
                     return e.Value > 0.5f ? P(e.Player) + " punches clear" : P(e.Player) + " claims it";
                 case MatchEventType.Tackle:
-                    return P(e.Player) + " wins it from " + P(e.OtherPlayer);
+                    return e.Detail == 1
+                        ? "Great sliding tackle by " + P(e.Player) + " on " + P(e.OtherPlayer)
+                        : P(e.Player) + " wins it from " + P(e.OtherPlayer);
+                case MatchEventType.SlideTackleMissed:
+                    return P(e.Player) + " goes to ground but " + P(e.OtherPlayer) + " rides the challenge";
                 case MatchEventType.Interception:
                     return P(e.Player) + " intercepts";
                 case MatchEventType.Foul:

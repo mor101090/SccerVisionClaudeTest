@@ -85,10 +85,23 @@ namespace SoccerVision.Simulation
         public float LastSortieTime = -100f;
         /// <summary>Sim time until which this player is on a cut-inside run (a shot then counts as one).</summary>
         public float CutInUntil = -1f;
+        /// <summary>The opponent this player marks right now (either system).</summary>
         public PlayerAgent MarkTarget;
+        /// <summary>Man-to-man: the opponent given to this player for the whole defensive phase (kept until possession changes).</summary>
+        public PlayerAgent ManAssignment;
+        internal PlayerAgent PrevMarkTarget;
+
+        // Sliding tackle: a short lunge along SlideDir, then a moment on the ground.
+        public float SlideTimer;
+        public float GroundTimer;
+        public Vec2 SlideDir;
+        public float SlideSpeed;
+        public PlayerAgent SlideVictim;
+        public bool SlideResolved;
+        public bool IsDown => SlideTimer > 0f || GroundTimer > 0f;
 
         // Per-match stats
-        public int Touches, PassesAttempted, PassesCompleted, Shots, Goals, Tackles, Saves;
+        public int Touches, PassesAttempted, PassesCompleted, Shots, Goals, Tackles, SlideTackles, Saves;
         public float DistanceCovered;
 
         public PlayerAgent(int index, PlayerProfile profile, TeamAgent team, int slotIndex)

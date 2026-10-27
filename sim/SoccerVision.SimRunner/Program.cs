@@ -179,6 +179,13 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Passes", Avg(x => x.Passes), "850-1000 (in 57 min ball-in-play)");
     Row("Pass completion %", Avg(x => x.PassPct), "80-85");
     Row("Tackles", Avg(x => x.Tackles), "30-40");
+    Row("  standing", Avg(x => x.StandingTackles), "~75-85% of tackles");
+    Row("  sliding", Avg(x => x.SlideTackles), "~15-25% of tackles");
+    Row("  slides won", Avg(x => x.SlideTacklesWon), "n/a");
+    Row("Tackles won %", 100.0 * r.Sum(x => x.TacklesWon) / Math.Max(1, r.Sum(x => x.Tackles)), "~60-65");
+    Row("Goals home / away", Avg(x => x.HomeGoals), Avg(x => x.AwayGoals).ToString("0.00"));
+    Row("Shots home / away", Avg(x => x.HomeShots), Avg(x => x.AwayShots).ToString("0.00"));
+    Row("Marking switches (zonal home / m2m away)", Avg(x => x.HomeSwitches), Avg(x => x.AwaySwitches).ToString("0.0"));
     Row("Home possession %", Avg(x => x.HomePossession), "50 +/- 15");
     Row("Added time 1st half (min)", Avg(x => x.Added1), "1-3");
     Row("Added time 2nd half (min)", Avg(x => x.Added2), "3-7");
@@ -239,7 +246,7 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
             f.Add(Q(p.Pos.Y));
             f.Add((int)MathF.Round(MathUtil.WrapAngle(p.Facing) * 100f));
             f.Add((int)MathF.Round(p.JumpZ * 100f));
-            f.Add((p.SentOff ? 1 : 0) | (p.IsGoalkeeper ? 2 : 0) | (p.YellowCards > 0 ? 4 : 0) | (p.OffsideMarkTimer > 0f ? 8 : 0));
+            f.Add((p.SentOff ? 1 : 0) | (p.IsGoalkeeper ? 2 : 0) | (p.YellowCards > 0 ? 4 : 0) | (p.OffsideMarkTimer > 0f ? 8 : 0) | (p.SlideTimer > 0f ? 16 : 0) | (p.GroundTimer > 0f ? 32 : 0));
         }
         foreach (var o in engine.Officials)
         {
@@ -295,7 +302,7 @@ sealed class MatchResult
     public bool Finished;
     public int RecoveredErrors;
     public double WallMs;
-    public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles;
+    public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots;
     public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy;
     public string Score;
 
@@ -340,6 +347,16 @@ sealed class MatchResult
             CutIns = h.CutInShots + a.CutInShots,
             Passes = passes,
             Tackles = h.Tackles + a.Tackles,
+            StandingTackles = h.StandingTackles + a.StandingTackles,
+            SlideTackles = h.SlideTackles + a.SlideTackles,
+            SlideTacklesWon = h.SlideTacklesWon + a.SlideTacklesWon,
+            TacklesWon = h.TacklesWon + a.TacklesWon,
+            HomeSwitches = h.MarkingSwitches,
+            HomeGoals = h.Goals,
+            AwayGoals = a.Goals,
+            HomeShots = h.Shots,
+            AwayShots = a.Shots,
+            AwaySwitches = a.MarkingSwitches,
             Xg = h.ExpectedGoals + a.ExpectedGoals,
             PassPct = passes > 0 ? 100.0 * (h.PassesCompleted + a.PassesCompleted) / passes : 0,
             HomePossession = poss > 0 ? 100.0 * h.PossessionSeconds / poss : 50,

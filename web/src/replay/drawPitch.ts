@@ -264,6 +264,19 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     const h = Math.min(1, Math.max(0, p.jump));
     const lift = h * 2.2 * s;
     const y = gy - lift;
+    if (p.sliding || p.grounded) {
+      drawDownPlayer(ctx, x, gy, r, s, -p.facing, p.sliding, p.gk ? team.kit.gk : team.kit.primary, team.kit.secondary);
+      ctx.fillStyle = p.gk ? team.kit.gkNumber : team.kit.number;
+      ctx.font = `bold ${Math.max(8, r * 1.05)}px system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      fillCentered(ctx, String(info.number), x, gy);
+      if (p.booked) {
+        ctx.fillStyle = "#ffd600";
+        ctx.fillRect(x + r * 0.55, gy - r * 1.05, r * 0.32, r * 0.45);
+      }
+      return;
+    }
     const grow = 1 + h * 0.2;
     const shrink = 1 - h * 0.6;
     ctx.fillStyle = `rgba(0,0,0,${0.5 * shrink})`;
@@ -329,6 +342,42 @@ export function fillCentered(ctx: CanvasRenderingContext2D, text: string, x: num
   ctx.textBaseline = "alphabetic";
   const m = ctx.measureText(text);
   ctx.fillText(text, x - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, y + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
+}
+
+/**
+ * A player on the ground (slide tackle, then getting up): the body lies stretched along the slide (screen angle a),
+ * with a streak of churned-up grass behind him while he is still sliding.
+ */
+function drawDownPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, s: number, a: number, sliding: boolean, fill: string, stroke: string) {
+  const c = Math.cos(a);
+  const sn = Math.sin(a);
+  if (sliding) {
+    const g = ctx.createLinearGradient(x - c * r * 4, y - sn * r * 4, x, y);
+    g.addColorStop(0, "rgba(225,240,205,0)");
+    g.addColorStop(1, "rgba(225,240,205,0.45)");
+    ctx.strokeStyle = g;
+    ctx.lineWidth = r * 1.1;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x - c * r * 4, y - sn * r * 4);
+    ctx.lineTo(x - c * r * 0.6, y - sn * r * 0.6);
+    ctx.stroke();
+  }
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(a);
+  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  ctx.beginPath();
+  ctx.ellipse(0.15 * s, 0.2 * s, r * 1.7, r * 0.95, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 1.6, r * 0.85, 0, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, r * 0.18);
+  ctx.strokeStyle = stroke;
+  ctx.stroke();
+  ctx.restore();
 }
 
 function disc(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, stroke: string) {

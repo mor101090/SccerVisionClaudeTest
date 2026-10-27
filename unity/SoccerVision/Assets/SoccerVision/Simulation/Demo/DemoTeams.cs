@@ -21,23 +21,37 @@ namespace SoccerVision.Simulation
             "Fendar", "Galvin", "Harrow", "Ilvane", "Jestin", "Korval", "Lorcan", "Mirren", "Novak", "Orsini",
         };
 
-        public static TeamSetup Red(ulong seed = 1001) => Create("Red Rovers", "RED", seed, 0, new KitColors
+        /// <summary>Red Rovers defend zonally and tackle normally.</summary>
+        public static TeamSetup Red(ulong seed = 1001)
         {
-            Primary = "#D32F2F",
-            Secondary = "#FFFFFF",
-            Number = "#FFFFFF",
-            GoalkeeperPrimary = "#F9D71C",
-            GoalkeeperNumber = "#1A1A1A",
-        });
+            var t = Create("Red Rovers", "RED", seed, 0, new KitColors
+            {
+                Primary = "#D32F2F",
+                Secondary = "#FFFFFF",
+                Number = "#FFFFFF",
+                GoalkeeperPrimary = "#F9D71C",
+                GoalkeeperNumber = "#1A1A1A",
+            });
+            t.Tactics.Marking = MarkingStyle.Zonal;
+            t.Tactics.Tackling = TacklingStyle.Normal;
+            return t;
+        }
 
-        public static TeamSetup Blue(ulong seed = 2002) => Create("Blue Falcons", "BLU", seed, 1, new KitColors
+        /// <summary>Blue Falcons mark man-to-man and get stuck in (more slide tackles).</summary>
+        public static TeamSetup Blue(ulong seed = 2002)
         {
-            Primary = "#1E5BC6",
-            Secondary = "#FFFFFF",
-            Number = "#FFFFFF",
-            GoalkeeperPrimary = "#2E9E4F",
-            GoalkeeperNumber = "#FFFFFF",
-        });
+            var t = Create("Blue Falcons", "BLU", seed, 1, new KitColors
+            {
+                Primary = "#1E5BC6",
+                Secondary = "#FFFFFF",
+                Number = "#FFFFFF",
+                GoalkeeperPrimary = "#2E9E4F",
+                GoalkeeperNumber = "#FFFFFF",
+            });
+            t.Tactics.Marking = MarkingStyle.ManToMan;
+            t.Tactics.Tackling = TacklingStyle.GetStuckIn;
+            return t;
+        }
 
         private static readonly int[] StarterNumbers = { 1, 2, 4, 5, 3, 7, 8, 6, 11, 9, 10 };
 

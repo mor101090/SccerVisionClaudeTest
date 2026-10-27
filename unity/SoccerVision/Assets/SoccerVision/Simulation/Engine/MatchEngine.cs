@@ -377,6 +377,12 @@ namespace SoccerVision.Simulation
                 if (p.DiveTimer > 0f) p.DiveTimer -= dt;
                 if (p.InterceptRecalc > 0f) p.InterceptRecalc -= dt;
                 if (p.OffsideMarkTimer > 0f) p.OffsideMarkTimer -= dt;
+                if (p.SlideTimer > 0f)
+                {
+                    p.SlideTimer -= dt;
+                    if (p.SlideTimer <= 0f) EndSlide(p);
+                }
+                else if (p.GroundTimer > 0f) p.GroundTimer -= dt;
             }
             foreach (var o in Officials) if (o.FlagTimer > 0f) o.FlagTimer -= dt;
             if (_advantageTimer > 0f)
@@ -429,6 +435,8 @@ namespace SoccerVision.Simulation
             UpdateBall(dt);
             if (Phase != MatchPhase.Live) return;
 
+            UpdateSlides();
+            if (Phase != MatchPhase.Live) return;
             ResolveTouches();
             if (Phase != MatchPhase.Live) return;
             ResolveTackles(dt);
@@ -661,6 +669,8 @@ namespace SoccerVision.Simulation
                     p.Energy = MathUtil.Clamp01(p.Energy + 0.07f + 0.05f * MathUtil.A(p.Attr.Stamina));
                     p.Vel = Vec2.Zero;
                     p.StunTimer = 0f;
+                    p.SlideTimer = 0f;
+                    p.GroundTimer = 0f;
                 }
             }
             Clock.Period = MatchPeriod.SecondHalf;

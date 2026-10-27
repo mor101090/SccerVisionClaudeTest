@@ -571,29 +571,56 @@ namespace SoccerVision.Simulation
 
         // ---- Tackles -----------------------------------------------------------------------------------
 
+        /// <summary>How readily a team goes into challenges (the Tackling instruction).</summary>
+        private static float TackleStyleFactor(TeamAgent t) =>
+            t.Tactics.Tackling == TacklingStyle.StayOnFeet ? 0.7f : t.Tactics.Tackling == TacklingStyle.GetStuckIn ? 1.35f : 1f;
+
+        /// <summary>How readily a team goes to ground (slide tackles).</summary>
+        private static float SlideStyleFactor(TeamAgent t) =>
+            t.Tactics.Tackling == TacklingStyle.StayOnFeet ? 0.25f : t.Tactics.Tackling == TacklingStyle.GetStuckIn ? 1.8f : 1f;
+
+        /// <summary>
+        /// Defending the ball carrier. Close up (within a stride) a defender jockeys and picks his moment for a standing
+        /// tackle - most often when the carrier is exposed: a heavy first touch, his back to goal, or turning. A carrier
+        /// getting away from a chasing defender may instead be met with a slide tackle from the side or behind.
+        /// </summary>
         private void ResolveTackles(float dt)
         {
             var carrier = Ball.Owner;
             if (carrier == null || Ball.InHands || carrier.SentOff) return;
             var defenders = carrier.Team.Opponent;
+            float carrierSpeed = carrier.Vel.Length;
             foreach (var d in defenders.Players)
             {
-                if (d.SentOff || d.TackleCooldown > 0f || d.StunTimer > 0f) continue;
+                if (d.SentOff || d.IsDown || d.TackleCooldown > 0f || d.StunTimer > 0f) continue;
                 float dist = Vec2.Distance(d.Pos, carrier.Pos);
-                if (dist > 1.45f) continue;
+                if (dist > 2.8f) continue;
                 if (d.IsGoalkeeper && !Pitch.InPenaltyArea(d.Pos, d.Team.OwnGoalSign)) continue;
                 float aggression = MathUtil.A(d.Attr.Aggression);
-                // Defenders mostly jockey; a challenge goes in a few times per second of close contact at most.
-                float rate = 0.12f + 0.25f * aggression + 0.2f * defenders.Tactics.PressingIntensity;
-                if (d.YellowCards > 0) rate *= 0.5f;
                 bool inBox = Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign);
                 float toGoal = Vec2.Distance(carrier.Pos, d.Team.OwnGoal);
+                bool breakaway = IsDenyingObviousGoalScoringOpportunity(carrier, d);
+
+                if (dist > 1.45f)
+                {
+                    if (!d.IsGoalkeeper && dist > 1.5f && carrierSpeed > 3f && TrySlide(d, carrier, dist, inBox, breakaway, dt)) return;
+                    continue;
+                }
+
+                // Standing tackle: defenders mostly jockey and wait for the moment the carrier is exposed.
+                float rate = (0.045f + 0.1f * aggression + 0.08f * defenders.Tactics.PressingIntensity) * TackleStyleFactor(defenders);
+                float exposed = 1f;
+                if (carrier.HoldTime < 0.45f) exposed += 0.9f;                                         // still controlling the ball
+                Vec2 attackDir = carrier.Team.DirToWorld(Vec2.UnitX);
+                if (Vec2.Dot(carrier.FacingDir, attackDir) < -0.2f) exposed += 0.6f;                 // back to goal
+                if (carrierSpeed > 1.5f && MathF.Abs(MathUtil.AngleDiff(carrier.Facing, carrier.Vel.Angle)) > 0.9f) exposed += 0.5f; // turning
+                rate *= exposed;
+                if (d.YellowCards > 0) rate *= 0.5f;
                 if (inBox) rate *= toGoal < 13f ? 1.3f : 0.9f;          // last-ditch challenges close to goal
                 else if (toGoal < 32f) rate *= 1.6f;                     // engage before the box
-                bool breakaway = IsDenyingObviousGoalScoringOpportunity(carrier, d);
                 if (breakaway) rate *= 0.3f;
                 // Take-on duel: the carrier deliberately runs at a defender standing in his path.
-                if (dist < 1.15f && d.TackleCooldown <= 0f && carrier.Vel.Length > 2.5f && carrier.Task == PlayerTask.OnBall && carrier.HoldTime > 0.3f)
+                if (dist < 1.15f && carrierSpeed > 2.5f && carrier.Task == PlayerTask.OnBall && carrier.HoldTime > 0.3f)
                 {
                     Vec2 toD = d.Pos - carrier.Pos;
                     if (Vec2.Dot(carrier.Vel.Normalized, toD.Normalized) > 0.6f)
@@ -604,11 +631,11 @@ namespace SoccerVision.Simulation
                 }
                 if (_rng.Chance(rate * dt))
                 {
-                    AttemptTackle(d, carrier);
+                    AttemptTackle(d, carrier, exposed - 1f);
                     return;
                 }
                 // "Smart" tactical foul to stop a counter (design doc: only high-decision players try it).
-                if (dist < 1.4f && d.YellowCards == 0 && IsStoppingPromisingAttack(carrier, d) && !IsDenyingObviousGoalScoringOpportunity(carrier, d))
+                if (dist < 1.4f && d.YellowCards == 0 && IsStoppingPromisingAttack(carrier, d) && !breakaway)
                 {
                     float smart = MathUtil.A(d.Attr.Decisions) * (0.4f + 0.6f * aggression);
                     if (smart > 0.35f && _rng.Chance(0.45f * smart * dt))
@@ -619,6 +646,135 @@ namespace SoccerVision.Simulation
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Slide tackle: a defender who cannot get in front of a carrier running away (beside or behind him) throws
+        /// himself at the ball. Risky - a mistimed slide from behind is a foul and often a card - so cautious and booked
+        /// players rarely go to ground, and almost never in their own box.
+        /// </summary>
+        private bool TrySlide(PlayerAgent d, PlayerAgent carrier, float dist, bool inBox, bool breakaway, float dt)
+        {
+            var team = d.Team;
+            // Only when the carrier is getting away, and the defender is beside or behind him (not squared up in front).
+            Vec2 run = carrier.Vel.Normalized;
+            Vec2 fromCarrier = (d.Pos - carrier.Pos) / dist;
+            if (Vec2.Dot(run, fromCarrier) > 0.35f) return false;
+            if (Vec2.Dot(run, team.DirToWorld(-Vec2.UnitX)) < -0.3f) return false; // running away from our goal: no need
+            if (d.Vel.Length < 3f) return false;                                    // slides come out of a run
+            float aggression = MathUtil.A(d.Attr.Aggression);
+            float rate = 0.09f * SlideStyleFactor(team) * (0.35f + 0.65f * aggression) * (0.6f + 0.4f * MathUtil.A(d.Attr.Tackling));
+            if (team.Forward(carrier.Pos) < -10f) rate *= 1.5f; // danger: he must be stopped
+            if (inBox) rate *= 0.2f;
+            if (d.YellowCards > 0) rate *= 0.25f;
+            if (breakaway) rate *= 2f;                          // last man: all or nothing
+            if (!_rng.Chance(rate * dt)) return false;
+
+            // Aim at where the ball will be when the slide arrives.
+            float lunge = 0.42f;
+            Vec2 aim = Ball.Pos + carrier.Vel * lunge;
+            Vec2 to = aim - d.Pos;
+            float len = to.Length;
+            if (len < 0.5f) return false;
+            d.SlideDir = to / len;
+            d.SlideSpeed = MathUtil.Clamp((len + 0.4f) / lunge, 5.5f, 8.5f);
+            d.SlideTimer = lunge;
+            d.SlideVictim = carrier;
+            d.SlideResolved = false;
+            d.TackleCooldown = 3f;
+            d.StunTimer = MathF.Max(d.StunTimer, lunge);
+            d.Facing = d.SlideDir.Angle;
+            team.Stats.Tackles++;
+            team.Stats.SlideTackles++;
+            d.Tackles++;
+            d.SlideTackles++;
+            if (CollectDiagnostics) Count("tackle.slide");
+            return true;
+        }
+
+        /// <summary>Slides in progress: contact with the ball (won), with the man (foul) or with nothing (missed).</summary>
+        private void UpdateSlides()
+        {
+            foreach (var d in AllPlayers)
+            {
+                if (d.SlideTimer <= 0f || d.SlideResolved || d.SentOff) continue;
+                var victim = d.SlideVictim;
+                float toBall = Vec2.Distance(d.Pos + d.SlideDir * 0.7f, Ball.Pos); // the leading foot
+                bool ballLow = Ball.Z < 0.6f && !Ball.InHands;
+                if (ballLow && toBall < 0.85f && (Ball.Owner == null || Ball.Owner.Team != d.Team))
+                {
+                    d.SlideResolved = true;
+                    ResolveSlideContact(d, Ball.Owner);
+                    return;
+                }
+                if (victim != null && !victim.SentOff && Vec2.Distance(d.Pos, victim.Pos) < 0.55f)
+                {
+                    // Took the man, not the ball.
+                    d.SlideResolved = true;
+                    bool fromBehind = MathF.Abs(MathUtil.AngleDiff(victim.Facing, (d.Pos - victim.Pos).Angle)) > 2.1f;
+                    if (CollectDiagnostics) Count("tackle.slide.foul");
+                    _slideFoul = true;
+                    CommitFoul(d, victim, fromBehind, false, victim.Pos);
+                    _slideFoul = false;
+                    return;
+                }
+            }
+        }
+
+        private void ResolveSlideContact(PlayerAgent d, PlayerAgent carrier)
+        {
+            var team = d.Team;
+            if (carrier == null)
+            {
+                // A loose ball: swept away.
+                SetDeflection(d, d.SlideDir.Rotate(_rng.Range(-0.5f, 0.5f)) * _rng.Range(6f, 11f), _rng.Range(0f, 1.2f));
+                return;
+            }
+            bool fromBehind = MathF.Abs(MathUtil.AngleDiff(carrier.Facing, (d.Pos - carrier.Pos).Angle)) > 2.1f;
+            var ca = carrier.Attr;
+            var da = d.Attr;
+            float attack = (0.45f * ca.Dribbling + 0.25f * ca.Acceleration + 0.2f * ca.BallControl + 0.1f * ca.Composure) * carrier.FatigueFactor;
+            float defend = (0.6f * da.Tackling + 0.2f * da.Decisions + 0.2f * da.Acceleration) * d.FatigueFactor;
+            float pFoul = 0.14f + 0.14f * MathUtil.A(da.Aggression) + (fromBehind ? 0.3f : 0.05f) - 0.1f * MathUtil.A(da.Tackling)
+                          + (1f - d.Energy) * 0.08f;
+            pFoul = MathUtil.Clamp(pFoul, 0.05f, 0.7f);
+            float pWin = MathUtil.Clamp(0.62f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.12f : 0f), 0.2f, 0.9f);
+            if (_rng.Chance(pFoul))
+            {
+                if (CollectDiagnostics) Count("tackle.slide.foul");
+                _slideFoul = true;
+                CommitFoul(d, carrier, fromBehind, true, carrier.Pos);
+                _slideFoul = false;
+                return;
+            }
+            if (_rng.Chance(pWin))
+            {
+                team.Stats.TacklesWon++;
+                team.Stats.SlideTacklesWon++;
+                Emit(MatchEventType.Tackle, team, d, carrier, carrier.Pos, 0f, WhistleKind.Short, 1);
+                ClearOffside();
+                Ball.LastToucher = carrier;
+                // The ball is knocked on in the slide's direction (near the touchline usually out of play).
+                Vec2 dir = d.SlideDir.Rotate(_rng.Range(-0.7f, 0.7f));
+                if (MathF.Abs(carrier.Pos.Y) > Pitch.HalfWidth - 6f && _rng.Chance(0.5f))
+                    dir = new Vec2(dir.X * 0.4f, MathF.Sign(carrier.Pos.Y)).Normalized;
+                SetDeflection(d, dir * _rng.Range(5f, 10f), _rng.Range(0f, 1f));
+                carrier.StunTimer = MathF.Max(carrier.StunTimer, 0.6f);
+                return;
+            }
+            // Skipped over the challenge: the carrier rides it and goes on.
+            if (CollectDiagnostics) Count("tackle.slide.beaten");
+            Emit(MatchEventType.SlideTackleMissed, team, d, carrier, d.Pos);
+            carrier.Vel *= 0.85f;
+        }
+
+        /// <summary>Called when a slide ends: the player lies on the ground for a moment before getting up.</summary>
+        private void EndSlide(PlayerAgent p)
+        {
+            p.SlideTimer = 0f;
+            p.SlideVictim = null;
+            p.GroundTimer = 0.75f + 0.5f * (1f - MathUtil.A(p.Attr.Acceleration));
+            p.StunTimer = MathF.Max(p.StunTimer, p.GroundTimer);
         }
 
         /// <summary>1v1 dribble: beat the man (he is left behind) or lose it (tackle / foul).</summary>
@@ -643,10 +799,13 @@ namespace SoccerVision.Simulation
             AttemptTackle(d, carrier);
         }
 
-        private void AttemptTackle(PlayerAgent d, PlayerAgent carrier)
+        /// <param name="exposed">How exposed the carrier is (0 = shielding the ball .. ~2): well-timed tackles win it more often.</param>
+        private void AttemptTackle(PlayerAgent d, PlayerAgent carrier, float exposed = 0f)
         {
             d.Team.Stats.Tackles++;
+            d.Team.Stats.StandingTackles++;
             d.Tackles++;
+            if (CollectDiagnostics) Count("tackle.standing");
             Vec2 toDefender = d.Pos - carrier.Pos;
             float behindAngle = MathF.Abs(MathUtil.AngleDiff(carrier.Facing, toDefender.Angle));
             bool fromBehind = behindAngle > 2.1f; // defender coming from behind the carrier
@@ -656,8 +815,8 @@ namespace SoccerVision.Simulation
             float attack = (0.45f * ca.Dribbling + 0.3f * ca.BallControl + 0.15f * ca.Acceleration + 0.1f * ca.PhysicalPower) * carrier.FatigueFactor;
             float defend = (0.55f * da.Tackling + 0.2f * da.Positioning + 0.15f * da.PhysicalPower + 0.1f * da.Aggression) * d.FatigueFactor;
             if (d.IsGoalkeeper) defend = (0.6f * da.OneOnOne + 0.4f * da.Reflexes) * d.FatigueFactor;
-            float pWin = MathUtil.Clamp(0.5f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.15f : 0f), 0.12f, 0.85f);
-            float pFoul = 0.075f + 0.11f * MathUtil.A(da.Aggression) + (fromBehind ? 0.18f : 0f) - 0.06f * MathUtil.A(da.Tackling)
+            float pWin = MathUtil.Clamp(0.58f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.15f : 0f) + 0.1f * exposed, 0.12f, 0.88f);
+            float pFoul = 0.1f + 0.12f * MathUtil.A(da.Aggression) + (fromBehind ? 0.18f : 0f) - 0.06f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
             if (d.YellowCards > 0) pFoul *= 0.45f;
             if (IsDenyingObviousGoalScoringOpportunity(carrier, d)) pFoul *= 0.4f; // tries to stay clean
@@ -672,7 +831,7 @@ namespace SoccerVision.Simulation
             if (_rng.Chance(pWin))
             {
                 d.Team.Stats.TacklesWon++;
-                Emit(MatchEventType.Tackle, d.Team, d, carrier, carrier.Pos);
+                Emit(MatchEventType.Tackle, d.Team, d, carrier, carrier.Pos, 0f, WhistleKind.Short, 0);
                 ClearOffside();
                 if (_rng.Chance(0.5f))
                 {

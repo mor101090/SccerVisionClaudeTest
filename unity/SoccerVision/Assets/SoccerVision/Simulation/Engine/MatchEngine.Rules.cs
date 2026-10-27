@@ -324,6 +324,9 @@ namespace SoccerVision.Simulation
 
         // ---- Law 12: fouls and misconduct -------------------------------------------------------------
 
+        /// <summary>Set while a foul from a slide tackle is being judged (a higher card risk).</summary>
+        private bool _slideFoul;
+
         private void CommitFoul(PlayerAgent offender, PlayerAgent victim, bool fromBehind, bool playedForBall, Vec2 contact)
         {
             offender.Team.Stats.Fouls++;
@@ -393,6 +396,7 @@ namespace SoccerVision.Simulation
             }
 
             float pRed = 0.0004f + (fromBehind ? 0.0015f * (0.5f + aggression) : 0f);
+            if (_slideFoul) pRed += fromBehind ? 0.012f : 0.003f; // excessive force: two-footed / from behind
             if (_rng.Chance(pRed))
             {
                 if (CollectDiagnostics) Count("card.sfp.red");
@@ -403,6 +407,7 @@ namespace SoccerVision.Simulation
             float pYellow = 0.03f + (fromBehind ? 0.13f : 0f) + 0.08f * aggression + (promising ? 0.55f : 0f)
                             + (offender.FoulsCommitted >= 3 ? 0.2f : 0f);
             if (!playedForBall) pYellow += 0.1f;
+            if (_slideFoul) pYellow += fromBehind ? 0.15f : 0.05f; // a mistimed slide is usually reckless
             if (offender.YellowCards > 0) pYellow *= 0.45f; // referees give some leeway before a second caution
             if (_rng.Chance(MathUtil.Clamp(pYellow, 0f, 0.95f)))
             {

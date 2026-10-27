@@ -8,6 +8,15 @@ namespace SoccerVision.Simulation
     /// 0.5 is the balanced default. The live tactics panel will edit these during a match.
     /// </summary>
     [Serializable]
+    /// <summary>
+    /// How the team marks without the ball. Zonal: each player defends an area and takes whoever enters it, handing him
+    /// over to the next zone. Man-to-man: each defender and midfielder is given one opponent and follows him.
+    /// </summary>
+    public enum MarkingStyle { Zonal, ManToMan }
+
+    /// <summary>How readily players go to ground: stay on their feet, normal, or get stuck in (slide tackles).</summary>
+    public enum TacklingStyle { StayOnFeet, Normal, GetStuckIn }
+
     public sealed class TeamTactics
     {
         /// <summary>0 = defensive, 1 = ultra attacking.</summary>
@@ -20,6 +29,8 @@ namespace SoccerVision.Simulation
         public float Tempo = 0.5f;
         /// <summary>0 = passive, 1 = aggressive.</summary>
         public float PressingIntensity = 0.5f;
+        public MarkingStyle Marking = MarkingStyle.Zonal;
+        public TacklingStyle Tackling = TacklingStyle.Normal;
 
         public TeamTactics Clone() => (TeamTactics)MemberwiseClone();
 

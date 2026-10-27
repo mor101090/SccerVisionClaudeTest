@@ -303,7 +303,7 @@ namespace SoccerVision.Runtime
                 case "setHud": showHud = cmd.flag; FitCamera(); break;
                 case "restart": StartMatch(cmd.seed > 0 ? cmd.seed : Random.Range(1, int.MaxValue)); break;
                 case "setTactics":
-                    if (cmd.tactics != null && (cmd.team == 0 || cmd.team == 1)) Engine.Submit(new ChangeTacticsCommand(cmd.team, cmd.tactics.ToModel()));
+                    if (cmd.tactics != null && (cmd.team == 0 || cmd.team == 1)) Engine.Submit(new ChangeTacticsCommand(cmd.team, cmd.tactics.ToModel((cmd.team == 0 ? Engine.Home : Engine.Away).Tactics)));
                     break;
                 case "requestState":
                     _bridge.Emit("MatchReady", BuildReady());

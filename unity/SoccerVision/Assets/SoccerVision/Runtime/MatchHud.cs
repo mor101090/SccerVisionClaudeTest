@@ -94,7 +94,7 @@ namespace SoccerVision.Runtime
             if (m.Clock.AddedMinutes > 0 && m.Clock.InAddedTime && m.Phase != MatchPhase.HalfTimeBreak && !m.IsFinished)
             {
                 var add = new GUIStyle(text) { fontSize = Mathf.RoundToInt(15 * s) };
-                add.normal.textColor = new Color(0.62f, 0.89f, 0.69f);
+                add.normal.textColor = Color.white;
                 Fill(new Rect(tx + teamW * 2 + scoreW, y, 40f * s, h), ClockBg);
                 GUI.Label(new Rect(tx + teamW * 2 + scoreW, y, 40f * s, h), "+" + m.Clock.AddedMinutes, add);
             }

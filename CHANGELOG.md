@@ -2,6 +2,58 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/defending-marking-and-tackles`
+
+- **Added time** box on the scoreboard: white text instead of green (demo page, React, Unity).
+- **Marking systems** (new team instruction `Marking`; red plays zonal, blue man-to-man):
+  - *Zonal*: each defender and midfielder owns an area around his place in the block (about 9 m for defenders, 10.5 m
+    for midfielders), which moves with the ball. He picks up the most dangerous opponent who enters it and stays
+    goal-side, but never leaves his zone. When the runner moves on, he is handed over to the next zone.
+    `MarkingSwitches` counts the hand-overs.
+  - *Man-to-man*: when the ball is lost, the four defenders take the four most advanced opponents and the midfielders
+    take the next ones, nearest first. Each keeps his man for the whole defensive phase and follows him out of position.
+    He stays tight and goal-side (about 1.3 m, 0.9 m in the box, looser when the ball is far away), and a poorer
+    `Marking` attribute gives the man more room. The strikers don't mark. If a man is sent off, his marker picks up a
+    free opponent.
+- **Standing tackle**: defenders mostly jockey and choose their moment. A challenge comes more often, and wins the
+  ball more often, when the carrier is exposed: still controlling the ball, back to goal, or turning.
+- **Slide tackle**: when a carrier is getting away and the defender is beside or behind him, the defender may go to
+  ground. He lunges about 0.4 s towards where the ball will be.
+  - Reaching the ball wins it and knocks it on, often out of play near the touchline.
+  - Hitting the man is a foul, with a higher card risk, especially from behind (reckless, or rarely excessive force).
+  - The attacker may also ride the challenge.
+  - Afterwards the slider lies on the ground for about 1 s: he can't move, play the ball or press.
+  - Slides are rare in a team's own box and for players already booked.
+- **Tackling** team instruction: `StayOnFeet` / `Normal` / `GetStuckIn`. It scales how often a team challenges and,
+  more strongly, how often it slides. Red plays Normal, blue plays Get stuck in.
+- New events and commentary:
+  - "Great sliding tackle by ..." (Tackle detail 1);
+  - "... goes to ground but ... rides the challenge" (`SlideTackleMissed`).
+- **Drawing**: a player on the ground is shown lying stretched along the slide direction. While sliding, a streak of
+  churned-up grass trails behind him. Applies to the demo page, React and Unity (replay flags 16 = sliding,
+  32 = on the ground).
+- **Bridge**: `setTactics` can carry `marking` and `tackling`. If they are left out, the team's current choice is kept
+  (before, a slider change would have reset it).
+- **Calibration over 150 matches** (real-world reference in brackets):
+
+  | Measure | This version | Real world | Before |
+  |---|---|---|---|
+  | Goals | 3.01 | 2.97 | |
+  | Fouls | 21.9 | 22.1 | |
+  | Yellow cards | about 4.4 | 4.2 | |
+  | Red cards | 0.16 | 0.10–0.15 | |
+  | Tackle attempts | 106 | | 108 |
+  | – of which slides | about 10 | | |
+
+  Slide fouls are about 20% of slides. Most tackle attempts now come from take-on duels.
+- Tests (`DefendingTests`):
+  - man-markers keep their man and stay close to him;
+  - zonal markers stay in their zone and hand over;
+  - both kinds of tackle happen, and the tackling instruction changes how often a team slides;
+  - a slider ends up on the ground, out of play.
+
+  The two offside tests now try a few matches instead of depending on a single seed having an offside.
+
 ## `fix/throwin-ball-spin-offside-marker-official-size`
 
 - **Ball spin at throw-ins**: the ball still spun after going out because, while the throw-in was being set up, nobody "owned"

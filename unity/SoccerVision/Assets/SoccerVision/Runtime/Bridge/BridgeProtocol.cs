@@ -28,14 +28,27 @@ namespace SoccerVision.Runtime
         public float tempo = 0.5f;
         public float pressingIntensity = 0.5f;
 
-        public TeamTactics ToModel() => new TeamTactics
+        /// <summary>"zonal" or "manToMan"; empty keeps the team's current marking system.</summary>
+        public string marking = "";
+        /// <summary>"stayOnFeet", "normal" or "getStuckIn"; empty keeps the team's current tackling instruction.</summary>
+        public string tackling = "";
+
+        public TeamTactics ToModel(TeamTactics current)
         {
-            Mentality = mentality,
-            DefensiveLine = defensiveLine,
-            Width = width,
-            Tempo = tempo,
-            PressingIntensity = pressingIntensity,
-        };
+            var t = new TeamTactics
+            {
+                Mentality = mentality,
+                DefensiveLine = defensiveLine,
+                Width = width,
+                Tempo = tempo,
+                PressingIntensity = pressingIntensity,
+            };
+            t.Marking = marking == "manToMan" ? MarkingStyle.ManToMan : marking == "zonal" ? MarkingStyle.Zonal
+                : current != null ? current.Marking : t.Marking;
+            t.Tackling = tackling == "stayOnFeet" ? TacklingStyle.StayOnFeet : tackling == "getStuckIn" ? TacklingStyle.GetStuckIn
+                : tackling == "normal" ? TacklingStyle.Normal : current != null ? current.Tackling : t.Tackling;
+            return t;
+        }
     }
 
     [Serializable]

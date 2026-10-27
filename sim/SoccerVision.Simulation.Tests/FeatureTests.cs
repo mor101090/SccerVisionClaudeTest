@@ -160,16 +160,19 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void OffsideFlagStaysUpForSeconds()
         {
-            var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 700);
             int offsides = 0;
             float raisedRealSeconds = 0f, longest = 0f;
-            while (!e.IsFinished)
+            for (ulong seed = 700; seed < 706 && offsides == 0; seed++)
             {
-                int before = e.Home.Stats.Offsides + e.Away.Stats.Offsides;
-                e.Advance(0.1f);
-                if (e.Home.Stats.Offsides + e.Away.Stats.Offsides > before) { offsides++; raisedRealSeconds = 0f; }
-                if (e.Assistant1.FlagRaised || e.Assistant2.FlagRaised) { raisedRealSeconds += 0.1f; longest = Math.Max(longest, raisedRealSeconds); }
-                else raisedRealSeconds = 0f;
+                var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed);
+                while (!e.IsFinished)
+                {
+                    int before = e.Home.Stats.Offsides + e.Away.Stats.Offsides;
+                    e.Advance(0.1f);
+                    if (e.Home.Stats.Offsides + e.Away.Stats.Offsides > before) { offsides++; raisedRealSeconds = 0f; }
+                    if (e.Assistant1.FlagRaised || e.Assistant2.FlagRaised) { raisedRealSeconds += 0.1f; longest = Math.Max(longest, raisedRealSeconds); }
+                    else raisedRealSeconds = 0f;
+                }
             }
             Assert.True(offsides > 0, "no offside in this match");
             Assert.True(longest >= 3.5f, "flag raised for only " + longest + " s");
@@ -264,26 +267,29 @@ namespace SoccerVision.Simulation.Tests
         public void OffsideShowsAFlagOnThePlayerAndPausesBeforeTheFreeKick()
         {
             int offsides = 0;
-            var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 7014);
-            float whistleAt = -1f;
-            PlayerAgent offender = null;
-            e.RestartExecuting += r =>
+            for (ulong seed = 7014; seed < 7020 && offsides == 0; seed++)
             {
-                if (r.Type != RestartType.IndirectFreeKick || whistleAt < 0f) return;
-                float waited = e.RealTimeElapsed - whistleAt;
-                Assert.True(waited >= e.Config.OffsideRestartRealSeconds - 0.05f, "free kick after only " + waited + " s");
-                whistleAt = -1f;
-            };
-            while (!e.IsFinished)
-            {
-                int before = e.Home.Stats.Offsides + e.Away.Stats.Offsides;
-                e.Advance(0.05f);
-                if (e.Home.Stats.Offsides + e.Away.Stats.Offsides > before)
+                var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed);
+                float whistleAt = -1f;
+                PlayerAgent offender = null;
+                e.RestartExecuting += r =>
                 {
-                    offsides++;
-                    whistleAt = e.RealTimeElapsed;
-                    offender = e.AllPlayers.FirstOrDefault(p => p.OffsideMarkTimer > 0f);
-                    Assert.NotNull(offender);
+                    if (r.Type != RestartType.IndirectFreeKick || whistleAt < 0f) return;
+                    float waited = e.RealTimeElapsed - whistleAt;
+                    Assert.True(waited >= e.Config.OffsideRestartRealSeconds - 0.05f, "free kick after only " + waited + " s");
+                    whistleAt = -1f;
+                };
+                while (!e.IsFinished)
+                {
+                    int before = e.Home.Stats.Offsides + e.Away.Stats.Offsides;
+                    e.Advance(0.05f);
+                    if (e.Home.Stats.Offsides + e.Away.Stats.Offsides > before)
+                    {
+                        offsides++;
+                        whistleAt = e.RealTimeElapsed;
+                        offender = e.AllPlayers.FirstOrDefault(p => p.OffsideMarkTimer > 0f);
+                        Assert.NotNull(offender);
+                    }
                 }
             }
             Assert.True(offsides >= 1, "no offside in this match");

@@ -92,6 +92,11 @@ namespace SoccerVision.Simulation
         public int Crosses;
         public int Tackles;
         public int TacklesWon;
+        public int StandingTackles;
+        public int SlideTackles;
+        public int SlideTacklesWon;
+        /// <summary>Times a marker changed the opponent he follows (hand-overs in zonal, switches in man-to-man).</summary>
+        public int MarkingSwitches;
         public int Interceptions;
         public int Fouls;
         public int YellowCards;

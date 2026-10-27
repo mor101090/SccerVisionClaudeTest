@@ -7,6 +7,7 @@ namespace SoccerVision.Runtime
     /// Player as described in the design document: a circle with a border and the shirt number in the centre.
     /// Rises while jumping (its shadow stays on the grass, shrinking with height), shows the player's name, centred on a
     /// dark plate, under the circle while in possession, and a chequered square above him when he is caught offside.
+    /// After a slide tackle the body lies stretched along the slide (with a streak of churned-up grass while sliding).
     /// </summary>
     public sealed class PlayerView : MonoBehaviour
     {
@@ -15,7 +16,7 @@ namespace SoccerVision.Runtime
         public PlayerAgent Agent { get; private set; }
 
         private Transform _body, _lift;
-        private SpriteRenderer _fill, _ring, _shadow, _card;
+        private SpriteRenderer _fill, _ring, _shadow, _card, _streak;
         private GameObject _offsideMark;
         private TextMesh _number, _label;
         private SpriteRenderer _labelPlate;
@@ -33,6 +34,8 @@ namespace SoccerVision.Runtime
             _body.SetParent(_lift, false);
             _fill = SpriteFactory.AddSprite(_body, "Fill", SpriteFactory.Circle, kit, 12, 1f);
             _ring = SpriteFactory.AddSprite(_body, "Ring", SpriteFactory.Ring, ringColor, 13, 1f);
+            _streak = SpriteFactory.AddSprite(transform, "SlideStreak", SpriteFactory.Square, new Color(0.88f, 0.94f, 0.8f, 0.4f), 11, 1f);
+            _streak.enabled = false;
             // TextMesh world height ~= fontSize * characterSize * 0.1 (relative to the 1-unit body here).
             _number = SpriteFactory.AddText(_body, "Number", agent.Number.ToString(), numberColor, 14, 0.085f);
             _card = SpriteFactory.AddSprite(_body, "Card", SpriteFactory.Square, new Color(1f, 0.85f, 0.1f, 1f), 15, 0.22f);
@@ -78,6 +81,7 @@ namespace SoccerVision.Runtime
 
             ShowOffside(a.OffsideMarkTimer > 0f);
             UpdateBodyScale(jump);
+            UpdateDown(a.SlideTimer > 0f, a.IsDown && !a.SentOff, a.Facing);
             _card.enabled = a.YellowCards > 0 && !a.SentOff;
             if (_label.gameObject.activeSelf != hasBall)
             {
@@ -113,6 +117,26 @@ namespace SoccerVision.Runtime
             var c = _shadow.color;
             c.a = 0.5f * (1f - h * 0.6f) * _fade;
             _shadow.color = c;
+        }
+
+        /// <summary>On the ground: the kit circle becomes a body stretched along the facing direction (the number stays upright).</summary>
+        private void UpdateDown(bool sliding, bool down, float facing)
+        {
+            var rot = down ? Quaternion.Euler(0f, 0f, facing * Mathf.Rad2Deg) : Quaternion.identity;
+            var scale = down ? new Vector3(1.6f, 0.85f, 1f) : Vector3.one;
+            _fill.transform.localRotation = rot;
+            _ring.transform.localRotation = rot;
+            _fill.transform.localScale = scale;
+            _ring.transform.localScale = scale;
+            _streak.enabled = sliding;
+            if (sliding)
+            {
+                const float len = 3.2f;
+                Vector2 dir = new Vector2(Mathf.Cos(facing), Mathf.Sin(facing));
+                _streak.transform.localPosition = new Vector3(-dir.x * len * 0.5f, -dir.y * len * 0.5f, 0f);
+                _streak.transform.localRotation = Quaternion.Euler(0f, 0f, facing * Mathf.Rad2Deg);
+                _streak.transform.localScale = new Vector3(len, Diameter * 0.9f, 1f);
+            }
         }
 
         private void ShowOffside(bool on)

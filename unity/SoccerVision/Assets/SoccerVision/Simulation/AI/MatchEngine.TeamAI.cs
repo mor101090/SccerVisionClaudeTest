@@ -59,14 +59,33 @@ namespace SoccerVision.Simulation
         private readonly List<PlayerAgent> _markPool = new List<PlayerAgent>(11);
         private readonly List<PlayerAgent> _threats = new List<PlayerAgent>(11);
 
-        /// <summary>
-        /// One marker per attacker (no two defenders on the same man): the most dangerous attackers in our half
-        /// are picked up first by the nearest free defender/midfielder whose zone they are in.
-        /// </summary>
+        /// <summary>Zone radius in zonal marking: an opponent inside it is this player's responsibility.</summary>
+        private static float ZoneRadius(PlayerAgent p) => p.Slot.Line == Line.Defence ? 9f : 10.5f;
+
+        /// <summary>One marker per attacker (no two defenders on the same man), by the team's marking system.</summary>
         private void AssignMarking(TeamAgent team, bool inPossession, float ballF)
         {
+            foreach (var p in team.Players) p.PrevMarkTarget = p.MarkTarget;
             foreach (var p in team.Players) p.MarkTarget = null;
-            if (inPossession || ballF > 12f) return;
+            if (inPossession)
+            {
+                // A new defensive phase gets new man-to-man assignments.
+                foreach (var p in team.Players) p.ManAssignment = null;
+                return;
+            }
+            if (team.Tactics.Marking == MarkingStyle.ManToMan) AssignManToMan(team, ballF);
+            else AssignZonal(team, ballF);
+            foreach (var p in team.Players)
+                if (p.PrevMarkTarget != null && p.MarkTarget != null && p.PrevMarkTarget != p.MarkTarget) team.Stats.MarkingSwitches++;
+        }
+
+        /// <summary>
+        /// Zonal marking: every defender and midfielder owns an area around his place in the block (which shifts with the
+        /// ball). He takes the most dangerous opponent inside it and lets him go when he leaves - the next zone picks him up.
+        /// </summary>
+        private void AssignZonal(TeamAgent team, float ballF)
+        {
+            if (ballF > 12f) return; // ball deep in their half: hold the shape, no marking
             _threats.Clear();
             foreach (var o in team.Opponent.Players)
             {
@@ -78,7 +97,7 @@ namespace SoccerVision.Simulation
             _markPool.Clear();
             foreach (var p in team.Players)
             {
-                if (p.SentOff || p.IsGoalkeeper || p == team.Presser || p == team.SecondPresser) continue;
+                if (p.SentOff || p.IsGoalkeeper || p.IsDown || p == team.Presser || p == team.SecondPresser) continue;
                 if (p.Slot.Line == Line.Attack) continue;
                 _markPool.Add(p);
             }
@@ -86,16 +105,81 @@ namespace SoccerVision.Simulation
             {
                 PlayerAgent best = null;
                 float bestD = float.PositiveInfinity;
-                float reach = Vec2.Distance(a.Pos, goal) < 25f ? 22f : 15f;
                 foreach (var d in _markPool)
                 {
-                    float dist = Vec2.Distance(d.ShapeTarget, a.Pos) + (d.Slot.Line == Line.Defence ? 0f : 3f);
-                    if (dist < bestD && dist < reach) { bestD = dist; best = d; }
+                    // whose zone is he in?
+                    float dist = Vec2.Distance(d.ShapeTarget, a.Pos);
+                    if (dist < ZoneRadius(d) && dist < bestD) { bestD = dist; best = d; }
                 }
-                if (best == null) continue;
+                if (best == null) continue; // in between zones and nobody's: the block's shape covers him
                 best.MarkTarget = a;
                 _markPool.Remove(best);
                 if (_markPool.Count == 0) break;
+            }
+        }
+
+        /// <summary>
+        /// Man-to-man marking: when the ball is lost, the four defenders take the four most advanced opponents and the
+        /// midfielders the next ones (nearest first); each keeps his man for the whole defensive phase and follows him out
+        /// of position. The strikers do not mark (they stay up and press the centre-backs).
+        /// </summary>
+        private void AssignManToMan(TeamAgent team, float ballF)
+        {
+            bool needBuild = true;
+            foreach (var p in team.Players) if (p.ManAssignment != null) { needBuild = false; break; }
+            var opponents = new List<PlayerAgent>();
+            foreach (var o in team.Opponent.Players) if (!o.SentOff && !o.IsGoalkeeper) opponents.Add(o);
+            // most advanced (closest to our goal) first
+            opponents.Sort((a, b) => team.Forward(a.Pos).CompareTo(team.Forward(b.Pos)));
+            if (needBuild)
+            {
+                var taken = new HashSet<PlayerAgent>();
+                foreach (var line in new[] { Line.Defence, Line.Midfield })
+                {
+                    var markers = new List<PlayerAgent>();
+                    foreach (var p in team.Players) if (!p.SentOff && !p.IsGoalkeeper && p.Slot.Line == line) markers.Add(p);
+                    var group = new List<PlayerAgent>();
+                    foreach (var o in opponents) { if (taken.Contains(o)) continue; group.Add(o); if (group.Count == markers.Count) break; }
+                    // greedy nearest pairs inside the group
+                    while (markers.Count > 0 && group.Count > 0)
+                    {
+                        PlayerAgent bm = null, bo = null;
+                        float bd = float.PositiveInfinity;
+                        foreach (var m in markers)
+                            foreach (var o in group)
+                            {
+                                float d = Vec2.Distance(m.Pos, o.Pos) + 0.5f * MathF.Abs(team.Lateral(m.ShapeTarget) - team.Lateral(o.Pos));
+                                if (d < bd) { bd = d; bm = m; bo = o; }
+                            }
+                        bm.ManAssignment = bo;
+                        taken.Add(bo);
+                        markers.Remove(bm);
+                        group.Remove(bo);
+                    }
+                }
+            }
+            foreach (var p in team.Players)
+            {
+                if (p.SentOff || p.IsGoalkeeper || p.Slot.Line == Line.Attack) continue;
+                var man = p.ManAssignment;
+                if (man == null || man.SentOff)
+                {
+                    // his man was sent off (or none was left): pick up the nearest opponent nobody marks
+                    p.ManAssignment = null;
+                    float bd = 25f;
+                    foreach (var o in opponents)
+                    {
+                        bool marked = false;
+                        foreach (var q in team.Players) if (q.ManAssignment == o) { marked = true; break; }
+                        if (marked) continue;
+                        float d = Vec2.Distance(p.Pos, o.Pos);
+                        if (d < bd) { bd = d; p.ManAssignment = o; }
+                    }
+                    man = p.ManAssignment;
+                }
+                // the ball deep in their half: hold the shape (the assignment is kept for when they come forward)
+                if (ballF > 15f || man == null || p.IsDown || p == team.Presser || p == team.SecondPresser || man == Ball.Owner) continue;
+                p.MarkTarget = man;
             }
         }
 
@@ -284,7 +368,7 @@ namespace SoccerVision.Simulation
             foreach (var t in Teams)
             {
                 t.Chaser = null;
-                if (t.Presser != null && (t.Presser.SentOff || Ball.Owner == null)) t.Presser = null;
+                if (t.Presser != null && (t.Presser.SentOff || t.Presser.IsDown || Ball.Owner == null)) t.Presser = null;
                 t.SecondPresser = null;
             }
 
@@ -302,7 +386,7 @@ namespace SoccerVision.Simulation
                 Vec2 goalSide = carrier.Pos + (def.OwnGoal - carrier.Pos).Normalized * 1.2f;
                 foreach (var d in def.Players)
                 {
-                    if (d.SentOff || d.IsGoalkeeper) continue;
+                    if (d.SentOff || d.IsGoalkeeper || d.IsDown) continue;
                     float t = d.TimeToReach(goalSide);
                     if (d == def.Presser) t *= 0.8f; // hysteresis: keep the same presser
                     if (t < t1) { second = best; t2 = t1; best = d; t1 = t; }
@@ -332,7 +416,7 @@ namespace SoccerVision.Simulation
                 float bestT = float.PositiveInfinity;
                 foreach (var p in t.Players)
                 {
-                    if (p.SentOff) continue;
+                    if (p.SentOff || p.IsDown) continue;
                     if (p.IsGoalkeeper && !GoalkeeperMayChase(p)) continue;
                     UpdateIntercept(p);
                     float tt = p.InterceptTime;
@@ -542,21 +626,40 @@ namespace SoccerVision.Simulation
             }
             else
             {
-                // Out of possession: man-oriented zonal marking, goal-side of the assigned attacker.
+                // Out of possession: goal-side of the man this player is marking (see AssignMarking).
                 float ballF = team.Forward(Ball.Pos);
                 var mark = p.MarkTarget;
-                if (mark != null && !mark.SentOff && ballF < 12f)
+                if (mark != null && !mark.SentOff)
                 {
                     bool inBox = Pitch.InPenaltyArea(mark.Pos, team.OwnGoalSign);
                     Vec2 lead = mark.Pos + mark.Vel * 0.3f;
-                    Vec2 goalSide = lead + (team.OwnGoal - lead).Normalized * (inBox ? 1.0f : 1.7f);
-                    float weight = p.Slot.Line == Line.Defence ? 0.6f : 0.45f;
-                    if (ballF < -20f) weight += 0.25f;
-                    if (inBox) weight += 0.25f;
-                    weight *= 0.65f + 0.35f * MathUtil.A(p.Attr.Marking);
-                    target = Vec2.Lerp(p.ShapeTarget, goalSide, MathUtil.Clamp01(weight));
-                    p.Task = PlayerTask.Mark;
-                    if (inBox || Vec2.Distance(p.Pos, goalSide) > 4f) urgency = 0.85f;
+                    float marking = 0.65f + 0.35f * MathUtil.A(p.Attr.Marking);
+                    if (team.Tactics.Marking == MarkingStyle.ManToMan)
+                    {
+                        // Tight, goal-side, and he goes wherever his man goes (looser when the ball is far away).
+                        bool ballFar = Vec2.Distance(mark.Pos, Ball.Pos) > 30f;
+                        // (a poor marker gives his man more room)
+                        float gap = (inBox ? 0.9f : (ballFar ? 2.6f : 1.3f)) * (2f - marking);
+                        Vec2 goalSide = lead + (team.OwnGoal - lead).Normalized * gap;
+                        // never followed deep into the opponents' half
+                        if (team.Forward(goalSide) > 8f) goalSide = team.ToWorld(8f, team.Lateral(goalSide));
+                        target = goalSide;
+                        p.Task = PlayerTask.Mark;
+                        float behind = Vec2.Distance(p.Pos, goalSide);
+                        urgency = behind > 4f || inBox ? 0.85f : behind > 1.5f ? 0.65f : 0.5f;
+                    }
+                    else
+                    {
+                        // Zonal: step towards the man in my zone, but never out of it - he is handed over when he leaves.
+                        Vec2 goalSide = lead + (team.OwnGoal - lead).Normalized * (inBox ? 1.0f : 1.8f);
+                        float r = ZoneRadius(p) * 0.75f;
+                        Vec2 fromZone = goalSide - p.ShapeTarget;
+                        if (fromZone.Length > r) goalSide = p.ShapeTarget + fromZone.Normalized * r;
+                        float weight = (p.Slot.Line == Line.Defence ? 0.7f : 0.55f) + (inBox ? 0.25f : 0f);
+                        target = Vec2.Lerp(p.ShapeTarget, goalSide, MathUtil.Clamp01(weight * marking));
+                        p.Task = PlayerTask.Mark;
+                        if (inBox || Vec2.Distance(p.Pos, goalSide) > 4f) urgency = 0.85f;
+                    }
                 }
                 // Recovery runs: players caught ahead of the ball sprint back.
                 if (team.Forward(p.Pos) > ballF + 5f && p.Slot.Line != Line.Attack) urgency = 0.9f;
@@ -564,7 +667,8 @@ namespace SoccerVision.Simulation
 
             float dist = Vec2.Distance(p.Pos, target);
             if (dist > 12f) urgency = MathF.Max(urgency, 0.8f);
-            else if (dist < 2.5f) urgency = MathF.Min(urgency, 0.35f);
+            // (a marker keeps pace with his man even when close to him)
+            else if (dist < 2.5f && !(p.Task == PlayerTask.Mark && p.MarkTarget != null && p.MarkTarget.Vel.Length > 2f)) urgency = MathF.Min(urgency, 0.35f);
             p.Target = target;
             p.Urgency = urgency;
         }
@@ -598,6 +702,16 @@ namespace SoccerVision.Simulation
 
         private void MovePlayer(PlayerAgent p, float dt)
         {
+            if (!p.SentOff && p.IsDown)
+            {
+                // Sliding: carried along the ground by the lunge; then lying there for a moment and getting up.
+                if (p.SlideTimer > 0f) p.Vel = p.SlideDir * p.SlideSpeed;
+                else p.Vel = p.Vel.ClampLength(MathF.Max(0f, p.Vel.Length - 14f * dt));
+                p.Pos = Pitch.ClampToField(p.Pos + p.Vel * dt, 1.5f);
+                p.DistanceCovered += p.Vel.Length * dt;
+                UpdateEnergy(p, p.Vel.Length, dt);
+                return;
+            }
             if (p.SentOff)
             {
                 // Walk off the pitch over the nearest touchline.

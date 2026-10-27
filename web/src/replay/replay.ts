@@ -58,7 +58,7 @@ export interface Snapshot {
   homeScore: number;
   awayScore: number;
   ball: { x: number; y: number; z: number; owner: number };
-  players: { x: number; y: number; facing: number; jump: number; sentOff: boolean; gk: boolean; booked: boolean; offside: boolean }[];
+  players: { x: number; y: number; facing: number; jump: number; sentOff: boolean; gk: boolean; booked: boolean; offside: boolean; sliding: boolean; grounded: boolean }[];
   officials: { x: number; y: number; flag: boolean }[];
   /** True when t falls in the half-time gap (no frames are recorded during the break). */
   halftime: boolean;
@@ -116,6 +116,8 @@ export function sample(replay: Replay, t: number): Snapshot {
       gk: (flags & 2) !== 0,
       booked: (flags & 4) !== 0,
       offside: (flags & 8) !== 0,
+      sliding: (flags & 16) !== 0,
+      grounded: (flags & 32) !== 0,
     });
   }
   const officials = [];

@@ -99,6 +99,10 @@ export interface TacticsSliders {
   width: number;
   tempo: number;
   pressingIntensity: number;
+  /** Marking system; omitted keeps the team's current one. */
+  marking?: "zonal" | "manToMan";
+  /** Tackling instruction; omitted keeps the team's current one. */
+  tackling?: "stayOnFeet" | "normal" | "getStuckIn";
 }
 
 export type BridgeCommand =
