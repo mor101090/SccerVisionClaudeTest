@@ -40,7 +40,6 @@ namespace SoccerVision.Simulation
         private float _riskPremium;
         private bool _shotCountedOnTarget;
         private string _lastPassKey;
-        internal static readonly string Ablate = System.Environment.GetEnvironmentVariable("SV_ABLATE") ?? "";
         private bool _pendingThrough, _pendingIntoSpace, _pendingSwitch;
         private bool _nextPassIntoSpace;
 
@@ -128,7 +127,7 @@ namespace SoccerVision.Simulation
             if (distGoal < 34f && f > 18f)
             {
                 float xg = EstimateShotXG(p, pos);
-                float tendency = p.Slot.Line == Line.Attack ? 1.1f : (p.Slot.Line == Line.Midfield ? 1.05f : 0.8f);
+                float tendency = p.Slot.Line == Line.Attack ? 1.25f : (p.Slot.Line == Line.Midfield ? 1.05f : 0.8f);
                 if (p.Slot.IsFullBack && f > 30f) tendency *= 1.3f + 0.4f * MathUtil.A(p.Attr.LongShots); // an attacking full-back at the edge of the box has a go
                 tendency *= 0.9f + 0.4f * team.Tactics.Mentality;
                 if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 2.3f; xg *= 1.1f; }
@@ -356,7 +355,7 @@ namespace SoccerVision.Simulation
             value += relief;
             // Cut-back: from the by-line, low and square to a team-mate arriving in the middle of the box.
             if (team.Forward(from) > 38f && MathF.Abs(team.Lateral(from)) > 13f && team.Forward(target) > 34f && team.Forward(target) < team.Forward(from) - 2f
-                && MathF.Abs(team.Lateral(target)) < 11f && kind == KickKind.Pass && !Ablate.Contains("cutback"))
+                && MathF.Abs(team.Lateral(target)) < 11f && kind == KickKind.Pass)
                 value *= 1.5f;
             float progress = team.Forward(target) - team.Forward(from);
             value += MathF.Max(0f, progress) * 0.00022f * (0.6f + 0.8f * team.Tactics.Tempo);
@@ -594,7 +593,7 @@ namespace SoccerVision.Simulation
                 // where they can deliver; the ones who cut in (strong foot inside) prefer to come inside instead.
                 bool wideRunner = (p.Slot.IsWideMidfielder || p.Slot.IsFullBack || (p.Slot.Line == Line.Attack && MathF.Abs(p.Slot.BaseLateral) > 12f))
                                   && !(cutIn && inverted);
-                if (!Ablate.Contains("wide") && wideRunner && f > 5f && MathF.Abs(team.Lateral(pos)) > 19f && MathF.Abs(team.Lateral(target)) > 21f
+                if (wideRunner && f > 5f && MathF.Abs(team.Lateral(pos)) > 19f && MathF.Abs(team.Lateral(target)) > 21f
                     && team.Forward(target) - team.Forward(pos) > 3f)
                     value += 0.006f + 0.008f * dribbling;
                 bool progressive = team.Forward(target) - team.Forward(pos) > 3f;
@@ -842,7 +841,7 @@ namespace SoccerVision.Simulation
             else skill = MathUtil.A(p.Attr.Finishing);
 
             // A winger who has cut inside onto his strong foot curls it round the keeper into the far corner.
-            bool cutInCurl = !Ablate.Contains("curl") && !header && !penalty && !volley && p.CutInUntil > SimTime && MathF.Abs(from.Y) > 6f && dist > 12f;
+            bool cutInCurl = !header && !penalty && !volley && p.CutInUntil > SimTime && MathF.Abs(from.Y) > 6f && dist > 12f;
             // Aim: far side from the keeper (or a random side when he is central), corners or low.
             float keeperY = keeper != null ? keeper.Pos.Y : 0f;
             float side = MathF.Abs(keeperY) > 0.6f ? -MathF.Sign(keeperY) : (_rng.Chance(0.5f) ? 1f : -1f);

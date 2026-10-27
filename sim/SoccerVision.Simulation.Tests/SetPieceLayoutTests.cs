@@ -10,7 +10,7 @@ namespace SoccerVision.Simulation.Tests
         {
             int kicks = 0, pairs = 0, pairable = 0, linedUp = 0;
             var sync = new object();
-            Parallel.For(0, 30, i =>
+            Parallel.For(0, 60, i =>
             {
                 var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 4000 + (ulong)i);
                 e.RestartExecuting += r =>

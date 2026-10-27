@@ -2,6 +2,59 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/freekick-box-fullbacks-wingers-stamina`
+
+All of this applies to both teams.
+
+- **Free kicks in the attacking third**:
+  - The players used to stand in a straight line. Two causes:
+    - at the edge of the box, the attackers lined up on the defence's line;
+    - near the goal line, that line was computed beyond the pitch, so everybody ended up along the goal line.
+  - Now it looks like a corner, with organised chaos in the box: the best headers go to the near post, far post,
+    penalty spot, both sides of the area and the edge of the box.
+    - Each has a defender goal-side of him, as a pair, some tight (man to man) and some standing off.
+    - Two or three players wait at the edge of the box for the second ball. One centre-back and the full-backs stay
+      back against the counter. The defending team's strikers stay high.
+    - Attackers are kept onside, with the wall as before.
+  - The cross goes to one of the players waiting in the box (the better in the air, the likelier), not to a random spot.
+  - Tests: `SetPieceLayoutTests`. Against the old layout they fail (30 of 30 kicks had the attackers in a line,
+    and 6 of 8 deep kicks had four or more players on the goal line).
+- **Full-backs**:
+  - How far they go forward depends on the team's mentality and on the player (crossing, pace, stamina, running
+    off the ball). An attacking full-back goes up beside the winger and beyond the ball to the by-line, and leaves a
+    bigger hole behind him. A cautious team keeps them back.
+  - The far-side full-back tucks in and holds the line.
+  - **Switch of play**: when a crowd of opponents is round the ball carrier, or he is under real pressure, a pass to
+    a free team-mate on the other flank gets extra value. Full-backs do it more.
+    - Commentary: "switches the play to ...".
+    - Stats: `Switches` and `SwitchesCompleted`.
+  - A full-back at the edge of the box shoots and crosses.
+- **Wingers**:
+  - They like to take it down the line towards the by-line.
+  - New: **cut-back**, a low ball from the by-line square to a team-mate arriving in the middle.
+  - A winger whose strong foot is inside cuts in more often, and his shot is a **curler into the far corner**.
+    - He starts the ball wide of the far post and lets the curl bring it back, as in a free kick. It's harder to
+      score, so there is more margin for error.
+- **Stamina by position**: the drain is multiplied by a work rate.
+  - Full-backs 1.25, wide midfielders 1.15, central midfielders 1.1, centre-backs 1.05, strikers 0.95,
+    goalkeepers 0.35.
+  - The average over the whole team stays as before.
+  - Typical final energy: full-backs 0.43, wide midfielders 0.41, central midfielders 0.58, centre-backs 0.62,
+    strikers 0.65, goalkeepers about 1.0.
+- **Squash and stretch** kept minimal: a player on the ground after a slide is drawn almost round (1.12 x 0.96
+  instead of 1.6 x 0.85) with a short, faint trail, and a player who jumps grows by 6% instead of 20%. Demo page,
+  React and Unity.
+- Tests (`WideAndStaminaTests`):
+  - an attacking team pushes its full-backs further forward than a cautious one;
+  - full-backs and wingers cross, shoot and switch the play;
+  - cut-in wingers curl the ball from the flank;
+  - defenders and wide men tire most, goalkeepers barely.
+- **Calibration over 200 matches**: shots 33, goals about 3.4 (real 2.97), headed goals 20% of goals (13-19%).
+  - The through-ball and set-piece changes of the earlier rounds keep the goal count a little above the real average.
+  - I switched each new feature off in turn: none of them changes the goal count alone.
+  - A lower striker shot tendency made it worse (more goals, because fewer, better shots), so that stays at its old
+    value.
+
 ## `feature/interceptions-shielding-cover-line-through-balls`
 
 All of this is engine behaviour for **both teams**. The only differences between red and blue are the two team

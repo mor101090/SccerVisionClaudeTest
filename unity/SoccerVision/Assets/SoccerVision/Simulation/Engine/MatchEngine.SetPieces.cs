@@ -485,7 +485,7 @@ namespace SoccerVision.Simulation
             var gk = def.Goalkeeper;
             if (gk != null) gk.ShapeTarget = new Vec2((Pitch.HalfLength - 0.7f) * goalSign, -nearSide * 0.9f);
 
-            if (!Ablate.Contains("fkbox")) LayoutFreeKickBox(r, centre);
+            LayoutFreeKickBox(r, centre);
         }
 
         /// <summary>

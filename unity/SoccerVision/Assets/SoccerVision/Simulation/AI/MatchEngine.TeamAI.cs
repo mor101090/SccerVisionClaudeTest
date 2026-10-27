@@ -218,7 +218,7 @@ namespace SoccerVision.Simulation
                     float push = (0.35f + 0.65f * tac.Mentality) * (0.55f + 0.45f * drive);   // 0 .. 1
                     f += 4f + (ballSide && ballF > -5f ? 12f * (0.5f + tac.Mentality) * (0.65f + 0.7f * drive) : 0f);
                     l = side * (26f + 4f * tac.Width);
-                    if (!Ablate.Contains("fbpush") && ballSide && ballF > 22f && push > 0.5f)
+                    if (ballSide && ballF > 22f && push > 0.5f)
                     {
                         // Attacking full-back in the final third: up beside the winger and beyond the ball, into the by-line.
                         f = MathF.Max(f, MathF.Min(ballF + 3f + 5f * push, 38f + 8f * push));
