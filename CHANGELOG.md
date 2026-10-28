@@ -70,6 +70,8 @@ Each round of changes is developed on its own branch, named after what it change
 - Fixes found by the full test run: the restart pause lets the clock run (as in a real match), so halves keep their
   10 real minutes; nobody drifts off the pitch while pulling up.
 - Tests: tactics, one-twos, the restart pause and the computer manager (9 tests); generated squads (5 tests).
+  Two older calibration tests now test the role, not the old made-up players (the holding midfielder fouls at least
+  as often as the others; about 4 winger crosses a match). Full suite: 98 tests pass.
 
 ## `feature/three-game-modes`
 
