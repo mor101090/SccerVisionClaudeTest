@@ -31,6 +31,7 @@ for s in $variant_seeds; do
   done
 done
 xargs -P "$(nproc)" -L 1 dotnet "$runner" < "$jobs" | grep -c "Replay written" | sed 's/^/replays recorded: /'
-(cd "$root/web" && npx --yes esbuild src/audio/matchAudio.ts --bundle --format=iife --global-name=SVAudio --outfile="$work/audio.iife.js")
+(cd "$root/web" && npx --yes esbuild src/audio/matchAudio.ts --bundle --format=iife --global-name=SVAudio --outfile="$work/audio.iife.js" \
+  && npx --yes esbuild src/replay/textures.ts --bundle --format=iife --global-name=SVTex --outfile="$work/textures.iife.js")
 python3 "$root/tools/demo-page/build_page.py" "$work" "$root/docs/index.html"
 rm -rf "$work"

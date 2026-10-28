@@ -80,8 +80,8 @@ export class Ball3D {
   }
 
   /** Draws the ball centred at (cx, cy) with the given radius in canvas pixels. */
-  /** High-visibility ball (yellow with navy pentagons), used in the snow. */
-  yellow = false;
+  /** High-visibility ball (orange with navy pentagons), used in the snow. */
+  winter = false;
 
   draw(ctx: CanvasRenderingContext2D, cx: number, cy: number, rad: number) {
     const size = Math.ceil(rad * 2) + 2;
@@ -125,8 +125,8 @@ export class Ball3D {
             pent = false;
           } else if (sc > second) second = sc;
         }
-        let col = this.yellow ? (pent ? [24, 34, 96] : [255, 212, 34]) : pent ? [28, 28, 28] : [246, 246, 246];
-        if (best - second < 0.006) col = this.yellow ? (pent ? [60, 70, 120] : [190, 150, 20]) : pent ? [60, 60, 60] : [150, 150, 150]; // stitched seams
+        let col = this.winter ? (pent ? [22, 30, 80] : [255, 104, 20]) : pent ? [28, 28, 28] : [246, 246, 246];
+        if (best - second < 0.006) col = this.winter ? (pent ? [50, 56, 100] : [176, 64, 10]) : pent ? [60, 60, 60] : [150, 150, 150]; // stitched seams
         const diff = 0.38 + 0.62 * Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
         const spec = Math.pow(Math.max(0, nx * HALF[0] + ny * HALF[1] + nz * HALF[2]), 36) * (pent ? 120 : 90);
         const o = (py * size + px) * 4;

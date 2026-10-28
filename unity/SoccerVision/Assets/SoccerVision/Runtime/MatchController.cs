@@ -102,8 +102,8 @@ namespace SoccerVision.Runtime
             config.Conditions = look.ToConditions(matchSeed);
             var home = DemoTeams.Red();
             var away = DemoTeams.Blue();
-            Recolour(home.Kit, look.homePrimary, look.homeSecondary);
-            Recolour(away.Kit, look.awayPrimary, look.awaySecondary);
+            Recolour(home.Kit, look.homePrimary, look.homeSecondary, look.homeNumber, look.homeKeeper);
+            Recolour(away.Kit, look.awayPrimary, look.awaySecondary, look.awayNumber, look.awayKeeper);
             Engine = new MatchEngine(home, away, (ulong)matchSeed, config);
             SetAtmosphere();
             Commentary.Clear();
@@ -173,6 +173,7 @@ namespace SoccerVision.Runtime
                 var o = new GameObject(i == 0 ? "Referee" : "Assistant " + i).AddComponent<OfficialView>();
                 o.transform.SetParent(_world, false);
                 o.Init(Engine.Officials[i], i > 0);
+                o.SetColour(look.officials);
                 _officials.Add(o);
             }
         }
@@ -350,8 +351,8 @@ namespace SoccerVision.Runtime
             // team colours: the engine's kits and every player view
             var homeKit = DemoTeams.Red().Kit;
             var awayKit = DemoTeams.Blue().Kit;
-            Recolour(homeKit, look.homePrimary, look.homeSecondary);
-            Recolour(awayKit, look.awayPrimary, look.awaySecondary);
+            Recolour(homeKit, look.homePrimary, look.homeSecondary, look.homeNumber, look.homeKeeper);
+            Recolour(awayKit, look.awayPrimary, look.awaySecondary, look.awayNumber, look.awayKeeper);
             Engine.Home.Setup.Kit = homeKit;
             Engine.Away.Setup.Kit = awayKit;
             foreach (var v in _players)
@@ -360,18 +361,30 @@ namespace SoccerVision.Runtime
                 v.SetKit(SpriteFactory.Hex(v.Agent.IsGoalkeeper ? kit.GoalkeeperPrimary : kit.Primary, Color.gray), SpriteFactory.Hex(kit.Secondary, Color.white),
                     SpriteFactory.Hex(v.Agent.IsGoalkeeper ? kit.GoalkeeperNumber : kit.Number, Color.white));
             }
+            foreach (var o in _officials) o.SetColour(look.officials);
             _bridge.Emit("MatchReady", BuildReady());
         }
 
-        /// <summary>The picked shirt and trim colours (empty keeps the kit); the number in black or white, whichever reads best.</summary>
-        private static void Recolour(KitColors kit, string primary, string secondary)
+        private static string Contrast(Color c) => c.r * 0.299f + c.g * 0.587f + c.b * 0.114f > 0.63f ? "#111111" : "#FFFFFF";
+
+        /// <summary>
+        /// The picked shirt, trim, number and goalkeeper colours (empty keeps the kit). Numbers not picked follow the shirt
+        /// (black or white, whichever reads best); the keeper's number follows his shirt.
+        /// </summary>
+        private static void Recolour(KitColors kit, string primary, string secondary, string number, string keeper)
         {
             if (!string.IsNullOrEmpty(primary) && ColorUtility.TryParseHtmlString(primary, out var p))
             {
                 kit.Primary = primary;
-                kit.Number = p.r * 0.299f + p.g * 0.587f + p.b * 0.114f > 0.63f ? "#111111" : "#FFFFFF";
+                kit.Number = Contrast(p);
             }
             if (!string.IsNullOrEmpty(secondary) && ColorUtility.TryParseHtmlString(secondary, out _)) kit.Secondary = secondary;
+            if (!string.IsNullOrEmpty(number) && ColorUtility.TryParseHtmlString(number, out _)) kit.Number = number;
+            if (!string.IsNullOrEmpty(keeper) && ColorUtility.TryParseHtmlString(keeper, out var g))
+            {
+                kit.GoalkeeperPrimary = keeper;
+                kit.GoalkeeperNumber = Contrast(g);
+            }
         }
 
         private void SetAtmosphere()
@@ -410,6 +423,7 @@ namespace SoccerVision.Runtime
                     color = t.Setup.Kit.Primary,
                     secondaryColor = t.Setup.Kit.Secondary,
                     goalkeeperColor = t.Setup.Kit.GoalkeeperPrimary,
+                    numberColor = t.Setup.Kit.Number,
                     formation = t.Formation.Name,
                     players = players,
                 };

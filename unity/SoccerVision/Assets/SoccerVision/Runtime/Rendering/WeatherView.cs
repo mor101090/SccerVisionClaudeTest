@@ -84,12 +84,13 @@ namespace SoccerVision.Runtime
                     float keep = 1f, glare = 0f;
                     foreach (var t in Atmosphere.Towers)
                     {
-                        float d = Vector2.Distance(p, t * 0.42f) / 62f;
-                        float cut = d < 0.6f ? Mathf.Lerp(0.22f, 0.13f, d / 0.6f) : Mathf.Lerp(0.13f, 0f, (d - 0.6f) / 0.4f);
+                        // the four towers flood the pitch with light: dark only beyond their reach
+                        float d = Vector2.Distance(p, t * 0.4f) / 72f;
+                        float cut = d < 0.55f ? Mathf.Lerp(0.5f, 0.4f, d / 0.55f) : d < 0.85f ? Mathf.Lerp(0.4f, 0.12f, (d - 0.55f) / 0.3f) : Mathf.Lerp(0.12f, 0f, (d - 0.85f) / 0.15f);
                         keep *= 1f - Mathf.Max(0f, cut);
                         glare = Mathf.Max(glare, Mathf.Clamp01(1f - Vector2.Distance(p, t) / 7f));
                     }
-                    float a = 0.8f * keep;
+                    float a = 0.66f * keep;
                     var dark = new Color(2f / 255f, 7f / 255f, 22f / 255f, a);
                     var lamp = new Color(1f, 0.98f, 0.88f, 0.9f * glare * glare);
                     var c = Color.Lerp(dark, lamp, lamp.a);

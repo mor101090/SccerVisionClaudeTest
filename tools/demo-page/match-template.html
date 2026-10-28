@@ -160,8 +160,10 @@ td.l { color: var(--muted); }
       <div class="srow"><span class="l">Wind</span><div class="seg" data-set="wind"><button type="button" data-v="0">Calm</button><button type="button" data-v="1">Strong</button></div></div>
       <div class="srow"><span class="l">Kick-off</span><div class="seg" data-set="night"><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div></div>
       <h3>Team colours</h3>
-      <div class="srow"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour"><input id="homeS" type="color" aria-label="Home trim colour"><small>shirt · trim</small></div></div>
-      <div class="srow"><span class="l" id="awayLabel">Away</span><div class="colors"><input id="awayP" type="color" aria-label="Away shirt colour"><input id="awayS" type="color" aria-label="Away trim colour"><small>shirt · trim</small></div></div>
+      <div class="srow"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour" title="Shirt"><input id="homeS" type="color" aria-label="Home trim colour" title="Trim"><input id="homeN" type="color" aria-label="Home number colour" title="Numbers"><input id="homeG" type="color" aria-label="Home goalkeeper colour" title="Goalkeeper"></div></div>
+      <div class="srow"><span class="l" id="awayLabel">Away</span><div class="colors"><input id="awayP" type="color" aria-label="Away shirt colour" title="Shirt"><input id="awayS" type="color" aria-label="Away trim colour" title="Trim"><input id="awayN" type="color" aria-label="Away number colour" title="Numbers"><input id="awayG" type="color" aria-label="Away goalkeeper colour" title="Goalkeeper"></div></div>
+      <div class="srow"><span class="l"></span><div class="colors"><small>shirt · trim · numbers · goalkeeper</small></div></div>
+      <div class="srow"><label for="refC">Referees</label><div class="colors"><input id="refC" type="color" value="#121212"></div></div>
       <div class="note" id="setNote"></div>
       <button class="reset" id="setReset" type="button">Reset to defaults</button>
     </div>
@@ -204,6 +206,7 @@ td.l { color: var(--muted); }
 </div>
 
 <script>__AUDIO__</script>
+<script>__TEXTURES__</script>
 <script id="replays" type="application/json">__REPLAYS__</script>
 <script>
 (function () {
@@ -295,8 +298,9 @@ td.l { color: var(--muted); }
     if (wet) { ctx.fillStyle = "rgba(170,210,230,.05)"; ctx.fillRect(0, 0, cv.width, cv.height); } // wet sheen
   }
   function lines() {
-    var s = view.s, paint = SET.weather === "Snow" ? "rgba(40,98,205,.95)" : "rgba(255,255,255,.9)"; // in snow the lines are painted blue
+    var s = view.s, paint = SET.weather === "Snow" ? "#ffffff" : "rgba(255,255,255,.9)"; // crisp white on the snow too
     ctx.strokeStyle = paint; ctx.fillStyle = paint; ctx.lineWidth = Math.max(1, .12 * s);
+    if (SET.weather === "Snow") { ctx.save(); ctx.shadowColor = "rgba(10,40,10,.7)"; ctx.shadowBlur = Math.max(2, .3 * s); ctx.lineWidth = Math.max(1.6, .2 * s); } // cleared lines read on the frost
     // Technical areas (coaches) above the top touchline, either side of the halfway line.
     ctx.strokeRect(X(-19), Y(39.6), 17.5 * s, 3.6 * s); ctx.strokeRect(X(1.5), Y(39.6), 17.5 * s, 3.6 * s);
     ctx.strokeRect(X(-52.5), Y(34), 105 * s, 68 * s); line(0, -34, 0, 34); arc(0, 0, 9.15, 0, Math.PI * 2); dot(0, 0, .2);
@@ -307,8 +311,8 @@ td.l { color: var(--muted); }
       dot(41.5 * sd, 0, .15);
       var h = Math.acos(5.5 / 9.15), c = sd > 0 ? Math.PI : 0; arc(41.5 * sd, 0, 9.15, c - h, c + h);
       [-1, 1].forEach(function (cc) { var st = sd > 0 ? (cc > 0 ? Math.PI : Math.PI / 2) : (cc > 0 ? 1.5 * Math.PI : 0); arc(gl, 34 * cc, 1, st, st + Math.PI / 2); });
-      ctx.save(); ctx.lineWidth = Math.max(2, .22 * s); line(gl, -3.72, gl, 3.72); ctx.restore();
     });
+    if (SET.weather === "Snow") ctx.restore();
   }
   // ---- the state of the pitch: mud, puddles and snow -------------------------------------------------
   // The engine's own map (1 m grid of mud and standing water, built from Perlin noise where a pitch wears) decides where
@@ -321,58 +325,22 @@ td.l { color: var(--muted); }
   }
   function grunge(x, y) { return .55 * vnoise(x * .7, y * .7) + .3 * vnoise(x * 2.3 + 7, y * 2.3 - 3) + .15 * vnoise(x * 6.1 - 11, y * 6.1 + 5); }
   var SNOW = { x: -60, y: 48, w: 120, h: 92 }; // the snow covers the whole view
-  var SPX = 5, surfCv = null, snowCv = null, trodCv = null, snowTmp = null, puddles = [];
+  var SPX = 6, surfCv = null, snowCv = null, trodCv = null, snowTmp = null, puddles = [];
   function sm(a, b, x) { var k = Math.max(0, Math.min(1, (x - a) / (b - a))); return k * k * (3 - 2 * k); }
+  // Textures from the shared module (web/src/replay/textures.ts): a new texture seed every time the page renders them.
+  var TEXSEED = Math.floor(Math.random() * 1e9);
   function buildSurface() {
     surfCv = null; puddles = [];
-    var sf = R.surface, w = 108 * SPX, h = 72 * SPX;
+    var sf = R.surface;
     if (sf && (sf.mud || sf.water)) {
-      var cvs = document.createElement("canvas"); cvs.width = w; cvs.height = h;
-      var g = cvs.getContext("2d"), img = g.createImageData(w, h), d = img.data, cols = sf.columns, wet = SET.weather === "Rain";
-      var bil = function (arr, x, y) {
-        if (!arr) return 0;
-        var fx = Math.max(0, Math.min(cols - 1.001, (x - sf.minX) / sf.cell)), fy = Math.max(0, Math.min(sf.rows - 1.001, (y - sf.minY) / sf.cell));
-        var i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j, k = j * cols + i;
-        var top = arr[k] + (arr[k + 1] - arr[k]) * u, bot = arr[k + cols] + (arr[k + cols + 1] - arr[k + cols]) * u;
-        return (top + (bot - top) * v) / 255;
-      };
-      for (var py = 0; py < h; py++) for (var px = 0; px < w; px++) {
-        var x = -54 + (px + .5) / SPX, y = 36 - (py + .5) / SPX, gr = grunge(x, y), o = (py * w + px) * 4;
-        var m = bil(sf.mud, x, y), mm = Math.max(0, Math.min(1, (m - .08 + (gr - .5) * .55) * 1.5));
-        var r = 0, gg = 0, b = 0, a = 0;
-        if (mm > 0) {
-          // thin, worn grass (khaki) giving way to bare mud; darker and glossier when it rains
-          var k = sm(.3, .85, mm), dk = wet ? .8 : 1;
-          r = (150 + (96 - 150) * k) * dk; gg = (136 + (68 - 136) * k) * dk; b = (84 + (42 - 84) * k) * dk;
-          a = sm(.04, .45, mm) * .93;
-          var speck = vnoise(x * 9, y * 9); if (speck > .78) { r *= .82; gg *= .82; b *= .82; } // clods and stud marks
-        }
-        var wa = bil(sf.water, x, y), ww = Math.max(0, Math.min(1, (wa - .1 + (vnoise(x * .9, y * .9) - .5) * .18) * 1.8));
-        if (ww > 0) {
-          // standing water: dark where it is deep, reflecting the grey sky towards the edge, with a thin bright rim
-          var deep = sm(.25, .9, ww), sky = .5 + .5 * vnoise(x * .35 + 40, y * .35);
-          var wr = 112 - 46 * deep + 14 * sky, wg = 128 - 44 * deep + 14 * sky, wb = 136 - 38 * deep + 16 * sky, wA = sm(0, .22, ww) * .9;
-          if (ww < .12) { wr = 150; wg = 166; wb = 170; wA *= .7; }
-          r = r * (1 - wA) + wr * wA; gg = gg * (1 - wA) + wg * wA; b = b * (1 - wA) + wb * wA; a = a + wA * (1 - a);
-          if (wa > .55 && puddles.length < 260 && hash2(px, py) < .02) puddles.push([x, y]);
-        }
-        d[o] = r; d[o + 1] = gg; d[o + 2] = b; d[o + 3] = a * 255;
-      }
-      g.putImageData(img, 0, 0); surfCv = cvs;
+      var res = SVTex.surfaceCanvas(sf, SET.weather === "Rain", SET.night, TEXSEED, 8);
+      surfCv = res.canvas; puddles = res.puddles;
     }
     snowCv = null; trodCv = null;
     if (SET.weather === "Snow") {
-      // a fresh, even layer over the whole ground, a little thinner in places where the grass tips show through
-      var sw = SNOW.w * SPX, sh = SNOW.h * SPX, sc = document.createElement("canvas"); sc.width = sw; sc.height = sh;
-      var sg = sc.getContext("2d"), si = sg.createImageData(sw, sh), sd = si.data;
-      for (var qy = 0; qy < sh; qy++) for (var qx = 0; qx < sw; qx++) {
-        var sx = SNOW.x + (qx + .5) / SPX, sy = SNOW.y - (qy + .5) / SPX, n = grunge(sx * .6, sy * .6), fine = vnoise(sx * 4, sy * 4), q = (qy * sw + qx) * 4;
-        var shade = 238 + 12 * n + 5 * fine;
-        sd[q] = shade - 5; sd[q + 1] = shade - 1; sd[q + 2] = Math.min(255, shade + 7); sd[q + 3] = 255 * (.94 + .06 * sm(.25, .65, n) - .05 * (fine > .85 ? 1 : 0));
-      }
-      sg.putImageData(si, 0, 0); snowCv = sc;
-      trodCv = document.createElement("canvas"); trodCv.width = sw; trodCv.height = sh;
-      snowTmp = document.createElement("canvas"); snowTmp.width = sw; snowTmp.height = sh;
+      snowCv = SVTex.snowCanvas(TEXSEED, SPX);
+      trodCv = document.createElement("canvas"); trodCv.width = snowCv.width; trodCv.height = snowCv.height;
+      snowTmp = document.createElement("canvas"); snowTmp.width = snowCv.width; snowTmp.height = snowCv.height;
     }
   }
   // Where players run and the ball rolls, the snow is trodden down and the grass shows through.
@@ -436,6 +404,14 @@ td.l { color: var(--muted); }
     }
     ctx.restore();
   }
+  // The goal frame (crossbar over the line, the posts at its ends) stays white whatever colour the net is.
+  function goalFrame(side) {
+    var s = view.s, gl = 52.5 * side;
+    ctx.save(); ctx.strokeStyle = "#fbfbfb"; ctx.lineWidth = Math.max(2, .24 * s); ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(X(gl), Y(-3.72)); ctx.lineTo(X(gl), Y(3.72)); ctx.stroke();
+    ctx.fillStyle = "#ffffff"; [-3.72, 3.72].forEach(function (py) { ctx.beginPath(); ctx.arc(X(gl), Y(py), Math.max(1.6, .16 * s), 0, Math.PI * 2); ctx.fill(); });
+    ctx.restore();
+  }
   // ---- 3D ball: a truncated icosahedron (12 black pentagons, 20 white hexagons) shaded and rotated as it rolls ----
   var PHI = (1 + Math.sqrt(5)) / 2, PENT = [], HEX = [];
   (function () {
@@ -487,9 +463,9 @@ td.l { color: var(--muted); }
       var best = -9, second = -9, pent = false, q, sc;
       for (q = 0; q < 12; q++) { sc = (PENT[q][0] * bx + PENT[q][1] * by + PENT[q][2] * bz) / RP; if (sc > best) { second = best; best = sc; pent = true; } else if (sc > second) second = sc; }
       for (q = 0; q < 20; q++) { sc = (HEX[q][0] * bx + HEX[q][1] * by + HEX[q][2] * bz) / RH; if (sc > best) { second = best; best = sc; pent = false; } else if (sc > second) second = sc; }
-      // a white ball with black pentagons; in snow the high-visibility yellow one with navy pentagons
-      var col = yellowBall ? (pent ? [24, 34, 96] : [255, 212, 34]) : (pent ? [28, 28, 28] : [246, 246, 246]);
-      if (best - second < .006) col = yellowBall ? (pent ? [60, 70, 120] : [190, 150, 20]) : (pent ? [60, 60, 60] : [150, 150, 150]); // stitched seams
+      // a white ball with black pentagons; in snow the high-visibility orange one with navy pentagons
+      var col = yellowBall ? (pent ? [22, 30, 80] : [255, 104, 20]) : (pent ? [28, 28, 28] : [246, 246, 246]);
+      if (best - second < .006) col = yellowBall ? (pent ? [50, 56, 100] : [176, 64, 10]) : (pent ? [60, 60, 60] : [150, 150, 150]); // stitched seams
       var diff = .38 + .62 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]);
       var spec = Math.pow(Math.max(0, nx * Hv[0] + ny * Hv[1] + nz * Hv[2]), 36) * (pent ? 120 : 90);
       var a = Math.min(1, (1 - Math.sqrt(r2)) * rad + .5), o = (py * size + px) * 4;
@@ -630,8 +606,9 @@ td.l { color: var(--muted); }
       var ox = X(o.x), oy = Y(o.y);
       if (i > 0 && o.flag) assistantFlag(ox, oy, s, now);
       castShadow(o.x, o.y, ox, oy, r, r * .9, .45);
-      disc(ox, oy, r, "#121212", "#f2c230"); // same size as the players
-      ctx.fillStyle = "#f2c230"; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
+      var kitO = SET.refs || "#121212", markO = SET.refs ? (textOn(SET.refs) === "#111" ? "#111111" : "#ffffff") : "#f2c230";
+      disc(ox, oy, r, kitO, markO); // same size as the players
+      ctx.fillStyle = markO; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
       if (i === 0 && o.card) refereeCard(ox, oy, s, o.card);
     });
     S.ps.forEach(function (p, i) {
@@ -652,6 +629,7 @@ td.l { color: var(--muted); }
     spinBall(S, h, dt, S.phase !== 0 || (S.owner >= 0 && (S.ps[S.owner].gk || S.bz > .4))); // none while held or while play is stopped
     drawBall(bx, by - Math.min(20, h) * .55 * s, .38 * s * (1 + Math.min(20, h) * .07));
     drawNet(-1, S.bx, S.by, netFx(t, -1)); drawNet(1, S.bx, S.by, netFx(t, 1));
+    goalFrame(-1); goalFrame(1);
     if (S.owner >= 0 && S.phase === 0) {
       var o = S.ps[S.owner], tm2 = teams[S.owner < 11 ? 0 : 1], inf = infoAt(S.owner), label = inf.shortName;
       ctx.font = "600 " + Math.max(11, s) + "px Barlow, system-ui, sans-serif"; var lm = ctx.measureText(label), tw = lm.actualBoundingBoxRight + lm.actualBoundingBoxLeft, th = lm.actualBoundingBoxAscent + lm.actualBoundingBoxDescent, lx = X(o.x), ly = Y(o.y) + r * 2.2;
@@ -722,11 +700,11 @@ td.l { color: var(--muted); }
   function buildDark() {
     darkCv = document.createElement("canvas"); darkCv.width = cv.width; darkCv.height = cv.height;
     var g = darkCv.getContext("2d"), s = view.s;
-    g.fillStyle = "rgba(2,7,22,.8)"; g.fillRect(0, 0, cv.width, cv.height);
+    g.fillStyle = "rgba(2,7,22,.66)"; g.fillRect(0, 0, cv.width, cv.height);
     g.globalCompositeOperation = "destination-out";
     TOWERS.forEach(function (L) {
-      var cx = X(L[0] * .42), cy = Y(L[1] * .42), gr = g.createRadialGradient(cx, cy, 0, cx, cy, 62 * s);
-      gr.addColorStop(0, "rgba(0,0,0,.22)"); gr.addColorStop(.6, "rgba(0,0,0,.13)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+      var cx = X(L[0] * .4), cy = Y(L[1] * .4), gr = g.createRadialGradient(cx, cy, 0, cx, cy, 72 * s);
+      gr.addColorStop(0, "rgba(0,0,0,.5)"); gr.addColorStop(.55, "rgba(0,0,0,.4)"); gr.addColorStop(.85, "rgba(0,0,0,.12)"); gr.addColorStop(1, "rgba(0,0,0,0)");
       g.fillStyle = gr; g.fillRect(0, 0, cv.width, cv.height);
     });
     g.globalCompositeOperation = "source-over";
@@ -741,6 +719,14 @@ td.l { color: var(--muted); }
     if (SET.night) {
       if (!darkCv || darkCv.width !== w || darkCv.height !== h) buildDark();
       ctx.drawImage(darkCv, 0, 0);
+      // the floodlights' cool white light over the pitch
+      ctx.save(); ctx.globalCompositeOperation = "lighter";
+      TOWERS.forEach(function (L) {
+        var cx = X(L[0] * .45), cy = Y(L[1] * .45), gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, 55 * view.s);
+        gr.addColorStop(0, "rgba(120,130,150,.07)"); gr.addColorStop(1, "rgba(120,130,150,0)");
+        ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+      });
+      ctx.restore();
       return;
     }
     if (wx === "Sunny") { cloudShadows(now, .07); ctx.fillStyle = "rgba(255,214,140,.05)"; ctx.fillRect(0, 0, w, h); return; }
@@ -763,7 +749,7 @@ td.l { color: var(--muted); }
   }
 
   // ---- developer settings ----------------------------------------------------------------------------
-  var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null };
+  var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null, refs: null };
   var SET = (function () { var o = {}; for (var k in DEFAULTS) o[k] = DEFAULTS[k]; try { var st = JSON.parse(localStorage.getItem("sv-dev-settings") || "{}"); for (var k2 in st) if (k2 in DEFAULTS) o[k2] = st[k2]; } catch (e) {} return o; })();
   SET.night = SET.night === true || SET.night === "1";
   function saveSettings() { try { var o = {}; for (var k in DEFAULTS) o[k] = SET[k]; o.night = SET.night ? "1" : "0"; localStorage.setItem("sv-dev-settings", JSON.stringify(o)); } catch (e) {} }
@@ -778,18 +764,25 @@ td.l { color: var(--muted); }
     $("netColor").value = SET.net;
     if (R) {
       var c = teamColours();
-      $("homeP").value = c[0].primary; $("homeS").value = c[0].secondary; $("awayP").value = c[1].primary; $("awayS").value = c[1].secondary;
+      $("homeP").value = c[0].primary; $("homeS").value = c[0].secondary; $("homeN").value = c[0].number; $("homeG").value = c[0].gk;
+      $("awayP").value = c[1].primary; $("awayS").value = c[1].secondary; $("awayN").value = c[1].number; $("awayG").value = c[1].gk;
+      $("refC").value = SET.refs || "#121212";
       $("homeLabel").textContent = R.home.shortName; $("awayLabel").textContent = R.away.shortName;
     }
   }
   function note(text) { $("setNote").textContent = text || ""; }
-  // Team colours: the shirt and trim picked here (or the team's own), the number in whichever of black or white reads best.
+  // Team colours: shirt, trim, numbers and goalkeeper picked here (or the team's own). A number not picked follows the
+  // shirt (black or white, whichever reads best); the keeper's number follows his shirt.
+  function hex6(c) { return c.length === 4 ? "#" + c[1] + c[1] + c[2] + c[2] + c[3] + c[3] : c.toLowerCase(); }
   function teamColours() {
     return [0, 1].map(function (i) {
       var base = (i ? R.away : R.home)._kit0, pick = SET[i ? "away" : "home"];
-      if (!pick) return base;
-      var k = {}; for (var key in base) k[key] = base[key];
-      k.primary = pick.primary; k.secondary = pick.secondary; k.number = textOn(pick.primary) === "#111" ? "#111111" : "#ffffff";
+      var k = {}; for (var key in base) k[key] = hex6(base[key]);
+      if (!pick) return k;
+      if (pick.primary) { k.primary = pick.primary; k.number = textOn(pick.primary) === "#111" ? "#111111" : "#ffffff"; }
+      if (pick.secondary) k.secondary = pick.secondary;
+      if (pick.number) k.number = pick.number;
+      if (pick.gk) { k.gk = pick.gk; k.gkNumber = textOn(pick.gk) === "#111" ? "#111111" : "#ffffff"; }
       return k;
     });
   }
@@ -811,18 +804,21 @@ td.l { color: var(--muted); }
       if (key === "night") SET.night = v === "1"; else SET[key] = v;
       saveSettings(); syncSettingsUi(); updateWeatherChip();
       if (condCode() !== before) show(currentSeed, true);
-      else if (key === "weather" && wasWeather !== SET.weather) buildSurface();
+      else if ((key === "weather" && wasWeather !== SET.weather) || key === "night") buildSurface();
     });
   });
   $("pace").addEventListener("input", function () { SET.pace = +this.value; $("paceText").textContent = SET.pace + "%"; saveSettings(); });
   $("netColor").addEventListener("input", function () { SET.net = this.value; saveSettings(); });
-  [["homeP", "home", "primary"], ["homeS", "home", "secondary"], ["awayP", "away", "primary"], ["awayS", "away", "secondary"]].forEach(function (d) {
+  [["homeP", "home", "primary"], ["homeS", "home", "secondary"], ["homeN", "home", "number"], ["homeG", "home", "gk"],
+   ["awayP", "away", "primary"], ["awayS", "away", "secondary"], ["awayN", "away", "number"], ["awayG", "away", "gk"]].forEach(function (d) {
     $(d[0]).addEventListener("input", function () {
-      var cur = teamColours()[d[1] === "home" ? 0 : 1];
-      SET[d[1]] = { primary: cur.primary, secondary: cur.secondary }; SET[d[1]][d[2]] = this.value;
-      saveSettings(); applyColours();
+      var pick = SET[d[1]] || {};
+      pick[d[2]] = this.value;
+      if (d[2] === "primary") delete pick.number; // the number follows a new shirt colour until it is picked again
+      SET[d[1]] = pick; saveSettings(); applyColours(); syncSettingsUi();
     });
   });
+  $("refC").addEventListener("input", function () { SET.refs = this.value; saveSettings(); });
   $("setReset").addEventListener("click", function () {
     var before = condCode();
     for (var k in DEFAULTS) SET[k] = DEFAULTS[k]; SET.night = false;

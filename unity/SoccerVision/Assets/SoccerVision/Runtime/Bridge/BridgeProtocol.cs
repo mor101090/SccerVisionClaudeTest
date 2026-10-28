@@ -35,6 +35,9 @@ namespace SoccerVision.Runtime
         public bool night;
         public string net = "#ebf0eb";
         public string homePrimary = "", homeSecondary = "", awayPrimary = "", awaySecondary = "";
+        public string homeNumber = "", homeKeeper = "", awayNumber = "", awayKeeper = "";
+        /// <summary>Referee and assistants' shirt ("" keeps black with yellow trim).</summary>
+        public string officials = "";
     }
 
     [Serializable]
@@ -88,6 +91,7 @@ namespace SoccerVision.Runtime
         public string color;
         public string secondaryColor;
         public string goalkeeperColor;
+        public string numberColor;
         public string formation;
         public PlayerDto[] players;
     }

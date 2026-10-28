@@ -12,7 +12,7 @@ import {
 } from "../bridge/protocol";
 import { barState, Commentary, CommentaryBar, Scoreboard, StatsTable, TopControls, type CommentLine } from "../components/MatchHud";
 import { DevSettingsPanel } from "../components/DevSettingsPanel";
-import { type DevSettings, loadSettings, saveSettings } from "../settings/devSettings";
+import { type DevSettings, type TeamColours, loadSettings, saveSettings, textOn } from "../settings/devSettings";
 
 const BUILD = "/unity/SoccerVision/Build/SoccerVision";
 
@@ -68,7 +68,7 @@ function UnityPlayer() {
 
   const send = useCallback((cmd: BridgeCommand) => sendMessage(BRIDGE_OBJECT, BRIDGE_METHOD, JSON.stringify(cmd)), [sendMessage]);
   const [settings, setSettings] = useState<DevSettings>(loadSettings);
-  const [kits, setKits] = useState<[{ primary: string; secondary: string }, { primary: string; secondary: string }] | null>(null);
+  const [kits, setKits] = useState<[Required<TeamColours>, Required<TeamColours>] | null>(null);
   const sendLook = useCallback(
     (s: DevSettings) =>
       send({
@@ -83,8 +83,13 @@ function UnityPlayer() {
           net: s.net,
           homePrimary: s.home?.primary ?? "",
           homeSecondary: s.home?.secondary ?? "",
+          homeNumber: s.home?.number ?? "",
+          homeKeeper: s.home?.gk ?? "",
           awayPrimary: s.away?.primary ?? "",
           awaySecondary: s.away?.secondary ?? "",
+          awayNumber: s.away?.number ?? "",
+          awayKeeper: s.away?.gk ?? "",
+          officials: s.refs ?? "",
         },
       }),
     [send],
@@ -104,7 +109,8 @@ function UnityPlayer() {
       const r = parsePayload<MatchReady>(payload);
       if (!r) return;
       setReady(r);
-      setKits((k) => k ?? [{ primary: r.home.color, secondary: r.home.secondaryColor }, { primary: r.away.color, secondary: r.away.secondaryColor }]);
+      const own = (t: MatchReady["home"]) => ({ primary: t.color, secondary: t.secondaryColor, number: t.numberColor ?? textOn(t.color), gk: t.goalkeeperColor });
+      setKits((k) => k ?? [own(r.home), own(r.away)]);
       setLines([]);
       send({ type: "setHud", flag: false }); // React draws the HUD
       return undefined;

@@ -32,6 +32,7 @@ here = os.path.dirname(os.path.abspath(__file__))
 work, out = sys.argv[1], sys.argv[2]
 t = open(os.path.join(here, 'match-template.html')).read()
 t = t.replace('__AUDIO__', open(os.path.join(work, 'audio.iife.js')).read())
+t = t.replace('__TEXTURES__', open(os.path.join(work, 'textures.iife.js')).read())
 t = t.replace('__LOGO__', base64.b64encode(open(os.path.join(here, 'soccervision-logo.png'), 'rb').read()).decode())
 packed = [pack(os.path.join(work, f'e{s}.json')) for s in SEEDS]
 t = t.replace('__VARIANT_SEEDS__', json.dumps(list(VARIANT_SEEDS))).replace('__SEEDS__', json.dumps(list(SEEDS)))

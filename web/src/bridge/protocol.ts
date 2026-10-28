@@ -31,6 +31,8 @@ export interface TeamInfo {
   color: string;
   secondaryColor: string;
   goalkeeperColor: string;
+  /** shirt numbers */
+  numberColor?: string;
   formation: string;
   players: PlayerInfo[];
 }
@@ -122,8 +124,14 @@ export interface LookSettings {
   /** "" keeps the team's own kit */
   homePrimary: string;
   homeSecondary: string;
+  homeNumber: string;
+  homeKeeper: string;
   awayPrimary: string;
   awaySecondary: string;
+  awayNumber: string;
+  awayKeeper: string;
+  /** referee and assistants' shirt */
+  officials: string;
 }
 
 export type BridgeCommand =

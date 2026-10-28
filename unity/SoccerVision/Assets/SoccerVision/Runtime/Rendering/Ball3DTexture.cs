@@ -78,8 +78,8 @@ namespace SoccerVision.Runtime
             _prev = pos;
         }
 
-        /// <summary>High-visibility ball (yellow with navy pentagons), used in the snow.</summary>
-        public bool Yellow;
+        /// <summary>High-visibility ball (orange with navy pentagons), used in the snow.</summary>
+        public bool Winter;
 
         public void Redraw()
         {
@@ -109,8 +109,8 @@ namespace SoccerVision.Runtime
                         float sc = Vector3.Dot(Hex[q], b) / RH;
                         if (sc > best) { second = best; best = sc; pent = false; } else if (sc > second) second = sc;
                     }
-                    Vector3 col = Yellow ? (pent ? new Vector3(24f, 34f, 96f) : new Vector3(255f, 212f, 34f)) : (pent ? new Vector3(28f, 28f, 28f) : new Vector3(246f, 246f, 246f));
-                    if (best - second < 0.006f) col = Yellow ? (pent ? new Vector3(60f, 70f, 120f) : new Vector3(190f, 150f, 20f)) : (pent ? new Vector3(60f, 60f, 60f) : new Vector3(150f, 150f, 150f)); // stitched seams
+                    Vector3 col = Winter ? (pent ? new Vector3(22f, 30f, 80f) : new Vector3(255f, 104f, 20f)) : (pent ? new Vector3(28f, 28f, 28f) : new Vector3(246f, 246f, 246f));
+                    if (best - second < 0.006f) col = Winter ? (pent ? new Vector3(50f, 56f, 100f) : new Vector3(176f, 64f, 10f)) : (pent ? new Vector3(60f, 60f, 60f) : new Vector3(150f, 150f, 150f)); // stitched seams
                     float diff = 0.38f + 0.62f * Mathf.Max(0f, Vector3.Dot(n, Light));
                     float spec = Mathf.Pow(Mathf.Max(0f, Vector3.Dot(n, Half)), 36f) * (pent ? 120f : 90f);
                     float edge = 1f - Mathf.Sqrt(r2);

@@ -25,6 +25,10 @@ namespace SoccerVision.Runtime
         public Color net = new Color(0.92f, 0.94f, 0.92f, 1f);
         [Tooltip("Hex colours; empty keeps the team's own kit")]
         public string homePrimary = "", homeSecondary = "", awayPrimary = "", awaySecondary = "";
+        [Tooltip("Hex colours of the shirt numbers and the goalkeeper's shirt; empty keeps the kit (or follows the shirt)")]
+        public string homeNumber = "", homeKeeper = "", awayNumber = "", awayKeeper = "";
+        [Tooltip("Referee and assistants' shirt (hex); empty keeps black with yellow trim")]
+        public string officials = "";
 
         public MatchLook Clone() => (MatchLook)MemberwiseClone();
 
@@ -61,6 +65,11 @@ namespace SoccerVision.Runtime
             l.homeSecondary = d.homeSecondary ?? "";
             l.awayPrimary = d.awayPrimary ?? "";
             l.awaySecondary = d.awaySecondary ?? "";
+            l.homeNumber = d.homeNumber ?? "";
+            l.homeKeeper = d.homeKeeper ?? "";
+            l.awayNumber = d.awayNumber ?? "";
+            l.awayKeeper = d.awayKeeper ?? "";
+            l.officials = d.officials ?? "";
             return l;
         }
     }

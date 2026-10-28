@@ -1,11 +1,11 @@
 import type { DevSettings, GrassPattern, Sky, TeamColours, Upkeep } from "../settings/devSettings";
-import { DEFAULT_SETTINGS } from "../settings/devSettings";
+import { DEFAULT_SETTINGS, textOn } from "../settings/devSettings";
 
 interface Props {
   value: DevSettings;
   onChange: (s: DevSettings) => void;
   /** The teams' own kits (shown when no colour is picked). */
-  kits: [TeamColours, TeamColours];
+  kits: [Required<TeamColours>, Required<TeamColours>];
   names: [string, string];
   note?: string | null;
 }
@@ -26,8 +26,16 @@ function Seg<T extends string | number | boolean>({ options, value, onPick }: { 
 export function DevSettingsPanel({ value: s, onChange, kits, names, note }: Props) {
   const set = (patch: Partial<DevSettings>) => onChange({ ...s, ...patch });
   const colour = (side: 0 | 1, key: keyof TeamColours, v: string) => {
-    const cur = (side ? s.away : s.home) ?? kits[side];
-    set(side ? { away: { ...cur, [key]: v } } : { home: { ...cur, [key]: v } });
+    const cur: TeamColours = { ...((side ? s.away : s.home) ?? { primary: kits[side].primary, secondary: kits[side].secondary }) };
+    cur[key] = v;
+    if (key === "primary") delete cur.number; // the numbers follow a new shirt colour until they are picked again
+    set(side ? { away: cur } : { home: cur });
+  };
+  const shown = (side: 0 | 1): Required<TeamColours> => {
+    const c = side ? s.away : s.home;
+    const k = kits[side];
+    if (!c) return k;
+    return { primary: c.primary, secondary: c.secondary, number: c.number ?? textOn(c.primary), gk: c.gk ?? k.gk };
   };
   return (
     <div className="dev-settings">
@@ -68,18 +76,31 @@ export function DevSettingsPanel({ value: s, onChange, kits, names, note }: Prop
       </div>
       <h3>Team colours</h3>
       {([0, 1] as const).map((side) => {
-        const c = (side ? s.away : s.home) ?? kits[side];
+        const c = shown(side);
         return (
           <div className="srow" key={side}>
             <span className="l">{names[side]}</span>
             <div className="colors">
               <input type="color" aria-label={`${names[side]} shirt colour`} value={c.primary} onChange={(e) => colour(side, "primary", e.target.value)} />
               <input type="color" aria-label={`${names[side]} trim colour`} value={c.secondary} onChange={(e) => colour(side, "secondary", e.target.value)} />
-              <small>shirt · trim</small>
+              <input type="color" aria-label={`${names[side]} number colour`} value={c.number} onChange={(e) => colour(side, "number", e.target.value)} />
+              <input type="color" aria-label={`${names[side]} goalkeeper colour`} value={c.gk} onChange={(e) => colour(side, "gk", e.target.value)} />
             </div>
           </div>
         );
       })}
+      <div className="srow">
+        <span className="l" />
+        <div className="colors">
+          <small>shirt · trim · numbers · goalkeeper</small>
+        </div>
+      </div>
+      <div className="srow">
+        <label htmlFor="sv-refs">Referees</label>
+        <div className="colors">
+          <input id="sv-refs" type="color" value={s.refs ?? "#141414"} onChange={(e) => set({ refs: e.target.value })} />
+        </div>
+      </div>
       {note && <p className="note">{note}</p>}
       <button type="button" className="reset" onClick={() => onChange({ ...DEFAULT_SETTINGS })}>
         Reset to defaults

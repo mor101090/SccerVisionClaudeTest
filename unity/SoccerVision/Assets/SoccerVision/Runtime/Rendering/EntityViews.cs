@@ -258,7 +258,7 @@ namespace SoccerVision.Runtime
             // No spin while held (keeper's hands, carried overhead for a throw-in) or while play is stopped (the ball waits to be taken).
             bool held = !inPlay || (ball.Owner != null && (ball.InHands || ball.Owner.IsGoalkeeper || z > 0.4f));
             _look.Spin(new Vector2(x, y), h, dt, held);
-            _look.Yellow = Atmosphere.Look.sky == Weather.Snow;
+            _look.Winter = Atmosphere.Look.sky == Weather.Snow;
             _look.Redraw();
             Atmosphere.Shadows(new Vector2(x, y), _lights);
             _shadow.transform.localPosition = new Vector3(_lights[0].x, _lights[0].y, 0f) * (Atmosphere.Look.night ? 0f : 1f);
@@ -289,9 +289,11 @@ namespace SoccerVision.Runtime
             // Same size as the players.
             float d = PlayerView.Diameter;
             SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.3f), 10, d * 1.25f);
-            SpriteFactory.AddSprite(transform, "Fill", SpriteFactory.Circle, new Color(0.08f, 0.08f, 0.08f, 1f), 12, d);
-            SpriteFactory.AddSprite(transform, "Ring", SpriteFactory.Ring, assistant ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.92f, 0.2f), 13, d);
-            var letter = SpriteFactory.AddText(transform, "Letter", assistant ? "L" : "R", assistant ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.92f, 0.2f), 14, 0.112f);
+            _fill = SpriteFactory.AddSprite(transform, "Fill", SpriteFactory.Circle, new Color(0.08f, 0.08f, 0.08f, 1f), 12, d);
+            _trim = assistant ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.92f, 0.2f);
+            _ringSr = SpriteFactory.AddSprite(transform, "Ring", SpriteFactory.Ring, _trim, 13, d);
+            var letter = SpriteFactory.AddText(transform, "Letter", assistant ? "L" : "R", _trim, 14, 0.112f);
+            _letter = letter;
             letter.fontStyle = FontStyle.Bold;
             if (assistant)
             {
@@ -318,6 +320,28 @@ namespace SoccerVision.Runtime
                 _card.transform.localPosition = new Vector3(0.45f, 2.9f, 0f);
                 _card.enabled = false;
                 _cardArm.gameObject.SetActive(false);
+            }
+        }
+
+        private SpriteRenderer _fill, _ringSr;
+        private TextMesh _letter;
+        private Color _trim;
+
+        /// <summary>Shirt colour from the developer settings (empty: black with yellow trim); trim and letter in contrast.</summary>
+        public void SetColour(string hex)
+        {
+            if (!string.IsNullOrEmpty(hex) && ColorUtility.TryParseHtmlString(hex, out var c))
+            {
+                _fill.color = c;
+                var mark = c.r * 0.299f + c.g * 0.587f + c.b * 0.114f > 0.63f ? new Color(0.07f, 0.07f, 0.07f) : Color.white;
+                _ringSr.color = mark;
+                _letter.color = mark;
+            }
+            else
+            {
+                _fill.color = new Color(0.08f, 0.08f, 0.08f, 1f);
+                _ringSr.color = _trim;
+                _letter.color = _trim;
             }
         }
 

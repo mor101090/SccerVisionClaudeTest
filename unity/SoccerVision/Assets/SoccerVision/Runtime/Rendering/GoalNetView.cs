@@ -35,6 +35,15 @@ namespace SoccerVision.Runtime
             _rows = new LineRenderer[nd];
             for (int i = 0; i < ny; i++) _strings[i] = MakeLine("String", mat, color, nd, i == 0 || i == ny - 1 ? 0.09f : 0.035f);
             for (int i = 0; i < nd; i++) _rows[i] = MakeLine("Row", mat, color, ny, i == nd - 1 ? 0.09f : 0.035f);
+            // the frame (crossbar over the line, posts at its ends) stays white whatever colour the net is
+            var bar = SpriteFactory.AddSprite(transform, "Crossbar", SpriteFactory.Square, Color.white, 47, 1f);
+            bar.transform.localPosition = new Vector3(Pitch.HalfLength * side, 0f, 0f);
+            bar.transform.localScale = new Vector3(0.24f, 2f * (Pitch.GoalHalfWidth + Pitch.PostRadius), 1f);
+            for (int s = -1; s <= 1; s += 2)
+            {
+                var post = SpriteFactory.AddSprite(transform, "Post", SpriteFactory.Circle, Color.white, 47, 0.32f);
+                post.transform.localPosition = new Vector3(Pitch.HalfLength * side, s * (Pitch.GoalHalfWidth + Pitch.PostRadius), 0f);
+            }
             _flash = SpriteFactory.AddSprite(transform, "WoodworkFlash", SpriteFactory.Shadow, new Color(1f, 0.95f, 0.6f, 0f), 46, 1.6f);
             Deform(Vector2.zero, 0f);
         }

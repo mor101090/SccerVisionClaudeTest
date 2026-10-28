@@ -1,5 +1,5 @@
 import { Ball3D } from "./ball3d";
-import type { DevSettings } from "../settings/devSettings";
+import { type DevSettings, textOn } from "../settings/devSettings";
 import { PitchLook } from "./conditions";
 import { playerAt } from "./replay";
 import type { Replay, Snapshot } from "./replay";
@@ -40,6 +40,14 @@ export function drawPitch(ctx: CanvasRenderingContext2D, v: View, settings: DevS
   const paint = look.linePaint(settings);
   ctx.strokeStyle = paint;
   ctx.lineWidth = Math.max(1, 0.12 * s);
+  const snow = settings.sky === "Snow";
+  if (snow) {
+    // the cleared, freshly painted lines read on the frost
+    ctx.save();
+    ctx.shadowColor = "rgba(10,40,10,0.7)";
+    ctx.shadowBlur = Math.max(2, 0.3 * s);
+    ctx.lineWidth = Math.max(1.6, 0.2 * s);
+  }
   // Technical areas (coaches) above the top touchline, either side of the halfway line.
   ctx.strokeRect(px(v, -19), py(v, 39.6), 17.5 * s, 3.6 * s);
   ctx.strokeRect(px(v, 1.5), py(v, 39.6), 17.5 * s, 3.6 * s);
@@ -82,12 +90,9 @@ export function drawPitch(ctx: CanvasRenderingContext2D, v: View, settings: DevS
       const start = side > 0 ? (c > 0 ? Math.PI : Math.PI / 2) : c > 0 ? (3 * Math.PI) / 2 : 0;
       arc(gl, HW * c, 1, start, start + Math.PI / 2);
     }
-    // Goal frame; the net is drawn by drawNet (it deforms).
-    ctx.save();
-    ctx.lineWidth = Math.max(2, 0.2 * s);
-    line(gl, -3.72, gl, 3.72);
-    ctx.restore();
+    // (the goal frame is drawn over the nets by goalFrame, always white)
   }
+  if (snow) ctx.restore();
 }
 
 /**
@@ -170,6 +175,27 @@ export function resetBall() {
   ball3d.reset();
 }
 
+/** The goal frame (crossbar over the line, the posts at its ends) stays white whatever colour the net is. */
+function goalFrame(ctx: CanvasRenderingContext2D, v: View, side: number) {
+  const s = v.scale;
+  const gl = HL * side;
+  ctx.save();
+  ctx.strokeStyle = "#fbfbfb";
+  ctx.lineWidth = Math.max(2, 0.24 * s);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(px(v, gl), py(v, -3.72));
+  ctx.lineTo(px(v, gl), py(v, 3.72));
+  ctx.stroke();
+  ctx.fillStyle = "#ffffff";
+  for (const y of [-3.72, 3.72]) {
+    ctx.beginPath();
+    ctx.arc(px(v, gl), py(v, y), Math.max(1.6, 0.16 * s), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /** Offside: a small chequered square above the player who was caught (no text, no pole). */
 function offsideMark(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
   const size = 1.3 * s;
@@ -192,8 +218,10 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   // Officials
   snap.officials.forEach((o, i) => {
     look.shadow(ctx, v, settings, o.x, o.y, px(v, o.x), py(v, o.y), r, r * 0.9, 0.45);
-    disc(ctx, px(v, o.x), py(v, o.y), r, "#141414", "#f6d43a"); // same size as the players
-    ctx.fillStyle = "#f6d43a";
+    const kit = settings.refs ?? "#141414";
+    const mark = settings.refs ? textOn(settings.refs) : "#f6d43a";
+    disc(ctx, px(v, o.x), py(v, o.y), r, kit, mark); // same size as the players
+    ctx.fillStyle = mark;
     ctx.font = `800 ${Math.max(8, 1.05 * s)}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -254,7 +282,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   const by = py(v, b.y);
   const bsr = 0.42 * s * Math.max(0.45, 1 - h * 0.05);
   look.shadow(ctx, v, settings, b.x, b.y, bx, by, bsr, bsr, Math.max(0.18, 0.6 - h * 0.04));
-  ball3d.yellow = settings.sky === "Snow";
+  ball3d.winter = settings.sky === "Snow";
   const owner = b.owner >= 0 ? snap.players[b.owner] : null;
   // No spin while held (keeper's hands, carried overhead for a throw-in) or while play is stopped (the ball waits to be taken).
   ball3d.spin(b.x, b.y, h, dt, snap.phase !== 0 || (owner !== null && (owner.gk || b.z > 0.4)));
@@ -263,6 +291,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   for (const side of [-1, 1]) {
     const fx = netEffects(replay, snap.t, side);
     drawNet(ctx, v, side, b, fx.ripple, fx.flash, settings.net);
+    goalFrame(ctx, v, side);
   }
   // The name of the player in possession, centred on a plate under him
   if (b.owner >= 0 && snap.phase === 0) {

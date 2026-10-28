@@ -2,6 +2,32 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/colours-frame-snow-mud-night`
+
+- **More colours in the developer settings** (demo page, React and Unity):
+  - shirt numbers for each team; until picked, the numbers follow the shirt in black or white;
+  - goalkeeper's shirt for each team (his number follows it);
+  - the referees' shirt (the trim and letter switch to black or white to stay readable).
+- **The goal frame stays white**: the net colour now changes only the netting. The crossbar and posts are drawn white
+  over it.
+- **Snow**: the high-visibility ball is now orange (with navy pentagons). The lines stay white, crisp, with a soft dark
+  edge so they read on the frost. The snow is no longer an even white sheet: it is a powdery frost, thick in places and
+  thin in others, with the green showing through in specks and streaks along the mowing direction (as in the reference
+  photos).
+- **Mud and puddles textured again from layers**: seeded Perlin noise, its fractal sum ("cloud" noise), a
+  domain-warped cloud for organic, seamless edges, and fine Perlin plus per-pixel grain for grass tufts.
+  - Every render uses a new texture seed; the patches stay where the engine has them, because they affect play.
+  - **Mud**: sandy, yellowish dirt in several tones (light dry sand, ochre, damp patches, clods and lighter stones),
+    broken up by tufts of grass and fading into thin, yellowed grass around it.
+  - **Water**: a shallow mirror of the sky. Silvery, with drifting cloud reflections, long soft sheen streaks,
+    sparkles and a bright rim. Where it is shallow the grass shows through and blades poke out. It sits in a ring of
+    dark, soaked grass. At night it reflects a dark sky.
+  - Textures are at twice the previous resolution.
+  - One shared module (`web/src/replay/textures.ts`) is used by React and bundled into the demo page; Unity has the
+    same layers in C#.
+- **Night lit by the four floodlights**: the pitch is now brightly lit, with only the outskirts dark, plus a cool white
+  light from the towers.
+
 ## `feature/dev-settings-weather-pitch-colours`
 
 - **Developer settings** (gear, marked DEV) in the demo page, both React views and the Unity HUD:

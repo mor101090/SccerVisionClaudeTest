@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MatchSound } from "../audio/matchAudio";
 import { barState, Commentary, CommentaryBar, Scoreboard, StatsTable, TopControls, type CommentLine } from "../components/MatchHud";
 import { DevSettingsPanel } from "../components/DevSettingsPanel";
-import { type DevSettings, engineConditions, loadSettings, samePlay, saveSettings, textOn } from "../settings/devSettings";
+import { type DevSettings, type TeamColours, engineConditions, loadSettings, samePlay, saveSettings, applyKit } from "../settings/devSettings";
 import { drawEntities, drawPitch, look, makeView, resetBall, WORLD_H, WORLD_W } from "./drawPitch";
 import { frameTime, minuteText, sample, type Replay } from "./replay";
 
@@ -91,8 +91,7 @@ export function ReplayViewer() {
 function Player({ replay: recorded, settings, onSettings, note }: { replay: Replay; settings: DevSettings; onSettings: (s: DevSettings) => void; note: string | null }) {
   // the team colours picked in the settings (the number in black or white, whichever reads best)
   const replay = useMemo(() => {
-    const kit = (k: Replay["home"]["kit"], c: DevSettings["home"]) => (c ? { ...k, primary: c.primary, secondary: c.secondary, number: textOn(c.primary) } : k);
-    return { ...recorded, home: { ...recorded.home, kit: kit(recorded.home.kit, settings.home) }, away: { ...recorded.away, kit: kit(recorded.away.kit, settings.away) } };
+    return { ...recorded, home: { ...recorded.home, kit: applyKit(recorded.home.kit, settings.home) }, away: { ...recorded.away, kit: applyKit(recorded.away.kit, settings.away) } };
   }, [recorded, settings.home, settings.away]);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -249,7 +248,7 @@ function Player({ replay: recorded, settings, onSettings, note }: { replay: Repl
             <DevSettingsPanel
               value={settings}
               onChange={onSettings}
-              kits={[recorded.home.kit, recorded.away.kit]}
+              kits={[recorded.home.kit, recorded.away.kit].map((k) => ({ primary: k.primary, secondary: k.secondary, number: k.number, gk: k.gk })) as [Required<TeamColours>, Required<TeamColours>]}
               names={[recorded.home.shortName, recorded.away.shortName]}
               note={note}
             />

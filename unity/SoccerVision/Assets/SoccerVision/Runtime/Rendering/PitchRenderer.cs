@@ -79,11 +79,36 @@ namespace SoccerVision.Runtime
                     _px[y * _w + x] = new Color32((byte)Mathf.Clamp(c.r + grain, 0, 255), (byte)Mathf.Clamp(c.g + grain, 0, 255), (byte)Mathf.Clamp(c.b + grain, 0, 255), 255);
                 }
             }
+            _noise = new PerlinNoise((ulong)UnityEngine.Random.Range(1, int.MaxValue));
             if (_surface != null) PaintSurface(wet);
             if (snow) PaintSnow();
-            _line = snow ? new Color32(40, 98, 205, 255) : LineColor;
+            _line = snow ? new Color32(255, 255, 255, 255) : LineColor;
 
-            const float lw = 0.12f; // line width (max 12 cm)
+            if (snow)
+            {
+                // the cleared, freshly painted lines read on the frost: a soft dark edge under crisp white
+                _line = new Color32(20, 52, 20, 120);
+                DrawMarkings(0.34f);
+                _line = new Color32(255, 255, 255, 255);
+            }
+            DrawMarkings(0.12f);
+
+            var tex = new Texture2D(_w, _h, TextureFormat.RGBA32, true)
+            {
+                filterMode = FilterMode.Trilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                anisoLevel = 4,
+                name = "sv_pitch",
+            };
+            tex.SetPixels32(_px);
+            tex.Apply(true, true);
+            _px = null;
+            return tex;
+        }
+
+        /// <summary>IFAB markings, technical areas and the goal frames, with line width <paramref name="lw"/> (max 12 cm).</summary>
+        private void DrawMarkings(float lw)
+        {
             // Boundary and halfway line
             Line(-Pitch.HalfLength, -Pitch.HalfWidth, Pitch.HalfLength, -Pitch.HalfWidth, lw);
             Line(-Pitch.HalfLength, Pitch.HalfWidth, Pitch.HalfLength, Pitch.HalfWidth, lw);
@@ -131,52 +156,110 @@ namespace SoccerVision.Runtime
                 Line(gl, -Pitch.GoalHalfWidth, gl, Pitch.GoalHalfWidth, 0.1f);
             }
 
-            var tex = new Texture2D(_w, _h, TextureFormat.RGBA32, true)
-            {
-                filterMode = FilterMode.Trilinear,
-                wrapMode = TextureWrapMode.Clamp,
-                anisoLevel = 4,
-                name = "sv_pitch",
-            };
-            tex.SetPixels32(_px);
-            tex.Apply(true, true);
-            _px = null;
-            return tex;
         }
 
-        /// <summary>Worn grass and bare mud, standing water darker where deep with a light rim (the engine's own map).</summary>
+        // ---- Ground textures (same layers as the web views' textures.ts) --------------------------------------------
+        // Seeded Perlin noise, its fractal sum ("cloud") and a domain-warped cloud for organic, seamless edges; fine Perlin
+        // and per-pixel grain for grass tufts in the dirt and the water. A new texture seed every time the pitch is built.
+
+        private PerlinNoise _noise;
+        private float Perlin(float x, float y) => _noise.Noise(x, y);
+
+        private float Fbm(float x, float y, int octaves)
+        {
+            float sum = 0f, amp = 0.5f, norm = 0f;
+            for (int o = 0; o < octaves; o++)
+            {
+                sum += Perlin(x, y) * amp;
+                norm += amp;
+                amp *= 0.5f;
+                x = x * 2.03f + 17.1f;
+                y = y * 2.03f - 9.7f;
+            }
+            return Mathf.Clamp01(0.5f + sum / norm * 0.9f);
+        }
+
+        private float Warped(float x, float y, int octaves = 5)
+        {
+            float qx = Fbm(x + 3.1f, y - 1.7f, 3) - 0.5f, qy = Fbm(x - 5.2f, y + 8.3f, 3) - 0.5f;
+            return Fbm(x + 2.2f * qx, y + 2.2f * qy, octaves);
+        }
+
+        private static float Grain(int i, int j)
+        {
+            uint h = (uint)(i * 374761393) ^ (uint)(j * 668265263);
+            h = (h ^ (h >> 13)) * 1274126177u;
+            return (h ^ (h >> 16)) / 4294967295f;
+        }
+
+        private static float Smooth(float a, float b, float x)
+        {
+            float k = Mathf.Clamp01((x - a) / (b - a));
+            return k * k * (3f - 2f * k);
+        }
+
+        /// <summary>
+        /// Worn grass, bare mud and standing water from the engine's map. Mud: sandy, yellowish dirt in several tones (dry,
+        /// damp, clods), broken up by grass tufts and fading into thin yellowed grass. Water: a shallow mirror of the sky,
+        /// silvery with cloud reflections, sheen and sparkles, the grass showing through where it is thin, in a ring of dark
+        /// soaked grass.
+        /// </summary>
         private void PaintSurface(bool wet)
         {
+            bool night = _look.night;
             for (int y = 0; y < _h; y++)
             {
                 float wy = y / _ppm + Bottom;
                 for (int x = 0; x < _w; x++)
                 {
                     float wx = x / _ppm - Pitch.HalfLength - Margin;
-                    float grunge = 0.55f * Mathf.PerlinNoise(wx * 0.7f + 100f, wy * 0.7f + 100f) + 0.3f * Mathf.PerlinNoise(wx * 2.3f + 7f, wy * 2.3f - 3f) + 0.15f * Mathf.PerlinNoise(wx * 6.1f + 11f, wy * 6.1f + 5f);
-                    float mm = Mathf.Clamp01((_surface.MudAt(wx, wy) - 0.08f + (grunge - 0.5f) * 0.55f) * 1.5f);
+                    float m = _surface.MudAt(wx, wy), wa = _surface.WaterAt(wx, wy);
+                    if (m < 0.01f && wa < 0.01f) continue;
                     int i = y * _w + x;
                     Color b = _px[i];
-                    if (mm > 0f)
+                    float grain = Grain(x, y), cloud = Warped(wx * 0.22f, wy * 0.22f), tuftNoise = Perlin(wx * 2.6f, wy * 2.6f) * 0.5f + 0.5f;
+                    if (m > 0.01f)
                     {
-                        float k = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.3f, 0.85f, mm)), dk = wet ? 0.8f : 1f;
-                        var mud = new Color((150f - 54f * k) / 255f * dk, (136f - 68f * k) / 255f * dk, (84f - 42f * k) / 255f * dk);
-                        b = Color.Lerp(b, mud, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.04f, 0.45f, mm)) * 0.93f);
+                        float breakup = Perlin(wx * 0.75f + 9f, wy * 0.75f - 4f) * 0.5f + 0.5f;
+                        float bare = m * 1.3f + (cloud - 0.5f) * 0.8f + (breakup - 0.5f) * 0.35f + (tuftNoise - 0.5f) * 0.18f;
+                        float dirt = Smooth(0.32f, 0.9f, bare), halo = Smooth(0.05f, 0.4f, bare) * (1f - dirt);
+                        float tuft = Smooth(0.58f, 0.8f, tuftNoise * 0.55f + grain * 0.45f) * (1f - Smooth(0.75f, 1f, bare));
+                        float tone = Fbm(wx * 0.9f + 40f, wy * 0.9f - 12f, 4), damp = Fbm(wx * 0.35f - 70f, wy * 0.35f + 30f, 3);
+                        var dc = new Color(Mathf.Lerp(196f, 166f, tone), Mathf.Lerp(172f, 140f, tone), Mathf.Lerp(118f, 90f, tone)) / 255f;
+                        float dk = Smooth(0.45f, 0.85f, damp) * (wet ? 0.6f : 0.3f);
+                        dc = Color.Lerp(dc, new Color(128f, 104f, 66f) / 255f, dk);
+                        if (wet) dc = new Color(dc.r * 0.9f, dc.g * 0.88f, dc.b * 0.84f);
+                        if (grain > 0.975f) dc *= 0.87f;
+                        else if (grain < 0.04f) dc = new Color(Mathf.Min(1f, dc.r * 1.15f), Mathf.Min(1f, dc.g * 1.15f), Mathf.Min(1f, dc.b * 1.12f));
+                        b = Color.Lerp(b, new Color(150f / 255f, 152f / 255f, 78f / 255f), halo * 0.42f * (0.7f + 0.3f * grain));
+                        b = Color.Lerp(b, dc, dirt * (1f - 0.7f * tuft) * (0.9f + 0.1f * grain));
                     }
-                    float wa = _surface.WaterAt(wx, wy);
-                    float ww = Mathf.Clamp01((wa - 0.1f + (Mathf.PerlinNoise(wx * 0.9f + 50f, wy * 0.9f) - 0.5f) * 0.18f) * 1.8f);
-                    if (ww > 0f)
+                    if (wa > 0.01f)
                     {
-                        float deep = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.25f, 0.9f, ww)), sky = Mathf.PerlinNoise(wx * 0.35f + 40f, wy * 0.35f);
-                        var water = ww < 0.12f ? new Color(150f / 255f, 166f / 255f, 170f / 255f) : new Color((112f - 46f * deep + 14f * sky) / 255f, (128f - 44f * deep + 14f * sky) / 255f, (136f - 38f * deep + 16f * sky) / 255f);
-                        b = Color.Lerp(b, water, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.22f, ww)) * (ww < 0.12f ? 0.63f : 0.9f));
+                        float wv = wa + (cloud - 0.5f) * 0.34f + (tuftNoise - 0.5f) * 0.1f;
+                        float pool = Smooth(0.28f, 0.5f, wv), soaked = Smooth(0.1f, 0.3f, wv) * (1f - pool);
+                        b = Color.Lerp(b, new Color(34f, 62f, 30f) / 255f, soaked * 0.5f);
+                        if (pool > 0f)
+                        {
+                            float sky = Warped(wx * 0.1f + 90f, wy * 0.1f - 40f, 4), sheen = Smooth(0.55f, 0.95f, Fbm(wx * 0.06f - 20f, wy * 0.25f + 5f, 3));
+                            float ripple = Perlin(wx * 1.7f + 11f, wy * 5.5f) * 0.5f + 0.5f, depth = Smooth(0.42f, 0.85f, wv);
+                            var wc = night ? new Color(Mathf.Lerp(36f, 96f, sky), Mathf.Lerp(46f, 106f, sky), Mathf.Lerp(64f, 130f, sky))
+                                           : new Color(Mathf.Lerp(118f, 196f, sky), Mathf.Lerp(134f, 206f, sky), Mathf.Lerp(150f, 218f, sky));
+                            float lift = sheen * (night ? 60f : 48f) + (ripple - 0.5f) * 16f;
+                            wc = new Color(wc.r + lift, wc.g + lift, wc.b + lift) / 255f;
+                            if (grain > 0.992f) wc = Color.white; // sparkle
+                            float blade = grain > 0.86f && depth < 0.6f ? 0.6f * (1f - depth) : 0f;
+                            float rim = (1f - Smooth(0.3f, 0.42f, wv)) * pool;
+                            wc = new Color(Mathf.Min(1f, wc.r + rim * 0.16f), Mathf.Min(1f, wc.g + rim * 0.16f), Mathf.Min(1f, wc.b + rim * 0.14f));
+                            b = Color.Lerp(b, wc, pool * (0.42f + 0.5f * depth) * (1f - blade));
+                        }
                     }
                     _px[i] = b;
                 }
             }
         }
 
-        /// <summary>A fresh, even layer of snow over the whole ground, a little thinner in places.</summary>
+        /// <summary>Powdery frost over the whole ground: thick and thin, the green showing through in specks and streaks.</summary>
         private void PaintSnow()
         {
             for (int y = 0; y < _h; y++)
@@ -185,11 +268,13 @@ namespace SoccerVision.Runtime
                 for (int x = 0; x < _w; x++)
                 {
                     float wx = x / _ppm - Pitch.HalfLength - Margin;
-                    float n = Mathf.PerlinNoise(wx * 0.45f + 200f, wy * 0.45f + 200f), fine = Mathf.PerlinNoise(wx * 4f, wy * 4f);
-                    float shade = (238f + 12f * n + 5f * fine) / 255f;
-                    var snow = new Color(shade - 5f / 255f, shade - 1f / 255f, Mathf.Min(1f, shade + 7f / 255f));
+                    float cover = 0.52f + 0.32f * Warped(wx * 0.07f + 50f, wy * 0.07f, 4);
+                    float streak = Perlin(wx * 0.35f, wy * 2.2f) * 0.5f + 0.5f, fine = Perlin(wx * 2.4f, wy * 2.4f) * 0.5f + 0.5f, grain = Grain(x, y);
+                    float v = fine * 0.6f + streak * 0.25f + grain * 0.15f;
+                    float a = Smooth(1.05f - cover - 0.16f, 1.05f - cover + 0.16f, v) * 0.88f;
+                    float shade = (226f + 18f * fine + 8f * grain) / 255f;
                     int i = y * _w + x;
-                    _px[i] = Color.Lerp(_px[i], snow, 0.94f + 0.06f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.25f, 0.65f, n)) - (fine > 0.85f ? 0.05f : 0f));
+                    _px[i] = Color.Lerp(_px[i], new Color(shade - 6f / 255f, shade - 2f / 255f, Mathf.Min(1f, shade + 8f / 255f)), a);
                 }
             }
         }

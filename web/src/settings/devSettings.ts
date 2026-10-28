@@ -9,6 +9,10 @@ export type Upkeep = 0 | 1 | 2;
 export interface TeamColours {
   primary: string;
   secondary: string;
+  /** Shirt numbers (default: black or white, whichever reads best on the shirt). */
+  number?: string;
+  /** Goalkeeper's shirt (his number follows it). */
+  gk?: string;
 }
 
 export interface DevSettings {
@@ -24,6 +28,8 @@ export interface DevSettings {
   /** null: the team's own kit. */
   home: TeamColours | null;
   away: TeamColours | null;
+  /** Referee and assistants' shirt (null: black with yellow trim). */
+  refs: string | null;
 }
 
 export const DEFAULT_SETTINGS: DevSettings = {
@@ -36,6 +42,7 @@ export const DEFAULT_SETTINGS: DevSettings = {
   net: "#ebf0eb",
   home: null,
   away: null,
+  refs: null,
 };
 
 const KEY = "sv-dev-settings-react";
@@ -72,6 +79,19 @@ export function samePlay(a: DevSettings, b: DevSettings): boolean {
   const x = engineConditions(a);
   const y = engineConditions(b);
   return x.weather === y.weather && x.maintenance === y.maintenance && x.wind === y.wind;
+}
+
+/** A team's kit with the colours picked in the settings applied. */
+export function applyKit<K extends { primary: string; secondary: string; number: string; gk: string; gkNumber: string }>(kit: K, c: TeamColours | null): K {
+  if (!c) return kit;
+  return {
+    ...kit,
+    primary: c.primary,
+    secondary: c.secondary,
+    number: c.number ?? textOn(c.primary),
+    gk: c.gk ?? kit.gk,
+    gkNumber: c.gk ? textOn(c.gk) : kit.gkNumber,
+  };
 }
 
 /** Black or white, whichever reads best on the colour. */
