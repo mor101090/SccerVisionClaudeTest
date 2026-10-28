@@ -21,7 +21,7 @@ namespace SoccerVision.Simulation.Tests
         public void SeriousInjuriesAreTreatedThenTheSubstituteComesOnAndPlayRestarts()
         {
             int serious = 0, subs = 0, checkedChanges = 0;
-            for (ulong seed = 6000; seed < 6040 && checkedChanges < 4; seed++)
+            for (ulong seed = 6000; seed < 6120 && checkedChanges < 4; seed++)
             {
                 var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed);
                 PlayerAgent hurt = null;

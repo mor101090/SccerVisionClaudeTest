@@ -118,7 +118,7 @@ def player_cs(p, pid, group_override=None):
     fit = {"Low": "Low", "Moderate": "Normal", "Peak": "High"}[p["fitness"]]
     group = group_override or GROUP[p["position"]]
     return (f'            P({pid}, "{first}", "{last}", {p["shirt_number"]}, PositionGroup.{group}, {p["height"]}, '
-            f'{p["stamina"]}, FitnessLevel.{fit}, {left}, {right}, new[] {{ {values} }}),')
+            f'{p["stamina"]}, FitnessLevel.{fit}, {left}, {right}, {p["age"]}, "{p["nationality"]}", new[] {{ {values} }}),')
 
 
 def main():
@@ -129,7 +129,7 @@ def main():
            "        private static readonly string[] Order =", "        {"]
     out.append("            " + ", ".join(f'"{n}"' for n, _, _ in ATTRS))
     out += ["        };", "",
-            "        private static PlayerProfile P(int id, string first, string last, int number, PositionGroup group, int height, int stamina, FitnessLevel fitness, int left, int right, int[] v)",
+            "        private static PlayerProfile P(int id, string first, string last, int number, PositionGroup group, int height, int stamina, FitnessLevel fitness, int left, int right, int age, string nation, int[] v)",
             "        {",
             "            var a = new PlayerAttributes { Stamina = stamina, Fitness = fitness, LeftFoot = left, RightFoot = right };",
             "            a.Aggression = v[0]; a.Teamwork = v[1]; a.Composure = v[2]; a.Decisions = v[3];",
@@ -139,7 +139,7 @@ def main():
             "            a.PhysicalPower = v[13]; a.BallControl = v[14]; a.Dribbling = v[15]; a.Acceleration = v[16]; a.Speed = v[17]; a.Jumping = v[18]; a.Heading = v[19];",
             "            a.FreeKicks = v[20]; a.Penalty = v[21];",
             "            a.AerialAbility = v[22]; a.Handling = v[23]; a.Kicking = v[24]; a.OneOnOne = v[25]; a.Reflexes = v[26];",
-            "            return new PlayerProfile { Id = id, FirstName = first, LastName = last, ShirtNumber = number, NaturalPosition = group, HeightCm = height, Attributes = a };",
+            "            return new PlayerProfile { Id = id, FirstName = first, LastName = last, ShirtNumber = number, NaturalPosition = group, HeightCm = height, Age = age, Nationality = nation, Attributes = a };",
             "        }", ""]
     pid = 100
     for name, fname in TEAMS:

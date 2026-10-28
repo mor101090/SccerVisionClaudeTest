@@ -77,7 +77,8 @@ namespace SoccerVision.Simulation
                         weight = 0.6f + (p.Attr.Jumping + p.Attr.Heading + p.Attr.PhysicalPower) / 150f + (p.Profile.HeightCm - 180) * 0.012f;
                         break;
                     default:
-                        weight = 0.6f + (p.Attr.BallControl + p.Attr.Positioning + p.Attr.PhysicalPower) / 200f;
+                        // (positioning is a defending skill; going for the ball in possession it is reading the game)
+                        weight = 0.6f + (p.Attr.BallControl + (p.Team == PossessionTeam ? p.Attr.Decisions : p.Attr.Positioning) + p.Attr.PhysicalPower) / 200f;
                         break;
                 }
                 weight *= 1.3f - d / 2.6f;
@@ -769,7 +770,8 @@ namespace SoccerVision.Simulation
             bool fromBehind = MathF.Abs(MathUtil.AngleDiff(carrier.Facing, (d.Pos - carrier.Pos).Angle)) > 2.1f;
             var ca = carrier.Attr;
             var da = d.Attr;
-            float attack = (0.45f * ca.Dribbling + 0.25f * ca.Acceleration + 0.2f * ca.BallControl + 0.1f * ca.Composure) * carrier.FatigueFactor * BallControlFactor(carrier.Pos);
+            // (a creative player's unpredictable moves - a feint, a drop of the shoulder - help him past his man)
+            float attack = (0.4f * ca.Dribbling + 0.25f * ca.Acceleration + 0.15f * ca.BallControl + 0.1f * ca.Composure + 0.1f * ca.Creativity) * carrier.FatigueFactor * BallControlFactor(carrier.Pos);
             float defend = (0.6f * da.Tackling + 0.2f * da.Decisions + 0.2f * da.Acceleration) * d.FatigueFactor;
             float pFoul = 0.14f + 0.14f * MathUtil.A(da.Aggression) + (fromBehind ? 0.3f : 0.05f) - 0.1f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;

@@ -563,6 +563,9 @@ namespace SoccerVision.Simulation
             UpdateIntercept(receiver);
             float read = 0.5f * MathUtil.A(marker.Attr.Positioning) + 0.3f * MathUtil.A(marker.Attr.Decisions) + 0.2f * MathUtil.A(marker.Attr.Marking);
             if (marker.Slot.IsCentralMidfielder) read += marker == team.Anchor ? 0.25f : 0.12f; // midfielders live off reading passes
+            // a creative passer is unpredictable: his passes are harder to read
+            var passer = Ball.LastToucher;
+            if (passer != null && passer.Team != team) read -= 0.3f * (MathUtil.A(passer.Attr.Creativity) - 0.5f);
             // A good reader goes when he is sure to get there first; a poor one too late, or gambles and misses.
             // He only goes when he is sure to get there first (a good reader a little earlier). A failed gamble leaves
             // his man free; in his own third it leaves a striker clean through.
@@ -933,7 +936,8 @@ namespace SoccerVision.Simulation
                 }
 
                 // Recovery runs: players caught ahead of the ball sprint back.
-                if (team.Forward(p.Pos) > ballF + 5f && p.Slot.Line != Line.Attack) urgency = 0.9f;
+                // How hard he works back for his team-mates is his teamwork.
+                if (team.Forward(p.Pos) > ballF + 5f && p.Slot.Line != Line.Attack) urgency = 0.78f + 0.2f * MathUtil.A(p.Attr.Teamwork);
             }
 
             float dist = Vec2.Distance(p.Pos, target);

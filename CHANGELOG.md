@@ -38,6 +38,19 @@ Each round of changes is developed on its own branch, named after what it change
   foot makes shots and passes worse. The 4-4-2 line-up follows the generator's positions; left-footed full-backs and
   wingers go on the left. (Goals per match stay about 2.9; fewer fouls and cards, since these players are less
   aggressive.)
+- **Skills checked against the Stats spec** (Notion, "Stats"): every skill does what the spec says. Changed to match it:
+  - **Fitness** changes all of a player's skills: low -10%, moderate unchanged, peak +5% (before, it only changed how
+    fresh he started).
+  - **Preferred leg** 1-3: 3 two strong feet; 2 he can use the other foot (kicks with it a little worse); 1 he cannot
+    use it at all (he tries harder to get the ball onto his strong foot, and when he cannot, the kick is poor).
+  - **Creative** (unpredictable moves): helps a dribbler past his man, and his passes are harder to read and cut out.
+  - **Teamwork**: how hard a player works back for his team-mates.
+  - **Positioning** is a defending skill only (going for a loose ball in possession uses decisions instead).
+  - **Age and nationality** are kept with each player (age shapes development between matches, not a single match).
+  - Already as in the spec: tackling (win it cleanly, fewer fouls), marking, composure, aggression (more fouls and
+    cards), decisions, finishing, long shots, off the ball, jumping (with height), heading, speed, acceleration,
+    physical power, dribbling, ball control (first touch), stamina, free kicks, penalty, and the keeper's reflexes
+    (close range), kicking, aerial reach, one on one and handling.
 - Fixes found by the full test run: the restart pause lets the clock run (as in a real match), so halves keep their
   10 real minutes; nobody drifts off the pitch while pulling up.
 - Tests: tactics, one-twos, the restart pause and the computer manager (9 tests); generated squads (5 tests).

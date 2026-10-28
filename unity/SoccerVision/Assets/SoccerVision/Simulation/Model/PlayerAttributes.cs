@@ -87,6 +87,10 @@ namespace SoccerVision.Simulation
         public int ShirtNumber;
         public PositionGroup NaturalPosition;
         public int HeightCm = 180;
+        /// <summary>Age and nationality (from the team generator). Age shapes development between matches (16-21 improve
+        /// most, 22-29 a little, 30+ decline); it does not change a single match.</summary>
+        public int Age = 25;
+        public string Nationality = "";
         public PlayerAttributes Attributes = new PlayerAttributes();
 
         public string ShortName => string.IsNullOrEmpty(LastName) ? FirstName : LastName;

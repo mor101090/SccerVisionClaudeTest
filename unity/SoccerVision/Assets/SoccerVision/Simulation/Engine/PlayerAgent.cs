@@ -32,7 +32,30 @@ namespace SoccerVision.Simulation
         /// <summary>Who plays in this shirt now (a substitute takes over the agent of the player he replaces).</summary>
         public PlayerProfile Profile;
         public readonly TeamAgent Team;
-        public PlayerAttributes Attr => Profile.Attributes;
+        /// <summary>
+        /// The player's skills as he plays them today: his fitness changes all of them (stats spec): low fitness -10%,
+        /// moderate unchanged, peak +5% (at most 100).
+        /// </summary>
+        public PlayerAttributes Attr => _attrOf == Profile ? _attr : (_attr = PlayedAttributes(_attrOf = Profile));
+        private PlayerAttributes _attr;
+        private PlayerProfile _attrOf;
+
+        private static PlayerAttributes PlayedAttributes(PlayerProfile profile)
+        {
+            var a = profile.Attributes.Clone();
+            float k = a.Fitness == FitnessLevel.Low ? 0.9f : a.Fitness == FitnessLevel.High ? 1.05f : 1f;
+            if (k == 1f) return a;
+            int S(int v) => MathUtil.Clamp((int)MathF.Round(v * k), 1, 100);
+            a.Aggression = S(a.Aggression); a.Teamwork = S(a.Teamwork); a.Composure = S(a.Composure); a.Decisions = S(a.Decisions);
+            a.Tackling = S(a.Tackling); a.Marking = S(a.Marking); a.Positioning = S(a.Positioning);
+            a.Creativity = S(a.Creativity); a.Passing = S(a.Passing); a.Crossing = S(a.Crossing);
+            a.Finishing = S(a.Finishing); a.LongShots = S(a.LongShots); a.OffTheBall = S(a.OffTheBall);
+            a.PhysicalPower = S(a.PhysicalPower); a.BallControl = S(a.BallControl); a.Dribbling = S(a.Dribbling);
+            a.Acceleration = S(a.Acceleration); a.Speed = S(a.Speed); a.Jumping = S(a.Jumping); a.Heading = S(a.Heading);
+            a.Stamina = S(a.Stamina); a.FreeKicks = S(a.FreeKicks); a.Penalty = S(a.Penalty);
+            a.AerialAbility = S(a.AerialAbility); a.Handling = S(a.Handling); a.Kicking = S(a.Kicking); a.OneOnOne = S(a.OneOnOne); a.Reflexes = S(a.Reflexes);
+            return a;
+        }
 
         public int SlotIndex;
         public bool IsGoalkeeper;
@@ -136,12 +159,7 @@ namespace SoccerVision.Simulation
             Team = team;
             SlotIndex = slotIndex;
             IsGoalkeeper = slotIndex == 0;
-            switch (profile.Attributes.Fitness)
-            {
-                case FitnessLevel.Low: Energy = 0.88f; break;
-                case FitnessLevel.High: Energy = 1f; break;
-                default: Energy = 0.96f; break;
-            }
+            Energy = 1f; // (fitness acts on the skills, see Attr)
         }
 
         public FormationSlot Slot => Team.Formation.Slots[SlotIndex];
@@ -205,7 +223,7 @@ namespace SoccerVision.Simulation
         internal void Substitute(PlayerProfile incoming)
         {
             Profile = incoming;
-            Energy = incoming.Attributes.Fitness == FitnessLevel.Low ? 0.9f : 1f;
+            Energy = 1f;
             Injury = InjuryLevel.None;
             TreatmentTimer = 0f;
             LeavingInjured = false;

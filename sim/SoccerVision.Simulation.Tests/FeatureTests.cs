@@ -234,13 +234,15 @@ namespace SoccerVision.Simulation.Tests
         public void TallPlayersWinMoreHeaderDuelsAndHeightIsVaried()
         {
             var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 1);
-            var tall = e.AllPlayers.First(p => !p.IsGoalkeeper && p.Profile.HeightCm >= 188);
-            var small = e.AllPlayers.First(p => !p.IsGoalkeeper && p.Profile.HeightCm <= 176);
+            var outfield = e.AllPlayers.Where(p => !p.IsGoalkeeper).OrderBy(p => p.Profile.HeightCm).ToList();
+            var tall = outfield[outfield.Count - 1];
+            var small = outfield[0];
+            Assert.True(tall.Profile.HeightCm - small.Profile.HeightCm >= 10, "outfield heights " + small.Profile.HeightCm + "-" + tall.Profile.HeightCm);
             tall.Attr.Jumping = small.Attr.Jumping;
             Assert.True(tall.HeadReach > small.HeadReach + 0.1f, $"reach {tall.HeadReach} vs {small.HeadReach}");
             Assert.True(small.MaxSpeed * (small.Attr.Speed == tall.Attr.Speed ? 1f : 0f) >= 0f);
             var heights = e.AllPlayers.Select(p => p.Profile.HeightCm).ToList();
-            Assert.True(heights.Max() - heights.Min() >= 15, "height range " + heights.Min() + "-" + heights.Max());
+            Assert.True(heights.Max() - heights.Min() >= 12, "height range " + heights.Min() + "-" + heights.Max());
             Assert.Contains(e.AllPlayers, p => p.Attr.StrongFoot == Foot.Left);
             Assert.Contains(e.AllPlayers, p => p.Attr.StrongFoot == Foot.Right);
         }

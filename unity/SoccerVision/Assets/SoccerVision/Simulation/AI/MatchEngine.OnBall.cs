@@ -852,8 +852,10 @@ namespace SoccerVision.Simulation
             if (needsLeft) rating = p.Attr.LeftFoot;
             else if (needsRight) rating = p.Attr.RightFoot;
             else rating = p.Attr.StrongFootRating;
-            if (_rng.Chance(0.35f)) rating = p.Attr.StrongFootRating;
-            return 1f + (3 - MathUtil.Clamp(rating, 1, 3)) * 0.22f;
+            // Weak foot (stats spec): 3 two strong feet, 2 he can use the other foot, 1 he cannot use it at all - he tries to
+            // get the ball onto his strong foot (more often managing it), and when he cannot, the kick is a poor one.
+            if (_rng.Chance(rating == 1 ? 0.5f : 0.35f)) rating = p.Attr.StrongFootRating;
+            return rating >= 3 ? 1f : rating == 2 ? 1.25f : 1.8f;
         }
 
         private void KickGround(PlayerAgent p, KickPlan plan, float pressure)
