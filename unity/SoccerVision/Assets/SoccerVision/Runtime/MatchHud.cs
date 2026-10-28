@@ -266,7 +266,8 @@ namespace SoccerVision.Runtime
 
         /// <summary>
         /// Commentary bar under the pitch: the latest line on the colour of the team on the ball; for 6 s after a goal it
-        /// flashes between both teams' colours, for 4 s after a card it turns yellow or red.
+        /// flashes fast (about seven times a second, real time) in the scoring team's two colours - shirt colour on trim, then
+        /// trim on shirt colour, the text in the other one - and for 4 s after a card it turns yellow or red.
         /// </summary>
         private void DrawCommentaryBar(MatchEngine m)
         {
@@ -280,11 +281,15 @@ namespace SoccerVision.Runtime
             var lines = Controller.Commentary;
             string text = lines.Count > 0 ? lines[lines.Count - 1].Text : "Kick-off";
             float age = m.RealTimeElapsed - Controller.HighlightAt;
+            Color? fg = null;
             if (Controller.HighlightType == MatchEventType.Goal && age < 6f)
             {
                 // flashes in the two colours of the team that scored (e.g. blue and white for the blue team)
                 var kit = (Controller.HighlightTeam == 1 ? m.Away : m.Home).Setup.Kit;
-                bg = Mathf.FloorToInt(age / 0.35f) % 2 == 0 ? SpriteFactory.Hex(kit.Primary, Color.gray) : SpriteFactory.Hex(kit.Secondary, Color.white);
+                Color a = SpriteFactory.Hex(kit.Primary, Color.gray), b = SpriteFactory.Hex(kit.Secondary, Color.white);
+                bool on = Mathf.FloorToInt(Time.unscaledTime / 0.14f) % 2 == 1;
+                bg = on ? b : a;
+                if (a != b) fg = on ? a : b;
                 text = Controller.HighlightText;
             }
             else if ((Controller.HighlightType == MatchEventType.YellowCard || Controller.HighlightType == MatchEventType.RedCard) && age < 4f)
@@ -294,7 +299,7 @@ namespace SoccerVision.Runtime
             }
             Fill(r, bg);
             var st = new GUIStyle(_comment) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, wordWrap = false, clipping = TextClipping.Clip };
-            st.normal.textColor = bg.r * 0.299f + bg.g * 0.587f + bg.b * 0.114f > 0.63f ? new Color(0.07f, 0.07f, 0.07f) : Color.white;
+            st.normal.textColor = fg ?? (bg.r * 0.299f + bg.g * 0.587f + bg.b * 0.114f > 0.63f ? new Color(0.07f, 0.07f, 0.07f) : Color.white);
             GUI.Label(r, text, st);
         }
 
@@ -355,7 +360,7 @@ namespace SoccerVision.Runtime
             // for now - the engine already plays in real time, substitutions and tactics will let you steer it).
             if (GUI.Button(new Rect(rx, y, bw, bh), "Staged", _button)) Controller.StartMatch(MatchController.StagedSeed, true);
             if (GUI.Button(new Rect(rx + (bw + pad), y, bw, bh), "Random", _button)) Controller.StartMatch(Random.Range(1, int.MaxValue));
-            if (GUI.Button(new Rect(rx + (bw + pad) * 2f, y, bw, bh), "Live", _button)) { Controller.playbackSpeed = 1f; Controller.StartMatch(Random.Range(1, int.MaxValue)); }
+            if (GUI.Button(new Rect(rx + (bw + pad) * 2f, y, bw, bh), "Live", _button)) { Controller.playbackSpeed = 1f; Controller.StartMatch(Random.Range(1, int.MaxValue), live: true); }
         }
 
         private void DrawTooltip(MatchEngine m)

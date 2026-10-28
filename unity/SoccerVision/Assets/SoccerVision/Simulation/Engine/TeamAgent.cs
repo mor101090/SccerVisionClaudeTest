@@ -167,6 +167,9 @@ namespace SoccerVision.Simulation
         public int PassesIntoSpace;
         /// <summary>Switches of play (a ball to the other flank to relieve pressure) and how many reached a team-mate.</summary>
         public int Switches;
+        /// <summary>One-twos: return balls into a team-mate's give-and-go run, and how many reached him.</summary>
+        public int OneTwos;
+        public int OneTwosCompleted;
         public int SwitchesCompleted;
         /// <summary>Crosses and shots by role (full-backs / wide players).</summary>
         public int FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks;

@@ -17,6 +17,9 @@ namespace SoccerVision.Simulation
     /// <summary>How readily players go to ground: stay on their feet, normal, or get stuck in (slide tackles).</summary>
     public enum TacklingStyle { StayOnFeet, Normal, GetStuckIn }
 
+    /// <summary>How the team moves the ball: short passing combinations, a mix, or balls in behind and long.</summary>
+    public enum PassingStyle { Short, Mixed, Direct }
+
     public sealed class TeamTactics
     {
         /// <summary>0 = defensive, 1 = ultra attacking.</summary>
@@ -31,8 +34,21 @@ namespace SoccerVision.Simulation
         public float PressingIntensity = 0.5f;
         public MarkingStyle Marking = MarkingStyle.Zonal;
         public TacklingStyle Tackling = TacklingStyle.Normal;
+        public PassingStyle Passing = PassingStyle.Mixed;
 
         public TeamTactics Clone() => (TeamTactics)MemberwiseClone();
+
+        /// <summary>In words, for the commentary: "high line, wide, short passing, fast tempo, aggressive".</summary>
+        public string Describe()
+        {
+            string line = DefensiveLine < 0.3f ? "deep line" : DefensiveLine > 0.7f ? "high line" : "middle line";
+            string width = Width < 0.3f ? "narrow" : Width > 0.7f ? "wide" : "normal width";
+            string pass = Passing == PassingStyle.Short ? "short passing" : Passing == PassingStyle.Direct ? "balls in behind" : "mixed passing";
+            string tempo = Tempo < 0.35f ? "slow tempo" : Tempo > 0.65f ? "fast tempo" : "normal tempo";
+            string style = Tackling == TacklingStyle.GetStuckIn ? "aggressive" : Tackling == TacklingStyle.StayOnFeet ? "gentle" : "balanced";
+            string mind = Mentality > 0.65f ? "all-out attack, " : Mentality < 0.35f ? "defensive, " : "";
+            return mind + line + ", " + width + ", " + pass + ", " + tempo + ", " + style;
+        }
 
         public void Sanitize()
         {

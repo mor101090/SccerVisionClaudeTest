@@ -341,7 +341,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   const owner = b.owner >= 0 ? snap.players[b.owner] : null;
   // No spin while held (keeper's hands, carried overhead for a throw-in) or while play is stopped (the ball waits to be taken).
   ball3d.spin(b.x, b.y, h, dt, snap.phase !== 0 || (owner !== null && (owner.gk || b.z > 0.4)));
-  ball3d.draw(ctx, bx, by - Math.min(20, h) * 0.55 * s, 0.36 * s * (1 + Math.min(20, h) * 0.07));
+  ball3d.draw(ctx, bx, by - Math.min(20, h) * 0.55 * s, 0.36 * s * (1 + Math.min(20, h) * 0.07), bx, by);
   // The nets go over a ball lying in the goal (roof netting seen from above).
   for (const side of [-1, 1]) {
     const fx = netEffects(replay, snap.t, side);

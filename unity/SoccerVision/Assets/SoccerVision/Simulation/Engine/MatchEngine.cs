@@ -52,6 +52,9 @@ namespace SoccerVision.Simulation
         public PlayerAgent Taker;
         public float Timer;
         public float SetupTime;
+        /// <summary>Sim seconds left of the pause after the whistle (the ball out, a foul, an offside): play stops, players
+        /// pull up, and the viewer has a moment to see what happened before anyone sets the restart up. The clock waits.</summary>
+        public float PauseLeft;
         public bool BallPlaced;
         public bool CountsAsLostTime;
         /// <summary>The taker waits for the referee's whistle (kick-off, penalty, free kick with a wall or after a card).</summary>
@@ -294,7 +297,7 @@ namespace SoccerVision.Simulation
             SimTime += dt;
             SavePrevious();
 
-            if (Clock.Running)
+            if (Clock.Running && !(Phase == MatchPhase.Stoppage && _restart != null && _restart.PauseLeft > 0f))
             {
                 float clockDt = dt * Config.ClockSecondsPerSimSecond;
                 Clock.Seconds += clockDt;
@@ -317,10 +320,33 @@ namespace SoccerVision.Simulation
                     break;
             }
 
+            if (Phase == MatchPhase.Live && StepCount % 40 == 0) SampleHomeShape();
             TrackKeeperRelease();
             UpdateOfficials(dt);
             CheckAddedTime();
             ValidateState();
+        }
+
+        /// <summary>Diagnostics of the home team's shape (tactics checks): back-line depth from its own goal and lateral spread.</summary>
+        public double HomeLineSum, HomeSpreadSum;
+        public int HomeLineSamples;
+
+        private void SampleHomeShape()
+        {
+            var t = Home;
+            float line = 0f, n = 0f, lo = float.PositiveInfinity, hi = float.NegativeInfinity;
+            foreach (var p in t.Players)
+            {
+                if (p.SentOff || p.IsGoalkeeper) continue;
+                float lat = t.Lateral(p.Pos);
+                lo = MathF.Min(lo, lat);
+                hi = MathF.Max(hi, lat);
+                if (p.Slot.Line == Line.Defence) { line += t.Forward(p.Pos) + Pitch.HalfLength; n++; }
+            }
+            if (n == 0f) return;
+            HomeLineSum += line / n;
+            HomeSpreadSum += hi - lo;
+            HomeLineSamples++;
         }
 
         private PlayerAgent _keeperRelease;
@@ -762,6 +788,9 @@ namespace SoccerVision.Simulation
             var copy = tactics.Clone();
             copy.Sanitize();
             team.Tactics = copy;
+            var e = Emit(MatchEventType.TacticsChanged, team, null, null, Ball.Pos);
+            e.Info = copy.Describe();
+            e.Text += ": " + e.Info;
         }
 
         // ------------------------------------------------------------------------------------------------

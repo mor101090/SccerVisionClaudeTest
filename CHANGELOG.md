@@ -2,6 +2,35 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/team-tactics-one-twos`
+
+- **Team tactic panel** (demo page, under the pitch): you are the home team.
+  - **Defensive line** slider (deep block .. high line) and **width** slider (narrow .. wide), **passing** (short
+    combinations / mixed / balls in behind), **tempo** (slow / normal / fast) and **style** (gentle / balanced /
+    aggressive). A small tactics board shows the shape, the passing (arrows moving at the tempo) and the pressing.
+  - In a **live match** an instruction goes to the players at once (commentary: "Red Rovers change their tactics: ...").
+    In the staged and random matches it applies from kick-off: the match is replayed with it.
+  - **The computer manager** (live match): every few minutes it reads your tactics and the score and answers: balls in
+    behind against a high line, pushing up and keeping the ball against a deep block, going wide against a narrow team,
+    quick passing against an aggressive one; chasing the game when losing after the hour, sitting deep when winning
+    late. Its current set-up and its changes are shown next to your panel. In Unity the Live button gets the same
+    computer manager.
+  - Measured (60 matches each): back line 27 m from goal (deep) v 41 m (high); outfield spread 40 m (narrow) v 51 m
+    (wide); 297 passes and 8 long balls (short) v 238 and 18 (direct); 5.4 fouls (gentle) v 12.4 (aggressive).
+- **One-twos**: after a short pass the passer may burst past his man for the ball straight back, played first time
+  ("#8 Corvel and #10 Fendar play a one-two"). Players who move well off the ball do it more; a short-passing team
+  much more (about 3 a match, half of them coming off; more with short passing).
+- **A pause before restarts**: when the ball goes out, or for a foul or an offside, play stops for 1.5 s - players pull
+  up, the ball rolls to a stop - before the restart is set up, so you can see what happened. The clock waits.
+- **Snow ball glows for real**: lit from inside (a hot yellow-orange core, white-hot pentagons), an orange haze, an
+  additive bloom and a pool of light on the snow under it, breathing gently (demo page, React, Unity).
+- **Goal flash**: the commentary bar flashes about seven times a second, alternating shirt colour on trim and trim on
+  shirt colour, the text always in the other colour (demo page, React, Unity).
+- Engine: `PassingStyle` tactic, `TacticsChanged` event, `ComputerManager`; the defensive line and width sliders act
+  more strongly; the tackling style also changes how clean the challenges are. Calibration unchanged (goals 3.0-3.2,
+  fouls 21.7, yellows 4.0 per match).
+- Tests: tactics, one-twos, the restart pause and the computer manager (9 tests).
+
 ## `feature/three-game-modes`
 
 - **Three game buttons** replace "New match" (demo page; React viewer and Unity HUD have the same buttons):

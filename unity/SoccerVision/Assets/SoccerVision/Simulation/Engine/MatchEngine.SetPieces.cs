@@ -52,6 +52,7 @@ namespace SoccerVision.Simulation
                 default: r.SetupTime = IsDangerousFreeKick(r) ? Config.FreeKickWithWallSetupSeconds : Config.FreeKickSetupSeconds; break;
             }
             r.SetupTime *= _rng.Range(0.85f, 1.2f);
+            if (type != RestartType.KickOff && type != RestartType.DroppedBall) r.PauseLeft = Config.RestartPauseRealSeconds * Config.MotionSpeed;
             LayoutRestart(r);
             // IFAB: the whistle restarts kick-offs, penalties and free kicks where the 9.15 m distance is enforced;
             // throw-ins, goal kicks, corners and quick free kicks are taken without it.
@@ -717,6 +718,26 @@ namespace SoccerVision.Simulation
             if (r == null)
             {
                 Phase = MatchPhase.Live;
+                return;
+            }
+            if (r.PauseLeft > 0f)
+            {
+                // The moment after the whistle: everybody pulls up where he is, the ball runs on and stops.
+                r.PauseLeft -= dt;
+                BallPhysics.Step(ref Ball.M, Config, dt);
+                if (!Pitch.InsideField(Ball.Pos, 3f)) Ball.Stop();
+                foreach (var p in AllPlayers)
+                {
+                    if (!p.SentOff && StepInjuredPlayer(p, dt)) continue;
+                    if (!p.SentOff)
+                    {
+                        p.Task = PlayerTask.SetPiece;
+                        p.FaceBall = true;
+                        p.Target = p.Pos + p.Vel * 0.35f;
+                        p.Urgency = 0.15f;
+                    }
+                    MovePlayer(p, dt);
+                }
                 return;
             }
             r.Timer += dt;

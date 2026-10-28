@@ -109,14 +109,16 @@ namespace SoccerVision.Runtime
                         float sc = Vector3.Dot(Hex[q], b) / RH;
                         if (sc > best) { second = best; best = sc; pent = false; } else if (sc > second) second = sc;
                     }
-                    Vector3 col = Winter ? (pent ? new Vector3(255f, 255f, 255f) : new Vector3(255f, 122f, 0f)) : (pent ? new Vector3(28f, 28f, 28f) : new Vector3(246f, 246f, 246f));
-                    if (best - second < 0.006f) col = Winter ? (pent ? new Vector3(255f, 214f, 170f) : new Vector3(200f, 70f, 0f)) : (pent ? new Vector3(60f, 60f, 60f) : new Vector3(150f, 150f, 150f)); // stitched seams
+                    // snow: lit from inside - a hot yellow-orange core fading to deep orange at the rim, white-hot pentagons
+                    float hot = Mathf.Pow(n.z, 1.4f);
+                    Vector3 col = Winter ? (pent ? new Vector3(255f, 250f, 236f) : new Vector3(255f, 92f + 112f * hot, 8f + 72f * hot)) : (pent ? new Vector3(28f, 28f, 28f) : new Vector3(246f, 246f, 246f));
+                    if (best - second < 0.006f) col = Winter ? (pent ? new Vector3(255f, 214f, 150f) : new Vector3(235f, 70f, 0f)) : (pent ? new Vector3(60f, 60f, 60f) : new Vector3(150f, 150f, 150f)); // stitched seams
                     float lit = Mathf.Max(0f, Vector3.Dot(n, Light));
-                    float diff = Winter ? 0.8f + 0.2f * lit : 0.38f + 0.62f * lit; // the snow ball is self-lit, so it glows
+                    float diff = Winter ? 1f : 0.38f + 0.62f * lit;
                     float spec = Mathf.Pow(Mathf.Max(0f, Vector3.Dot(n, Half)), 36f) * (pent ? 120f : 90f);
                     float edge = 1f - Mathf.Sqrt(r2);
                     // a thin dark rim keeps the ball readable on the light grass
-                    float rim = edge * rad < 1.2f ? 0.55f : 1f;
+                    float rim = edge * rad < 1.2f ? (Winter ? 1f : 0.55f) : 1f;
                     byte Ch(float v) => (byte)Mathf.Min(255f, (v * diff + spec) * rim);
                     _px[o] = new Color32(Ch(col.x), Ch(col.y), Ch(col.z), (byte)(255f * Mathf.Clamp01(edge * rad + 0.5f)));
                 }

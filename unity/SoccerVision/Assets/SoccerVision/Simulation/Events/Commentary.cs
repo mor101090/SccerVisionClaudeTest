@@ -25,6 +25,7 @@ namespace SoccerVision.Simulation
                     return "Second half is about to begin";
                 case MatchEventType.Pass:
                     if (e.OtherPlayer < 0) return P(e.Player) + " plays it forward";
+                    if (e.Value > 3.5f) return P(e.Player) + " and " + P(e.OtherPlayer) + " play a one-two";
                     if (e.Value > 2.5f) return P(e.Player) + " switches the play to " + P(e.OtherPlayer);
                     if (e.Value > 1.5f) return P(e.Player) + " plays it into space for " + P(e.OtherPlayer);
                     return P(e.Player) + (e.Value > 0.5f ? " slides a through ball to " : " passes to ") + P(e.OtherPlayer);
@@ -81,6 +82,8 @@ namespace SoccerVision.Simulation
                         : P(e.Player) + " takes a knock but carries on";
                 case MatchEventType.Substitution:
                     return "Substitution for " + T(e.Team);
+                case MatchEventType.TacticsChanged:
+                    return T(e.Team) + " change their tactics";
                 case MatchEventType.DroppedBall:
                     return "The referee restarts with a dropped ball for " + T(e.Team);
                 case MatchEventType.ShieldOut:
@@ -161,7 +164,8 @@ namespace SoccerVision.Simulation
                 case MatchEventType.Offside:
                 case MatchEventType.GoalkeeperHoldViolation:
                 case MatchEventType.Injury: return CommentaryTone.Foul;
-                case MatchEventType.Substitution: return CommentaryTone.Info;
+                case MatchEventType.Substitution:
+                case MatchEventType.TacticsChanged: return CommentaryTone.Info;
                 case MatchEventType.RedCard: return CommentaryTone.Red;
                 case MatchEventType.YellowCard:
                 case MatchEventType.PenaltyAwarded: return CommentaryTone.Card;

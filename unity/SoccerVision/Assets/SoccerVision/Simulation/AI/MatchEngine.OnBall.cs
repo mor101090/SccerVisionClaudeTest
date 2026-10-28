@@ -27,6 +27,8 @@ namespace SoccerVision.Simulation
         public bool IntoSpace;
         /// <summary>A long diagonal / lateral ball to the other flank that relieves pressure (a switch of play).</summary>
         public bool IsSwitch;
+        /// <summary>The return ball of a one-two (give-and-go) into the passer's run.</summary>
+        public bool OneTwo;
     }
 
     /// <summary>
@@ -44,7 +46,7 @@ namespace SoccerVision.Simulation
         private float _riskPremium;
         private bool _shotCountedOnTarget;
         private string _lastPassKey;
-        private bool _pendingThrough, _pendingIntoSpace, _pendingSwitch;
+        private bool _pendingThrough, _pendingIntoSpace, _pendingSwitch, _pendingOneTwo;
         private bool _nextPassIntoSpace;
 
         private void ThinkOnBall(PlayerAgent p, float dt)
@@ -248,6 +250,27 @@ namespace SoccerVision.Simulation
                 bool offside = perceivedMargin > 0f && _rng.Chance(noticeOffside); // what the passer believes
                 if (offside) continue;
 
+                // One-two: q gave me the ball and is running past for it back - play it into his run, first time.
+                if (q.OneTwoWith == p && q.OneTwoUntil > SimTime)
+                {
+                    Vec2 toSpot = q.OneTwoSpot - q.Pos;
+                    float left = toSpot.Length;
+                    Vec2 runDir = left > 0.5f ? toSpot / left : team.DirToWorld(Vec2.UnitX);
+                    Vec2 into = Pitch.ClampToField(q.Pos + runDir * MathUtil.Clamp(MathF.Max(left * 0.8f, q.Vel.Length * 1.1f), 3.5f, 10f), -2f);
+                    int before = _options.Count;
+                    _nextPassIntoSpace = true;
+                    AddGroundPass(p, q, from, into, KickKind.ThroughBall, pressure);
+                    _nextPassIntoSpace = false;
+                    float pull = 0.002f * StyleShort(team);
+                    for (int i = before; i < _options.Count; i++)
+                    {
+                        var o = _options[i];
+                        o.OneTwo = true;
+                        o.Utility = o.Utility * (o.Utility > 0f ? 1.12f : 0.9f) + pull;
+                        _options[i] = o;
+                    }
+                }
+
                 Vec2 lead = q.Vel * 0.45f;
                 Vec2 feet = Pitch.ClampToField(q.Pos + lead, -1f);
                 AddGroundPass(p, q, from, feet, KickKind.Pass, pressure);
@@ -354,7 +377,7 @@ namespace SoccerVision.Simulation
             // Through balls behind the line: keepers sweep, defenders turn and recover - the race is harder to win
             // than the simple estimate suggests (measured: well below the predicted success).
             else if (kind == KickKind.ThroughBall) success *= 0.68f;
-            float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure);
+            float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure) * StyleFactor(team, kind, d, false);
             float relief = SwitchRelief(p, from, target, pressure);
             value += relief;
             // Cut-back: from the by-line, low and square to a team-mate arriving in the middle of the box.
@@ -485,7 +508,7 @@ namespace SoccerVision.Simulation
             float pAccuracy = 1f - MathF.Exp(-0.635f * capture * capture / (sd * sd));
             float success = pWin * pControl * pAccuracy;
             if (kind == KickKind.ThroughBall) success *= 0.8f; // the keeper and the recovering defenders (see AddGroundPass)
-            float value = ExpectedThreat.At(team, target);
+            float value = ExpectedThreat.At(team, target) * StyleFactor(team, kind, d, true);
             float relief = SwitchRelief(p, from, target, pressure);
             value += relief;
             float progress = team.Forward(target) - team.Forward(from);
@@ -739,12 +762,15 @@ namespace SoccerVision.Simulation
                     p.Team.Stats.Switches++;
                     if (CollectDiagnostics) Count("pass.switch" + (p.Slot.IsFullBack ? ".fullback" : ""));
                 }
+                _pendingOneTwo = plan.OneTwo;
+                if (plan.OneTwo) p.Team.Stats.OneTwos++;
                 if (_pendingThrough) p.Team.Stats.ThroughBalls++;
                 if (_pendingIntoSpace) p.Team.Stats.PassesIntoSpace++;
                 if (CollectDiagnostics && plan.IntoSpace) Count("pass.intospace");
             }
-            else _pendingThrough = _pendingIntoSpace = _pendingSwitch = false;
+            else _pendingThrough = _pendingIntoSpace = _pendingSwitch = _pendingOneTwo = false;
             float pressure = Pressure(p, out _);
+            if (plan.Action == BallAction.Pass && !plan.Lofted && plan.Kind == KickKind.Pass && plan.Receiver != null) MaybeStartOneTwo(p, plan.Receiver);
             switch (plan.Action)
             {
                 case BallAction.Shoot:
@@ -767,6 +793,50 @@ namespace SoccerVision.Simulation
                     else KickGround(p, plan, pressure);
                     break;
             }
+        }
+
+        /// <summary>
+        /// The team's passing style: short combinations value the short ball to feet, direct play the ball in behind and the
+        /// long ball. Mixed changes nothing.
+        /// </summary>
+        private static float StyleFactor(TeamAgent team, KickKind kind, float d, bool lofted)
+        {
+            var s = team.Tactics.Passing;
+            if (s == PassingStyle.Mixed) return 1f;
+            bool shortBall = !lofted && kind == KickKind.Pass && d < 22f;
+            bool longBall = lofted || kind == KickKind.ThroughBall || d > 30f;
+            if (s == PassingStyle.Short) return shortBall ? 1.12f : longBall ? 0.75f : 1f;
+            return shortBall ? 0.92f : longBall ? 1.3f : 1f;
+        }
+
+        /// <summary>How much the team's passing style favours short combinations: 1.6 short, 1 mixed, 0.45 direct.</summary>
+        private static float StyleShort(TeamAgent team) =>
+            team.Tactics.Passing == PassingStyle.Short ? 1.6f : team.Tactics.Passing == PassingStyle.Direct ? 0.45f : 1f;
+
+        /// <summary>
+        /// Give-and-go: after a short pass the passer may burst past his marker into the space ahead, for the ball straight
+        /// back (the receiver plays it first time, see EvaluatePasses). Players who read the game and move well off the
+        /// ball do it more, and a short-passing team much more.
+        /// </summary>
+        private void MaybeStartOneTwo(PlayerAgent p, PlayerAgent q)
+        {
+            var team = p.Team;
+            if (p.IsGoalkeeper || p.Slot.IsCentreBack || q.IsGoalkeeper) return;
+            float f = team.Forward(p.Pos), d = Vec2.Distance(p.Pos, q.Pos);
+            if (d < 5f || d > 22f || f < -22f || f > 42f) return;
+            float offsideLine = MathF.Max(MathF.Max(SecondLastDefenderForward(team), team.Forward(Ball.Pos)), 0f);
+            float ahead = MathF.Min(f + 13f, MathF.Max(offsideLine + 1.5f, f + 6f));
+            if (ahead < f + 5f) return;
+            float lat = team.Lateral(p.Pos), qLat = team.Lateral(q.Pos);
+            // past the man on the side away from the receiver's marker: drift a little towards the receiver's line
+            Vec2 spot = Pitch.ClampToField(team.ToWorld(ahead, MathUtil.Clamp(lat + (qLat - lat) * 0.3f, -30f, 30f)), -2f);
+            if (SpaceAround(team, spot) < 4f) return;
+            float chance = (0.15f + 0.35f * MathUtil.A(p.Attr.OffTheBall) + 0.15f * MathUtil.A(p.Attr.Teamwork)) * StyleShort(team) * (0.7f + 0.6f * team.Tactics.Mentality);
+            if (!_rng.Chance(chance)) return;
+            p.OneTwoWith = q;
+            p.OneTwoUntil = SimTime + 3.2f;
+            p.OneTwoSpot = spot;
+            if (CollectDiagnostics) Count("onetwo.run");
         }
 
         /// <summary>+1 when the kicker's natural curl bends the ball to the left of its path (right-footers), -1 for left-footers.</summary>
@@ -828,7 +898,7 @@ namespace SoccerVision.Simulation
 
         private void EmitPass(PlayerAgent p, PlayerAgent receiver, KickKind kind)
         {
-            float value = _pendingSwitch ? 3f : (kind != KickKind.ThroughBall ? 0f : _pendingIntoSpace ? 2f : 1f);
+            float value = _pendingOneTwo ? 4f : _pendingSwitch ? 3f : (kind != KickKind.ThroughBall ? 0f : _pendingIntoSpace ? 2f : 1f);
             Emit(kind == KickKind.LongPass ? MatchEventType.LongBall : MatchEventType.Pass, p.Team, p, receiver, Ball.Pos, value);
         }
 
@@ -1180,8 +1250,8 @@ namespace SoccerVision.Simulation
             var passer = Ball.PendingPassFrom;
             if (passer == null) return;
             Ball.PendingPassFrom = null;
-            bool through = _pendingThrough, intoSpace = _pendingIntoSpace, wasSwitch = _pendingSwitch;
-            _pendingThrough = _pendingIntoSpace = _pendingSwitch = false;
+            bool through = _pendingThrough, intoSpace = _pendingIntoSpace, wasSwitch = _pendingSwitch, oneTwo = _pendingOneTwo;
+            _pendingThrough = _pendingIntoSpace = _pendingSwitch = _pendingOneTwo = false;
             string key = _lastPassKey;
             if (controller == null)
             {
@@ -1201,6 +1271,7 @@ namespace SoccerVision.Simulation
                     if (through) passer.Team.Stats.ThroughBallsCompleted++;
                     if (intoSpace && CollectDiagnostics) Count("pass.intospace.ok");
                     if (wasSwitch) passer.Team.Stats.SwitchesCompleted++;
+                    if (oneTwo && controller.OneTwoWith == passer) passer.Team.Stats.OneTwosCompleted++;
                     if (CollectDiagnostics)
                     {
                         Count("pass.completed");

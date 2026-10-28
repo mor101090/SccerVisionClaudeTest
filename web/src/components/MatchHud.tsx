@@ -124,11 +124,14 @@ export function TopControls({ playing, onToggle, settings }: { playing: boolean;
 export interface BarState {
   text: string;
   background: string;
+  /** Text colour (default: black or white, whichever reads best). */
+  color?: string;
 }
 
 /**
  * What the commentary bar under the pitch shows: the latest line on the colour of the team on the ball; for 6 s after
- * a goal it flashes between the two colours of the scoring team, for 4 s after a card it turns yellow or red.
+ * a goal it flashes fast (about seven times a second, in real time) in the scoring team's two colours - shirt colour on
+ * trim, then trim on shirt colour - and for 4 s after a card it turns yellow or red.
  */
 export function barState(o: {
   latest: string | null;
@@ -137,7 +140,12 @@ export function barState(o: {
   goal: { text: string; age: number; colors: [string, string] } | null;
   card: { text: string; red: boolean; age: number } | null;
 }): BarState {
-  if (o.goal && o.goal.age < 6) return { text: o.goal.text, background: o.goal.colors[Math.floor(o.goal.age / 0.35) % 2] };
+  if (o.goal && o.goal.age < 6) {
+    const on = Math.floor(performance.now() / 140) % 2;
+    const [a, b] = o.goal.colors;
+    const fg = on ? a : b;
+    return { text: o.goal.text, background: on ? b : a, color: fg.toLowerCase() === (on ? b : a).toLowerCase() ? undefined : fg };
+  }
   if (o.card && o.card.age < 4) return { text: o.card.text, background: o.card.red ? "#d50000" : "#ffd21a" };
   return { text: o.latest ?? "Kick-off", background: o.possessionColor ?? "#3c4552" };
 }
@@ -150,7 +158,7 @@ function readableOn(hex: string): string {
 
 export function CommentaryBar({ bar }: { bar: BarState }) {
   return (
-    <div className="cbar" style={{ background: bar.background, color: readableOn(bar.background) }} aria-live="polite">
+    <div className="cbar" style={{ background: bar.background, color: bar.color ?? readableOn(bar.background) }} aria-live="polite">
       <span>{bar.text}</span>
     </div>
   );

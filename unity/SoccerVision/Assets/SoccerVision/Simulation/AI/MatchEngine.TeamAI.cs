@@ -21,13 +21,14 @@ namespace SoccerVision.Simulation
             float lineTarget;
             if (inPossession)
             {
-                lineTarget = ballF * 0.62f - 17f + 10f * (tac.Mentality - 0.5f) + 4f * (tac.DefensiveLine - 0.5f);
+                lineTarget = ballF * 0.62f - 17f + 10f * (tac.Mentality - 0.5f) + 9f * (tac.DefensiveLine - 0.5f);
                 lineTarget = MathUtil.Clamp(lineTarget, -41f, 3f);
             }
             else
             {
-                lineTarget = ballF * 0.45f - 22f + 12f * (tac.DefensiveLine - 0.5f);
-                lineTarget = MathUtil.Clamp(lineTarget, -42f, -7f + 12f * (tac.DefensiveLine - 0.5f));
+                // the defensive line: from a deep block on the edge of the box (0) to a high line near halfway (1)
+                lineTarget = ballF * 0.45f - 22f + 22f * (tac.DefensiveLine - 0.5f);
+                lineTarget = MathUtil.Clamp(lineTarget, -42f, -7f + 18f * (tac.DefensiveLine - 0.5f));
                 // Step up together (squeeze the space, leave attackers offside) when the opponent has to turn back:
                 // a carrier facing his own goal under pressure, or a ball played back towards their goal.
                 float chem = team.DefensiveChemistry;
@@ -199,7 +200,8 @@ namespace SoccerVision.Simulation
             var slot = p.Slot;
             float line = team.LineForward;
             float blockLength = inPossession ? 34f + 10f * tac.Mentality + 5f * tac.Tempo : 26f + 5f * tac.DefensiveLine;
-            float widthScale = inPossession ? 1.12f + 0.3f * (tac.Width - 0.5f) : 0.74f + 0.12f * (tac.Width - 0.5f);
+            // tactical width: how far apart the players spread across the pitch (narrow 0 .. wide 1)
+            float widthScale = inPossession ? 1.12f + 0.55f * (tac.Width - 0.5f) : 0.74f + 0.28f * (tac.Width - 0.5f);
             float shift = inPossession ? 0.2f : 0.36f;
 
             float f = line + slot.Depth * blockLength;
@@ -217,7 +219,7 @@ namespace SoccerVision.Simulation
                     float drive = FullBackDrive(p);
                     float push = (0.35f + 0.65f * tac.Mentality) * (0.55f + 0.45f * drive);   // 0 .. 1
                     f += 4f + (ballSide && ballF > -5f ? 12f * (0.5f + tac.Mentality) * (0.65f + 0.7f * drive) : 0f);
-                    l = side * (26f + 4f * tac.Width);
+                    l = side * (22f + 11f * tac.Width);
                     if (ballSide && ballF > 22f && push > 0.5f)
                     {
                         // Attacking full-back in the final third: up beside the winger and beyond the ball, into the by-line.
@@ -239,7 +241,7 @@ namespace SoccerVision.Simulation
                 if (inPossession && slot.IsWideMidfielder)
                 {
                     f += 6f;
-                    l = MathF.Sign(slot.BaseLateral) * (29f + 3.5f * tac.Width);
+                    l = MathF.Sign(slot.BaseLateral) * (24f + 10f * tac.Width);
                     // Inverted winger (strong foot on the inside) tucks in when the ball is in the final third.
                     bool inverted = (slot.BaseLateral > 0f) == (p.Attr.StrongFoot == Foot.Right);
                     if (inverted && ballF > 15f) l *= 0.72f;
@@ -270,7 +272,7 @@ namespace SoccerVision.Simulation
                     f = MathF.Max(f, ballF - 4f);
                     float hug = 1.5f * MathF.Sin(SimTime * 0.9f + p.NoisePhaseA * 3f) * (1.3f - MathUtil.A(p.Attr.OffTheBall));
                     f = MathF.Min(f, offsideLine - 0.25f + hug);
-                    l = slot.BaseLateral * 1.15f + ballL * 0.25f;
+                    l = slot.BaseLateral * (0.9f + 0.5f * tac.Width) + ballL * 0.25f;
                 }
                 else
                 {
@@ -829,6 +831,15 @@ namespace SoccerVision.Simulation
                     urgency = 0.6f;
                 }
 
+                // Give-and-go: the passer bursts past his man for the ball straight back.
+                if (p.OneTwoUntil > SimTime && p.OneTwoWith != null && (Ball.Owner == p.OneTwoWith || Ball.IntendedReceiver == p.OneTwoWith || Ball.IntendedReceiver == p))
+                {
+                    p.Target = p.OneTwoSpot;
+                    p.Task = PlayerTask.Run;
+                    p.Urgency = 1f;
+                    return;
+                }
+
                 // Runs in behind (strikers / wide players), timed on the last defender's shoulder.
                 if (carrier != null && IsRunner(p))
                 {
@@ -861,6 +872,7 @@ namespace SoccerVision.Simulation
             }
             else
             {
+                p.OneTwoUntil = -1f;
                 // Out of possession: goal-side of the man this player is marking (see AssignMarking).
                 float ballF = team.Forward(Ball.Pos);
                 var mark = p.MarkTarget;

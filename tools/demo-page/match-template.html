@@ -80,7 +80,7 @@ h1 { margin: 2px 0 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--display); lett
 .settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font: 700 15px var(--display); letter-spacing: .08em; text-transform: uppercase; }
 .settings-head button { padding: 2px 8px; }
 /* Commentary bar under the pitch: colour of the team on the ball; flashes on goals, yellow/red on cards */
-.cbar { position: absolute; left: 50%; bottom: 1.6%; transform: translateX(-50%); width: 66%; min-height: 1.9em; display: flex; align-items: center; justify-content: center; padding: .25em 1.2em; border-radius: 999px; background: #444; color: #fff; font: 600 clamp(11px, 1.55cqi, 15px)/1.25 var(--body); text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); transition: background-color .15s; }
+.cbar { position: absolute; left: 50%; bottom: 1.6%; transform: translateX(-50%); width: 66%; min-height: 1.9em; display: flex; align-items: center; justify-content: center; padding: .25em 1.2em; border-radius: 999px; background: #444; color: #fff; font: 600 clamp(11px, 1.55cqi, 15px)/1.25 var(--body); text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
 .cbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 canvas { display: block; width: 100%; height: 100%; }
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
@@ -101,6 +101,7 @@ body.live #seek, body.live .speeds button:not([data-speed="1"]), body.live #mome
 .badge-live { align-items: center; gap: .4em; background: #d50000; color: #fff; font: 700 11px/1 var(--body); letter-spacing: .1em; padding: 5px 8px; border-radius: 4px; }
 .badge-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: blink 1.2s infinite; }
 @keyframes blink { 50% { opacity: .25; } }
+@keyframes tacflow { to { stroke-dashoffset: -8; } }
 #seek { flex: 1 1 220px; min-width: 0; accent-color: var(--amber); }
 .time { font: 600 14px var(--display); color: var(--muted); font-variant-numeric: tabular-nums; min-width: 92px; text-align: right; }
 .cols { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 14px; }
@@ -123,6 +124,55 @@ td.l { color: var(--muted); }
 .moments { display: grid; gap: 6px; margin-top: 12px; }
 .moments button { text-align: left; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 6px; padding: 8px 10px; line-height: 1.3; }
 .foot { color: var(--muted); font-size: 13px; }
+
+/* ---- Team tactic: the manager's board ---- */
+.tactics { padding: 14px 16px 16px; background: linear-gradient(180deg, #17221c, #131c17); }
+.tac-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; margin-bottom: 12px; }
+.tac-head h2 { margin: 0; display: flex; align-items: baseline; gap: 10px; color: var(--text); font-size: 18px; }
+.tac-team { font: 600 13px/1 var(--body); letter-spacing: .02em; text-transform: none; color: var(--muted); }
+.tac-team i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--home, #d32f2f); margin-right: 6px; vertical-align: 0; }
+.tac-status { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+.tac-status b { font: 700 11px/1 var(--body); letter-spacing: .1em; padding: 4px 7px; border-radius: 4px; background: #2b3b32; color: #cfe0d4; }
+body.live .tac-status b { background: #d50000; color: #fff; }
+.tac-grid { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) minmax(200px, 250px); gap: 18px; align-items: start; }
+@media (max-width: 980px) { .tac-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .tac-cpu { grid-column: 1 / -1; } }
+@media (max-width: 640px) { .tac-grid { grid-template-columns: 1fr; } }
+.tac-board { width: 100%; height: auto; display: block; border-radius: 8px; background: #2c5a2a; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.tac-board .ln { fill: none; stroke: rgba(255,255,255,.55); stroke-width: .5; }
+.tac-board .stripe { fill: rgba(255,255,255,.035); }
+.tac-board .dot { transition: transform .45s cubic-bezier(.3,.7,.2,1); }
+.tac-board .dot circle { fill: var(--home, #d32f2f); stroke: #fff; stroke-width: .6; }
+.tac-board .dot.gk circle { fill: #f2c230; }
+.tac-board .lineband { fill: rgba(242,179,27,.16); stroke: var(--amber); stroke-width: .4; stroke-dasharray: 1.4 1; transition: x .45s, width .45s; }
+.tac-board .arrow { fill: none; stroke: #fff; stroke-width: .7; stroke-linecap: round; marker-end: url(#tacHead); opacity: .85; }
+.tac-board .press { fill: none; stroke: #ff6a4a; stroke-width: .6; stroke-dasharray: 1 .8; opacity: .9; }
+.tac-controls { display: grid; gap: 14px; }
+.tac-row { display: grid; gap: 6px; }
+.tac-label { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: #c9d6cd; }
+.tac-label b { font: 700 13px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--amber); }
+.tac-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: -2px; }
+.tactics input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer; }
+.tactics input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--amber) var(--p, 50%), #2e3f35 var(--p, 50%)); }
+.tactics input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: #2e3f35; }
+.tactics input[type="range"]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--amber); }
+.tactics input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%; background: #fff; border: 3px solid var(--amber); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.tactics input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 3px solid var(--amber); }
+.tac-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border: 1px solid var(--rule); border-radius: 7px; overflow: hidden; }
+.tac-seg button { border: 0; border-radius: 0; border-left: 1px solid var(--rule); padding: 9px 6px; font-size: 13px; background: #1a2620; }
+.tac-seg button:first-child { border-left: 0; }
+.tac-seg button[aria-pressed="true"] { background: var(--amber); color: #120d00; }
+.tac-cpu { background: rgba(0,0,0,.22); border: 1px solid var(--rule); border-radius: 8px; padding: 12px; display: grid; gap: 8px; }
+.cpu-head { display: flex; align-items: center; gap: 8px; font: 700 12px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.cpu-head b { color: var(--text); letter-spacing: .06em; }
+.cpu-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--away, #1e5bd6); box-shadow: 0 0 0 3px rgba(255,255,255,.08); }
+.cpu-now { font: 600 14px/1.35 var(--body); color: #e8efe9; }
+.cpu-now.flash { animation: cpuflash 1.6s ease-out; }
+@keyframes cpuflash { 0% { color: #120d00; background: var(--amber); } 100% { color: #e8efe9; background: transparent; } }
+.cpu-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 120px; overflow-y: auto; font-size: 12px; color: var(--muted); }
+.cpu-log li span { color: var(--amber); font-variant-numeric: tabular-nums; margin-right: 6px; }
+.cpu-note { margin: 0; font-size: 12px; color: var(--muted); }
+.tac-toast { position: absolute; left: 50%; top: 13%; transform: translate(-50%, -6px); background: rgba(12,18,14,.92); border: 1px solid var(--amber); color: #fff; padding: 7px 14px; border-radius: 999px; font: 600 clamp(11px, 1.4cqi, 14px)/1.2 var(--body); opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; white-space: nowrap; }
+.tac-toast.show { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
 
@@ -179,6 +229,7 @@ td.l { color: var(--muted); }
       <div class="note" id="setNote"></div>
       <button class="reset" id="setReset" type="button">Reset to defaults</button>
     </div>
+    <div class="tac-toast" id="tacToast" role="status"></div>
     <div class="cbar" id="cbar" aria-live="polite"><span id="cbarText">Kick-off</span></div>
     <div class="overlay" id="ht" hidden>
       <div class="box">
@@ -209,6 +260,54 @@ td.l { color: var(--muted); }
     <span class="time" id="rt">0:00</span>
   </div>
 
+
+  <section class="panel tactics" id="tactics" aria-labelledby="tacTitle">
+    <div class="tac-head">
+      <h2 id="tacTitle">Team tactic <span class="tac-team"><i></i><span id="tacTeam">Red Rovers</span> · you</span></h2>
+      <span class="tac-status"><b id="tacBadge">FROM KICK-OFF</b><span id="tacStatus">Changing a tactic replays this match with it.</span></span>
+    </div>
+    <div class="tac-grid">
+      <svg class="tac-board" id="tacBoard" viewBox="0 0 120 78" role="img" aria-label="Your team's shape">
+        <defs><marker id="tacHead" viewBox="0 0 6 6" refX="4.5" refY="3" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="#fff"/></marker></defs>
+        <rect class="stripe" x="12" y="2" width="12" height="74"/><rect class="stripe" x="36" y="2" width="12" height="74"/><rect class="stripe" x="60" y="2" width="12" height="74"/><rect class="stripe" x="84" y="2" width="12" height="74"/><rect class="stripe" x="108" y="2" width="10" height="74"/>
+        <rect class="ln" x="2" y="2" width="116" height="74"/><line class="ln" x1="60" y1="2" x2="60" y2="76"/><circle class="ln" cx="60" cy="39" r="9"/>
+        <rect class="ln" x="2" y="20" width="17" height="38"/><rect class="ln" x="101" y="20" width="17" height="38"/>
+        <rect class="lineband" id="tacBand" x="20" y="3" width="2" height="72"/>
+        <g id="tacArrows"></g><g id="tacDots"></g>
+      </svg>
+      <div class="tac-controls">
+        <div class="tac-row">
+          <div class="tac-label"><label for="tacLine">Defensive line</label><b id="tacLineVal">Middle</b></div>
+          <input id="tacLine" type="range" min="0" max="100" step="1" value="50">
+          <div class="tac-ends"><span>Deep block</span><span>High line</span></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><label for="tacWidth">Width</label><b id="tacWidthVal">Normal</b></div>
+          <input id="tacWidth" type="range" min="0" max="100" step="1" value="50">
+          <div class="tac-ends"><span>Narrow</span><span>Wide</span></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Passing</span></div>
+          <div class="tac-seg" data-tac="passing" role="group" aria-label="Passing"><button type="button" data-v="0">Short combinations</button><button type="button" data-v="1">Mixed</button><button type="button" data-v="2">Balls in behind</button></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Tempo</span></div>
+          <div class="tac-seg" data-tac="tempo" role="group" aria-label="Tempo"><button type="button" data-v="0">Slow</button><button type="button" data-v="1">Normal</button><button type="button" data-v="2">Fast</button></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Style</span></div>
+          <div class="tac-seg" data-tac="style" role="group" aria-label="Style"><button type="button" data-v="0">Gentle</button><button type="button" data-v="1">Balanced</button><button type="button" data-v="2">Aggressive</button></div>
+        </div>
+      </div>
+      <div class="tac-cpu">
+        <div class="cpu-head"><span class="cpu-dot"></span>Computer · <b id="cpuTeam">Blue Falcons</b></div>
+        <div class="cpu-now" id="cpuNow">Middle line, normal width, mixed passing, normal tempo, balanced</div>
+        <ul class="cpu-log" id="cpuLog"></ul>
+        <p class="cpu-note" id="cpuNote">In a live match the computer reads your tactics and the score, and answers every few minutes.</p>
+      </div>
+    </div>
+  </section>
+
   <div class="cols">
     <section class="panel">
       <h2>Live commentary</h2>
@@ -220,7 +319,7 @@ td.l { color: var(--muted); }
       <div class="moments" id="moments"></div>
     </section>
   </div>
-  <p class="foot">This is the real C# match engine (the same code that runs inside Unity), running here in your browser as WebAssembly, match <span id="seedText"></span>. The clock runs 4.5× faster than real time, so 45 minutes take 10. <b>Staged match</b>: the same scripted match every time - a light injury, a yellow card, a direct red card, a serious injury with a substitution, and a second yellow and red - whatever the weather; find them under "Key moments". <b>Random match</b>: a new match every time, which you can rewind and fast-forward. <b>Live match</b>: you are the home team against the computer, played as it happens and not rewindable; for now you watch it - substitutions and tactics come next. The settings (gear) choose the weather, wind, pitch upkeep, day or night, grass pattern, net and team colours and the match pace; rain, snow, wind and a worn pitch change how the match is played.</p>
+  <p class="foot">This is the real C# match engine (the same code that runs inside Unity), running here in your browser as WebAssembly, match <span id="seedText"></span>. The clock runs 4.5× faster than real time, so 45 minutes take 10. <b>Staged match</b>: the same scripted match every time - a light injury, a yellow card, a direct red card, a serious injury with a substitution, and a second yellow and red - whatever the weather; find them under "Key moments". <b>Random match</b>: a new match every time, which you can rewind and fast-forward. <b>Live match</b>: you are the home team against the computer, played as it happens and not rewindable. Give your team its tactic in the panel under the pitch (defensive line, width, passing, tempo, style): in a live match the players follow it at once, and the computer manager reads your tactics and the score and answers every few minutes. The settings (gear) choose the weather, wind, pitch upkeep, day or night, grass pattern, net and team colours and the match pace; rain, snow, wind and a worn pitch change how the match is played.</p>
 </div>
 
 <script>__AUDIO__</script>
@@ -494,7 +593,7 @@ td.l { color: var(--muted); }
     ballPrev = { x: S.bx, y: S.by };
   }
   var yellowBall = false;
-  function drawBall(cx, cy, rad) {
+  function drawBall(cx, cy, rad, gx, gy) {
     var size = Math.ceil(rad * 2) + 2, c = size / 2;
     if (ballCv.width !== size) { ballCv.width = size; ballCv.height = size; }
     var img = ballCx.createImageData(size, size), d = img.data, m = ballRot;
@@ -509,22 +608,52 @@ td.l { color: var(--muted); }
       var best = -9, second = -9, pent = false, q, sc;
       for (q = 0; q < 12; q++) { sc = (PENT[q][0] * bx + PENT[q][1] * by + PENT[q][2] * bz) / RP; if (sc > best) { second = best; best = sc; pent = true; } else if (sc > second) second = sc; }
       for (q = 0; q < 20; q++) { sc = (HEX[q][0] * bx + HEX[q][1] * by + HEX[q][2] * bz) / RH; if (sc > best) { second = best; best = sc; pent = false; } else if (sc > second) second = sc; }
-      // a white ball with black pentagons; in snow a glowing, self-lit orange one with white pentagons and a halo
-      var col = yellowBall ? (pent ? [255, 255, 255] : [255, 122, 0]) : (pent ? [28, 28, 28] : [246, 246, 246]);
-      if (best - second < .006) col = yellowBall ? (pent ? [255, 214, 170] : [200, 70, 0]) : (pent ? [60, 60, 60] : [150, 150, 150]); // stitched seams
-      var diff = yellowBall ? .8 + .2 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]) : .38 + .62 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]);
+      // a white ball with black pentagons; in snow a glowing one: lit from inside, a hot yellow-orange core fading
+      // to deep orange at the rim, white-hot pentagons, with bloom round it (below)
+      var col, diff;
+      if (yellowBall) {
+        var hot = Math.pow(nz, 1.4);
+        col = pent ? [255, 250, 236] : [255, 92 + 112 * hot, 8 + 72 * hot];
+        if (best - second < .006) col = pent ? [255, 214, 150] : [235, 70, 0]; // stitched seams
+        diff = 1;
+      } else {
+        col = pent ? [28, 28, 28] : [246, 246, 246];
+        if (best - second < .006) col = pent ? [60, 60, 60] : [150, 150, 150]; // stitched seams
+        diff = .38 + .62 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]);
+      }
       var spec = Math.pow(Math.max(0, nx * Hv[0] + ny * Hv[1] + nz * Hv[2]), 36) * (pent ? 120 : 90);
       var a = Math.min(1, (1 - Math.sqrt(r2)) * rad + .5), o = (py * size + px) * 4;
       d[o] = Math.min(255, col[0] * diff + spec); d[o + 1] = Math.min(255, col[1] * diff + spec); d[o + 2] = Math.min(255, col[2] * diff + spec); d[o + 3] = 255 * a;
     }
     ballCx.putImageData(img, 0, 0);
-    if (yellowBall) { // glow: a soft orange halo round the ball so it stands out on the white pitch
-      var gr = Math.max(rad * 4, 12), gl = ctx.createRadialGradient(cx, cy, rad * .7, cx, cy, gr);
-      gl.addColorStop(0, "rgba(255,110,0,.9)"); gl.addColorStop(.35, "rgba(255,140,20,.45)"); gl.addColorStop(1, "rgba(255,150,30,0)");
+    if (yellowBall) {
+      // Glow: a pool of orange light on the ground under the ball, an orange haze round it (seen on white snow too) and
+      // an additive bloom that brightens whatever is behind it - the ball looks lit from inside. It breathes gently.
+      var pulse = .85 + .15 * Math.sin(performance.now() / 240), gr = Math.max(rad * 5.5, 18), gl;
+      ctx.save();
+      if (gx !== undefined) {
+        gl = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr * .9);
+        gl.addColorStop(0, "rgba(255,120,10," + (.38 * pulse) + ")"); gl.addColorStop(1, "rgba(255,120,10,0)");
+        ctx.fillStyle = gl; ctx.beginPath(); ctx.ellipse(gx, gy, gr * .9, gr * .7, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      gl = ctx.createRadialGradient(cx, cy, rad * .8, cx, cy, gr);
+      gl.addColorStop(0, "rgba(255,96,0," + (.55 * pulse) + ")"); gl.addColorStop(.4, "rgba(255,110,0," + (.2 * pulse) + ")"); gl.addColorStop(1, "rgba(255,110,0,0)");
       ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, cy, gr, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = "lighter";
+      gl = ctx.createRadialGradient(cx, cy, 0, cx, cy, gr * .75);
+      gl.addColorStop(0, "rgba(255,190,90," + (.95 * pulse) + ")"); gl.addColorStop(.3, "rgba(255,130,30," + (.5 * pulse) + ")"); gl.addColorStop(1, "rgba(255,90,0,0)");
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, cy, gr * .75, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
     }
     ctx.drawImage(ballCv, cx - c, cy - c);
-    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.lineWidth = Math.max(.6, rad * .08); ctx.strokeStyle = yellowBall ? "rgba(150,50,0,.8)" : "rgba(0,0,0,.45)"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.lineWidth = Math.max(.6, rad * .08); ctx.strokeStyle = yellowBall ? "rgba(255,226,170,.95)" : "rgba(0,0,0,.45)"; ctx.stroke();
+    if (yellowBall) { // a white-hot sheen on top (additive)
+      ctx.save(); ctx.globalCompositeOperation = "lighter";
+      var sh = ctx.createRadialGradient(cx - rad * .25, cy - rad * .3, 0, cx, cy, rad * 1.15);
+      sh.addColorStop(0, "rgba(255,245,220,.75)"); sh.addColorStop(1, "rgba(255,150,40,0)");
+      ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(cx, cy, rad * 1.15, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
   }
   // Offside: a small chequered square above the player who was caught (no text, no pole).
   // Cloth that moves the way a real flag does in a light breeze: no flapping, a slow sway of the whole flag and a soft
@@ -679,7 +808,7 @@ td.l { color: var(--muted); }
     var bsr = .42 * s * Math.max(.45, 1 - h * .05); castShadow(S.bx, S.by, bx, by, bsr, bsr, Math.max(.18, .6 - h * .04));
     yellowBall = SET.weather === "Snow";
     spinBall(S, h, dt, S.phase !== 0 || (S.owner >= 0 && (S.ps[S.owner].gk || S.bz > .4))); // none while held or while play is stopped
-    drawBall(bx, by - Math.min(20, h) * .55 * s, .38 * s * (1 + Math.min(20, h) * .07));
+    drawBall(bx, by - Math.min(20, h) * .55 * s, .38 * s * (1 + Math.min(20, h) * .07), bx, by);
     drawNet(-1, S.bx, S.by, netFx(t, -1)); drawNet(1, S.bx, S.by, netFx(t, 1));
     goalFrame(-1); goalFrame(1);
     if (S.owner >= 0 && S.phase === 0) {
@@ -874,6 +1003,7 @@ td.l { color: var(--muted); }
   }
   function applyColours() {
     var c = teamColours(); R.home.kit = c[0]; R.away.kit = c[1];
+    document.documentElement.style.setProperty("--home", c[0].primary); document.documentElement.style.setProperty("--away", c[1].primary);
     $("hb").style.setProperty("--team", c[0].primary); $("ab").style.setProperty("--team", c[1].primary);
     $("cbar").dataset.bg = "";
   }
@@ -993,9 +1123,100 @@ td.l { color: var(--muted); }
       if (mine !== token) return;
       var c = engineSettings(seed);
       worker.postMessage({ cmd: "stop", token: mine });
-      worker.postMessage({ cmd: "start", token: mine, mode: mode, seed: seed, weather: c.weather, maintenance: c.maintenance, wind: c.wind, windAngle: c.windAngle, night: c.night, lead: mode === "live" ? 20 : 0 });
+      worker.postMessage({ cmd: "start", token: mine, mode: mode, seed: seed, weather: c.weather, maintenance: c.maintenance, wind: c.wind, windAngle: c.windAngle, night: c.night, lead: mode === "live" ? 20 : 0, tactics: tacEngine() });
     }, function () {});
   }
+
+  // ---- Team tactic (you are the home team) -----------------------------------------------------------
+  // Line and width 0-100; passing 0 short / 1 mixed / 2 balls in behind; tempo and style 0 / 1 / 2. In a live match an
+  // instruction goes to the players at once (the computer answers it); otherwise the match is replayed with it.
+  var TAC_DEFAULT = { line: 50, width: 50, passing: 1, tempo: 1, style: 1 };
+  var TAC = (function () { var o = {}; for (var k in TAC_DEFAULT) o[k] = TAC_DEFAULT[k]; try { var st = JSON.parse(localStorage.getItem("sv-tactics") || "{}"); for (var k2 in st) if (k2 in TAC_DEFAULT) o[k2] = +st[k2]; } catch (e) {} return o; })();
+  function tacEngine() { return { line: TAC.line / 100, width: TAC.width / 100, passing: TAC.passing, tempo: [.15, .5, .85][TAC.tempo], aggression: [0, .5, 1][TAC.style] }; }
+  function words(v, list) { return list[Math.min(list.length - 1, Math.floor(v / (100.01 / list.length)))]; }
+  var LINE_WORDS = ["Deep block", "Low", "Middle", "High", "Very high"], WIDTH_WORDS = ["Very narrow", "Narrow", "Normal", "Wide", "Very wide"];
+  var SHAPE = { d: [-.75, -.26, .26, .75], m: [-.8, -.26, .26, .8], a: [-.24, .24] };
+  function boardXY(row, i) {
+    var lineX = 15 + TAC.line * .3, midX = lineX + 16 - TAC.line * .04, attX = Math.min(100, midX + 17 + TAC.line * .03);
+    var spread = .6 + .44 * TAC.width / 100, lat = SHAPE[row][i], y = 39 + lat * spread * (row === "a" ? 30 : 36);
+    return [row === "d" ? lineX : row === "m" ? midX : attX, Math.max(5, Math.min(73, y))];
+  }
+  function drawBoard() {
+    var NS = "http://www.w3.org/2000/svg", dots = $("tacDots"), arrows = $("tacArrows");
+    if (!dots.childElementCount) {
+      var mk = function (cls) { var g = document.createElementNS(NS, "g"), c = document.createElementNS(NS, "circle"); g.setAttribute("class", "dot " + cls); c.setAttribute("r", "2.7"); g.appendChild(c); dots.appendChild(g); return g; };
+      mk("gk").setAttribute("transform", "translate(6 39)");
+      ["d", "m", "a"].forEach(function (row) { SHAPE[row].forEach(function (_, i) { mk(row + i).dataset.k = row + i; }); });
+    }
+    dots.querySelectorAll("[data-k]").forEach(function (g) { var k = g.dataset.k, xy = boardXY(k[0], +k[1]); g.style.transform = "translate(" + xy[0] + "px," + xy[1] + "px)"; });
+    var lx = boardXY("d", 0)[0]; $("tacBand").setAttribute("x", (lx - .9).toFixed(1)); $("tacBand").setAttribute("width", "1.8");
+    // passing arrows (moving at the chosen tempo) and pressing (style)
+    var P = function (a, b) { return boardXY(a[0], +a[1]); }, segs = [];
+    if (TAC.passing === 0) segs = [[P("d1"), P("m1")], [P("m1"), P("m2")], [P("m2"), P("a0")], [P("a0"), P("m2")]];
+    else if (TAC.passing === 1) segs = [[P("d2"), P("m2")], [P("m2"), P("a1")], [P("m0"), P("a0")]];
+    else segs = [[P("d1"), [108, P("a0")[1] - 4]], [P("m3"), [110, P("a1")[1] + 6]]];
+    var html = "", dur = [3.2, 1.8, .9][TAC.tempo];
+    segs.forEach(function (sg) {
+      var a = sg[0], b = sg[1], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+      var x1 = a[0] + ux * 3.4, y1 = a[1] + uy * 3.4, x2 = b[0] - ux * 3.4, y2 = b[1] - uy * 3.4, mx = (x1 + x2) / 2 - uy * L * .12, my = (y1 + y2) / 2 + ux * L * .12;
+      html += '<path class="arrow" d="M' + x1.toFixed(1) + " " + y1.toFixed(1) + " Q" + mx.toFixed(1) + " " + my.toFixed(1) + " " + x2.toFixed(1) + " " + y2.toFixed(1) + '" stroke-dasharray="2.6 1.4" style="animation: tacflow ' + dur + 's linear infinite"/>';
+    });
+    var presses = TAC.style === 2 ? ["a0", "a1", "m1", "m2"] : TAC.style === 1 ? ["a0"] : [];
+    presses.forEach(function (k) { var xy = boardXY(k[0], +k[1]); html += '<path class="press" d="M' + (xy[0] + 4).toFixed(1) + " " + (xy[1] - 4).toFixed(1) + " A5.5 5.5 0 0 1 " + (xy[0] + 4).toFixed(1) + " " + (xy[1] + 4).toFixed(1) + '"/>'; });
+    arrows.innerHTML = html;
+  }
+  function syncTacUi() {
+    $("tacLine").value = TAC.line; $("tacWidth").value = TAC.width;
+    $("tacLine").style.setProperty("--p", TAC.line + "%"); $("tacWidth").style.setProperty("--p", TAC.width + "%");
+    $("tacLineVal").textContent = words(TAC.line, LINE_WORDS); $("tacWidthVal").textContent = words(TAC.width, WIDTH_WORDS);
+    document.querySelectorAll(".tac-seg").forEach(function (g) { var k = g.getAttribute("data-tac"); g.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(+b.getAttribute("data-v") === TAC[k])); }); });
+    drawBoard();
+  }
+  var toastTimer = 0;
+  function toast(text) { var el = $("tacToast"); el.textContent = text; el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2600); }
+  var tacTimer = 0;
+  function tacChanged() {
+    try { localStorage.setItem("sv-tactics", JSON.stringify(TAC)); } catch (e) {}
+    syncTacUi();
+    if (MODE === "live") {
+      // a burst of changes goes to the players as one instruction
+      clearTimeout(tacTimer);
+      tacTimer = setTimeout(function () {
+        if (worker && R) { var c = tacEngine(); worker.postMessage({ cmd: "tactics", token: token, line: c.line, width: c.width, passing: c.passing, tempo: c.tempo, aggression: c.aggression }); }
+        toast("Instruction sent to the players");
+      }, 600);
+    } else {
+      clearTimeout(tacTimer);
+      tacTimer = setTimeout(function () { toast("Replaying the match with your tactics"); restartMatch(); }, 450);
+    }
+  }
+  ["tacLine", "tacWidth"].forEach(function (id) {
+    var key = id === "tacLine" ? "line" : "width";
+    $(id).addEventListener("input", function () { TAC[key] = +this.value; this.style.setProperty("--p", this.value + "%"); $(id + "Val").textContent = words(TAC[key], key === "line" ? LINE_WORDS : WIDTH_WORDS); drawBoard(); });
+    $(id).addEventListener("change", tacChanged);
+  });
+  document.querySelectorAll(".tac-seg").forEach(function (g) {
+    g.addEventListener("click", function (ev) { var b = ev.target.closest("button"); if (!b) return; var k = g.getAttribute("data-tac"), v = +b.getAttribute("data-v"); if (TAC[k] === v) return; TAC[k] = v; tacChanged(); });
+  });
+  function tacticsEvent(e) {
+    var how = String(e.text).split(": ").slice(1).join(": ");
+    if (e.team === 1) {
+      var now = $("cpuNow"); now.textContent = how.charAt(0).toUpperCase() + how.slice(1); now.classList.remove("flash"); void now.offsetWidth; now.classList.add("flash");
+      var li = document.createElement("li"), m = document.createElement("span"); m.textContent = e.minute; li.appendChild(m); li.appendChild(document.createTextNode(how));
+      $("cpuLog").insertBefore(li, $("cpuLog").firstChild);
+    }
+  }
+  function resetTacticsPanel() {
+    $("tacTeam").textContent = R.home.name; $("cpuTeam").textContent = R.away.name;
+    document.documentElement.style.setProperty("--home", teams[0].kit.primary); document.documentElement.style.setProperty("--away", teams[1].kit.primary);
+    $("cpuNow").textContent = "Middle line, normal width, mixed passing, normal tempo, balanced"; $("cpuLog").textContent = "";
+    var live = MODE === "live";
+    $("tacBadge").textContent = live ? "LIVE" : "FROM KICK-OFF";
+    $("tacStatus").textContent = live ? "Your instructions reach the players straight away." : "Changing a tactic replays this match with it.";
+    $("cpuNote").textContent = live ? "Reads your tactics and the score, and answers every few minutes." : "The computer manages only in a live match.";
+  }
+  syncTacUi();
+
   function restartMatch() { startMatch(MODE, MODE === "staged" ? STAGED_SEED : MODE === "random" ? currentSeed : newSeed(), R && MODE !== "live" ? t - t0 : undefined); }
   function newSeed() { return 1 + Math.floor(Math.random() * 2000000000); }
   document.querySelectorAll(".modes button").forEach(function (b) {
@@ -1015,6 +1236,7 @@ td.l { color: var(--muted); }
     seek.min = 0; seek.max = 0;
     $("seedText").textContent = (MODE === "staged" ? "(staged) " : MODE === "live" ? "(live) " : "") + R.seed;
     $("liveYou").textContent = "You: " + R.home.name + " (home) v the computer: " + R.away.name;
+    resetTacticsPanel();
     note(""); setPlaying(true);
   }
   function appendChunk(m) {
@@ -1022,6 +1244,7 @@ td.l { color: var(--muted); }
     for (i = 0; i < n; i++) F.push(Array.prototype.slice.call(m.frames, i * L2, (i + 1) * L2));
     JSON.parse(m.events).forEach(function (e) {
       E.push(e); addMoment(e);
+      if (e.type === "TacticsChanged") tacticsEvent(e);
       if (e.type === "Substitution" && e.s) { var parts = String(e.s).split("|"); (SUBS[e.p] = SUBS[e.p] || []).push({ t: e.t, number: parseInt(parts[0], 10), shortName: parts[1] }); }
       if (e.type === "SecondHalfStart" && secondHalfT === Infinity) secondHalfT = e.t;
       if (e.type === "AddedTime") { var am = parseInt(String(e.text).replace(/[^0-9]/g, ""), 10) || 0; if (e.t < secondHalfT) addedMinutes[0] = am; else addedMinutes[1] = am; }
@@ -1085,16 +1308,18 @@ td.l { color: var(--muted); }
       if (e.type === "Goal") goal = e;
       if (e.type === "YellowCard" || e.type === "RedCard") card = e;
     }
-    var bg = possTeam >= 0 ? teams[possTeam].kit.primary : "#3c4552", text = lastLine ? lastLine.text : "Kick-off";
+    var bg = possTeam >= 0 ? teams[possTeam].kit.primary : "#3c4552", text = lastLine ? lastLine.text : "Kick-off", fg = null;
     if (goal && t - goal.t < 6) {
-      // goal: flash between the two teams' colours
-      // goal: flash in the two colours of the team that scored (e.g. blue and white for the blue team)
-      var gk = teams[goal.team === 1 ? 1 : 0].kit; bg = Math.floor((t - goal.t) / .35) % 2 ? gk.secondary : gk.primary; text = goal.text;
+      // goal: a fast flash in the scoring team's two colours - shirt colour on trim, then trim on shirt colour (the
+      // text always in the other one), about seven times a second, measured in real time so it is fast at any speed
+      var gk = teams[goal.team === 1 ? 1 : 0].kit, on = Math.floor(performance.now() / 140) % 2 === 1;
+      bg = on ? gk.secondary : gk.primary; fg = on ? gk.primary : gk.secondary; text = goal.text;
+      if (hex6(fg) === hex6(bg)) fg = textOn(bg);
     } else if (card && t - card.t < 4) {
       bg = card.type === "RedCard" ? "#d50000" : "#ffd21a"; text = card.text;
     }
-    var bar = $("cbar");
-    if (bar.dataset.bg !== bg) { bar.style.background = bg; bar.style.color = textOn(bg); bar.dataset.bg = bg; }
+    var bar = $("cbar"), key = bg + "|" + fg;
+    if (bar.dataset.bg !== key) { bar.style.background = bg; bar.style.color = fg || textOn(bg); bar.dataset.bg = key; }
     if ($("cbarText").textContent !== text) $("cbarText").textContent = text;
   }
   function redCards(team) { var n = 0; for (var i = 0; i < E.length && E[i].t <= t; i++) if (E[i].type === "RedCard" && E[i].team === team) n++; return n; }

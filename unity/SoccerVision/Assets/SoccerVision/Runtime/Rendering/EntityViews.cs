@@ -204,7 +204,7 @@ namespace SoccerVision.Runtime
     public sealed class BallView : MonoBehaviour
     {
         public const float Diameter = 0.75f;
-        private SpriteRenderer _ball, _shadow, _glow;
+        private SpriteRenderer _ball, _shadow, _glow, _bloom, _pool;
         private Ball3DTexture _look;
         private readonly Vector3[] _lights = new Vector3[4];
         private TrailRenderer _trail;
@@ -223,8 +223,16 @@ namespace SoccerVision.Runtime
             _ball.sprite = _look.Sprite;
             _ball.sortingOrder = 50;
             // the snow ball's glow: a soft orange halo (lit only in the snow)
-            _glow = SpriteFactory.AddSprite(body, "Glow", SpriteFactory.Shadow, new Color(1f, 0.45f, 0f, 0.9f), 49, 3.4f);
+            // Glow: an orange haze behind the ball, an additive bloom that brightens what is behind it (the ball looks lit
+            // from inside) and a pool of light on the ground under it. Lit only in the snow; it breathes gently.
+            _glow = SpriteFactory.AddSprite(body, "Glow", SpriteFactory.Shadow, new Color(1f, 0.38f, 0f, 0.6f), 48, 5.5f);
+            _bloom = SpriteFactory.AddSprite(body, "Bloom", SpriteFactory.Shadow, new Color(1f, 0.7f, 0.35f, 0.9f), 49, 3.6f);
+            _pool = SpriteFactory.AddSprite(transform, "LightPool", SpriteFactory.Shadow, new Color(1f, 0.45f, 0.05f, 0.4f), 41, Diameter * 4.5f);
+            var additive = Shader.Find("Legacy Shaders/Particles/Additive") ?? Shader.Find("Particles/Additive");
+            if (additive != null) _bloom.material = new Material(additive);
             _glow.gameObject.SetActive(false);
+            _bloom.gameObject.SetActive(false);
+            _pool.gameObject.SetActive(false);
             _trail = body.gameObject.AddComponent<TrailRenderer>();
             _trail.time = 0.18f;
             _trail.startWidth = Diameter * 0.8f;
@@ -263,6 +271,15 @@ namespace SoccerVision.Runtime
             _look.Spin(new Vector2(x, y), h, dt, held);
             _look.Winter = Atmosphere.Look.sky == Weather.Snow;
             _glow.gameObject.SetActive(_look.Winter);
+            _bloom.gameObject.SetActive(_look.Winter);
+            _pool.gameObject.SetActive(_look.Winter);
+            if (_look.Winter)
+            {
+                float pulse = 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 4.2f);
+                _glow.color = new Color(1f, 0.38f, 0f, 0.6f * pulse);
+                _bloom.color = new Color(1f, 0.7f, 0.35f, 0.9f * pulse);
+                _pool.color = new Color(1f, 0.45f, 0.05f, 0.4f * pulse);
+            }
             _look.Redraw();
             Atmosphere.Shadows(new Vector2(x, y), _lights);
             _shadow.transform.localPosition = new Vector3(_lights[0].x, _lights[0].y, 0f) * (Atmosphere.Look.night ? 0f : 1f);

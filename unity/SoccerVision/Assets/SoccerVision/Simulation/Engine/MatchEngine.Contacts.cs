@@ -263,6 +263,10 @@ namespace SoccerVision.Simulation
             _penaltyKickTime = -1f;
             float tempo = p.Team.Tactics.Tempo;
             p.DecisionTimer = MathUtil.Clamp(0.1f + 0.3f * (1f - MathUtil.A(p.Attr.BallControl)) + relSpeed * 0.012f - 0.08f * (tempo - 0.5f), 0.08f, 0.6f);
+            p.OneTwoUntil = -1f; // (the return ball has arrived, or the run is over)
+            // A team-mate is on a give-and-go run past me: the wall pass is played first time.
+            foreach (var r in p.Team.Players)
+                if (r.OneTwoWith == p && r.OneTwoUntil > SimTime) { p.DecisionTimer = MathF.Min(p.DecisionTimer, 0.1f); break; }
             p.Task = PlayerTask.OnBall;
             p.HasPendingPlan = false;
             p.HoldTime = 0f;
@@ -595,6 +599,10 @@ namespace SoccerVision.Simulation
         private static float TackleStyleFactor(TeamAgent t) =>
             t.Tactics.Tackling == TacklingStyle.StayOnFeet ? 0.7f : t.Tactics.Tackling == TacklingStyle.GetStuckIn ? 1.35f : 1f;
 
+        /// <summary>How clean a team's challenges are: a gentle team pulls out of the risky ones, an aggressive one goes through.</summary>
+        private static float FoulStyleFactor(TeamAgent t) =>
+            t.Tactics.Tackling == TacklingStyle.StayOnFeet ? 0.72f : t.Tactics.Tackling == TacklingStyle.GetStuckIn ? 1.2f : 1f;
+
         /// <summary>How readily a team goes to ground (slide tackles).</summary>
         private static float SlideStyleFactor(TeamAgent t) =>
             t.Tactics.Tackling == TacklingStyle.StayOnFeet ? 0.25f : t.Tactics.Tackling == TacklingStyle.GetStuckIn ? 1.8f : 1f;
@@ -765,7 +773,7 @@ namespace SoccerVision.Simulation
             float defend = (0.6f * da.Tackling + 0.2f * da.Decisions + 0.2f * da.Acceleration) * d.FatigueFactor;
             float pFoul = 0.14f + 0.14f * MathUtil.A(da.Aggression) + (fromBehind ? 0.3f : 0.05f) - 0.1f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
-            pFoul = MathUtil.Clamp(pFoul, 0.05f, 0.7f);
+            pFoul = MathUtil.Clamp(pFoul * FoulStyleFactor(d.Team), 0.05f, 0.7f);
             float pWin = MathUtil.Clamp(0.62f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.12f : 0f), 0.2f, 0.9f);
             if (_rng.Chance(pFoul))
             {
@@ -906,6 +914,7 @@ namespace SoccerVision.Simulation
             float pFoul = 0.22f + 0.15f * MathUtil.A(da.Aggression) + (fromBehind ? 0.18f : 0f) - 0.06f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
             if (d == d.Team.Anchor) pFoul += 0.025f; // the holding midfielder's challenges are the most robust
+            pFoul *= FoulStyleFactor(d.Team);
             if (d.YellowCards > 0) pFoul *= 0.45f;
             if (IsDenyingObviousGoalScoringOpportunity(carrier, d)) pFoul *= 0.4f; // tries to stay clean
             if (Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign)) pFoul *= 0.25f; // careful in the box

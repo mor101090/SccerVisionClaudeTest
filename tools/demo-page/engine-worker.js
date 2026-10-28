@@ -2,10 +2,11 @@
 // match to the page as replay data: header, then batches of frames, events and stats.
 //
 // Messages in:  {cmd:"init", base}            load the engine (base = URL of the engine folder)
-//               {cmd:"start", token, mode, seed, weather, maintenance, wind, windAngle, night, lead}
+//               {cmd:"start", token, mode, seed, weather, maintenance, wind, windAngle, night, lead, tactics}
 //                                              lead = 0: generate the whole match as fast as possible;
 //                                              lead = N: stay at most N frames (N/10 s) ahead of the viewer (live)
 //               {cmd:"progress", token, frames}  the viewer has played this many frames (live pacing)
+//               {cmd:"tactics", token, line, width, passing, tempo, aggression}  the home team's new tactics (live)
 //               {cmd:"stop", token}            drop the current match
 // Messages out: {type:"ready"} | {type:"header", token, header} | {type:"chunk", token, len, frames, events, stats, finished}
 //               | {type:"error", message}
@@ -23,11 +24,14 @@ self.onmessage = async (e) => {
       postMessage({ type: "ready" });
     } else if (m.cmd === "start") {
       token = m.token; lead = m.lead; generated = 0; played = 0;
-      const header = L.Start(m.seed, m.mode, m.weather, m.maintenance, m.wind, m.windAngle, m.night);
+      const k = m.tactics || { line: .5, width: .5, passing: 1, tempo: .5, aggression: .5 };
+      const header = L.Start(m.seed, m.mode, m.weather, m.maintenance, m.wind, m.windAngle, m.night, k.line, k.width, k.passing, k.tempo, k.aggression);
       postMessage({ type: "header", token, header });
       pump();
     } else if (m.cmd === "progress") {
       if (m.token === token) { played = m.frames; pump(); }
+    } else if (m.cmd === "tactics") {
+      if (m.token === token) L.SetTactics(m.line, m.width, m.passing, m.tempo, m.aggression);
     } else if (m.cmd === "stop") {
       token = m.token;
     }

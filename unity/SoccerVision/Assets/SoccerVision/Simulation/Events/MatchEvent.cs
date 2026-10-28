@@ -52,6 +52,8 @@ namespace SoccerVision.Simulation
         DroppedBall,
         /// <summary>A player loses his footing on a wet, snowy or muddy pitch (Detail 1: with the ball, which runs loose).</summary>
         Slip,
+        /// <summary>A team changes its tactics during the match: Text says how (e.g. "high line, wide, short passing").</summary>
+        TacticsChanged,
     }
 
     /// <summary>

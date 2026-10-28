@@ -94,6 +94,11 @@ namespace SoccerVision.Simulation
         public float LastSortieTime = -100f;
         /// <summary>Sim time until which this player is on a cut-inside run (a shot then counts as one).</summary>
         public float CutInUntil = -1f;
+        /// <summary>One-two: the team-mate this player just passed to and runs past for the return ball, until OneTwoUntil.</summary>
+        public PlayerAgent OneTwoWith;
+        public float OneTwoUntil = -1f;
+        /// <summary>Where the one-two run goes (world).</summary>
+        public Vec2 OneTwoSpot;
         /// <summary>The opponent this player marks right now (either system).</summary>
         public PlayerAgent MarkTarget;
         /// <summary>Man-to-man: the opponent given to this player for the whole defensive phase (kept until possession changes).</summary>
@@ -215,6 +220,8 @@ namespace SoccerVision.Simulation
             ManAssignment = null;
             HasPendingPlan = false;
             RunTimer = 0f;
+            OneTwoWith = null;
+            OneTwoUntil = -1f;
             Task = PlayerTask.Shape;
             Touches = PassesAttempted = PassesCompleted = Shots = Goals = Tackles = SlideTackles = Saves = Interceptions = 0;
             DistanceCovered = 0f;

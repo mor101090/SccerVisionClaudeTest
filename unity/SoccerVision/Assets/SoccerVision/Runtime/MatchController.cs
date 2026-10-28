@@ -95,7 +95,10 @@ namespace SoccerVision.Runtime
         /// <summary>The staged match (a light injury, a yellow, a direct red, a serious injury, a second yellow): same every time.</summary>
         public const long StagedSeed = 7274;
 
-        public void StartMatch(long matchSeed, bool staged = false)
+        /// <summary>Live match: the computer manages the away team and answers the home team's tactics (null otherwise).</summary>
+        public ComputerManager Computer { get; private set; }
+
+        public void StartMatch(long matchSeed, bool staged = false, bool live = false)
         {
             seed = matchSeed;
             var config = MatchConfig.CreateDefault();
@@ -109,6 +112,7 @@ namespace SoccerVision.Runtime
             Recolour(home.Kit, look.homePrimary, look.homeSecondary, look.homeNumber, look.homeKeeper, look.homeKeeperTrim, look.homeKeeperNumber);
             Recolour(away.Kit, look.awayPrimary, look.awaySecondary, look.awayNumber, look.awayKeeper, look.awayKeeperTrim, look.awayKeeperNumber);
             Engine = new MatchEngine(home, away, (ulong)matchSeed, config);
+            Computer = live ? new ComputerManager(Engine, 1) : null;
             SetAtmosphere();
             Commentary.Clear();
             HighlightAt = -100f;
@@ -196,6 +200,7 @@ namespace SoccerVision.Runtime
             if (!Paused && !Engine.IsFinished)
             {
                 Engine.Advance(realDt * Mathf.Clamp(playbackSpeed, 0.1f, 16f) * Mathf.Clamp(look.pace, 50, 100) / 100f);
+                Computer?.Update();
             }
 
             _events.Clear();

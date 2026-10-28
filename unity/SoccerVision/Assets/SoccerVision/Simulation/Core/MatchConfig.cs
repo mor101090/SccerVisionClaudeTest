@@ -65,6 +65,8 @@ namespace SoccerVision.Simulation
         public float CardShowSeconds = 3f;
         /// <summary>Real seconds between the referee's whistle and the kick at kick-offs, penalties and ceremonial free kicks.</summary>
         public float WhistleToKickRealSeconds = 1.5f;
+        /// <summary>Pause after the ball goes out, a foul or an offside, before the restart is set up (real seconds; the clock waits).</summary>
+        public float RestartPauseRealSeconds = 1.5f;
         /// <summary>Real seconds an assistant keeps the flag raised for offside (standing in line with the offence).</summary>
         public float OffsideFlagRealSeconds = 4f;
         /// <summary>Minimum real seconds between the offside whistle and the indirect free kick, so viewers see what happened.</summary>
