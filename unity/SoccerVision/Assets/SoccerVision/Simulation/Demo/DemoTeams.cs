@@ -3,7 +3,11 @@ using System.Collections.Generic;
 
 namespace SoccerVision.Simulation
 {
-    /// <summary>Fictional demo squads (red vs blue, both 4-4-2) with role-appropriate, seeded attributes.</summary>
+    /// <summary>
+    /// Fictional demo squads (red vs blue, both 4-4-2). The players are made by the team generator (data/teams, see
+    /// GeneratedTeams.cs): some are stronger, faster, taller, left- or right-footed, and the engine plays them that way.
+    /// <see cref="Create"/> still makes a squad of seeded, role-appropriate players.
+    /// </summary>
     public static class DemoTeams
     {
         private static readonly string[] FirstNames =
@@ -21,17 +25,25 @@ namespace SoccerVision.Simulation
             "Fendar", "Galvin", "Harrow", "Ilvane", "Jestin", "Korval", "Lorcan", "Mirren", "Novak", "Orsini",
         };
 
+        private static TeamSetup FromGenerated(string name, string shortName, KitColors kit, (List<PlayerProfile> Starters, List<PlayerProfile> Bench) squad)
+        {
+            var t = new TeamSetup { Name = name, ShortName = shortName, Kit = kit, Formation = Formation.F442(), Tactics = new TeamTactics() };
+            t.Starters.AddRange(squad.Starters);
+            t.Bench.AddRange(squad.Bench);
+            return t;
+        }
+
         /// <summary>Red Rovers defend zonally and tackle normally.</summary>
         public static TeamSetup Red(ulong seed = 1001)
         {
-            var t = Create("Red Rovers", "RED", seed, 0, new KitColors
+            var t = FromGenerated("Red Rovers", "RED", new KitColors
             {
                 Primary = "#D32F2F",
                 Secondary = "#FFFFFF",
                 Number = "#FFFFFF",
                 GoalkeeperPrimary = "#F9D71C",
                 GoalkeeperNumber = "#1A1A1A",
-            });
+            }, GeneratedTeams.Red());
             t.Tactics.Marking = MarkingStyle.Zonal;
             t.Tactics.Tackling = TacklingStyle.Normal;
             return t;
@@ -40,14 +52,14 @@ namespace SoccerVision.Simulation
         /// <summary>Blue Falcons mark man-to-man and get stuck in (more slide tackles).</summary>
         public static TeamSetup Blue(ulong seed = 2002)
         {
-            var t = Create("Blue Falcons", "BLU", seed, 1, new KitColors
+            var t = FromGenerated("Blue Falcons", "BLU", new KitColors
             {
                 Primary = "#1E5BC6",
                 Secondary = "#FFFFFF",
                 Number = "#FFFFFF",
                 GoalkeeperPrimary = "#2E9E4F",
                 GoalkeeperNumber = "#FFFFFF",
-            });
+            }, GeneratedTeams.Blue());
             t.Tactics.Marking = MarkingStyle.ManToMan;
             t.Tactics.Tackling = TacklingStyle.GetStuckIn;
             return t;

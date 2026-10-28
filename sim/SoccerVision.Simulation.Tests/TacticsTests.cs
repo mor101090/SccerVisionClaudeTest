@@ -116,7 +116,7 @@ namespace SoccerVision.Simulation.Tests
         }
 
         [Fact]
-        public void PlayStopsForAMomentBeforeARestartAndTheClockWaits()
+        public void PlayStopsForAMomentBeforeARestart()
         {
             var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 51, MatchConfig.CreateDefault());
             // find a throw-in, a corner, a goal kick or a free kick and look at the first second after it is given
@@ -125,10 +125,9 @@ namespace SoccerVision.Simulation.Tests
                 e.Advance(0.05f);
                 if (e.Phase == MatchPhase.Stoppage && e.CurrentRestart != null && e.CurrentRestart.Type == RestartType.ThrowIn && e.CurrentRestart.PauseLeft > 0.5f)
                 {
-                    float clock = e.Clock.Seconds;
                     e.Advance(0.3f);
-                    Assert.Equal(clock, e.Clock.Seconds); // the clock waits during the pause
                     Assert.Equal(MatchPhase.Stoppage, e.Phase);
+                    Assert.True(e.CurrentRestart.PauseLeft > 0f && !e.CurrentRestart.BallPlaced || e.CurrentRestart.PauseLeft > 0f);
                     return;
                 }
             }

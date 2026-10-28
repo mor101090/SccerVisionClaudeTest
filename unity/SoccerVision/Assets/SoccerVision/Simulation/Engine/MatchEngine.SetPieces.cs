@@ -737,6 +737,8 @@ namespace SoccerVision.Simulation
                         p.Urgency = 0.15f;
                     }
                     MovePlayer(p, dt);
+                    // (nobody drifts off the pitch while pulling up; the one who put the ball out stays where he is)
+                    if (!p.SentOff) p.Pos = Pitch.ClampToField(p.Pos, -0.2f);
                 }
                 return;
             }
@@ -790,6 +792,7 @@ namespace SoccerVision.Simulation
                 // Everybody but the taker stays inside the field of play while a restart is set up.
                 if (p != r.Taker) p.Pos = Pitch.ClampToField(p.Pos, -0.2f);
                 else if (r.Type != RestartType.ThrowIn && r.Type != RestartType.CornerKick) p.Pos = Pitch.ClampToField(p.Pos, 0.3f);
+                else if (r.Type == RestartType.ThrowIn) p.Pos = Pitch.ClampToField(p.Pos, 0.95f); // (he walks to the line, no further than a pace over it)
             }
 
             if (r.Type == RestartType.ThrowIn && r.BallPlaced && r.Taker != null && Vec2.Distance(r.Taker.Pos, approach) < 1.2f)

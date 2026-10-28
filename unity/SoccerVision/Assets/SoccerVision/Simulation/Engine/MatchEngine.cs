@@ -53,7 +53,8 @@ namespace SoccerVision.Simulation
         public float Timer;
         public float SetupTime;
         /// <summary>Sim seconds left of the pause after the whistle (the ball out, a foul, an offside): play stops, players
-        /// pull up, and the viewer has a moment to see what happened before anyone sets the restart up. The clock waits.</summary>
+        /// pull up, and the viewer has a moment to see what happened before anyone sets the restart up. (As in a real match,
+        /// the clock keeps running: the ball is dead, not the time.)</summary>
         public float PauseLeft;
         public bool BallPlaced;
         public bool CountsAsLostTime;
@@ -297,7 +298,7 @@ namespace SoccerVision.Simulation
             SimTime += dt;
             SavePrevious();
 
-            if (Clock.Running && !(Phase == MatchPhase.Stoppage && _restart != null && _restart.PauseLeft > 0f))
+            if (Clock.Running)
             {
                 float clockDt = dt * Config.ClockSecondsPerSimSecond;
                 Clock.Seconds += clockDt;

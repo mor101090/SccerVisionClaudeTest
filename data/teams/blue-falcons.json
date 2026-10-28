@@ -1,0 +1,1292 @@
+[
+ {
+  "id": "8afec9d7-eadb-404d-bc45-f1d0a8ffa746",
+  "name": "Michael Martin",
+  "shirt_number": 72,
+  "position": "goalkeeper",
+  "level": "Normal",
+  "age": 24,
+  "height": 182,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 59,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "stats": {
+   "mental": {
+    "aggression": 30,
+    "teamwork": 55,
+    "decisions": 69,
+    "composure": 44
+   },
+   "athletic": {
+    "physical_power": 74,
+    "ball_control": 53,
+    "dribbling": 33,
+    "jumping": 77,
+    "acceleration": 46,
+    "speed": 59,
+    "heading": 79
+   },
+   "set_pieces": {
+    "free_kicks": 26,
+    "penalty": 25
+   },
+   "goalkeeping": {
+    "aerial_ability": 62,
+    "handling": 75,
+    "kicking": 59,
+    "one_on_one": 64,
+    "reflexes": 75
+   }
+  },
+  "averages": {
+   "mental": 50,
+   "athletic": 60,
+   "set_pieces": 26,
+   "goalkeeping": 67
+  }
+ },
+ {
+  "id": "700671a0-6eee-44a6-8594-a7d3b36e3dc7",
+  "name": "Robert Martin",
+  "shirt_number": 23,
+  "position": "goalkeeper",
+  "level": "Normal",
+  "age": 30,
+  "height": 180,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 58,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "stats": {
+   "mental": {
+    "aggression": 19,
+    "teamwork": 67,
+    "decisions": 67,
+    "composure": 36
+   },
+   "athletic": {
+    "physical_power": 61,
+    "ball_control": 44,
+    "dribbling": 36,
+    "jumping": 67,
+    "acceleration": 56,
+    "speed": 31,
+    "heading": 65
+   },
+   "set_pieces": {
+    "free_kicks": 29,
+    "penalty": 27
+   },
+   "goalkeeping": {
+    "aerial_ability": 70,
+    "handling": 68,
+    "kicking": 59,
+    "one_on_one": 60,
+    "reflexes": 70
+   }
+  },
+  "averages": {
+   "mental": 47,
+   "athletic": 51,
+   "set_pieces": 28,
+   "goalkeeping": 65
+  }
+ },
+ {
+  "id": "8d9e623a-9a33-4029-820c-17ff76d654f9",
+  "name": "William Brown",
+  "shirt_number": 17,
+  "position": "defender",
+  "level": "Normal",
+  "age": 23,
+  "height": 185,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 3
+  },
+  "stamina": 60,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "stats": {
+   "mental": {
+    "aggression": 20,
+    "teamwork": 55,
+    "decisions": 65,
+    "composure": 43
+   },
+   "defense": {
+    "tackling": 64,
+    "marking": 68,
+    "positioning": 66
+   },
+   "attack": {
+    "finishing": 26,
+    "long_shots": 28,
+    "off_the_ball": 24
+   },
+   "playmaking": {
+    "creative": 39,
+    "passing": 44,
+    "crossing": 43
+   },
+   "athletic": {
+    "physical_power": 75,
+    "ball_control": 56,
+    "dribbling": 60,
+    "jumping": 65,
+    "acceleration": 58,
+    "speed": 59,
+    "heading": 65
+   },
+   "set_pieces": {
+    "free_kicks": 59,
+    "penalty": 72
+   }
+  },
+  "averages": {
+   "mental": 46,
+   "defense": 66,
+   "attack": 26,
+   "playmaking": 42,
+   "athletic": 63,
+   "set_pieces": 66
+  }
+ },
+ {
+  "id": "28ff28cd-c677-40a6-83be-782f68e72802",
+  "name": "Robert Anderson",
+  "shirt_number": 55,
+  "position": "defender",
+  "level": "Normal",
+  "age": 21,
+  "height": 183,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 78,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "stats": {
+   "mental": {
+    "aggression": 24,
+    "teamwork": 65,
+    "decisions": 62,
+    "composure": 45
+   },
+   "defense": {
+    "tackling": 73,
+    "marking": 70,
+    "positioning": 70
+   },
+   "attack": {
+    "finishing": 21,
+    "long_shots": 27,
+    "off_the_ball": 30
+   },
+   "playmaking": {
+    "creative": 57,
+    "passing": 45,
+    "crossing": 43
+   },
+   "athletic": {
+    "physical_power": 74,
+    "ball_control": 54,
+    "dribbling": 43,
+    "jumping": 83,
+    "acceleration": 59,
+    "speed": 57,
+    "heading": 82
+   },
+   "set_pieces": {
+    "free_kicks": 51,
+    "penalty": 54
+   }
+  },
+  "averages": {
+   "mental": 49,
+   "defense": 71,
+   "attack": 26,
+   "playmaking": 48,
+   "athletic": 65,
+   "set_pieces": 52
+  }
+ },
+ {
+  "id": "fe9f4282-8654-40da-976a-cc3af9a46d38",
+  "name": "Chris Anderson",
+  "shirt_number": 95,
+  "position": "defender",
+  "level": "Normal",
+  "age": 24,
+  "height": 178,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 79,
+  "fitness": "Moderate",
+  "nationality": "CountryC",
+  "stats": {
+   "mental": {
+    "aggression": 27,
+    "teamwork": 64,
+    "decisions": 78,
+    "composure": 58
+   },
+   "defense": {
+    "tackling": 74,
+    "marking": 82,
+    "positioning": 70
+   },
+   "attack": {
+    "finishing": 25,
+    "long_shots": 18,
+    "off_the_ball": 32
+   },
+   "playmaking": {
+    "creative": 55,
+    "passing": 44,
+    "crossing": 51
+   },
+   "athletic": {
+    "physical_power": 69,
+    "ball_control": 56,
+    "dribbling": 49,
+    "jumping": 65,
+    "acceleration": 52,
+    "speed": 55,
+    "heading": 65
+   },
+   "set_pieces": {
+    "free_kicks": 42,
+    "penalty": 53
+   }
+  },
+  "averages": {
+   "mental": 57,
+   "defense": 75,
+   "attack": 25,
+   "playmaking": 50,
+   "athletic": 59,
+   "set_pieces": 48
+  }
+ },
+ {
+  "id": "87789ca5-6518-44a5-bd46-b63e2e1ff6b9",
+  "name": "Robert Anderson",
+  "shirt_number": 65,
+  "position": "fullback",
+  "level": "Normal",
+  "age": 24,
+  "height": 181,
+  "preferred_foot": {
+   "dominant_foot": "Left",
+   "weak_foot_level": 1
+  },
+  "stamina": 77,
+  "fitness": "Moderate",
+  "nationality": "CountryC",
+  "stats": {
+   "mental": {
+    "aggression": 22,
+    "teamwork": 58,
+    "decisions": 65,
+    "composure": 45
+   },
+   "defense": {
+    "tackling": 65,
+    "marking": 75,
+    "positioning": 59
+   },
+   "attack": {
+    "finishing": 34,
+    "long_shots": 33,
+    "off_the_ball": 46
+   },
+   "playmaking": {
+    "creative": 45,
+    "passing": 44,
+    "crossing": 65
+   },
+   "athletic": {
+    "physical_power": 66,
+    "ball_control": 61,
+    "dribbling": 61,
+    "jumping": 65,
+    "acceleration": 54,
+    "speed": 62,
+    "heading": 65
+   },
+   "set_pieces": {
+    "free_kicks": 44,
+    "penalty": 34
+   }
+  },
+  "averages": {
+   "mental": 48,
+   "defense": 66,
+   "attack": 38,
+   "playmaking": 51,
+   "athletic": 62,
+   "set_pieces": 39
+  }
+ },
+ {
+  "id": "97645c18-c60f-4527-891d-779d5487f368",
+  "name": "James Johnson",
+  "shirt_number": 54,
+  "position": "fullback",
+  "level": "Normal",
+  "age": 23,
+  "height": 183,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 3
+  },
+  "stamina": 77,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "stats": {
+   "mental": {
+    "aggression": 37,
+    "teamwork": 62,
+    "decisions": 62,
+    "composure": 57
+   },
+   "defense": {
+    "tackling": 71,
+    "marking": 66,
+    "positioning": 61
+   },
+   "attack": {
+    "finishing": 33,
+    "long_shots": 50,
+    "off_the_ball": 44
+   },
+   "playmaking": {
+    "creative": 50,
+    "passing": 49,
+    "crossing": 68
+   },
+   "athletic": {
+    "physical_power": 77,
+    "ball_control": 57,
+    "dribbling": 67,
+    "jumping": 57,
+    "acceleration": 65,
+    "speed": 73,
+    "heading": 62
+   },
+   "set_pieces": {
+    "free_kicks": 59,
+    "penalty": 33
+   }
+  },
+  "averages": {
+   "mental": 54,
+   "defense": 66,
+   "attack": 42,
+   "playmaking": 56,
+   "athletic": 65,
+   "set_pieces": 46
+  }
+ },
+ {
+  "id": "d434046b-1e82-4aca-ac9b-8bf7a83b1daa",
+  "name": "Michael Martin",
+  "shirt_number": 33,
+  "position": "fullback",
+  "level": "Normal",
+  "age": 25,
+  "height": 166,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 2
+  },
+  "stamina": 63,
+  "fitness": "Moderate",
+  "nationality": "CountryC",
+  "stats": {
+   "mental": {
+    "aggression": 16,
+    "teamwork": 53,
+    "decisions": 64,
+    "composure": 52
+   },
+   "defense": {
+    "tackling": 77,
+    "marking": 74,
+    "positioning": 60
+   },
+   "attack": {
+    "finishing": 35,
+    "long_shots": 42,
+    "off_the_ball": 46
+   },
+   "playmaking": {
+    "creative": 54,
+    "passing": 54,
+    "crossing": 71
+   },
+   "athletic": {
+    "physical_power": 60,
+    "ball_control": 65,
+    "dribbling": 55,
+    "jumping": 51,
+    "acceleration": 91,
+    "speed": 72,
+    "heading": 46
+   },
+   "set_pieces": {
+    "free_kicks": 59,
+    "penalty": 54
+   }
+  },
+  "averages": {
+   "mental": 46,
+   "defense": 70,
+   "attack": 41,
+   "playmaking": 60,
+   "athletic": 63,
+   "set_pieces": 56
+  }
+ },
+ {
+  "id": "cea05306-7dff-405f-9ff7-5df0955e9ed8",
+  "name": "Thomas Thomas",
+  "shirt_number": 14,
+  "position": "fullback",
+  "level": "Normal",
+  "age": 30,
+  "height": 189,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 74,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "stats": {
+   "mental": {
+    "aggression": 25,
+    "teamwork": 61,
+    "decisions": 71,
+    "composure": 57
+   },
+   "defense": {
+    "tackling": 63,
+    "marking": 71,
+    "positioning": 63
+   },
+   "attack": {
+    "finishing": 37,
+    "long_shots": 41,
+    "off_the_ball": 52
+   },
+   "playmaking": {
+    "creative": 51,
+    "passing": 49,
+    "crossing": 67
+   },
+   "athletic": {
+    "physical_power": 76,
+    "ball_control": 67,
+    "dribbling": 52,
+    "jumping": 69,
+    "acceleration": 74,
+    "speed": 58,
+    "heading": 73
+   },
+   "set_pieces": {
+    "free_kicks": 48,
+    "penalty": 55
+   }
+  },
+  "averages": {
+   "mental": 54,
+   "defense": 66,
+   "attack": 43,
+   "playmaking": 56,
+   "athletic": 67,
+   "set_pieces": 52
+  }
+ },
+ {
+  "id": "af8cf98d-f238-4dd1-97e8-ab15240d13cd",
+  "name": "John Jackson",
+  "shirt_number": 79,
+  "position": "striker",
+  "level": "Weaker",
+  "age": 27,
+  "height": 186,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 63,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "stats": {
+   "mental": {
+    "aggression": 38,
+    "teamwork": 62,
+    "decisions": 66,
+    "composure": 52
+   },
+   "defense": {
+    "tackling": 14,
+    "marking": 23,
+    "positioning": 19
+   },
+   "attack": {
+    "finishing": 65,
+    "long_shots": 52,
+    "off_the_ball": 55
+   },
+   "playmaking": {
+    "creative": 30,
+    "passing": 42,
+    "crossing": 35
+   },
+   "athletic": {
+    "physical_power": 24,
+    "ball_control": 39,
+    "dribbling": 55,
+    "jumping": 50,
+    "acceleration": 58,
+    "speed": 50,
+    "heading": 46
+   },
+   "set_pieces": {
+    "free_kicks": 32,
+    "penalty": 64
+   }
+  },
+  "averages": {
+   "mental": 54,
+   "defense": 19,
+   "attack": 57,
+   "playmaking": 36,
+   "athletic": 46,
+   "set_pieces": 48
+  }
+ },
+ {
+  "id": "5ec7cc55-1673-47c0-8fed-6404bab3b8f8",
+  "name": "James Johnson",
+  "shirt_number": 44,
+  "position": "striker",
+  "level": "Normal",
+  "age": 24,
+  "height": 172,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 80,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "stats": {
+   "mental": {
+    "aggression": 31,
+    "teamwork": 61,
+    "decisions": 62,
+    "composure": 69
+   },
+   "defense": {
+    "tackling": 25,
+    "marking": 24,
+    "positioning": 26
+   },
+   "attack": {
+    "finishing": 73,
+    "long_shots": 69,
+    "off_the_ball": 67
+   },
+   "playmaking": {
+    "creative": 46,
+    "passing": 41,
+    "crossing": 53
+   },
+   "athletic": {
+    "physical_power": 69,
+    "ball_control": 59,
+    "dribbling": 63,
+    "jumping": 65,
+    "acceleration": 57,
+    "speed": 51,
+    "heading": 65
+   },
+   "set_pieces": {
+    "free_kicks": 42,
+    "penalty": 63
+   }
+  },
+  "averages": {
+   "mental": 56,
+   "defense": 25,
+   "attack": 70,
+   "playmaking": 47,
+   "athletic": 61,
+   "set_pieces": 52
+  }
+ },
+ {
+  "id": "794280e6-1956-4b68-9f83-a07ecfeb4d64",
+  "name": "James Martin",
+  "shirt_number": 22,
+  "position": "striker",
+  "level": "Normal",
+  "age": 22,
+  "height": 175,
+  "preferred_foot": {
+   "dominant_foot": "Left",
+   "weak_foot_level": 1
+  },
+  "stamina": 84,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "stats": {
+   "mental": {
+    "aggression": 28,
+    "teamwork": 56,
+    "decisions": 79,
+    "composure": 71
+   },
+   "defense": {
+    "tackling": 21,
+    "marking": 24,
+    "positioning": 31
+   },
+   "attack": {
+    "finishing": 79,
+    "long_shots": 68,
+    "off_the_ball": 77
+   },
+   "playmaking": {
+    "creative": 51,
+    "passing": 51,
+    "crossing": 51
+   },
+   "athletic": {
+    "physical_power": 39,
+    "ball_control": 63,
+    "dribbling": 73,
+    "jumping": 54,
+    "acceleration": 76,
+    "speed": 67,
+    "heading": 56
+   },
+   "set_pieces": {
+    "free_kicks": 84,
+    "penalty": 56
+   }
+  },
+  "averages": {
+   "mental": 58,
+   "defense": 25,
+   "attack": 75,
+   "playmaking": 51,
+   "athletic": 61,
+   "set_pieces": 70
+  }
+ },
+ {
+  "id": "7eaee3a0-2ce9-4515-8222-017b99e8d6db",
+  "name": "Michael Martin",
+  "shirt_number": 48,
+  "position": "winger",
+  "level": "Normal",
+  "age": 26,
+  "height": 176,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 76,
+  "fitness": "Moderate",
+  "nationality": "CountryC",
+  "stats": {
+   "mental": {
+    "aggression": 28,
+    "teamwork": 61,
+    "decisions": 73,
+    "composure": 54
+   },
+   "defense": {
+    "tackling": 35,
+    "marking": 33,
+    "positioning": 53
+   },
+   "attack": {
+    "finishing": 74,
+    "long_shots": 57,
+    "off_the_ball": 72
+   },
+   "playmaking": {
+    "creative": 61,
+    "passing": 66,
+    "crossing": 75
+   },
+   "athletic": {
+    "physical_power": 51,
+    "ball_control": 68,
+    "dribbling": 66,
+    "jumping": 57,
+    "acceleration": 68,
+    "speed": 74,
+    "heading": 56
+   },
+   "set_pieces": {
+    "free_kicks": 33,
+    "penalty": 52
+   }
+  },
+  "averages": {
+   "mental": 54,
+   "defense": 40,
+   "attack": 68,
+   "playmaking": 67,
+   "athletic": 63,
+   "set_pieces": 42
+  }
+ },
+ {
+  "id": "a0eca5af-cc95-41b5-84ec-4976ba56dfb4",
+  "name": "David Jackson",
+  "shirt_number": 98,
+  "position": "winger",
+  "level": "Normal",
+  "age": 22,
+  "height": 178,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 73,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "stats": {
+   "mental": {
+    "aggression": 27,
+    "teamwork": 58,
+    "decisions": 67,
+    "composure": 54
+   },
+   "defense": {
+    "tackling": 33,
+    "marking": 31,
+    "positioning": 45
+   },
+   "attack": {
+    "finishing": 66,
+    "long_shots": 63,
+    "off_the_ball": 74
+   },
+   "playmaking": {
+    "creative": 61,
+    "passing": 67,
+    "crossing": 68
+   },
+   "athletic": {
+    "physical_power": 54,
+    "ball_control": 61,
+    "dribbling": 68,
+    "jumping": 44,
+    "acceleration": 65,
+    "speed": 84,
+    "heading": 43
+   },
+   "set_pieces": {
+    "free_kicks": 71,
+    "penalty": 44
+   }
+  },
+  "averages": {
+   "mental": 52,
+   "defense": 36,
+   "attack": 68,
+   "playmaking": 65,
+   "athletic": 60,
+   "set_pieces": 58
+  }
+ },
+ {
+  "id": "635e88c8-77d5-4558-8116-6ddf18b5d373",
+  "name": "Richard Thomas",
+  "shirt_number": 59,
+  "position": "midfielder",
+  "level": "Normal",
+  "age": 29,
+  "height": 166,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 85,
+  "fitness": "Moderate",
+  "nationality": "CountryC",
+  "stats": {
+   "mental": {
+    "aggression": 24,
+    "teamwork": 59,
+    "decisions": 76,
+    "composure": 58
+   },
+   "defense": {
+    "tackling": 78,
+    "marking": 68,
+    "positioning": 64
+   },
+   "attack": {
+    "finishing": 54,
+    "long_shots": 53,
+    "off_the_ball": 51
+   },
+   "playmaking": {
+    "creative": 69,
+    "passing": 73,
+    "crossing": 71
+   },
+   "athletic": {
+    "physical_power": 66,
+    "ball_control": 53,
+    "dribbling": 69,
+    "jumping": 65,
+    "acceleration": 68,
+    "speed": 61,
+    "heading": 65
+   },
+   "set_pieces": {
+    "free_kicks": 66,
+    "penalty": 45
+   }
+  },
+  "averages": {
+   "mental": 54,
+   "defense": 70,
+   "attack": 53,
+   "playmaking": 71,
+   "athletic": 64,
+   "set_pieces": 56
+  }
+ },
+ {
+  "id": "3d8be55f-7062-42cc-bf05-ecc278480b74",
+  "name": "Thomas Thomas",
+  "shirt_number": 76,
+  "position": "midfielder",
+  "level": "Normal",
+  "age": 26,
+  "height": 175,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 59,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "stats": {
+   "mental": {
+    "aggression": 29,
+    "teamwork": 57,
+    "decisions": 63,
+    "composure": 55
+   },
+   "defense": {
+    "tackling": 48,
+    "marking": 47,
+    "positioning": 48
+   },
+   "attack": {
+    "finishing": 46,
+    "long_shots": 63,
+    "off_the_ball": 56
+   },
+   "playmaking": {
+    "creative": 73,
+    "passing": 76,
+    "crossing": 68
+   },
+   "athletic": {
+    "physical_power": 48,
+    "ball_control": 58,
+    "dribbling": 63,
+    "jumping": 60,
+    "acceleration": 70,
+    "speed": 69,
+    "heading": 64
+   },
+   "set_pieces": {
+    "free_kicks": 43,
+    "penalty": 35
+   }
+  },
+  "averages": {
+   "mental": 51,
+   "defense": 48,
+   "attack": 55,
+   "playmaking": 72,
+   "athletic": 62,
+   "set_pieces": 39
+  }
+ },
+ {
+  "id": "ded3f591-9c32-4a58-8343-56dfcaba7552",
+  "name": "David Brown",
+  "shirt_number": 99,
+  "position": "midfielder",
+  "level": "Normal",
+  "age": 27,
+  "height": 184,
+  "preferred_foot": {
+   "dominant_foot": "Left",
+   "weak_foot_level": 1
+  },
+  "stamina": 74,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "stats": {
+   "mental": {
+    "aggression": 30,
+    "teamwork": 66,
+    "decisions": 80,
+    "composure": 44
+   },
+   "defense": {
+    "tackling": 67,
+    "marking": 75,
+    "positioning": 74
+   },
+   "attack": {
+    "finishing": 53,
+    "long_shots": 60,
+    "off_the_ball": 56
+   },
+   "playmaking": {
+    "creative": 68,
+    "passing": 75,
+    "crossing": 67
+   },
+   "athletic": {
+    "physical_power": 61,
+    "ball_control": 67,
+    "dribbling": 64,
+    "jumping": 65,
+    "acceleration": 74,
+    "speed": 65,
+    "heading": 58
+   },
+   "set_pieces": {
+    "free_kicks": 64,
+    "penalty": 70
+   }
+  },
+  "averages": {
+   "mental": 55,
+   "defense": 72,
+   "attack": 56,
+   "playmaking": 70,
+   "athletic": 65,
+   "set_pieces": 67
+  }
+ },
+ {
+  "id": "043bbf8b-8db5-4f8c-8856-f056a1ae0323",
+  "name": "Chris Martin",
+  "shirt_number": 80,
+  "position": "midfielder",
+  "level": "Normal",
+  "age": 24,
+  "height": 175,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 3
+  },
+  "stamina": 77,
+  "fitness": "Peak",
+  "nationality": "CountryB",
+  "stats": {
+   "mental": {
+    "aggression": 25,
+    "teamwork": 64,
+    "decisions": 80,
+    "composure": 48
+   },
+   "defense": {
+    "tackling": 49,
+    "marking": 54,
+    "positioning": 55
+   },
+   "attack": {
+    "finishing": 74,
+    "long_shots": 89,
+    "off_the_ball": 88
+   },
+   "playmaking": {
+    "creative": 67,
+    "passing": 70,
+    "crossing": 74
+   },
+   "athletic": {
+    "physical_power": 44,
+    "ball_control": 56,
+    "dribbling": 69,
+    "jumping": 60,
+    "acceleration": 70,
+    "speed": 65,
+    "heading": 63
+   },
+   "set_pieces": {
+    "free_kicks": 51,
+    "penalty": 65
+   }
+  },
+  "averages": {
+   "mental": 54,
+   "defense": 53,
+   "attack": 84,
+   "playmaking": 70,
+   "athletic": 61,
+   "set_pieces": 58
+  }
+ },
+ {
+  "id": "34902f3c-cd94-42d1-8d83-5082027ff241",
+  "name": "Michael White",
+  "shirt_number": 84,
+  "position": "winger",
+  "level": "Normal",
+  "age": 21,
+  "height": 176,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 79,
+  "fitness": "Low",
+  "nationality": "CountryB",
+  "stats": {
+   "mental": {
+    "aggression": 30,
+    "teamwork": 58,
+    "decisions": 50,
+    "composure": 43
+   },
+   "defense": {
+    "tackling": 24,
+    "marking": 23,
+    "positioning": 49
+   },
+   "attack": {
+    "finishing": 59,
+    "long_shots": 57,
+    "off_the_ball": 58
+   },
+   "playmaking": {
+    "creative": 59,
+    "passing": 61,
+    "crossing": 68
+   },
+   "athletic": {
+    "physical_power": 73,
+    "ball_control": 56,
+    "dribbling": 67,
+    "jumping": 65,
+    "acceleration": 66,
+    "speed": 58,
+    "heading": 65
+   },
+   "set_pieces": {
+    "free_kicks": 45,
+    "penalty": 40
+   }
+  },
+  "averages": {
+   "mental": 45,
+   "defense": 32,
+   "attack": 58,
+   "playmaking": 63,
+   "athletic": 64,
+   "set_pieces": 42
+  }
+ },
+ {
+  "id": "d36253ff-e31c-41cc-b245-ec8e985a81f6",
+  "name": "John Smith",
+  "shirt_number": 38,
+  "position": "goalkeeper",
+  "level": "Normal",
+  "age": 21,
+  "height": 182,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1
+  },
+  "stamina": 64,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "stats": {
+   "mental": {
+    "aggression": 33,
+    "teamwork": 52,
+    "decisions": 68,
+    "composure": 48
+   },
+   "athletic": {
+    "physical_power": 65,
+    "ball_control": 45,
+    "dribbling": 55,
+    "jumping": 66,
+    "acceleration": 65,
+    "speed": 70,
+    "heading": 63
+   },
+   "set_pieces": {
+    "free_kicks": 32,
+    "penalty": 28
+   },
+   "goalkeeping": {
+    "aerial_ability": 66,
+    "handling": 73,
+    "kicking": 59,
+    "one_on_one": 69,
+    "reflexes": 73
+   }
+  },
+  "averages": {
+   "mental": 50,
+   "athletic": 61,
+   "set_pieces": 30,
+   "goalkeeping": 68
+  }
+ },
+ {
+  "id": "34cd3926-4dc1-4a92-9f7b-b6bd283f1127",
+  "name": "James Anderson",
+  "shirt_number": 82,
+  "position": "fullback",
+  "level": "Normal",
+  "age": 29,
+  "height": 187,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 2
+  },
+  "stamina": 58,
+  "fitness": "Peak",
+  "nationality": "CountryC",
+  "stats": {
+   "mental": {
+    "aggression": 27,
+    "teamwork": 67,
+    "decisions": 77,
+    "composure": 55
+   },
+   "defense": {
+    "tackling": 72,
+    "marking": 74,
+    "positioning": 70
+   },
+   "attack": {
+    "finishing": 40,
+    "long_shots": 47,
+    "off_the_ball": 54
+   },
+   "playmaking": {
+    "creative": 56,
+    "passing": 59,
+    "crossing": 75
+   },
+   "athletic": {
+    "physical_power": 67,
+    "ball_control": 62,
+    "dribbling": 57,
+    "jumping": 78,
+    "acceleration": 66,
+    "speed": 65,
+    "heading": 76
+   },
+   "set_pieces": {
+    "free_kicks": 60,
+    "penalty": 69
+   }
+  },
+  "averages": {
+   "mental": 56,
+   "defense": 72,
+   "attack": 47,
+   "playmaking": 63,
+   "athletic": 67,
+   "set_pieces": 64
+  }
+ },
+ {
+  "id": "03369025-e8da-4ba0-8424-77e5abac32f0",
+  "name": "Daniel Jackson",
+  "shirt_number": 85,
+  "position": "defender",
+  "level": "Normal",
+  "age": 29,
+  "height": 187,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 2
+  },
+  "stamina": 71,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "stats": {
+   "mental": {
+    "aggression": 29,
+    "teamwork": 55,
+    "decisions": 64,
+    "composure": 48
+   },
+   "defense": {
+    "tackling": 70,
+    "marking": 68,
+    "positioning": 71
+   },
+   "attack": {
+    "finishing": 26,
+    "long_shots": 25,
+    "off_the_ball": 29
+   },
+   "playmaking": {
+    "creative": 52,
+    "passing": 47,
+    "crossing": 44
+   },
+   "athletic": {
+    "physical_power": 63,
+    "ball_control": 61,
+    "dribbling": 55,
+    "jumping": 56,
+    "acceleration": 70,
+    "speed": 65,
+    "heading": 59
+   },
+   "set_pieces": {
+    "free_kicks": 77,
+    "penalty": 78
+   }
+  },
+  "averages": {
+   "mental": 49,
+   "defense": 70,
+   "attack": 27,
+   "playmaking": 48,
+   "athletic": 61,
+   "set_pieces": 78
+  }
+ }
+]

@@ -21,7 +21,7 @@ Each round of changes is developed on its own branch, named after what it change
   ("#8 Corvel and #10 Fendar play a one-two"). Players who move well off the ball do it more; a short-passing team
   much more (about 3 a match, half of them coming off; more with short passing).
 - **A pause before restarts**: when the ball goes out, or for a foul or an offside, play stops for 1.5 s - players pull
-  up, the ball rolls to a stop - before the restart is set up, so you can see what happened. The clock waits.
+  up, the ball rolls to a stop - before the restart is set up, so you can see what happened (the clock keeps running).
 - **Snow ball glows for real**: lit from inside (a hot yellow-orange core, white-hot pentagons), an orange haze, an
   additive bloom and a pool of light on the snow under it, breathing gently (demo page, React, Unity).
 - **Goal flash**: the commentary bar flashes about seven times a second, alternating shirt colour on trim and trim on
@@ -29,7 +29,18 @@ Each round of changes is developed on its own branch, named after what it change
 - Engine: `PassingStyle` tactic, `TacticsChanged` event, `ComputerManager`; the defensive line and width sliders act
   more strongly; the tackling style also changes how clean the challenges are. Calibration unchanged (goals 3.0-3.2,
   fouls 21.7, yellows 4.0 per match).
-- Tests: tactics, one-twos, the restart pause and the computer manager (9 tests).
+- **Squads from the team generator**: Red Rovers and Blue Falcons now field two teams made with
+  https://soccer-simulation.onrender.com/api/team (22 players each, saved under `data/teams/`;
+  `tools/teams/build_teams.py` turns them into `Simulation/Demo/GeneratedTeams.cs`). Every skill, the height, the feet
+  (strong foot 3, the other by the weak-foot level), the stamina and the fitness come from the generator, so players
+  really differ: pace (31-88 speed), strength, height (162-189 cm), left- and right-footed. The engine plays them that
+  way: speed and acceleration set how far they run, height and jumping decide headers and the keeper's reach, the weak
+  foot makes shots and passes worse. The 4-4-2 line-up follows the generator's positions; left-footed full-backs and
+  wingers go on the left. (Goals per match stay about 2.9; fewer fouls and cards, since these players are less
+  aggressive.)
+- Fixes found by the full test run: the restart pause lets the clock run (as in a real match), so halves keep their
+  10 real minutes; nobody drifts off the pitch while pulling up.
+- Tests: tactics, one-twos, the restart pause and the computer manager (9 tests); generated squads (5 tests).
 
 ## `feature/three-game-modes`
 
