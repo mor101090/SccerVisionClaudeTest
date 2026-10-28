@@ -35,6 +35,17 @@ function hash2(i: number, j: number) {
 }
 const SPX = 6; // snow texture pixels per metre
 const SNOW = SNOW_AREA;
+/** The main stand's roof line (where its shade ends), with the steps of its trusses. */
+const ROOF: [number, number][] = [
+  [-70, 5.5],
+  [-47, 8],
+  [-46, 9.6],
+  [-7, 13.8],
+  [-6, 15.5],
+  [33, 19.8],
+  [34, 21.5],
+  [70, 25.5],
+];
 const TOWERS: [number, number][] = [
   [-60, -42],
   [-60, 42],
@@ -67,7 +78,6 @@ export class PitchLook {
   private surface: HTMLCanvasElement | null = null;
   private snow: HTMLCanvasElement | null = null;
   private trodden: HTMLCanvasElement | null = null;
-  private snowTmp: HTMLCanvasElement | null = null;
   private puddles: [number, number][] = [];
   private drops: Drop[] = [];
   private flakes: Flake[] = [];
@@ -77,8 +87,6 @@ export class PitchLook {
   private key = "";
   wind: Wind = { speed: 0, angle: 0, screenAngle: 0, breeze: 0 };
   private cloud = document.createElement("canvas");
-  private stand: HTMLCanvasElement | null = null;
-  private standKey = "";
 
   /** Rebuilds the mud, puddle and snow textures when the match or the sky changes. */
   update(replay: Replay, s: DevSettings) {
@@ -104,7 +112,7 @@ export class PitchLook {
   }
 
   private buildSnow(s: DevSettings) {
-    this.snow = this.trodden = this.snowTmp = null;
+    this.snow = this.trodden = null;
     if (s.sky !== "Snow") return;
     const snow = snowCanvas(this.texSeed, SPX);
     const make = () => {
@@ -114,19 +122,30 @@ export class PitchLook {
       return c;
     };
     this.snow = snow;
+    // the snow as it lies now: a copy of the fresh layer that the players tread holes into
     this.trodden = make();
-    this.snowTmp = make();
+    this.trodden.getContext("2d")?.drawImage(snow, 0, 0);
   }
 
   /** After a seek the trodden snow starts fresh. */
   clearTracks() {
-    this.trodden?.getContext("2d")?.clearRect(0, 0, this.trodden.width, this.trodden.height);
+    const g = this.trodden?.getContext("2d");
+    if (!g || !this.snow) return;
+    g.globalCompositeOperation = "copy";
+    g.drawImage(this.snow, 0, 0);
+    g.globalCompositeOperation = "source-over";
+    this.snowChanged = true;
   }
+
+  /** The snow layer changed since it was last composed into the background. */
+  snowChanged = true;
 
   /** Where players run and the ball rolls the snow is trodden down and the grass shows through. */
   tread(snap: Snapshot, dt: number) {
     const g = this.trodden?.getContext("2d");
     if (!g || dt <= 0) return;
+    g.globalCompositeOperation = "destination-out";
+    this.snowChanged = true;
     g.fillStyle = `rgba(0,0,0,${Math.min(0.12, dt * 0.35)})`;
     for (const p of snap.players) {
       if (p.sentOff) continue;
@@ -197,22 +216,61 @@ export class PitchLook {
     }
   }
 
-  /** Mud, puddles and snow, between the grass and the lines. */
+  /** Mud and puddles (between the grass and the lines). */
   ground(ctx: CanvasRenderingContext2D, v: View) {
     const k = v.scale;
     const A = SURFACE_AREA;
     if (this.surface) ctx.drawImage(this.surface, px(v, A.x), py(v, A.y), A.w * k, A.h * k);
-    if (this.snow && this.trodden && this.snowTmp) {
-      const g = this.snowTmp.getContext("2d");
-      if (!g) return;
-      g.globalCompositeOperation = "copy";
-      g.drawImage(this.snow, 0, 0);
-      g.globalCompositeOperation = "destination-out";
-      g.drawImage(this.trodden, 0, 0);
-      g.globalCompositeOperation = "source-over";
-      ctx.drawImage(this.snowTmp, px(v, SNOW.x), py(v, SNOW.y), SNOW.w * k, SNOW.h * k);
-    }
   }
+
+  /** The snow as trodden so far (null without snow). */
+  snowLayer(ctx: CanvasRenderingContext2D, v: View) {
+    if (!this.trodden) return false;
+    const k = v.scale;
+    ctx.drawImage(this.trodden, px(v, SNOW.x), py(v, SNOW.y), SNOW.w * k, SNOW.h * k);
+    return true;
+  }
+
+  /** Identifies the ground textures (for caching the background). */
+  get groundKey() {
+    return this.key;
+  }
+
+  /**
+   * The light that does not move, baked into the background image instead of laid over the screen every frame: the
+   * floodlit dark of a night match, the dull light of a grey sky, the warm sun and the stands' shade.
+   */
+  bakeLight(ctx: CanvasRenderingContext2D, v: View, s: DevSettings) {
+    const w = ctx.canvas.width;
+    const h = ctx.canvas.height;
+    if (s.night) {
+      if (!this.dark || this.dark.width !== w || this.dark.height !== h) this.dark = this.buildDark(ctx, v);
+      if (this.dark) ctx.drawImage(this.dark, 0, 0);
+      return;
+    }
+    if (s.sky === "Sunny") {
+      ctx.drawImage(this.buildStand(ctx, v, s.stadium), 0, 0);
+      return;
+    }
+    ctx.fillStyle = s.sky === "Rain" ? "rgba(18,28,44,0.28)" : s.sky === "Snow" ? "rgba(40,52,74,0.12)" : "rgba(22,30,42,0.16)";
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  /** Is this point in the stands' shade on a sunny day (same shapes as buildStand)? */
+  inShade(s: DevSettings, x: number, y: number) {
+    if (s.night || s.sky !== "Sunny" || s.stadium === "open") return false;
+    if (s.stadium === "bowl") {
+      const ex = (x - 14) / 66;
+      const ey = (y + 9) / 47;
+      return ex * ex + ey * ey > 1;
+    }
+    for (let i = 0; i < ROOF.length - 1; i++)
+      if (x >= ROOF[i][0] && x <= ROOF[i + 1][0]) return y > ROOF[i][1] + ((ROOF[i + 1][1] - ROOF[i][1]) * (x - ROOF[i][0])) / (ROOF[i + 1][0] - ROOF[i][0]);
+    return false;
+  }
+
+  /** Lower quality on a weak device: no cloud shadows, less rain and snow. */
+  quality = 0;
 
   /** Line paint: white, or yellow / orange in the snow so the lines read on the white. */
   linePaint(s: DevSettings) {
@@ -259,7 +317,7 @@ export class PitchLook {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const ws = (m: number) => ({ x: Math.cos(this.wind.screenAngle) * this.wind.speed * m, y: Math.sin(this.wind.screenAngle) * this.wind.speed * m });
     if (s.sky === "Rain") {
-      const want = Math.round((w * h) / 2600);
+      const want = Math.round(((w * h) / 2600) * (this.quality ? 0.55 : 1));
       while (this.drops.length < want) this.drops.push({ x: Math.random() * w, y: Math.random() * h, l: 0.5 + Math.random(), v: 0.8 + Math.random() * 0.5 });
       this.drops.length = want;
       const wind = ws(0.06);
@@ -306,7 +364,7 @@ export class PitchLook {
       if (this.rings.length > 400) this.rings.splice(0, this.rings.length - 400);
     }
     if (s.sky === "Snow") {
-      const want = Math.round((w * h) / 3800);
+      const want = Math.round(((w * h) / 3800) * (this.quality ? 0.55 : 1));
       while (this.flakes.length < want)
         this.flakes.push({ x: Math.random() * w, y: Math.random() * h, r: (0.6 + Math.random() * 1.6) * dpr, ph: Math.random() * 6.3, v: 0.5 + Math.random() * 0.8 });
       this.flakes.length = want;
@@ -385,7 +443,7 @@ export class PitchLook {
       g.fill("evenodd");
     } else {
       // the main stand's roof line, with the steps of its trusses
-      const pts = [[-70, 60], [70, 60], [70, 25.5], [34, 21.5], [33, 19.8], [-6, 15.5], [-7, 13.8], [-46, 9.6], [-47, 8], [-70, 5.5]];
+      const pts = [[-70, 60], [70, 60], ...ROOF.slice().reverse()];
       pts.forEach(([x, y], i) => (i ? g.lineTo(px(v, x), py(v, y)) : g.moveTo(px(v, x), py(v, y))));
       g.closePath();
       g.fill();
@@ -428,27 +486,9 @@ export class PitchLook {
     return c;
   }
 
-  /** Sun, grey sky or floodlights over the finished picture. */
+  /** What moves in the light over the finished picture: the cloud shadows (the rest is baked, see bakeLight). */
   light(ctx: CanvasRenderingContext2D, v: View, s: DevSettings, now: number) {
-    const w = ctx.canvas.width;
-    const h = ctx.canvas.height;
-    if (s.night) {
-      if (!this.dark || this.dark.width !== w || this.dark.height !== h) this.dark = this.buildDark(ctx, v);
-      if (this.dark) ctx.drawImage(this.dark, 0, 0); // built once per size: one image per frame
-      return;
-    }
-    if (s.sky === "Sunny") {
-      const key = `${s.stadium}|${w}x${h}`;
-      if (!this.stand || this.standKey !== key) {
-        this.stand = this.buildStand(ctx, v, s.stadium);
-        this.standKey = key;
-      }
-      ctx.drawImage(this.stand, 0, 0);
-      this.cloudShadows(ctx, v, now, 0.06);
-      return;
-    }
-    this.cloudShadows(ctx, v, now, s.sky === "Cloudy" ? 0.1 : 0.08);
-    ctx.fillStyle = s.sky === "Rain" ? "rgba(18,28,44,0.28)" : s.sky === "Snow" ? "rgba(40,52,74,0.12)" : "rgba(22,30,42,0.16)";
-    ctx.fillRect(0, 0, w, h);
+    if (s.night || this.quality >= 1) return;
+    this.cloudShadows(ctx, v, now, s.sky === "Sunny" ? 0.06 : s.sky === "Cloudy" ? 0.1 : 0.08);
   }
 }

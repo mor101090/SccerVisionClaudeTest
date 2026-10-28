@@ -101,6 +101,10 @@ function Player({ replay: recorded, settings, onSettings, note }: { replay: Repl
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
   const timeRef = useRef(time);
+  const uiTime = useRef(time);
+  // Adaptive quality: when frames take too long (a weak device), the resolution, the rain / snow and the cloud
+  // shadows step down, and at the lowest level the picture is drawn at an even 30 frames a second.
+  const quality = useRef({ level: 0, avg: 16, slow: 0, skip: false });
   const sound = useRef<MatchSound | null>(null);
   if (!sound.current) sound.current = new MatchSound();
   const [soundOn, setSoundOn] = useState(false);
@@ -119,6 +123,24 @@ function Player({ replay: recorded, settings, onSettings, note }: { replay: Repl
     let raf = 0;
     let last = performance.now();
     const loop = (now: number) => {
+      const q = quality.current;
+      if (q.level >= 3) {
+        q.skip = !q.skip;
+        if (q.skip) {
+          raf = requestAnimationFrame(loop);
+          return;
+        }
+      }
+      q.avg = q.avg * 0.95 + ((now - last) / (q.level >= 3 ? 2 : 1)) * 0.05;
+      q.slow = q.avg > (q.level >= 2 ? 36 : 20) ? q.slow + 1 : 0;
+      if (q.slow > 90 && q.level < 3) {
+        q.level++;
+        q.slow = 0;
+        q.avg = 16;
+        look.quality = q.level;
+        const c0 = canvas.current;
+        if (c0) c0.width = 0; // re-sized below at the new resolution
+      }
       const dt = Math.max(0, Math.min(0.25, (now - last) / 1000));
       last = now;
       const pace = settingsRef.current.pace / 100;
@@ -128,7 +150,11 @@ function Player({ replay: recorded, settings, onSettings, note }: { replay: Repl
         const t = Math.min(end, prev + dt * speed * pace);
         advanced = t - prev;
         timeRef.current = t;
-        setTime(t);
+        // the page around the pitch (clock, commentary, stats) only needs ~10 updates a second
+        if (Math.abs(t - uiTime.current) > 0.1 || t >= end) {
+          uiTime.current = t;
+          setTime(t);
+        }
         // Sound: events that happened since the last frame (muted when fast-forwarding past 4x).
         const evs = replay.events;
         let i = lastEvent.current;
@@ -147,7 +173,7 @@ function Player({ replay: recorded, settings, onSettings, note }: { replay: Repl
       const c = canvas.current;
       const w = wrap.current;
       if (c && w) {
-        const dpr = Math.min(2, window.devicePixelRatio || 1); // 3x screens: 2x is plenty and much faster
+        const dpr = Math.min(q.level >= 2 ? 1 : q.level >= 1 ? 1.5 : 2, window.devicePixelRatio || 1); // 3x screens: 2x is plenty and much faster
         const cssW = w.clientWidth;
         const cssH = (cssW * WORLD_H) / WORLD_W;
         if (c.width !== Math.round(cssW * dpr)) {

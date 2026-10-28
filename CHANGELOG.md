@@ -2,6 +2,32 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `perf/cached-background-adaptive-quality`
+
+- **Faster drawing** (demo page and React), without changing what you see:
+  - **Static parts drawn once.** Turf, mud, puddles, the painted lines and the light that does not move (a night
+    match's floodlit dark, a grey sky's dull light, the warm sun and the stands' shade) are drawn once into an image,
+    and each frame copies it. The heaviest cost was a full-screen tint layer drawn every frame.
+  - **Shade on players.** Players in the stands' shade are darkened individually.
+  - **Snow.** The snow is trodden in place, and the picture is recomposed twice a second instead of every frame.
+  - **Cloud shadows** are drawn at an eighth of the size.
+  - **Page text.** The page text (clock, score, time) is only written when it changes. In React the page around the
+    pitch updates 10 times a second; the pitch itself still runs every frame.
+- **Adaptive quality for weak devices.** If frames take too long for a few seconds, the quality steps down in turn:
+  - first the resolution (2× → 1.5×) and less rain and snow, with no cloud shadows;
+  - then 1× resolution;
+  - finally an even 30 frames a second, instead of stuttering below 60.
+- **Measured** in a headless browser with no graphics card (frames a second, before → after):
+
+  | View | Demo page | React |
+  | --- | --- | --- |
+  | Sunny day | 24 → 46 | 60 |
+  | Night | 44 → 56-60 | 59 |
+  | Snow | 20 → 43 | 46 |
+  | Rain on a neglected pitch | 30 → 33-42 | – |
+
+  A device with a graphics card is faster still.
+
 ## `feature/stadium-shadows-night-perf-breeze-kits`
 
 - **Shade from the stands on a sunny day**: the low sun comes from the top left, the same direction the players'

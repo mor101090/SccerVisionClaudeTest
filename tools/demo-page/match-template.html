@@ -260,10 +260,11 @@ td.l { color: var(--muted); }
   function X(x) { return view.ox + x * view.s; }
   function Y(y) { return view.oy - y * view.s; }
   function resize() {
-    var dpr = Math.min(2, window.devicePixelRatio || 1), r = cv.getBoundingClientRect(); // (3x screens: 2x is plenty and twice as fast)
+    // (3x screens: 2x is plenty and twice as fast; a weak device steps down further, see adaptQuality)
+    var dpr = Math.min(QUALITY >= 2 ? 1 : QUALITY >= 1 ? 1.5 : 2, window.devicePixelRatio || 1), r = cv.getBoundingClientRect();
     cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
     view.s = Math.min(cv.width / W, cv.height / H); view.ox = cv.width / 2; view.oy = (cv.height - H * view.s) / 2 + TOP * view.s;
-    grassNoise = null; darkCv = null; standCv = null; drops = []; flakes = []; rings = [];
+    grassNoise = null; darkCv = null; standCv = null; bgCv = null; drops = []; flakes = []; rings = [];
   }
   window.addEventListener("resize", resize);
   function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(X(x1), Y(y1)); ctx.lineTo(X(x2), Y(y2)); ctx.stroke(); }
@@ -330,7 +331,7 @@ td.l { color: var(--muted); }
   }
   function grunge(x, y) { return .55 * vnoise(x * .7, y * .7) + .3 * vnoise(x * 2.3 + 7, y * 2.3 - 3) + .15 * vnoise(x * 6.1 - 11, y * 6.1 + 5); }
   var SNOW = { x: -60, y: 48, w: 120, h: 92 }; // the snow covers the whole view
-  var SPX = 6, surfCv = null, snowCv = null, trodCv = null, snowTmp = null, puddles = [];
+  var SPX = 6, surfCv = null, snowCv = null, trodCv = null, puddles = [];
   function sm(a, b, x) { var k = Math.max(0, Math.min(1, (x - a) / (b - a))); return k * k * (3 - 2 * k); }
   // Textures from the shared module (web/src/replay/textures.ts): a new texture seed every time the page renders them.
   var TEXSEED = Math.floor(Math.random() * 1e9);
@@ -344,30 +345,57 @@ td.l { color: var(--muted); }
     snowCv = null; trodCv = null;
     if (SET.weather === "Snow") {
       snowCv = SVTex.snowCanvas(TEXSEED, SPX);
+      // trodCv is the snow as it lies now: a copy of the fresh layer the players tread holes into
       trodCv = document.createElement("canvas"); trodCv.width = snowCv.width; trodCv.height = snowCv.height;
-      snowTmp = document.createElement("canvas"); snowTmp.width = snowCv.width; snowTmp.height = snowCv.height;
+      trodCv.getContext("2d").drawImage(snowCv, 0, 0);
     }
   }
   // Where players run and the ball rolls, the snow is trodden down and the grass shows through.
   function treadSnow(S, dt) {
     if (!trodCv || dt <= 0) return;
     var g = trodCv.getContext("2d");
+    g.globalCompositeOperation = "destination-out";
     g.fillStyle = "rgba(0,0,0," + Math.min(.12, dt * .35) + ")";
     S.ps.forEach(function (p) { if (p.off) return; g.beginPath(); g.arc((p.x - SNOW.x) * SPX, (SNOW.y - p.y) * SPX, .45 * SPX, 0, Math.PI * 2); g.fill(); });
     if (S.bz < .3) { g.fillStyle = "rgba(0,0,0," + Math.min(.3, dt * 1.2) + ")"; g.beginPath(); g.arc((S.bx - SNOW.x) * SPX, (SNOW.y - S.by) * SPX, .16 * SPX, 0, Math.PI * 2); g.fill(); }
   }
-  function ground() {
-    var s = view.s;
-    if (surfCv) ctx.drawImage(surfCv, X(-54), Y(36), 108 * s, 72 * s);
-    if (snowCv) {
-      var g = snowTmp.getContext("2d");
-      g.globalCompositeOperation = "copy"; g.drawImage(snowCv, 0, 0);
-      g.globalCompositeOperation = "destination-out"; g.drawImage(trodCv, 0, 0);
-      g.globalCompositeOperation = "source-over";
-      ctx.drawImage(snowTmp, X(SNOW.x), Y(SNOW.y), SNOW.w * s, SNOW.h * s);
+
+  // Everything that does not move - turf, mud, puddles, the painted lines and the light - is drawn once into an image
+  // and only copied each frame.
+  var bgCv = null, linesCv = null, snowBase = null, snowAt = -1, bgKey = "";
+  function pitch() {
+    var snow = SET.weather === "Snow" && trodCv;
+    var key = cv.width + "x" + cv.height + "|" + SET.weather + SET.grass + SET.snowLines + SET.night + SET.stadium + "|" + (surfCv ? surfCv.width + ":" + TEXSEED + ":" + R.seed + JSON.stringify(R.conditions || {}) : "-");
+    if (key !== bgKey || !bgCv) {
+      bgKey = key;
+      var real = ctx;
+      bgCv = document.createElement("canvas"); bgCv.width = cv.width; bgCv.height = cv.height;
+      ctx = bgCv.getContext("2d"); grass(); if (surfCv) ctx.drawImage(surfCv, X(-54), Y(36), 108 * view.s, 72 * view.s);
+      if (snow) {
+        bakeLight(ctx);
+        linesCv = document.createElement("canvas"); linesCv.width = cv.width; linesCv.height = cv.height;
+        ctx = linesCv.getContext("2d"); lines();
+        snowBase = bgCv; bgCv = document.createElement("canvas"); bgCv.width = cv.width; bgCv.height = cv.height; snowAt = -1;
+      } else { lines(); bakeLight(ctx); linesCv = null; snowBase = null; }
+      ctx = real;
     }
+    // In the snow the picture (turf, the snow as trodden so far, the lines) is put together twice a second, not every frame.
+    if (snow && (snowAt < 0 || Math.abs(performance.now() - snowAt) > 500)) {
+      snowAt = performance.now();
+      var g = bgCv.getContext("2d"), s = view.s;
+      g.drawImage(snowBase, 0, 0); g.drawImage(trodCv, X(SNOW.x), Y(SNOW.y), SNOW.w * s, SNOW.h * s); g.drawImage(linesCv, 0, 0);
+    }
+    ctx.drawImage(bgCv, 0, 0);
   }
-  function pitch() { grass(); ground(); lines(); }
+  // The light that does not move - the floodlit dark of a night match, the dull light of a grey sky - is baked into the
+  // background image instead of being laid over the whole screen every frame (players stand in the floodlights anyway).
+  function bakeLight(g) {
+    if (SET.night) { if (!darkCv || darkCv.width !== cv.width || darkCv.height !== cv.height) buildDark(); g.drawImage(darkCv, 0, 0); return; }
+    var wx = SET.weather;
+    if (wx === "Sunny") { if (!standCv || standCv.key !== SET.stadium + cv.width + "x" + cv.height) buildStandShadow(); g.drawImage(standCv, 0, 0); return; }
+    g.fillStyle = wx === "Rain" ? "rgba(18,28,44,.28)" : wx === "Snow" ? "rgba(40,52,74,.12)" : "rgba(22,30,42,.16)";
+    g.fillRect(0, 0, cv.width, cv.height);
+  }
   function fillC(text, x, y) {
     ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     var m = ctx.measureText(text);
@@ -626,6 +654,7 @@ td.l { color: var(--muted); }
       fillC(String(info.number), x, y);
       if (p.bk) { ctx.fillStyle = "#ffd23f"; ctx.fillRect(x + r * .55, y - r * 1.05, r * .32, r * .45); }
       if (p.inj) injuryMark(x, y, r);
+      if (inShade(p.x, p.y)) { ctx.fillStyle = "rgba(10,24,40,.3)"; ctx.beginPath(); ctx.arc(x, y, r * g * 1.1, 0, Math.PI * 2); ctx.fill(); }
     });
     S.ps.forEach(function (p) { if (p.os) offsideMark(X(p.x), Y(p.y), s); });
     var h = Math.max(0, S.bz - .11), bx = X(S.bx), by = Y(S.by);
@@ -652,7 +681,7 @@ td.l { color: var(--muted); }
     var w = cv.width, h = cv.height, s = view.s, dpr = Math.min(2, window.devicePixelRatio || 1);
     if (SET.weather === "Rain") {
       // seen from above, rain is a fast hail of short streaks blown along by the wind, splashing on the grass
-      var want = Math.round(w * h / 2600);
+      var want = Math.round(w * h / 2600 * (QUALITY ? .55 : 1));
       while (drops.length < want) drops.push({ x: Math.random() * w, y: Math.random() * h, l: .5 + Math.random(), v: .8 + Math.random() * .5 });
       drops.length = want;
       var ws = windScreen(.06), dx = ws.x + .12, dy = 1 + ws.y * .3, dl = Math.hypot(dx, dy); dx /= dl; dy /= dl;
@@ -676,7 +705,7 @@ td.l { color: var(--muted); }
       if (rings.length > 400) rings.splice(0, rings.length - 400);
     }
     if (SET.weather === "Snow") {
-      var want2 = Math.round(w * h / 3800);
+      var want2 = Math.round(w * h / 3800 * (QUALITY ? .55 : 1));
       while (flakes.length < want2) flakes.push({ x: Math.random() * w, y: Math.random() * h, r: (.6 + Math.random() * 1.6) * dpr, ph: Math.random() * 6.3, v: .5 + Math.random() * .8 });
       flakes.length = want2;
       var wsn = windScreen(9 * dpr);
@@ -693,6 +722,7 @@ td.l { color: var(--muted); }
   // (drawn into a small image an eighth of the size and scaled up: soft shadows need no detail, and it is much cheaper)
   var cloudCv = document.createElement("canvas"), cloudCx = cloudCv.getContext("2d");
   function cloudShadows(now, strength) {
+    if (QUALITY >= 1) return; // a weak device keeps its frames for the match
     var k = 8, cw = Math.ceil(cv.width / k), ch = Math.ceil(cv.height / k);
     if (cloudCv.width !== cw || cloudCv.height !== ch) { cloudCv.width = cw; cloudCv.height = ch; }
     var g2 = cloudCx, s = view.s / k, drift = Math.max(1.5, WIND.breeze || WIND.speed) * now * .6;
@@ -729,6 +759,14 @@ td.l { color: var(--muted); }
   // their shade with a sharp edge. A main stand along the far touchline throws a slanting band; a bowl's curved roof
   // shades the top and the left. Drawn once per size into an image.
   var standCv = null;
+  // Is this point of the pitch in the stands' shade? (same shapes as buildStandShadow)
+  var ROOF = [[-70, 5.5], [-47, 8], [-46, 9.6], [-7, 13.8], [-6, 15.5], [33, 19.8], [34, 21.5], [70, 25.5]];
+  function inShade(x, y) {
+    if (SET.night || SET.weather !== "Sunny" || SET.stadium === "open") return false;
+    if (SET.stadium === "bowl") { var ex = (x - 14) / 66, ey = (y + 9) / 47; return ex * ex + ey * ey > 1; }
+    for (var i = 0; i < ROOF.length - 1; i++) if (x >= ROOF[i][0] && x <= ROOF[i + 1][0]) return y > ROOF[i][1] + (ROOF[i + 1][1] - ROOF[i][1]) * (x - ROOF[i][0]) / (ROOF[i + 1][0] - ROOF[i][0]);
+    return false;
+  }
   function buildStandShadow() {
     standCv = document.createElement("canvas"); standCv.width = cv.width; standCv.height = cv.height; standCv.key = SET.stadium + cv.width + "x" + cv.height;
     var g = standCv.getContext("2d"), s = view.s, P = function (x, y) { return [X(x), Y(y)]; };
@@ -743,27 +781,20 @@ td.l { color: var(--muted); }
       g.fill("evenodd");
     } else {
       // the main stand's roof line, with the steps of its trusses
-      var pts = [[-70, 60], [70, 60], [70, 25.5], [34, 21.5], [33, 19.8], [-6, 15.5], [-7, 13.8], [-46, 9.6], [-47, 8], [-70, 5.5]];
+      var pts = [[-70, 60], [70, 60]].concat(ROOF.slice().reverse());
       pts.forEach(function (q, i) { var p2 = P(q[0], q[1]); if (i) g.lineTo(p2[0], p2[1]); else g.moveTo(p2[0], p2[1]); });
       g.closePath(); g.fill();
     }
   }
   function lighting(now) {
     var w = cv.width, h = cv.height, wx = SET.weather;
-    if (SET.night) {
-      if (!darkCv || darkCv.width !== w || darkCv.height !== h) buildDark();
-      ctx.drawImage(darkCv, 0, 0); // built once per size: one image per frame
-      return;
-    }
+    if (SET.night) return; // baked into the background (bakeLight)
     if (wx === "Sunny") {
-      if (!standCv || standCv.key !== SET.stadium + w + "x" + h) buildStandShadow();
-      ctx.drawImage(standCv, 0, 0); // warm sunlight and the stands' shade, one image per frame
+      // (the warm sunlight and the stands' shade are baked into the background; players in the shade are darkened in entities)
       cloudShadows(now, .06);
       return;
     }
-    cloudShadows(now, wx === "Cloudy" ? .1 : .08);
-    ctx.fillStyle = wx === "Rain" ? "rgba(18,28,44,.28)" : wx === "Snow" ? "rgba(40,52,74,.12)" : "rgba(22,30,42,.16)";
-    ctx.fillRect(0, 0, w, h);
+    cloudShadows(now, wx === "Cloudy" ? .1 : .08); // (the grey sky's dull light is baked into the background)
   }
   var WX_ICON = {
     Sunny: '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.2" fill="#ffd34d"/><g stroke="#ffd34d" stroke-width="1.4" stroke-linecap="round"><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3"/></g></svg>',
@@ -992,7 +1023,10 @@ td.l { color: var(--muted); }
                 ["Saves", c.Save], ["Corners", c.Corner], ["Fouls", c.Foul], ["Offsides", c.Offside], ["Yellow cards", c.YellowCard], ["Red cards", c.RedCard]];
     $("facts").innerHTML = rows.map(function (r) { return "<tr><td>" + r[1][0] + '</td><td class="l">' + r[0] + "</td><td>" + r[1][1] + "</td></tr>"; }).join("");
   }
-  function jump(to) { t = Math.max(t0, Math.min(tEnd, to)); lastT = t; shown = -1; if (trodCv) trodCv.getContext("2d").clearRect(0, 0, trodCv.width, trodCv.height); }
+  function jump(to) {
+    t = Math.max(t0, Math.min(tEnd, to)); lastT = t; shown = -1;
+    if (trodCv) { var g = trodCv.getContext("2d"); g.globalCompositeOperation = "copy"; g.drawImage(snowCv, 0, 0); g.globalCompositeOperation = "source-over"; snowAt = -1; }
+  }
 
   function setPlaying(on) {
     playing = on;
@@ -1042,9 +1076,22 @@ td.l { color: var(--muted); }
   $("skip").addEventListener("click", function () { jump(secondHalfT + .01); });
 
   var last = performance.now();
+  // DOM text is only written when it changes (every write makes the browser re-lay out the page).
+  var shownText = {};
+  function setText(id, v) { if (shownText[id] !== v) { shownText[id] = v; $(id).textContent = v; } }
+  // Adaptive quality: when frames take too long (a weak device), first the resolution and the amount of rain / snow
+  // drop, then the picture is drawn at 30 frames a second (an even, smooth pace) instead of stuttering below 60.
+  var QUALITY = 0, frameAvg = 16, slowFor = 0, skip = false;
+  function adaptQuality(ms) {
+    frameAvg = frameAvg * .95 + ms * .05;
+    slowFor = frameAvg > (QUALITY >= 2 ? 36 : 20) ? slowFor + 1 : 0;
+    if (slowFor > 90 && QUALITY < 3) { QUALITY++; slowFor = 0; frameAvg = 16; resize(); }
+  }
   function frame(now) {
-    var dt = Math.max(0, Math.min(.25, (now - last) / 1000)); last = now;
-    if (!R) { requestAnimationFrame(frame); return; }
+    requestAnimationFrame(frame);
+    if (QUALITY >= 3) { skip = !skip; if (skip) return; } // 30 frames a second
+    var dt = Math.max(0, Math.min(.25, (now - last) / 1000)); adaptQuality((now - last) / (QUALITY >= 3 ? 2 : 1)); last = now;
+    if (!R) return;
     var adv = playing && t < tEnd ? Math.min(tEnd - t, dt * speed * SET.pace / 100) : 0;
     t += adv;
     if (!cv.width) resize();
@@ -1055,19 +1102,19 @@ td.l { color: var(--muted); }
     var S = sample(t), second = t >= secondHalfT, ended = t >= tEnd;
     treadSnow(S, adv);
     pitch(); entities(S, now / 1000, adv); weatherFx(now / 1000, dt); lighting(now / 1000);
-    $("sc").textContent = S.hs + "-" + S.as;
+    setText("sc", S.hs + "-" + S.as);
     var mt = S.half ? "HT" : ended ? "FT" : minuteText(S.clock, second);
-    $("mn").textContent = S.half ? "HT" : ended ? "FT" : clockText(S.clock);
+    setText("mn", S.half ? "HT" : ended ? "FT" : clockText(S.clock));
     setReds($("hr"), redCards(0)); setReds($("ar"), redCards(1));
     updateBar(S);
     var inAdded = mt.indexOf("+") > 0;
-    $("ad").hidden = !inAdded;
-    if (inAdded) $("ad").textContent = "+" + addedMinutes[second ? 1 : 0];
-    $("ht").hidden = !S.half;
-    if (S.half) $("htText").textContent = "Second half in " + mmss(secondHalfT - t);
-    seek.value = t; $("rt").textContent = mmss(t - t0) + " / " + mmss(tEnd - t0);
+    if ($("ad").hidden !== !inAdded) $("ad").hidden = !inAdded;
+    if (inAdded) setText("ad", "+" + addedMinutes[second ? 1 : 0]);
+    if ($("ht").hidden !== !S.half) $("ht").hidden = !S.half;
+    if (S.half) setText("htText", "Second half in " + mmss(secondHalfT - t));
+    if (Math.abs(+seek.value - t) > .4) seek.value = t;
+    setText("rt", mmss(t - t0) + " / " + mmss(tEnd - t0));
     rebuildFeed();
-    requestAnimationFrame(frame);
   }
   resize();
   newMatch();

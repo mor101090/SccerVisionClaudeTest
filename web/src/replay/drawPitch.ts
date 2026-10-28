@@ -33,10 +33,60 @@ const py = (v: View, y: number) => v.oy - y * v.scale;
 /** Weather, pitch and light (one per page: the textures are built once per match). */
 export const look = new PitchLook();
 
+/**
+ * Everything that does not move - turf, mud, puddles, the painted lines and the light - is drawn once into an image and
+ * only copied each frame; in the snow the picture (turf, the snow as trodden so far, the lines) is put together twice a
+ * second.
+ */
+let bg: { key: string; canvas: HTMLCanvasElement; base: HTMLCanvasElement | null; lines: HTMLCanvasElement | null; composedAt: number } | null = null;
+
 export function drawPitch(ctx: CanvasRenderingContext2D, v: View, settings: DevSettings) {
+  const w = ctx.canvas.width;
+  const h = ctx.canvas.height;
+  const snow = settings.sky === "Snow";
+  const key = `${w}x${h}|${v.scale}|${settings.grass}|${settings.sky}|${settings.night}|${settings.snowLines}|${settings.stadium}|${look.groundKey}`;
+  const make = () => {
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    return c;
+  };
+  if (!bg || bg.key !== key) {
+    const canvas = make();
+    const g = canvas.getContext("2d");
+    if (!g) return;
+    look.grass(g, v, settings, TOP, BOTTOM);
+    look.ground(g, v);
+    if (snow) {
+      look.bakeLight(g, v, settings);
+      const lines = make();
+      const lg = lines.getContext("2d");
+      if (lg) paintLines(lg, v, settings);
+      bg = { key, canvas: make(), base: canvas, lines, composedAt: -1 };
+    } else {
+      paintLines(g, v, settings);
+      look.bakeLight(g, v, settings);
+      bg = { key, canvas, base: null, lines: null, composedAt: -1 };
+    }
+  }
+  if (bg.base && bg.lines) {
+    const now = performance.now();
+    if (bg.composedAt < 0 || (look.snowChanged && Math.abs(now - bg.composedAt) > 500)) {
+      bg.composedAt = now;
+      look.snowChanged = false;
+      const g = bg.canvas.getContext("2d");
+      if (g) {
+        g.drawImage(bg.base, 0, 0);
+        look.snowLayer(g, v);
+        g.drawImage(bg.lines, 0, 0);
+      }
+    }
+  }
+  ctx.drawImage(bg.canvas, 0, 0);
+}
+
+function paintLines(ctx: CanvasRenderingContext2D, v: View, settings: DevSettings) {
   const s = v.scale;
-  look.grass(ctx, v, settings, TOP, BOTTOM);
-  look.ground(ctx, v);
   const paint = look.linePaint(settings);
   ctx.strokeStyle = paint;
   ctx.lineWidth = Math.max(1, 0.12 * s);
@@ -270,6 +320,12 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
       ctx.fillRect(x + r * 0.55, y - r * 1.05, r * 0.32, r * 0.45);
     }
     if (p.injured) injuryMark(ctx, x, y, r);
+    if (look.inShade(settings, p.x, p.y)) {
+      ctx.fillStyle = "rgba(10,24,40,0.3)";
+      ctx.beginPath();
+      ctx.arc(x, y, r * grow * 1.1, 0, Math.PI * 2);
+      ctx.fill();
+    }
   });
   snap.players.forEach((p) => {
     if (p.offside) offsideMark(ctx, px(v, p.x), py(v, p.y), s);
