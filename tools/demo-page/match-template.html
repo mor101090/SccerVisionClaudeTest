@@ -157,6 +157,7 @@ td.l { color: var(--muted); }
       <div class="srow"><label for="netColor">Goal nets</label><div class="colors"><input id="netColor" type="color" value="#ebf0eb"></div></div>
       <h3>Weather</h3>
       <div class="srow"><span class="l">Sky</span><div class="seg" data-set="weather"><button type="button" data-v="Sunny">Sunny</button><button type="button" data-v="Cloudy">Cloudy</button><button type="button" data-v="Rain">Rain</button><button type="button" data-v="Snow">Snow</button></div></div>
+      <div class="srow"><span class="l">Snow lines</span><div class="seg" data-set="snowLines"><button type="button" data-v="yellow">Yellow</button><button type="button" data-v="orange">Orange</button></div></div>
       <div class="srow"><span class="l">Wind</span><div class="seg" data-set="wind"><button type="button" data-v="0">Calm</button><button type="button" data-v="1">Strong</button></div></div>
       <div class="srow"><span class="l">Kick-off</span><div class="seg" data-set="night"><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div></div>
       <h3>Team colours</h3>
@@ -298,9 +299,10 @@ td.l { color: var(--muted); }
     if (wet) { ctx.fillStyle = "rgba(170,210,230,.05)"; ctx.fillRect(0, 0, cv.width, cv.height); } // wet sheen
   }
   function lines() {
-    var s = view.s, paint = SET.weather === "Snow" ? "#ffffff" : "rgba(255,255,255,.9)"; // crisp white on the snow too
+    // in the snow the lines are painted yellow or orange so they read on the white
+    var s = view.s, paint = SET.weather === "Snow" ? (SET.snowLines === "orange" ? "#f26a1b" : "#f5c518") : "rgba(255,255,255,.9)";
     ctx.strokeStyle = paint; ctx.fillStyle = paint; ctx.lineWidth = Math.max(1, .12 * s);
-    if (SET.weather === "Snow") { ctx.save(); ctx.shadowColor = "rgba(10,40,10,.7)"; ctx.shadowBlur = Math.max(2, .3 * s); ctx.lineWidth = Math.max(1.6, .2 * s); } // cleared lines read on the frost
+    if (SET.weather === "Snow") { ctx.save(); ctx.shadowColor = "rgba(10,30,10,.35)"; ctx.shadowBlur = Math.max(1, .15 * s); ctx.lineWidth = Math.max(1.4, .16 * s); } // cleared lines read on the frost
     // Technical areas (coaches) above the top touchline, either side of the halfway line.
     ctx.strokeRect(X(-19), Y(39.6), 17.5 * s, 3.6 * s); ctx.strokeRect(X(1.5), Y(39.6), 17.5 * s, 3.6 * s);
     ctx.strokeRect(X(-52.5), Y(34), 105 * s, 68 * s); line(0, -34, 0, 34); arc(0, 0, 9.15, 0, Math.PI * 2); dot(0, 0, .2);
@@ -749,7 +751,7 @@ td.l { color: var(--muted); }
   }
 
   // ---- developer settings ----------------------------------------------------------------------------
-  var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null, refs: null };
+  var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null, refs: null, snowLines: "yellow" };
   var SET = (function () { var o = {}; for (var k in DEFAULTS) o[k] = DEFAULTS[k]; try { var st = JSON.parse(localStorage.getItem("sv-dev-settings") || "{}"); for (var k2 in st) if (k2 in DEFAULTS) o[k2] = st[k2]; } catch (e) {} return o; })();
   SET.night = SET.night === true || SET.night === "1";
   function saveSettings() { try { var o = {}; for (var k in DEFAULTS) o[k] = SET[k]; o.night = SET.night ? "1" : "0"; localStorage.setItem("sv-dev-settings", JSON.stringify(o)); } catch (e) {} }

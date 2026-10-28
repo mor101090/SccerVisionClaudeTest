@@ -42,11 +42,11 @@ export function drawPitch(ctx: CanvasRenderingContext2D, v: View, settings: DevS
   ctx.lineWidth = Math.max(1, 0.12 * s);
   const snow = settings.sky === "Snow";
   if (snow) {
-    // the cleared, freshly painted lines read on the frost
+    // the coloured lines on the snow, with a faint edge
     ctx.save();
-    ctx.shadowColor = "rgba(10,40,10,0.7)";
-    ctx.shadowBlur = Math.max(2, 0.3 * s);
-    ctx.lineWidth = Math.max(1.6, 0.2 * s);
+    ctx.shadowColor = "rgba(10,30,10,0.35)";
+    ctx.shadowBlur = Math.max(1, 0.15 * s);
+    ctx.lineWidth = Math.max(1.4, 0.16 * s);
   }
   // Technical areas (coaches) above the top touchline, either side of the halfway line.
   ctx.strokeRect(px(v, -19), py(v, 39.6), 17.5 * s, 3.6 * s);

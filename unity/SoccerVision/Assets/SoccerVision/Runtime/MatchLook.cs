@@ -29,6 +29,8 @@ namespace SoccerVision.Runtime
         public string homeNumber = "", homeKeeper = "", awayNumber = "", awayKeeper = "";
         [Tooltip("Referee and assistants' shirt (hex); empty keeps black with yellow trim")]
         public string officials = "";
+        [Tooltip("Line paint in the snow")]
+        public bool orangeSnowLines;
 
         public MatchLook Clone() => (MatchLook)MemberwiseClone();
 
@@ -70,6 +72,7 @@ namespace SoccerVision.Runtime
             l.awayNumber = d.awayNumber ?? "";
             l.awayKeeper = d.awayKeeper ?? "";
             l.officials = d.officials ?? "";
+            l.orangeSnowLines = d.snowLines == "orange";
             return l;
         }
     }

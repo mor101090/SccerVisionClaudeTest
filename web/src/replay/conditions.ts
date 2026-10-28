@@ -208,9 +208,9 @@ export class PitchLook {
     }
   }
 
-  /** Line paint: white (crisp white, with a soft dark edge, on the snow). */
+  /** Line paint: white, or yellow / orange in the snow so the lines read on the white. */
   linePaint(s: DevSettings) {
-    return s.sky === "Snow" ? "#ffffff" : "rgba(255,255,255,0.9)";
+    return s.sky === "Snow" ? (s.snowLines === "orange" ? "#f26a1b" : "#f5c518") : "rgba(255,255,255,0.9)";
   }
 
   shadowOffset(s: DevSettings) {

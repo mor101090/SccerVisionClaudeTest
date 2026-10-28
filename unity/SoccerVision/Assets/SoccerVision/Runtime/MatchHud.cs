@@ -146,7 +146,7 @@ namespace SoccerVision.Runtime
             GUI.DrawTexture(new Rect(gearRect.center.x - g * 0.5f, gearRect.center.y - g * 0.5f, g, g), _iconGear);
             if (_settingsOpen)
             {
-                var panel = new Rect(right - 380f * s, gearRect.yMax + 8f * s, 380f * s, 336f * s);
+                var panel = new Rect(right - 380f * s, gearRect.yMax + 8f * s, 380f * s, 370f * s);
                 Fill(panel, new Color(0.08f, 0.1f, 0.12f, 0.94f));
                 GUI.Label(new Rect(panel.x + 12f * s, panel.y + 6f * s, panel.width, 26f * s), "<b>SETTINGS</b>  <color=#f2b31b><b>DEV</b></color>", _small);
                 if (GUI.Button(new Rect(panel.xMax - 36f * s, panel.y + 6f * s, 28f * s, 24f * s), "X", _button)) _settingsOpen = false;
@@ -183,6 +183,7 @@ namespace SoccerVision.Runtime
             l.grass = (GrassPattern)Seg("Grass", new[] { "Along", "Across", "Circles" }, (int)l.grass);
             l.upkeep = 2 - Seg("Upkeep", new[] { "Perfect", "Average", "Neglected" }, 2 - l.upkeep);
             l.sky = (Weather)Seg("Sky", new[] { "Sunny", "Cloudy", "Rain", "Snow" }, (int)l.sky);
+            l.orangeSnowLines = Seg("Snow lines", new[] { "Yellow", "Orange" }, l.orangeSnowLines ? 1 : 0) == 1;
             l.windy = Seg("Wind", new[] { "Calm", "Strong" }, l.windy ? 1 : 0) == 1;
             l.night = Seg("Kick-off", new[] { "Day", "Night" }, l.night ? 1 : 0) == 1;
             GUI.Label(new Rect(x, y, panel.width - 24f * s, bh * 2f), "<size=" + Mathf.RoundToInt(11f * s) + ">Team and net colours: inspector or the React settings.</size>", _small);

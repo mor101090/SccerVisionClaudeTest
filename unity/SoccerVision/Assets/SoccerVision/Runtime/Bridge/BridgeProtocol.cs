@@ -38,6 +38,8 @@ namespace SoccerVision.Runtime
         public string homeNumber = "", homeKeeper = "", awayNumber = "", awayKeeper = "";
         /// <summary>Referee and assistants' shirt ("" keeps black with yellow trim).</summary>
         public string officials = "";
+        /// <summary>Line paint in the snow: yellow | orange.</summary>
+        public string snowLines = "yellow";
     }
 
     [Serializable]

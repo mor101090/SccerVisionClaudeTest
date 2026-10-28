@@ -86,10 +86,10 @@ namespace SoccerVision.Runtime
 
             if (snow)
             {
-                // the cleared, freshly painted lines read on the frost: a soft dark edge under crisp white
-                _line = new Color32(20, 52, 20, 120);
-                DrawMarkings(0.34f);
-                _line = new Color32(255, 255, 255, 255);
+                // in the snow the lines are painted yellow or orange so they read on the white (with a faint edge)
+                _line = new Color32(20, 52, 20, 60);
+                DrawMarkings(0.24f);
+                _line = _look.orangeSnowLines ? new Color32(242, 106, 27, 255) : new Color32(245, 197, 24, 255);
             }
             DrawMarkings(0.12f);
 
@@ -268,11 +268,15 @@ namespace SoccerVision.Runtime
                 for (int x = 0; x < _w; x++)
                 {
                     float wx = x / _ppm - Pitch.HalfLength - Margin;
-                    float cover = 0.52f + 0.32f * Warped(wx * 0.07f + 50f, wy * 0.07f, 4);
+                    // the pitch cleared to a light dusting; beyond the touchlines thick snow, piled into a bank just outside
+                    float outside = Mathf.Max(Mathf.Abs(wx) - 52.5f, Mathf.Abs(wy) - 34f);
+                    float offPitch = Smooth(0.6f, 2.6f, outside), bank = Mathf.Exp(-((outside - 2.2f) / 1.1f) * ((outside - 2.2f) / 1.1f));
+                    float drift = Warped(wx * 0.07f + 50f, wy * 0.07f, 4);
+                    float cover = (0.3f + 0.22f * drift) * (1f - offPitch) + (0.93f + 0.07f * drift) * offPitch + 0.1f * bank;
                     float streak = Perlin(wx * 0.35f, wy * 2.2f) * 0.5f + 0.5f, fine = Perlin(wx * 2.4f, wy * 2.4f) * 0.5f + 0.5f, grain = Grain(x, y);
                     float v = fine * 0.6f + streak * 0.25f + grain * 0.15f;
-                    float a = Smooth(1.05f - cover - 0.16f, 1.05f - cover + 0.16f, v) * 0.88f;
-                    float shade = (226f + 18f * fine + 8f * grain) / 255f;
+                    float a = Mathf.Min(1f, Smooth(1.05f - cover - 0.16f, 1.05f - cover + 0.16f, v) * (0.82f + 0.18f * offPitch));
+                    float shade = (228f + 18f * fine + 8f * grain - 10f * bank * (1f - fine)) / 255f;
                     int i = y * _w + x;
                     _px[i] = Color.Lerp(_px[i], new Color(shade - 6f / 255f, shade - 2f / 255f, Mathf.Min(1f, shade + 8f / 255f)), a);
                 }

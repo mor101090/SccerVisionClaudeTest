@@ -132,6 +132,8 @@ export interface LookSettings {
   awayKeeper: string;
   /** referee and assistants' shirt */
   officials: string;
+  /** line paint in the snow: yellow | orange */
+  snowLines: string;
 }
 
 export type BridgeCommand =

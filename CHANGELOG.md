@@ -2,6 +2,15 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/snow-cleared-pitch-coloured-lines`
+
+- **Snow as in the reference games** (demo page, React and Unity):
+  - The pitch has been cleared to a light, speckled dusting, so the green and the mowing stripes show.
+  - Beyond the touchlines the snow lies thick, piled into a soft bank just outside the lines where it was pushed off.
+  - The lines are painted **yellow** or **orange** so they read on the snow.
+- New developer setting **Snow lines: Yellow / Orange** (default yellow), also in the Unity HUD and over the bridge
+  (`snowLines`).
+
 ## `fix/colours-frame-snow-mud-night`
 
 - **More colours in the developer settings** (demo page, React and Unity):

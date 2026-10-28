@@ -269,15 +269,20 @@ export function snowCanvas(seed: number, ppm = 6): HTMLCanvasElement {
     for (let px = 0; px < w; px++) {
       const x = A.x + (px + 0.5) / ppm;
       const y = A.y - (py + 0.5) / ppm;
-      const cover = 0.52 + 0.32 * n.warped(x * 0.07, y * 0.07, 4); // thick and thin areas
+      // the pitch has been cleared to a light dusting; beyond the touchlines the snow lies thick, piled into a soft
+      // bank just outside the lines where it was pushed off
+      const out = Math.max(Math.abs(x) - 52.5, Math.abs(y) - 34);
+      const offPitch = smooth(0.6, 2.6, out);
+      const bank = Math.exp(-(((out - 2.2) / 1.1) ** 2));
+      const drift = n.warped(x * 0.07, y * 0.07, 4);
+      const cover = (0.3 + 0.22 * drift) * (1 - offPitch) + (0.93 + 0.07 * drift) * offPitch + 0.1 * bank;
       const streak = n.perlin(x * 0.35, y * 2.2) * 0.5 + 0.5; // drifts along the mowing direction
       const fine = n.perlin(x * 2.4, y * 2.4) * 0.5 + 0.5;
       const grain = Noise.hash(px, py);
       const v = fine * 0.6 + streak * 0.25 + grain * 0.15;
-      // frost: mostly covered, the green shows through where it is thin
-      const a = smooth(1.05 - cover - 0.16, 1.05 - cover + 0.16, v) * 0.88;
+      const a = Math.min(1, smooth(1.05 - cover - 0.16, 1.05 - cover + 0.16, v) * (0.82 + 0.18 * offPitch));
       const o = (py * w + px) * 4;
-      const shade = 226 + 18 * fine + 8 * grain; // frost a shade off white, so the painted lines stand out
+      const shade = 228 + 18 * fine + 8 * grain - 10 * bank * (1 - fine); // a little shadow in the piled bank
       d[o] = shade - 6;
       d[o + 1] = shade - 2;
       d[o + 2] = Math.min(255, shade + 8);

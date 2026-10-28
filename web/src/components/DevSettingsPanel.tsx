@@ -67,6 +67,10 @@ export function DevSettingsPanel({ value: s, onChange, kits, names, note }: Prop
         <Seg<Sky> options={[["Sunny", "Sunny"], ["Cloudy", "Cloudy"], ["Rain", "Rain"], ["Snow", "Snow"]]} value={s.sky} onPick={(sky) => set({ sky })} />
       </div>
       <div className="srow">
+        <span className="l">Snow lines</span>
+        <Seg<"yellow" | "orange"> options={[["yellow", "Yellow"], ["orange", "Orange"]]} value={s.snowLines} onPick={(snowLines) => set({ snowLines })} />
+      </div>
+      <div className="srow">
         <span className="l">Wind</span>
         <Seg<boolean> options={[[false, "Calm"], [true, "Strong"]]} value={s.windy} onPick={(windy) => set({ windy })} />
       </div>

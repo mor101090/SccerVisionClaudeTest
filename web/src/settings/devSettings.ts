@@ -30,6 +30,8 @@ export interface DevSettings {
   away: TeamColours | null;
   /** Referee and assistants' shirt (null: black with yellow trim). */
   refs: string | null;
+  /** Line paint in the snow. */
+  snowLines: "yellow" | "orange";
 }
 
 export const DEFAULT_SETTINGS: DevSettings = {
@@ -43,6 +45,7 @@ export const DEFAULT_SETTINGS: DevSettings = {
   home: null,
   away: null,
   refs: null,
+  snowLines: "yellow",
 };
 
 const KEY = "sv-dev-settings-react";

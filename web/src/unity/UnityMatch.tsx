@@ -90,6 +90,7 @@ function UnityPlayer() {
           awayNumber: s.away?.number ?? "",
           awayKeeper: s.away?.gk ?? "",
           officials: s.refs ?? "",
+          snowLines: s.snowLines,
         },
       }),
     [send],
