@@ -136,8 +136,13 @@ td.l { color: var(--muted); }
 .pc-body svg { width: 112px; height: 104px; display: block; }
 .pc-body svg .web { fill: none; stroke: #33463b; stroke-width: .8; }
 .pc-body svg .val { fill: rgba(242,179,27,.35); stroke: var(--amber); stroke-width: 1.3; }
-.pc-body svg text { fill: #c9d6cd; font: 700 8px var(--body); }
+.pc-body svg text { fill: #c9d6cd; font: 700 7px var(--body); }
 .pc-kv { display: grid; gap: 3px; }
+.pc-meta div { color: #c9d6cd; }
+.pc-energy { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px; margin-top: 3px; }
+.pc-energy i { height: 6px; border-radius: 3px; background: #2e3f35; overflow: hidden; display: block; }
+.pc-energy b { display: block; height: 100%; width: 100%; }
+.pc-energy em { font-style: normal; font-variant-numeric: tabular-nums; color: var(--text); }
 .pc-kv div { display: flex; justify-content: space-between; }
 .pc-kv div b { font-variant-numeric: tabular-nums; }
 
@@ -345,6 +350,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 (function () {
   "use strict";
   var STAGED_SEED = __STAGED_SEED__;
+  // The engine lives in a folder named after its build, so a browser or CDN never mixes a new page with old engine files.
+  var ENGINE_DIR = "__ENGINE_DIR__";
   var R, F, E, teams, t0, tEnd, secondHalfT, t, shown = -1;
   var PB = 9, PS = 5, OB = PB + 22 * PS;
   var playing = true, speed = 1, current = -1, addedMinutes = [0, 0];
@@ -797,6 +804,15 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   }
   // A player: a plain circle in the shirt colour with a thin black edge and the number (the design's player marker).
   var PLAYER_EDGE = "#1a1a1a";
+  // Two small boots peeking out under the circle, pointing where the player faces (static, as in the design).
+  function playerFeet(x, y, r, facing) {
+    var a = -facing, c = Math.cos(a), sn = Math.sin(a);
+    ctx.fillStyle = "#e9ecef"; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = Math.max(.6, r * .06);
+    [-1, 1].forEach(function (side) {
+      var fx = x + c * r * .9 - sn * r * .44 * side, fy = y + sn * r * .9 + c * r * .44 * side;
+      ctx.beginPath(); ctx.ellipse(fx, fy, r * .32, r * .22, a, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    });
+  }
   function playerDisc(x, y, r, fill) { var lw = Math.max(1.2, r * .12); ctx.beginPath(); ctx.arc(x, y, r - lw / 2, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = PLAYER_EDGE; ctx.stroke(); }
   function disc(x, y, r, fill, stroke) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = stroke; ctx.stroke(); }
   function entities(S, now, dt) {
@@ -816,6 +832,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * 2.2 * s, g = 1 + jh * .1, sh = 1 - jh * .6;
       if (p.sl || p.gr) { downPlayer(p, tm, info, x, gy); if (p.inj) injuryMark(x, gy, r); return; }
       castShadow(p.x, p.y, x, gy, r * 1.05 * sh, r * .95 * sh, .5 * sh);
+      playerFeet(x, y, r * g, p.f);
       playerDisc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary);
       ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * g * 1.05) + "px Barlow, system-ui, sans-serif";
       fillC(String(info.number), x, y);
@@ -1113,7 +1130,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   function startWorker() {
     if (workerReady) return workerReady;
     workerReady = new Promise(function (resolve, reject) {
-      try { worker = new Worker("engine/worker.js", { type: "module" }); } catch (e) { reject(e); return; }
+      try { worker = new Worker(ENGINE_DIR + "worker.js", { type: "module" }); } catch (e) { reject(e); return; }
       worker.onerror = function (e) { reject(new Error(e.message || "worker failed")); };
       worker.onmessage = function (ev) {
         var m = ev.data;
@@ -1123,7 +1140,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
         else if (m.type === "header") beginMatch(JSON.parse(m.header));
         else if (m.type === "chunk") appendChunk(m);
       };
-      worker.postMessage({ cmd: "init", base: new URL("engine/", location.href).href });
+      worker.postMessage({ cmd: "init", base: new URL(ENGINE_DIR, location.href).href });
     });
     workerReady.catch(function (e) { workerReady = null; engineError(e.message); });
     return workerReady;
@@ -1271,7 +1288,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       if (e.type === "SecondHalfStart" && secondHalfT === Infinity) secondHalfT = e.t;
       if (e.type === "AddedTime") { var am = parseInt(String(e.text).replace(/[^0-9]/g, ""), 10) || 0; if (e.t < secondHalfT) addedMinutes[0] = am; else addedMinutes[1] = am; }
     });
-    for (i = 0; i < m.stats.length; i += 15) R.stats.push(Array.prototype.slice.call(m.stats, i, i + 15));
+    var SL = 15 + 22; // the time, 14 team stats, the energy left of the 22 players
+    for (i = 0; i < m.stats.length; i += SL) R.stats.push(Array.prototype.slice.call(m.stats, i, i + SL));
     if (F.length) { if (F.length === n) { t0 = F[0][0] / 100; t = t0; lastT = t0; seek.min = t0; } tEnd = F[F.length - 1][0] / 100; seek.max = tEnd; }
     if (m.finished) finished = true;
     if (resumeAt !== null && tEnd >= t0 + resumeAt) { t = lastT = t0 + resumeAt; resumeAt = null; }
@@ -1382,6 +1400,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     lastT = t; snd.tick(dt);
     var S = sample(t), second = t >= secondHalfT, ended = finished && t >= tEnd;
     lastS = S;
+    if (!$("pcard").hidden && now - (frame.cardAt || 0) > 500) { frame.cardAt = now; updateCardEnergy(); }
     treadSnow(S, adv);
     pitch(); entities(S, now / 1000, adv); weatherFx(now / 1000, dt); lighting(now / 1000);
     setText("sc", S.hs + "-" + S.as);
@@ -1408,20 +1427,38 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var tm = teams[i < 11 ? 0 : 1], cur = infoAt(i), base = tm.players[i % 11], p = base;
     if (cur !== base) { (tm.bench || []).forEach(function (b) { if (b.number === cur.number) p = b; }); if (p === base) p = { number: cur.number, name: cur.shortName, role: "SUB" }; }
     var gk = i % 11 === 0 && p === base, c = p.cats || [0, 0, 0, 0, 0, 0];
-    var axes = [["ATT", c[3]], ["ATH", c[4]], ["PLA", c[2]], ["DEF", c[1]], ["MEN", c[0]]], cx = 56, cy = 54, R = 38;
+    var axes = [["ATT", c[3]], ["ATH", c[4]], ["PLA", c[2]], ["DEF", c[1]], ["MEN", c[0]]], cx = 56, cy = 54, R = 34;
     var pt = function (k, v) { var a = -Math.PI / 2 + k * 2 * Math.PI / 5; return [cx + Math.cos(a) * R * v, cy + Math.sin(a) * R * v]; };
     var poly = function (v) { return axes.map(function (_, k) { return pt(k, typeof v === "number" ? v : v[k]).map(function (n) { return n.toFixed(1); }).join(","); }).join(" "); };
     var svg = '<svg viewBox="0 0 112 104" aria-hidden="true">' + [1, .66, .33].map(function (f) { return '<polygon class="web" points="' + poly(f) + '"/>'; }).join("") +
-      '<polygon class="val" points="' + poly(axes.map(function (a) { return Math.max(.04, a[1] / 100); })) + '"/>' +
-      axes.map(function (a, k) { var q = pt(k, 1.22); return '<text x="' + q[0].toFixed(1) + '" y="' + (q[1] + 3).toFixed(1) + '" text-anchor="middle">' + a[0] + "</text>"; }).join("") + "</svg>";
+      '<polygon class="val" points="' + poly(axes.map(function (a) { return Math.max(.05, Math.min(1, (a[1] - 10) / 85)); })) + '"/>' +
+      axes.map(function (a, k) { var q = pt(k, 1.3); return '<text x="' + q[0].toFixed(1) + '" y="' + (q[1] + 3).toFixed(1) + '" text-anchor="middle">' + a[0] + " " + a[1] + "</text>"; }).join("") + "</svg>";
     var kv = function (k, v) { return "<div><span>" + k + "</span><b>" + v + "</b></div>"; };
     var el = $("pcard");
     el.style.setProperty("--pc", gk ? tm.kit.gk : tm.kit.primary);
     el.innerHTML = '<div class="pc-top"><b></b><span></span></div><div class="pc-meta"></div><div class="pc-body">' + svg + '<div class="pc-kv">' +
       (gk ? kv("Goalkeeping", c[5]) : kv("Attacking", c[3])) + kv("Speed", p.speed != null ? p.speed : "-") + kv("Passing", p.passing != null ? p.passing : "-") + kv("Stamina", p.stamina != null ? p.stamina : "-") + "</div></div>";
-    el.querySelector(".pc-top b").textContent = "#" + p.number + " " + (p.name || p.shortName);
+    el.querySelector(".pc-top b").textContent = p.number + " " + (p.name || p.shortName);
     el.querySelector(".pc-top span").textContent = p.role || "";
-    el.querySelector(".pc-meta").textContent = p.height ? p.height + " cm · " + (p.foot === "Both" ? "both feet" : p.foot + " foot (weak foot " + p.weakFoot + "/3)") + " · " + p.age + " y · fitness " + p.fitness : "";
+    var meta = el.querySelector(".pc-meta");
+    meta.innerHTML = "";
+    if (p.height) {
+      [p.height + " cm · " + p.age + " years",
+       (p.foot === "Both" ? "Two-footed" : p.foot + "-footed") + " · weak foot " + p.weakFoot + "/3",
+       "Fitness: " + p.fitness].forEach(function (line) { var d = document.createElement("div"); d.textContent = line; meta.appendChild(d); });
+    }
+    var en = document.createElement("div"); en.className = "pc-energy"; en.innerHTML = '<span>Stamina left</span><i><b></b></i><em></em>'; meta.appendChild(en);
+    el.dataset.slot = String(i);
+    updateCardEnergy();
+  }
+  // How much energy the player has left now (the replay records it every second).
+  function updateCardEnergy() {
+    var el = $("pcard"), i = +el.dataset.slot, ST = R && R.stats || [], row = null;
+    if (el.hidden && el.dataset.i) return;
+    for (var q = ST.length - 1; q >= 0; q--) if (ST[q][0] / 100 <= t) { row = ST[q]; break; }
+    var v = row && row.length > 15 + i ? row[15 + i] : 100, bar = el.querySelector(".pc-energy b"), num = el.querySelector(".pc-energy em");
+    if (!bar) return;
+    bar.style.width = v + "%"; bar.style.background = v > 70 ? "#4fd16f" : v > 50 ? "#f2c230" : "#ff6a4a"; num.textContent = v + "%";
   }
   cv.addEventListener("mousemove", function (ev) {
     var el = $("pcard");

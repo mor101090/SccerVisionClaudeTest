@@ -27,7 +27,8 @@ namespace SoccerVision.Replay
     /// </summary>
     public sealed class ReplayRecorder
     {
-        public const int StatsLength = 15;
+        /// <summary>Stats row: the time, 14 team stats, then the energy left of each of the 22 players (0-100).</summary>
+        public const int StatsLength = 15 + 22;
         private const int PlayerBase = 9;
         private const int PlayerStride = 5;
         public static readonly int FrameLength = PlayerBase + 22 * PlayerStride + 3 * 3;
@@ -118,7 +119,7 @@ namespace SoccerVision.Replay
             b.Append(",\"away\":");
             Team(b, e.Away, finalStats);
             b.Append(",\"frameLayout\":\"t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked,8=caught offside,16=sliding,32=on the ground,64=injured)] x22, then officials [x*10, y*10, flag] x3\"");
-            b.Append(",\"statsLayout\":\"t*100, possession home/away (s*10), shots h/a, on target h/a, tackles h/a, tackles won h/a, dribbles h/a, dribbles won h/a\"");
+            b.Append(",\"statsLayout\":\"t*100, possession home/away (s*10), shots h/a, on target h/a, tackles h/a, tackles won h/a, dribbles h/a, dribbles won h/a, then the energy left of the 22 players (0-100)\"");
             return b.ToString();
         }
 
@@ -209,6 +210,7 @@ namespace SoccerVision.Replay
                     _stats.Add(hs.Shots); _stats.Add(aw.Shots); _stats.Add(hs.ShotsOnTarget); _stats.Add(aw.ShotsOnTarget);
                     _stats.Add(hs.Tackles); _stats.Add(aw.Tackles); _stats.Add(hs.TacklesWon); _stats.Add(aw.TacklesWon);
                     _stats.Add(hs.Dribbles); _stats.Add(aw.Dribbles); _stats.Add(hs.DribblesWon); _stats.Add(aw.DribblesWon);
+                    foreach (var p in _engine.AllPlayers) _stats.Add((int)MathF.Round(p.Energy * 100f));
                 }
                 if (_engine.Phase == MatchPhase.HalfTimeBreak) continue;
                 AppendFrame();

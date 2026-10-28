@@ -309,7 +309,9 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     const grow = 1 + h * 0.1;
     const shrink = 1 - h * 0.6;
     look.shadow(ctx, v, settings, p.x, p.y, x, gy, r * 1.05 * shrink, r * 0.95 * shrink, 0.5 * shrink);
-    // the design's player marker: a plain circle in the shirt colour, a thin black edge, the number
+    // the design's player marker: two small boots peeking out (pointing where he faces), a plain circle in the shirt
+    // colour with a thin black edge, the number
+    feet(ctx, x, y, r * grow, p.facing);
     disc(ctx, x, y, r * grow, p.gk ? team.kit.gk : team.kit.primary, PLAYER_EDGE, 0.12);
     ctx.fillStyle = p.gk ? team.kit.gkNumber : team.kit.number;
     ctx.font = `bold ${Math.max(8, r * grow * 1.05)}px system-ui, sans-serif`;
@@ -541,6 +543,22 @@ function drawDownPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
   ctx.strokeStyle = stroke;
   ctx.stroke();
   ctx.restore();
+}
+
+/** Two small boots under a player's circle, pointing where he faces (static, as in the design). */
+function feet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, facing: number) {
+  const a = -facing;
+  const c = Math.cos(a);
+  const sn = Math.sin(a);
+  ctx.fillStyle = "#e9ecef";
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
+  ctx.lineWidth = Math.max(0.6, r * 0.06);
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(x + c * r * 0.9 - sn * r * 0.44 * side, y + sn * r * 0.9 + c * r * 0.44 * side, r * 0.32, r * 0.22, a, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
 }
 
 /** The players' edge colour (the design's marker: shirt colour, thin black edge, number). */

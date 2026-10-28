@@ -20,6 +20,8 @@ namespace SoccerVision.Runtime
         private Transform _body, _lift;
         private SpriteRenderer _fill, _ring, _shadow, _card, _streak;
         private static readonly Color Edge = new Color(0.1f, 0.1f, 0.1f);
+        private Transform _feet;
+        private readonly SpriteRenderer[] _boots = new SpriteRenderer[2];
         private readonly SpriteRenderer[] _extraShadows = new SpriteRenderer[3];
         private readonly Vector3[] _lights = new Vector3[4];
         private GameObject _injury;
@@ -44,6 +46,16 @@ namespace SoccerVision.Runtime
             _fill = SpriteFactory.AddSprite(_body, "Fill", SpriteFactory.Circle, kit, 12, 1f);
             // the design's player marker: shirt colour, a thin black edge, the number
             _ring = SpriteFactory.AddSprite(_body, "Ring", SpriteFactory.ThinRing, Edge, 13, 1f);
+            // two small boots peeking out under the circle, pointing where he faces (static, as in the design)
+            _feet = new GameObject("Feet").transform;
+            _feet.SetParent(_body, false);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var boot = SpriteFactory.AddSprite(_feet, "Boot", SpriteFactory.Circle, new Color(0.91f, 0.925f, 0.937f), 11, 1f);
+                boot.transform.localPosition = new Vector3(0.45f, 0.22f * side, 0f);
+                boot.transform.localScale = new Vector3(0.32f, 0.22f, 1f);
+                _boots[side < 0 ? 0 : 1] = boot;
+            }
             _streak = SpriteFactory.AddSprite(transform, "SlideStreak", SpriteFactory.Square, new Color(0.88f, 0.94f, 0.8f, 0.3f), 11, 1f);
             _streak.enabled = false;
             // TextMesh world height ~= fontSize * characterSize * 0.1 (relative to the 1-unit body here).
@@ -172,6 +184,8 @@ namespace SoccerVision.Runtime
             _ring.transform.localRotation = rot;
             _fill.transform.localScale = scale;
             _ring.transform.localScale = scale;
+            _feet.gameObject.SetActive(!down);
+            if (!down) _feet.localRotation = Quaternion.Euler(0f, 0f, facing * Mathf.Rad2Deg);
             _streak.enabled = sliding;
             if (sliding)
             {
@@ -194,6 +208,8 @@ namespace SoccerVision.Runtime
             void Set(SpriteRenderer sr) { var c = sr.color; c.a = a; sr.color = c; }
             Set(_fill);
             Set(_ring);
+            Set(_boots[0]);
+            Set(_boots[1]);
             var n = _number.color; n.a = a; _number.color = n;
             gameObject.SetActive(a > 0.01f || !Agent.SentOff);
         }

@@ -45,12 +45,15 @@ Each round of changes is developed on its own branch, named after what it change
   is left behind the line.
 - **Tactics board**: the defensive line is one solid line; the "balls in behind" arrows start from the two wingers;
   the whole shape moves with the line.
-- **Player marker as in the design**: a plain circle in the shirt colour with a thin black edge and the number (no
-  trim ring) - demo page, React, Unity.
+- **Player marker as in the design**: a plain circle in the shirt colour with a thin black edge, the number, and two
+  small boots peeking out under it, pointing where the player faces (static) - demo page, React, Unity.
 - **Logo without the white box**: the scoreboard's SoccerVision logo is the new transparent PNG (demo, React, Unity).
-- **Player card on hover** (design doc: tooltip with the player's skills): name, number, position, height, foot and
-  weak foot, age, fitness, a pentagon of the five skill categories (ATT, ATH, PLA, DEF, MEN, as on the web game's
-  player page) and speed, passing and stamina. The replay header now carries these, and the bench.
+- **Player card on hover** (design doc: tooltip with the player's skills): number and name, position, height and age,
+  right-/left-footed and the weak-foot level, fitness, **stamina left now** (a live bar), a pentagon of the five skill
+  categories with their values (ATT, ATH, PLA, DEF, MEN, as on the web game's player page) and attacking, speed,
+  passing and stamina. The replay header now carries these, and the bench; the stats rows carry every player's energy.
+- **The engine is published in a folder named after its build** (`docs/engine/<version>/`): a browser or the CDN can
+  no longer pair a new page with old cached engine files (that is why the card showed ATT 0 and no foot or fitness).
 - **Skills checked against the Stats spec** (Notion, "Stats"): every skill does what the spec says. Changed to match it:
   - **Fitness** changes all of a player's skills: low -10%, moderate unchanged, peak +5% (before, it only changed how
     fresh he started).
