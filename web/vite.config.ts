@@ -21,6 +21,7 @@ function newReplayApi(): Plugin {
         const extra: string[] = [];
         const weather = url.searchParams.get("weather");
         if (weather && /^(sunny|cloudy|rain|snow)$/.test(weather)) extra.push("--weather", weather);
+        if (url.searchParams.get("script") === "staged") extra.push("--script", "staged");
         for (const key of ["maintenance", "wind", "windangle"]) {
           const v = url.searchParams.get(key);
           if (v && /^\d{1,3}(\.\d{1,3})?$/.test(v)) extra.push("--" + key, v);

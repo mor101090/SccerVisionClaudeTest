@@ -90,6 +90,10 @@ namespace SoccerVision.Simulation
         public float SpinDecayPerSecond = 0.25f;
         public float NetRestitution = 0.12f;
 
+        // ---- Staged match -----------------------------------------------------------------------------
+        /// <summary>Incidents forced at fixed moments (null: an ordinary match). See <see cref="MatchScript"/>.</summary>
+        public MatchScript Script;
+
         // ---- Weather and pitch ------------------------------------------------------------------------
         /// <summary>Weather, wind and the state of the pitch (see <see cref="MatchConditions"/>).</summary>
         public MatchConditions Conditions = new MatchConditions();

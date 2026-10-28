@@ -31,3 +31,4 @@ Thumbs.db
 # Built by tools/demo-page/build.sh and published to the `demo` branch by CI
 docs/index.html
 docs/conditions/
+docs/engine/

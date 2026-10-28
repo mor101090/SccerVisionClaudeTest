@@ -92,7 +92,10 @@ namespace SoccerVision.Runtime
 
         // ---- Match lifecycle -----------------------------------------------------------------------------------
 
-        public void StartMatch(long matchSeed)
+        /// <summary>The staged match (a light injury, a yellow, a direct red, a serious injury, a second yellow): same every time.</summary>
+        public const long StagedSeed = 7274;
+
+        public void StartMatch(long matchSeed, bool staged = false)
         {
             seed = matchSeed;
             var config = MatchConfig.CreateDefault();
@@ -100,6 +103,7 @@ namespace SoccerVision.Runtime
             config.HalftimeRealSeconds = Mathf.Max(0f, halftimeRealSeconds);
             config.MotionSpeed = Mathf.Clamp(motionSpeed, 0.5f, 6f);
             config.Conditions = look.ToConditions(matchSeed);
+            if (staged) config.Script = MatchScript.Staged();
             var home = DemoTeams.Red();
             var away = DemoTeams.Blue();
             Recolour(home.Kit, look.homePrimary, look.homeSecondary, look.homeNumber, look.homeKeeper, look.homeKeeperTrim, look.homeKeeperNumber);

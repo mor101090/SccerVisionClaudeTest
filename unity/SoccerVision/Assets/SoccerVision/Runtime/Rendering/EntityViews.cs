@@ -204,7 +204,7 @@ namespace SoccerVision.Runtime
     public sealed class BallView : MonoBehaviour
     {
         public const float Diameter = 0.75f;
-        private SpriteRenderer _ball, _shadow;
+        private SpriteRenderer _ball, _shadow, _glow;
         private Ball3DTexture _look;
         private readonly Vector3[] _lights = new Vector3[4];
         private TrailRenderer _trail;
@@ -222,6 +222,9 @@ namespace SoccerVision.Runtime
             _ball = go.AddComponent<SpriteRenderer>();
             _ball.sprite = _look.Sprite;
             _ball.sortingOrder = 50;
+            // the snow ball's glow: a soft orange halo (lit only in the snow)
+            _glow = SpriteFactory.AddSprite(body, "Glow", SpriteFactory.Shadow, new Color(1f, 0.45f, 0f, 0.9f), 49, 3.4f);
+            _glow.gameObject.SetActive(false);
             _trail = body.gameObject.AddComponent<TrailRenderer>();
             _trail.time = 0.18f;
             _trail.startWidth = Diameter * 0.8f;
@@ -259,6 +262,7 @@ namespace SoccerVision.Runtime
             bool held = !inPlay || (ball.Owner != null && (ball.InHands || ball.Owner.IsGoalkeeper || z > 0.4f));
             _look.Spin(new Vector2(x, y), h, dt, held);
             _look.Winter = Atmosphere.Look.sky == Weather.Snow;
+            _glow.gameObject.SetActive(_look.Winter);
             _look.Redraw();
             Atmosphere.Shadows(new Vector2(x, y), _lights);
             _shadow.transform.localPosition = new Vector3(_lights[0].x, _lights[0].y, 0f) * (Atmosphere.Look.night ? 0f : 1f);

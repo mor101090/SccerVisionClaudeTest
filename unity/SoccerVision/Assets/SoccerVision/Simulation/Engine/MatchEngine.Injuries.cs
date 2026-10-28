@@ -25,6 +25,7 @@ namespace SoccerVision.Simulation
         private void MaybeInjure(PlayerAgent p, float pLight, float pSerious, string cause)
         {
             if (p == null || p.SentOff || p.Injury == InjuryLevel.Serious) return;
+            if (ScriptExclusive && cause != "script") return; // a staged match has only its own injuries
             // Fitter, stronger players get hurt a little less; tired ones more.
             float resilience = 1.15f - 0.3f * MathUtil.A(p.Attr.PhysicalPower) + 0.3f * (1f - MathUtil.Clamp01(p.Energy));
             float r = _rng.NextFloat();
@@ -75,7 +76,7 @@ namespace SoccerVision.Simulation
         /// <summary>Muscle strains: sprinting flat out on tired legs now and then pulls a hamstring.</summary>
         private void MaybeStrain(PlayerAgent p, float intensity, float clockDt)
         {
-            if (p.IsGoalkeeper || intensity < 0.85f || p.Injury == InjuryLevel.Serious || Phase != MatchPhase.Live) return;
+            if (p.IsGoalkeeper || intensity < 0.85f || p.Injury == InjuryLevel.Serious || Phase != MatchPhase.Live || ScriptExclusive) return;
             float tired = 1.25f - MathUtil.Clamp01(p.Energy);
             float rate = 0.00006f * tired * tired * (1.3f - 0.6f * MathUtil.A(p.Attr.Stamina));
             if (!_rng.Chance(rate * clockDt)) return;

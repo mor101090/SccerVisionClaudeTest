@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <!-- The match engine running in the browser (the demo page): matches are generated live, so every "random" match is
+       truly random and the live match can be driven by the viewer. Build: dotnet publish -c Release -o <dir>
+       (no workload needed); the page loads <dir>/wwwroot/_framework/dotnet.js in a Web Worker. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmEnableThreads>false</WasmEnableThreads>
+    <NoWarn>CA1416</NoWarn>
+    <!-- trim the unused parts of the .NET library (37 MB -> a few MB); the engine itself is plain code, no reflection -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+    <BlazorEnableCompression>false</BlazorEnableCompression>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SoccerVision.Replay/SoccerVision.Replay.csproj" />
+  </ItemGroup>
+</Project>

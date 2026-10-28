@@ -448,6 +448,13 @@ namespace SoccerVision.Simulation
                     if (t < t1) { second = best; t2 = t1; best = d; t1 = t; }
                     else if (t < t2) { second = d; t2 = t; }
                 }
+                // staged match: the cautioned player goes at the ball carrier (he is about to commit his second foul)
+                if (_scriptPresser != null && !_scriptPresser.SentOff && !_scriptPresser.IsDown && _scriptPresser.Team == def)
+                {
+                    def.Presser = _scriptPresser;
+                    AssignCover(def, carrier);
+                    return;
+                }
                 var tac = def.Tactics;
                 // Pressing trigger: how far from his zone a player will engage the carrier.
                 float engage = 8f + 14f * tac.PressingIntensity;

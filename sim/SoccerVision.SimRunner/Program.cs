@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using SoccerVision.Replay;
 using SoccerVision.Simulation;
 
 // Headless match runner: calibration statistics against real football, timelines and replay export.
@@ -21,6 +22,7 @@ string replayPath = null;
 float? motion = null;
 int replayFps = 8;
 var conditions = new MatchConditions();
+MatchScript script = null;
 for (int i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -37,6 +39,8 @@ for (int i = 0; i < args.Length; i++)
         case "--wind": conditions.WindSpeed = float.Parse(args[++i]); break;
         case "--windangle": conditions.WindAngle = float.Parse(args[++i]) * MathF.PI / 180f; break;
         case "--night": conditions.Night = true; break;
+        // --script staged: the staged match (light injury, yellow, direct red, serious injury + substitution, second yellow and red)
+        case "--script": if (args[++i] == "staged") script = MatchScript.Staged(); break;
     }
 }
 
@@ -45,6 +49,7 @@ MatchConfig MakeConfig()
     var c = MatchConfig.CreateDefault();
     if (motion.HasValue) c.MotionSpeed = motion.Value;
     c.Conditions = conditions.Clone();
+    c.Script = script;
     return c;
 }
 
@@ -238,137 +243,32 @@ static void Report(MatchResult[] r, double wallSeconds)
 static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
 {
     var engine = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed, config);
-    var frames = new List<int[]>();
-    var events = new List<object>();
-    // Running team stats once a real second: [t*100, possession h/a (s*10), shots h/a, on target h/a, tackles h/a,
-    // tackles won h/a, dribbles h/a, dribbles won h/a] - what the stats table shows at any moment of the replay.
-    var stats = new List<int[]>();
-    float nextStats = 0f;
-    float dt = 1f / fps;
-    int guard = 0;
-    while (!engine.IsFinished && guard++ < 200000)
+    var rec = new ReplayRecorder(engine, fps);
+    var frames = new StringBuilder();
+    var events = new StringBuilder();
+    var stats = new StringBuilder();
+    int frameCount = 0, eventCount = 0, guard = 0;
+    while (!engine.IsFinished && guard++ < 2000)
     {
-        engine.Advance(dt);
-        foreach (var e in engine.DrainEvents())
+        var chunk = rec.Step(500);
+        int len = ReplayRecorder.FrameLength;
+        for (int i = 0; i < chunk.FrameCount; i++)
         {
-            events.Add(new
-            {
-                t = Math.Round(engine.RealTimeElapsed, 2),
-                minute = e.Minute,
-                type = e.Type.ToString(),
-                text = e.Text,
-                team = e.Team,
-                whistle = e.Type == MatchEventType.Whistle ? e.Whistle.ToString() : null,
-                tone = Commentary.ToneOf(e.Type).ToString(),
-                detail = e.Detail,
-                x = Math.Round(e.X, 1),
-                y = Math.Round(e.Y, 1),
-                v = Math.Round(e.Value, 1),
-                p = e.Player,
-                s = string.IsNullOrEmpty(e.Info) ? null : e.Info,
-            });
+            if (frameCount++ > 0) frames.Append(',');
+            frames.Append('[').Append(string.Join(",", chunk.Frames.Skip(i * len).Take(len))).Append(']');
         }
-        if (engine.RealTimeElapsed >= nextStats)
+        var ev = chunk.EventsJson.Substring(1, chunk.EventsJson.Length - 2);
+        if (ev.Length > 0) { if (eventCount++ > 0) events.Append(','); events.Append(ev); }
+        for (int i = 0; i < chunk.Stats.Length; i += ReplayRecorder.StatsLength)
         {
-            nextStats = engine.RealTimeElapsed + 1f;
-            var hs = engine.Home.Stats;
-            var aw = engine.Away.Stats;
-            stats.Add(new[]
-            {
-                (int)MathF.Round(engine.RealTimeElapsed * 100f),
-                (int)(hs.PossessionSeconds * 10f), (int)(aw.PossessionSeconds * 10f),
-                hs.Shots, aw.Shots, hs.ShotsOnTarget, aw.ShotsOnTarget,
-                hs.Tackles, aw.Tackles, hs.TacklesWon, aw.TacklesWon,
-                hs.Dribbles, aw.Dribbles, hs.DribblesWon, aw.DribblesWon,
-            });
+            if (stats.Length > 0) stats.Append(',');
+            stats.Append('[').Append(string.Join(",", chunk.Stats.Skip(i).Take(ReplayRecorder.StatsLength))).Append(']');
         }
-        if (engine.Phase == MatchPhase.HalfTimeBreak) continue;
-        var f = new List<int>(90)
-        {
-            (int)MathF.Round(engine.RealTimeElapsed * 100f),
-            (int)engine.Clock.Seconds,
-            (int)engine.Phase,
-            engine.Home.Score,
-            engine.Away.Score,
-            Q(engine.Ball.Pos.X), Q(engine.Ball.Pos.Y), (int)MathF.Round(engine.Ball.Z * 100f),
-            engine.Ball.Owner?.Index ?? -1,
-        };
-        foreach (var p in engine.AllPlayers)
-        {
-            f.Add(Q(p.Pos.X));
-            f.Add(Q(p.Pos.Y));
-            f.Add((int)MathF.Round(MathUtil.WrapAngle(p.Facing) * 100f));
-            f.Add((int)MathF.Round(p.JumpZ * 100f));
-            f.Add((p.SentOff ? 1 : 0) | (p.IsGoalkeeper ? 2 : 0) | (p.YellowCards > 0 ? 4 : 0) | (p.OffsideMarkTimer > 0f ? 8 : 0) | (p.SlideTimer > 0f ? 16 : 0) | (p.IsDown && p.SlideTimer <= 0f ? 32 : 0) | (p.Injury != InjuryLevel.None ? 64 : 0));
-        }
-        foreach (var o in engine.Officials)
-        {
-            f.Add(Q(o.Pos.X));
-            f.Add(Q(o.Pos.Y));
-            f.Add(o.FlagRaised ? 1 : o.CardShown == 1 ? 2 : o.CardShown == 2 ? 3 : 0); // flag up, or the referee showing a yellow (2) or red (3) card
-        }
-        frames.Add(f.ToArray());
     }
-
-    object Team(TeamAgent t) => new
-    {
-        name = t.Name,
-        shortName = t.ShortName,
-        kit = new { primary = t.Setup.Kit.Primary, secondary = t.Setup.Kit.Secondary, number = t.Setup.Kit.Number, gk = t.Setup.Kit.GoalkeeperPrimary, gkNumber = t.Setup.Kit.GoalkeeperNumber },
-        players = t.Players.Select(p => new
-        {
-            index = p.Index,
-            number = p.Number,
-            name = p.Profile.FullName,
-            shortName = p.Profile.ShortName,
-            role = Formation.RoleAbbreviation(p.Slot.Role),
-            passing = p.Attr.Passing,
-            speed = p.Attr.Speed,
-            stamina = p.Attr.Stamina,
-        }),
-        stats = t.Stats,
-    };
-
-    var replay = new
-    {
-        version = 1,
-        seed,
-        fps,
-        scale = 10,
-        halfRealSeconds = config.HalfRealSeconds,
-        halftimeRealSeconds = config.HalftimeRealSeconds,
-        conditions = new
-        {
-            weather = engine.Conditions.Weather.ToString(),
-            maintenance = Math.Round(engine.Conditions.Maintenance, 2),
-            wind = Math.Round(engine.Conditions.WindSpeed, 1),
-            windAngle = Math.Round(engine.Conditions.WindAngle, 3),
-            night = engine.Conditions.Night,
-        },
-        // mud and standing water on a 1 m grid from (minX, minY), 0..255 per node, row by row (null: a uniform pitch)
-        surface = engine.Surface == null ? null : new
-        {
-            minX = PitchSurface.MinX,
-            minY = PitchSurface.MinY,
-            cell = PitchSurface.Cell,
-            columns = PitchSurface.Columns,
-            rows = PitchSurface.Rows,
-            mud = engine.Surface.HasMud ? engine.Surface.Bytes(engine.Surface.Mud) : null,
-            water = engine.Surface.HasWater ? engine.Surface.Bytes(engine.Surface.Water) : null,
-        },
-        home = Team(engine.Home),
-        away = Team(engine.Away),
-        frameLayout = "t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked,8=caught offside,16=sliding,32=on the ground,64=injured)] x22, then officials [x*10, y*10, flag] x3",
-        frames,
-        events,
-        statsLayout = "t*100, possession home/away (s*10), shots h/a, on target h/a, tackles h/a, tackles won h/a, dribbles h/a, dribbles won h/a",
-        stats,
-    };
+    string json = "{" + rec.Header(true) + ",\"frames\":[" + frames + "],\"events\":[" + events + "],\"stats\":[" + stats + "]}";
     Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-    File.WriteAllText(path, JsonSerializer.Serialize(replay, new JsonSerializerOptions { IncludeFields = true }));
-    Console.WriteLine($"Replay written: {path}  frames={frames.Count}  events={events.Count}  score {engine.Home.Score}-{engine.Away.Score}  size={new FileInfo(path).Length / 1024} KB");
-
-    static int Q(float v) => (int)MathF.Round(v * 10f);
+    File.WriteAllText(path, json);
+    Console.WriteLine($"Replay written: {path}  frames={frameCount}  score {engine.Home.Score}-{engine.Away.Score}  size={new FileInfo(path).Length / 1024} KB");
 }
 
 sealed class MatchResult

@@ -2,6 +2,23 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/three-game-modes`
+
+- **Three game buttons** replace "New match" (demo page; React viewer and Unity HUD have the same buttons):
+  - **Staged match**: the same scripted match every time (for the trailer): a light injury, a yellow card, a direct
+    red, a serious injury with a substitution, then a second yellow and red. It is staged inside the engine
+    (`MatchScript`), through the normal rules, so it holds in any weather.
+  - **Random match**: a new match every time, which can be rewound and fast-forwarded.
+  - **Live match**: you are the home team against the computer, played as it happens (no rewinding). Watch-only for
+    now; substitutions and tactics will let you steer it (the engine already takes tactic commands).
+- **The demo page now runs the real engine in the browser**: the C# engine is compiled to WebAssembly
+  (`sim/SoccerVision.Wasm`, published as `docs/engine`) and plays in a Web Worker, about 30 times faster than real
+  time. The prebaked recordings are gone. Replay recording is shared (`sim/SoccerVision.Replay`) between the
+  command-line runner and the browser. Scores of a seed can differ slightly from the native runner (floating point).
+- **Snow ball**: a bright, self-lit orange with white pentagons, a glowing halo and a dark orange outline, so it reads
+  clearly on the white pitch (demo page, React, Unity).
+- Tests: the staged match (5 tests).
+
 ## `perf/cached-background-adaptive-quality`
 
 - **Faster drawing** (demo page and React), without changing what you see:

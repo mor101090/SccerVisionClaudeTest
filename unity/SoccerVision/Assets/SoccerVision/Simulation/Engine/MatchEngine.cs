@@ -448,6 +448,8 @@ namespace SoccerVision.Simulation
             if (Phase != MatchPhase.Live) return;
             CheckInjuryStoppage();
             if (Phase != MatchPhase.Live) return;
+            UpdateScript();
+            if (Phase != MatchPhase.Live) return;
             ResolveShoulderDuels();
             if (Phase != MatchPhase.Live) return;
             ResolveTouches();

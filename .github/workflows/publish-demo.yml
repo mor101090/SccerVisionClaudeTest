@@ -35,7 +35,7 @@ jobs:
         run: |
           mkdir /tmp/pub
           cp docs/index.html /tmp/pub/index.html
-          cp -r docs/conditions /tmp/pub/conditions
+          cp -r docs/engine /tmp/pub/engine
           touch /tmp/pub/.nojekyll
           printf 'Built from %s (%s) at %s\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" "$(date -u +%FT%TZ)" > /tmp/pub/BUILD.txt
           cd /tmp/pub

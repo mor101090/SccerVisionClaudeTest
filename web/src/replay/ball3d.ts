@@ -125,9 +125,10 @@ export class Ball3D {
             pent = false;
           } else if (sc > second) second = sc;
         }
-        let col = this.winter ? (pent ? [22, 30, 80] : [255, 104, 20]) : pent ? [28, 28, 28] : [246, 246, 246];
-        if (best - second < 0.006) col = this.winter ? (pent ? [50, 56, 100] : [176, 64, 10]) : pent ? [60, 60, 60] : [150, 150, 150]; // stitched seams
-        const diff = 0.38 + 0.62 * Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
+        let col = this.winter ? (pent ? [255, 255, 255] : [255, 122, 0]) : pent ? [28, 28, 28] : [246, 246, 246];
+        if (best - second < 0.006) col = this.winter ? (pent ? [255, 214, 170] : [200, 70, 0]) : pent ? [60, 60, 60] : [150, 150, 150]; // stitched seams
+        const lit = Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
+        const diff = this.winter ? 0.8 + 0.2 * lit : 0.38 + 0.62 * lit;
         const spec = Math.pow(Math.max(0, nx * HALF[0] + ny * HALF[1] + nz * HALF[2]), 36) * (pent ? 120 : 90);
         const o = (py * size + px) * 4;
         d[o] = Math.min(255, col[0] * diff + spec);
@@ -136,11 +137,23 @@ export class Ball3D {
         d[o + 3] = 255 * Math.min(1, (1 - Math.sqrt(r2)) * rad + 0.5);
       }
     bctx.putImageData(img, 0, 0);
+    if (this.winter) {
+      // glow: a soft orange halo so the ball stands out on the white pitch
+      const gr = Math.max(rad * 4, 12);
+      const gl = ctx.createRadialGradient(cx, cy, rad * 0.7, cx, cy, gr);
+      gl.addColorStop(0, "rgba(255,110,0,0.9)");
+      gl.addColorStop(0.35, "rgba(255,140,20,0.45)");
+      gl.addColorStop(1, "rgba(255,150,30,0)");
+      ctx.fillStyle = gl;
+      ctx.beginPath();
+      ctx.arc(cx, cy, gr, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.drawImage(this.canvas, cx - c, cy - c);
     ctx.beginPath();
     ctx.arc(cx, cy, rad, 0, Math.PI * 2);
     ctx.lineWidth = Math.max(0.6, rad * 0.08);
-    ctx.strokeStyle = "rgba(0,0,0,0.45)";
+    ctx.strokeStyle = this.winter ? "rgba(150,50,0,0.8)" : "rgba(0,0,0,0.45)";
     ctx.stroke();
   }
 }

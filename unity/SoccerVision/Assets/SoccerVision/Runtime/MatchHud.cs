@@ -349,8 +349,13 @@ namespace SoccerVision.Runtime
             {
                 Controller.playbackSpeed = Controller.playbackSpeed >= 8f ? 1f : Controller.playbackSpeed * 2f;
             }
-            if (GUI.Button(new Rect(rx + (bw + pad), y, bw, bh), "New match", _button)) Controller.StartMatch(Random.Range(1, int.MaxValue));
-            if (GUI.Button(new Rect(rx + (bw + pad) * 2f, y, bw, bh), "Hide HUD", _button)) { Controller.showHud = false; Controller.FitCamera(); }
+            if (GUI.Button(new Rect(rx + (bw + pad), y, bw, bh), "Hide HUD", _button)) { Controller.showHud = false; Controller.FitCamera(); }
+            y += bh + pad;
+            // Game modes: the staged match (same every time), a random match, a live match (you are the home team; watch only
+            // for now - the engine already plays in real time, substitutions and tactics will let you steer it).
+            if (GUI.Button(new Rect(rx, y, bw, bh), "Staged", _button)) Controller.StartMatch(MatchController.StagedSeed, true);
+            if (GUI.Button(new Rect(rx + (bw + pad), y, bw, bh), "Random", _button)) Controller.StartMatch(Random.Range(1, int.MaxValue));
+            if (GUI.Button(new Rect(rx + (bw + pad) * 2f, y, bw, bh), "Live", _button)) { Controller.playbackSpeed = 1f; Controller.StartMatch(Random.Range(1, int.MaxValue)); }
         }
 
         private void DrawTooltip(MatchEngine m)

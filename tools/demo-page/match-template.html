@@ -93,6 +93,14 @@ button:hover { border-color: var(--amber); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 button[aria-pressed="true"] { background: var(--amber); color: #120d00; border-color: var(--amber); }
 .speeds { display: flex; gap: 4px; }
+.modes { display: flex; gap: 4px; }
+.modes button { font-weight: 700; }
+.live-only { display: none; }
+body.live .live-only { display: inline-flex; }
+body.live #seek, body.live .speeds button:not([data-speed="1"]), body.live #moments { display: none; }
+.badge-live { align-items: center; gap: .4em; background: #d50000; color: #fff; font: 700 11px/1 var(--body); letter-spacing: .1em; padding: 5px 8px; border-radius: 4px; }
+.badge-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: blink 1.2s infinite; }
+@keyframes blink { 50% { opacity: .25; } }
 #seek { flex: 1 1 220px; min-width: 0; accent-color: var(--amber); }
 .time { font: 600 14px var(--display); color: var(--muted); font-variant-numeric: tabular-nums; min-width: 92px; text-align: right; }
 .cols { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 14px; }
@@ -182,7 +190,11 @@ td.l { color: var(--muted); }
   </div>
 
   <div class="controls">
-    <button id="newmatch" type="button">New match</button>
+    <div class="modes" role="group" aria-label="Game mode">
+      <button id="modeStaged" type="button" data-mode="staged" aria-pressed="true" title="The same scripted match every time: a light injury, a yellow, a direct red, a serious injury with a substitution, and a second yellow">Staged match</button>
+      <button id="modeRandom" type="button" data-mode="random" aria-pressed="false" title="A new random match every time">Random match</button>
+      <button id="modeLive" type="button" data-mode="live" aria-pressed="false" title="You are the home team against the computer; watch it live (no rewinding)">Live match</button>
+    </div>
     <button id="sound" type="button" aria-pressed="false">Sound off</button>
     <div class="speeds" role="group" aria-label="Playback speed">
       <button type="button" data-speed="1" aria-pressed="true">1×</button>
@@ -191,6 +203,8 @@ td.l { color: var(--muted); }
       <button type="button" data-speed="8" aria-pressed="false">8×</button>
       <button type="button" data-speed="16" aria-pressed="false">16×</button>
     </div>
+    <span class="badge-live live-only" id="liveBadge">LIVE</span>
+    <span class="live-only" id="liveYou" style="color:var(--muted);font-size:13px"></span>
     <input id="seek" type="range" min="0" max="100" step="0.5" value="0" aria-label="Match position">
     <span class="time" id="rt">0:00</span>
   </div>
@@ -206,16 +220,15 @@ td.l { color: var(--muted); }
       <div class="moments" id="moments"></div>
     </section>
   </div>
-  <p class="foot">This is the real C# match engine (the same code that runs inside Unity), recorded at seed <span id="seedText"></span> and replayed at its real pace. The clock runs 4.5× faster than real time, so 45 minutes take 10. The Unity build draws the same match with full graphics and sound. The first match is staged to contain one red card, one light injury and one serious injury with a substitution; find them under "Key moments". The settings (gear) choose the weather, wind, pitch upkeep, day or night, grass pattern, net and team colours and the match pace; rain, snow, wind and a worn pitch replay the match as the engine plays it in those conditions.</p>
+  <p class="foot">This is the real C# match engine (the same code that runs inside Unity), running here in your browser as WebAssembly, match <span id="seedText"></span>. The clock runs 4.5× faster than real time, so 45 minutes take 10. <b>Staged match</b>: the same scripted match every time - a light injury, a yellow card, a direct red card, a serious injury with a substitution, and a second yellow and red - whatever the weather; find them under "Key moments". <b>Random match</b>: a new match every time, which you can rewind and fast-forward. <b>Live match</b>: you are the home team against the computer, played as it happens and not rewindable; for now you watch it - substitutions and tactics come next. The settings (gear) choose the weather, wind, pitch upkeep, day or night, grass pattern, net and team colours and the match pace; rain, snow, wind and a worn pitch change how the match is played.</p>
 </div>
 
 <script>__AUDIO__</script>
 <script>__TEXTURES__</script>
-<script id="replays" type="application/json">__REPLAYS__</script>
 <script>
 (function () {
   "use strict";
-  var PACKED = JSON.parse(document.getElementById("replays").textContent), SEEDS = __SEEDS__, VARIANT_SEEDS = __VARIANT_SEEDS__;
+  var STAGED_SEED = __STAGED_SEED__;
   var R, F, E, teams, t0, tEnd, secondHalfT, t, shown = -1;
   var PB = 9, PS = 5, OB = PB + 22 * PS;
   var playing = true, speed = 1, current = -1, addedMinutes = [0, 0];
@@ -496,17 +509,22 @@ td.l { color: var(--muted); }
       var best = -9, second = -9, pent = false, q, sc;
       for (q = 0; q < 12; q++) { sc = (PENT[q][0] * bx + PENT[q][1] * by + PENT[q][2] * bz) / RP; if (sc > best) { second = best; best = sc; pent = true; } else if (sc > second) second = sc; }
       for (q = 0; q < 20; q++) { sc = (HEX[q][0] * bx + HEX[q][1] * by + HEX[q][2] * bz) / RH; if (sc > best) { second = best; best = sc; pent = false; } else if (sc > second) second = sc; }
-      // a white ball with black pentagons; in snow the high-visibility orange one with navy pentagons
-      var col = yellowBall ? (pent ? [22, 30, 80] : [255, 104, 20]) : (pent ? [28, 28, 28] : [246, 246, 246]);
-      if (best - second < .006) col = yellowBall ? (pent ? [50, 56, 100] : [176, 64, 10]) : (pent ? [60, 60, 60] : [150, 150, 150]); // stitched seams
-      var diff = .38 + .62 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]);
+      // a white ball with black pentagons; in snow a glowing, self-lit orange one with white pentagons and a halo
+      var col = yellowBall ? (pent ? [255, 255, 255] : [255, 122, 0]) : (pent ? [28, 28, 28] : [246, 246, 246]);
+      if (best - second < .006) col = yellowBall ? (pent ? [255, 214, 170] : [200, 70, 0]) : (pent ? [60, 60, 60] : [150, 150, 150]); // stitched seams
+      var diff = yellowBall ? .8 + .2 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]) : .38 + .62 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]);
       var spec = Math.pow(Math.max(0, nx * Hv[0] + ny * Hv[1] + nz * Hv[2]), 36) * (pent ? 120 : 90);
       var a = Math.min(1, (1 - Math.sqrt(r2)) * rad + .5), o = (py * size + px) * 4;
       d[o] = Math.min(255, col[0] * diff + spec); d[o + 1] = Math.min(255, col[1] * diff + spec); d[o + 2] = Math.min(255, col[2] * diff + spec); d[o + 3] = 255 * a;
     }
     ballCx.putImageData(img, 0, 0);
+    if (yellowBall) { // glow: a soft orange halo round the ball so it stands out on the white pitch
+      var gr = Math.max(rad * 4, 12), gl = ctx.createRadialGradient(cx, cy, rad * .7, cx, cy, gr);
+      gl.addColorStop(0, "rgba(255,110,0,.9)"); gl.addColorStop(.35, "rgba(255,140,20,.45)"); gl.addColorStop(1, "rgba(255,150,30,0)");
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, cy, gr, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.drawImage(ballCv, cx - c, cy - c);
-    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.lineWidth = Math.max(.6, rad * .08); ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.lineWidth = Math.max(.6, rad * .08); ctx.strokeStyle = yellowBall ? "rgba(150,50,0,.8)" : "rgba(0,0,0,.45)"; ctx.stroke();
   }
   // Offside: a small chequered square above the player who was caught (no text, no pole).
   // Cloth that moves the way a real flag does in a light breeze: no flapping, a slow sway of the whole flag and a soft
@@ -876,7 +894,7 @@ td.l { color: var(--muted); }
       var v = b.getAttribute("data-v"), before = condCode(), wasWeather = SET.weather;
       if (key === "night") SET.night = v === "1"; else SET[key] = v;
       saveSettings(); syncSettingsUi(); updateWeatherChip();
-      if (condCode() !== before) show(currentSeed, true);
+      if (condCode() !== before) restartMatch();
       else if ((key === "weather" && wasWeather !== SET.weather) || key === "night") buildSurface();
     });
   });
@@ -911,94 +929,109 @@ td.l { color: var(--muted); }
     var before = condCode();
     for (var k in DEFAULTS) SET[k] = DEFAULTS[k]; SET.night = false;
     saveSettings(); syncSettingsUi(); applyColours(); updateWeatherChip();
-    if (condCode() !== before) show(currentSeed, true); else buildSurface();
+    if (condCode() !== before) restartMatch(); else buildSurface();
   });
 
   // ---- panels ----------------------------------------------------------------------------------------
   var feed = $("feed"), KEY = { Goal: 1, YellowCard: 1, RedCard: 1, PenaltyAwarded: 1, Offside: 1, HitWoodwork: 1, Injury: 1, Substitution: 1 };
   var moments = $("moments");
-  function buildMoments() {
-    moments.textContent = "";
-    E.forEach(function (e) {
+  function addMoment(e) {
     if (!KEY[e.type] && !(e.type === "Shot" && (e.detail === 3 || e.detail === 4)) && !(e.type === "FreeKick" && e.detail === 1)) return;
     var b = document.createElement("button"); b.type = "button";
     b.innerHTML = '<span class="m"></span><span></span>';
     b.children[0].textContent = e.minute; b.children[1].textContent = e.text; b.children[1].className = "tone-" + e.tone;
     b.addEventListener("click", function () { jump(Math.max(t0, e.t - 8)); });
     moments.appendChild(b);
-    });
   }
-  function load(r) {
-    R = r; F = R.frames; E = R.events; teams = [R.home, R.away];
-    if (!R.home._kit0) { R.home._kit0 = R.home.kit; R.away._kit0 = R.away.kit; }
-    SUBS = {};
-    E.forEach(function (e) {
-      if (e.type !== "Substitution" || !e.s) return;
-      var parts = String(e.s).split("|");
-      (SUBS[e.p] = SUBS[e.p] || []).push({ t: e.t, number: parseInt(parts[0], 10), shortName: parts[1] });
-    });
-    t0 = F[0][0] / 100; tEnd = F[F.length - 1][0] / 100; secondHalfT = Infinity;
-    E.forEach(function (e) { if (e.type === "SecondHalfStart" && secondHalfT === Infinity) secondHalfT = e.t; });
-    addedMinutes = [0, 0];
-    E.forEach(function (e) { if (e.type === "AddedTime") { var m = parseInt(String(e.text).replace(/[^0-9]/g, ""), 10) || 0; if (e.t < secondHalfT) addedMinutes[0] = m; else addedMinutes[1] = m; } });
-    t = t0; lastT = t0; shown = -1;
-    $("hn").textContent = R.home.shortName; $("an").textContent = R.away.shortName;
-    applyColours(); applyWind(); buildSurface(); syncSettingsUi();
-    possTeam = -1; ballPrev = null;
-    seek.min = t0; seek.max = tEnd;
-    $("seedText").textContent = R.seed;
-    buildMoments();
-  }
-  function unpack(b64) {
-    var bin = atob(b64), bytes = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).json().then(function (r) {
-      // frames are stored column by column as differences from the previous frame
-      if (r.cols) {
-        var n = r.cols.length, m = r.cols[0].length, fr = new Array(m), i, c;
-        for (i = 0; i < m; i++) fr[i] = new Array(n);
-        for (c = 0; c < n; c++) { var col = r.cols[c], acc = 0; for (i = 0; i < m; i++) { acc += col[i]; fr[i][c] = acc; } }
-        r.frames = fr; delete r.cols;
-      }
-      return r;
-    });
-  }
+
+  // ---- the match: generated by the engine (WebAssembly in a worker) and streamed in as replay data --------------
+  // A match starts with its header (teams, conditions, mud map); then batches of frames, events and stats arrive and
+  // are appended. The viewer plays what has arrived; a match that is not live is generated far ahead of the viewer
+  // (about 30 times faster than real time), so it can be rewound and fast-forwarded; a live match stays about two
+  // seconds ahead.
   var snd = new SVAudio.MatchSound(), soundOn = false, lastT = 0;
   $("sound").addEventListener("click", function () {
     soundOn = !soundOn;
     if (soundOn) snd.enable(); else snd.disable();
     this.textContent = soundOn ? "Sound on" : "Sound off"; this.setAttribute("aria-pressed", String(soundOn));
   });
-  var cache = {}, currentSeed = SEEDS[0], loading = 0;
-  // The recording of match <seed> in the chosen conditions: the normal ones are in the page, the others are fetched.
-  function getReplay(seed, code) {
-    var key = seed + "-" + code;
-    if (cache[key]) return Promise.resolve(cache[key]);
-    var p = code === "d20" ? unpack(PACKED[SEEDS.indexOf(seed)])
-      : fetch("conditions/" + key + ".txt").then(function (res) { if (!res.ok) throw new Error(res.status); return res.text(); }).then(unpack);
-    return p.then(function (r) { cache[key] = r; return r; });
+  var MODE = "staged", finished = false, resumeAt = null, token = 0, worker = null, workerReady = null, currentSeed = 0, lastProgress = 0;
+  function engineError(msg) {
+    note("The match engine could not start: " + msg + ". Open the page from its web address (not as a file) in a recent browser.");
+    $("cbarText").textContent = "The match engine could not start";
   }
-  function show(seed, keepTime) {
-    var code = condCode(), rel = keepTime && R ? t - t0 : null, ticket = ++loading;
-    if (code !== "d20" && VARIANT_SEEDS.indexOf(seed) < 0) seed = VARIANT_SEEDS[Math.floor(Math.random() * VARIANT_SEEDS.length)];
-    if (code !== "d20") note("Loading the match in these conditions...");
-    return getReplay(seed, code).then(function (r) { note(""); return r; }, function () {
-      note("The recordings for other conditions are fetched from the published page; showing the normal recording here.");
-      return getReplay(seed, "d20");
-    }).then(function (r) {
-      if (ticket !== loading) return;
-      currentSeed = seed; load(r); if (rel !== null) jump(t0 + rel);
+  function startWorker() {
+    if (workerReady) return workerReady;
+    workerReady = new Promise(function (resolve, reject) {
+      try { worker = new Worker("engine/worker.js", { type: "module" }); } catch (e) { reject(e); return; }
+      worker.onerror = function (e) { reject(new Error(e.message || "worker failed")); };
+      worker.onmessage = function (ev) {
+        var m = ev.data;
+        if (m.type === "ready") resolve();
+        else if (m.type === "error") { engineError(m.message); reject(new Error(m.message)); }
+        else if (m.token !== token) return; // a match that was dropped
+        else if (m.type === "header") beginMatch(JSON.parse(m.header));
+        else if (m.type === "chunk") appendChunk(m);
+      };
+      worker.postMessage({ cmd: "init", base: new URL("engine/", location.href).href });
     });
+    workerReady.catch(function (e) { workerReady = null; engineError(e.message); });
+    return workerReady;
   }
-  function newMatch() {
-    var btn = $("newmatch"); btn.disabled = true; btn.textContent = "Loading...";
-    var pool = condCode() === "d20" ? SEEDS : VARIANT_SEEDS, pick = currentSeed;
-    if (!R) pick = SEEDS[0]; // the page opens with the staged match (a red card and two injuries); after that, at random
-    else if (pool.length > 1) while (pick === currentSeed) pick = pool[Math.floor(Math.random() * pool.length)];
-    show(pick, false).then(function () { setPlaying(true); btn.textContent = "New match"; }, function () { btn.textContent = "Could not load"; })
-      .then(function () { btn.disabled = false; });
+  // What the engine plays in: rain, snow, a worn pitch and wind change the football; sunny / cloudy and day / night do not.
+  function engineSettings(seed) {
+    return { weather: SET.weather, maintenance: SET.maint === "2" ? 1 : SET.maint === "1" ? .5 : 0, wind: SET.wind === "1" ? 12 : 0, windAngle: (seed * 97 % 360) * Math.PI / 180, night: !!SET.night };
   }
-  $("newmatch").addEventListener("click", newMatch);
+  function startMatch(mode, seed, resumeRel) {
+    MODE = mode; currentSeed = seed; token++; var mine = token;
+    document.body.classList.toggle("live", mode === "live");
+    document.querySelectorAll(".modes button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === mode)); });
+    if (mode === "live") { speed = 1; document.querySelectorAll("[data-speed]").forEach(function (o) { o.setAttribute("aria-pressed", String(o.getAttribute("data-speed") === "1")); }); }
+    resumeAt = resumeRel === undefined ? null : resumeRel;
+    note("Starting the match engine...");
+    startWorker().then(function () {
+      if (mine !== token) return;
+      var c = engineSettings(seed);
+      worker.postMessage({ cmd: "stop", token: mine });
+      worker.postMessage({ cmd: "start", token: mine, mode: mode, seed: seed, weather: c.weather, maintenance: c.maintenance, wind: c.wind, windAngle: c.windAngle, night: c.night, lead: mode === "live" ? 20 : 0 });
+    }, function () {});
+  }
+  function restartMatch() { startMatch(MODE, MODE === "staged" ? STAGED_SEED : MODE === "random" ? currentSeed : newSeed(), R && MODE !== "live" ? t - t0 : undefined); }
+  function newSeed() { return 1 + Math.floor(Math.random() * 2000000000); }
+  document.querySelectorAll(".modes button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var m = b.getAttribute("data-mode");
+      startMatch(m, m === "staged" ? STAGED_SEED : newSeed());
+    });
+  });
+  function beginMatch(hdr) {
+    R = hdr; F = R.frames = []; E = R.events = []; R.stats = []; teams = [R.home, R.away];
+    R.home._kit0 = R.home.kit; R.away._kit0 = R.away.kit;
+    SUBS = {}; t0 = 0; tEnd = 0; secondHalfT = Infinity; addedMinutes = [0, 0]; finished = false;
+    t = 0; lastT = 0; shown = -1; shownText = {}; moments.textContent = "";
+    $("hn").textContent = R.home.shortName; $("an").textContent = R.away.shortName;
+    applyColours(); applyWind(); buildSurface(); syncSettingsUi();
+    possTeam = -1; ballPrev = null; bgCv = null;
+    seek.min = 0; seek.max = 0;
+    $("seedText").textContent = (MODE === "staged" ? "(staged) " : MODE === "live" ? "(live) " : "") + R.seed;
+    $("liveYou").textContent = "You: " + R.home.name + " (home) v the computer: " + R.away.name;
+    note(""); setPlaying(true);
+  }
+  function appendChunk(m) {
+    var L2 = m.len, n = m.frames.length / L2, i;
+    for (i = 0; i < n; i++) F.push(Array.prototype.slice.call(m.frames, i * L2, (i + 1) * L2));
+    JSON.parse(m.events).forEach(function (e) {
+      E.push(e); addMoment(e);
+      if (e.type === "Substitution" && e.s) { var parts = String(e.s).split("|"); (SUBS[e.p] = SUBS[e.p] || []).push({ t: e.t, number: parseInt(parts[0], 10), shortName: parts[1] }); }
+      if (e.type === "SecondHalfStart" && secondHalfT === Infinity) secondHalfT = e.t;
+      if (e.type === "AddedTime") { var am = parseInt(String(e.text).replace(/[^0-9]/g, ""), 10) || 0; if (e.t < secondHalfT) addedMinutes[0] = am; else addedMinutes[1] = am; }
+    });
+    for (i = 0; i < m.stats.length; i += 15) R.stats.push(Array.prototype.slice.call(m.stats, i, i + 15));
+    if (F.length) { if (F.length === n) { t0 = F[0][0] / 100; t = t0; lastT = t0; seek.min = t0; } tEnd = F[F.length - 1][0] / 100; seek.max = tEnd; }
+    if (m.finished) finished = true;
+    if (resumeAt !== null && tEnd >= t0 + resumeAt) { t = lastT = t0 + resumeAt; resumeAt = null; }
+    if (MODE === "live") worker.postMessage({ cmd: "progress", token: token, frames: Math.max(0, find(t)) });
+  }
   function rebuildFeed() {
     var last = 0; while (last < E.length && E[last].t <= t) last++;
     if (last === shown) return;
@@ -1092,6 +1125,7 @@ td.l { color: var(--muted); }
     if (QUALITY >= 3) { skip = !skip; if (skip) return; } // 30 frames a second
     var dt = Math.max(0, Math.min(.25, (now - last) / 1000)); adaptQuality((now - last) / (QUALITY >= 3 ? 2 : 1)); last = now;
     if (!R) return;
+    if (!F || !F.length) return;
     var adv = playing && t < tEnd ? Math.min(tEnd - t, dt * speed * SET.pace / 100) : 0;
     t += adv;
     if (!cv.width) resize();
@@ -1099,7 +1133,7 @@ td.l { color: var(--muted); }
       for (var ei = 0; ei < E.length; ei++) { var ev = E[ei]; if (ev.t > t) break; if (ev.t > lastT && speed <= 4) { var sc = sample(ev.t); snd.play({ type: ev.type, whistle: ev.whistle, detail: ev.detail, value: ev.v, team: ev.team, homeScore: sc.hs, awayScore: sc.as }); } }
     }
     lastT = t; snd.tick(dt);
-    var S = sample(t), second = t >= secondHalfT, ended = t >= tEnd;
+    var S = sample(t), second = t >= secondHalfT, ended = finished && t >= tEnd;
     treadSnow(S, adv);
     pitch(); entities(S, now / 1000, adv); weatherFx(now / 1000, dt); lighting(now / 1000);
     setText("sc", S.hs + "-" + S.as);
@@ -1112,12 +1146,13 @@ td.l { color: var(--muted); }
     if (inAdded) setText("ad", "+" + addedMinutes[second ? 1 : 0]);
     if ($("ht").hidden !== !S.half) $("ht").hidden = !S.half;
     if (S.half) setText("htText", "Second half in " + mmss(secondHalfT - t));
+    if (MODE === "live" && now - lastProgress > 500) { lastProgress = now; worker.postMessage({ cmd: "progress", token: token, frames: find(t) }); }
     if (Math.abs(+seek.value - t) > .4) seek.value = t;
     setText("rt", mmss(t - t0) + " / " + mmss(tEnd - t0));
     rebuildFeed();
   }
   resize();
-  newMatch();
+  startMatch("staged", STAGED_SEED);
   requestAnimationFrame(frame);
 })();
 </script>

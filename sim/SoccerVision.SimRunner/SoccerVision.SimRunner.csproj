@@ -9,5 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../SoccerVision.Simulation/SoccerVision.Simulation.csproj" />
+    <ProjectReference Include="../SoccerVision.Replay/SoccerVision.Replay.csproj" />
   </ItemGroup>
 </Project>

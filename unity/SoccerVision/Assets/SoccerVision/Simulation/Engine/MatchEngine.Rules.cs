@@ -364,7 +364,7 @@ namespace SoccerVision.Simulation
             var sanction = DecideSanction(offender, victim, fromBehind, playedForBall, penaltyArea);
             Emit(MatchEventType.Foul, offender.Team, offender, victim, contact);
 
-            if (Config.AllowAdvantage && !penaltyArea && (sanction == null || !sanction.Red) && Ball.Owner == victim
+            if (Config.AllowAdvantage && !_scriptedFoul && !penaltyArea && (sanction == null || !sanction.Red) && Ball.Owner == victim
                 && victim.Team.Forward(contact) > -5f && _rng.Chance(0.5f))
             {
                 Emit(MatchEventType.Advantage, victim.Team, victim, offender, contact);
@@ -419,6 +419,34 @@ namespace SoccerVision.Simulation
         }
 
         private PendingSanction DecideSanction(PlayerAgent offender, PlayerAgent victim, bool fromBehind, bool playedForBall, bool penaltyArea)
+        {
+            if (_forcedSanction != ScriptKind.LightInjury)
+            {
+                // a staged incident: the card is fixed
+                var kind = _forcedSanction;
+                _forcedSanction = ScriptKind.LightInjury;
+                return kind == ScriptKind.DirectRed
+                    ? new PendingSanction { Player = offender, Red = true, Reason = "serious foul play" }
+                    : new PendingSanction { Player = offender, Yellow = true, Reason = "reckless challenge" };
+            }
+            if (ScriptExclusive) return DecideSanctionQuietly(offender, victim, fromBehind, playedForBall, penaltyArea);
+            return DecideSanctionRandom(offender, victim, fromBehind, playedForBall, penaltyArea);
+        }
+
+        /// <summary>
+        /// In a staged match only the scripted red cards happen: a would-be red from the ordinary rules becomes a yellow,
+        /// and a player already cautioned is not cautioned again.
+        /// </summary>
+        private PendingSanction DecideSanctionQuietly(PlayerAgent offender, PlayerAgent victim, bool fromBehind, bool playedForBall, bool penaltyArea)
+        {
+            var s = DecideSanctionRandom(offender, victim, fromBehind, playedForBall, penaltyArea);
+            if (s == null) return null;
+            if (s.Red) { s.Red = false; s.Yellow = true; }
+            if (s.Yellow && offender.YellowCards > 0) return null;
+            return s;
+        }
+
+        private PendingSanction DecideSanctionRandom(PlayerAgent offender, PlayerAgent victim, bool fromBehind, bool playedForBall, bool penaltyArea)
         {
             float aggression = MathUtil.A(offender.Attr.Aggression);
             if (IsDenyingObviousGoalScoringOpportunity(victim, offender))

@@ -10,6 +10,26 @@ import { frameTime, minuteText, sample, type Replay } from "./replay";
  * Dev tool: plays a replay recorded by the C# engine (`npm run replay`) on a canvas, in real time
  * (10 minute halves, 2 minute break) or faster. Unity remains the real match renderer.
  */
+/** The staged match: a light injury, a yellow, a direct red, a serious injury, a second yellow (same every time). */
+const STAGED_SEED = 7274;
+
+/** Staged / random / live. The live match (you v the computer, in real time) runs in the browser demo page and in Unity. */
+function Modes({ busy, onStaged, onRandom }: { busy: boolean; onStaged: () => void; onRandom: () => void }) {
+  return (
+    <>
+      <button onClick={onStaged} disabled={busy} title="The same scripted match every time">
+        {busy ? "Simulating..." : "Staged match"}
+      </button>
+      <button onClick={onRandom} disabled={busy} title="A new random match">
+        Random match
+      </button>
+      <button disabled title="Live play (you are the home team) runs in the browser demo page and in Unity">
+        Live match
+      </button>
+    </>
+  );
+}
+
 export function ReplayViewer() {
   const [replay, setReplay] = useState<Replay | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,18 +45,19 @@ export function ReplayViewer() {
   const [settings, setSettingsState] = useState<DevSettings>(loadSettings);
   const settingsRef = useRef(settings);
   // Simulates match `seed` with the engine in the chosen weather and pitch (dev server only).
-  const simulate = useCallback((seed: number, s: DevSettings) => {
+  const simulate = useCallback((seed: number, s: DevSettings, staged = false) => {
     setBusy(true);
     setError(null);
     const c = engineConditions(s);
     const windAngle = (seed * 97) % 360; // the wind blows from a direction fixed per match
-    fetch(`/api/new-replay?seed=${seed}&weather=${c.weather}&maintenance=${c.maintenance}&wind=${c.wind}&windangle=${windAngle}`)
+    fetch(`/api/new-replay?seed=${seed}&weather=${c.weather}&maintenance=${c.maintenance}&wind=${c.wind}&windangle=${windAngle}${staged ? "&script=staged" : ""}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("failed"))))
       .then((data: Replay) => setReplay(data))
       .catch(() => setError("Could not simulate the match (needs `npm run dev` and the .NET 8 SDK)."))
       .finally(() => setBusy(false));
   }, []);
   const newMatch = useCallback(() => simulate(Math.floor(Math.random() * 2147483646) + 1, settingsRef.current), [simulate]);
+  const stagedMatch = useCallback(() => simulate(STAGED_SEED, settingsRef.current, true), [simulate]);
   const setSettings = useCallback(
     (s: DevSettings) => {
       const before = settingsRef.current;
@@ -44,7 +65,7 @@ export function ReplayViewer() {
       setSettingsState(s);
       saveSettings(s);
       // rain, snow, wind and the pitch change the football: the same match is played again in those conditions
-      if (!samePlay(before, s) && replay) simulate(replay.seed, s);
+      if (!samePlay(before, s) && replay) simulate(replay.seed, s, replay.seed === STAGED_SEED);
     },
     [replay, simulate],
   );
@@ -68,9 +89,7 @@ export function ReplayViewer() {
           Generate one with <code>npm run replay</code> (needs the .NET 8 SDK), or open a replay file:
         </p>
         <p>
-          <button onClick={newMatch} disabled={busy}>
-            {busy ? "Simulating..." : "New match"}
-          </button>
+          <Modes busy={busy} onStaged={stagedMatch} onRandom={newMatch} />
         </p>
         <input type="file" accept=".json,application/json" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
       </div>
@@ -78,9 +97,7 @@ export function ReplayViewer() {
   return (
     <>
       <div className="controls" style={{ marginBottom: 12 }}>
-        <button onClick={newMatch} disabled={busy}>
-          {busy ? "Simulating..." : "New match"}
-        </button>
+        <Modes busy={busy} onStaged={stagedMatch} onRandom={newMatch} />
         {error && <span className="hint">{error}</span>}
       </div>
       <Player key={replay.seed + JSON.stringify(replay.conditions ?? null)} replay={replay} settings={settings} onSettings={setSettings} note={busy ? "Playing the match in these conditions..." : error} />
