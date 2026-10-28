@@ -6,6 +6,9 @@ namespace SoccerVision.Runtime
 {
     public enum GrassPattern { Along, Across, Circles }
 
+    /// <summary>What shades the pitch from a low sun: nothing, a main stand along the far touchline, or a bowl.</summary>
+    public enum Stadium { Open, MainStand, Bowl }
+
     /// <summary>
     /// Developer settings of the match view: pace, mowing pattern, sky, pitch upkeep, wind, day or night, net and team
     /// colours. Sky, upkeep and wind are also the conditions the engine plays in (rain, snow, wind and a worn pitch change
@@ -27,8 +30,13 @@ namespace SoccerVision.Runtime
         public string homePrimary = "", homeSecondary = "", awayPrimary = "", awaySecondary = "";
         [Tooltip("Hex colours of the shirt numbers and the goalkeeper's shirt; empty keeps the kit (or follows the shirt)")]
         public string homeNumber = "", homeKeeper = "", awayNumber = "", awayKeeper = "";
+        [Tooltip("Hex colours of the goalkeepers' trim and number; empty follows the team trim / the keeper's shirt")]
+        public string homeKeeperTrim = "", homeKeeperNumber = "", awayKeeperTrim = "", awayKeeperNumber = "";
         [Tooltip("Referee and assistants' shirt (hex); empty keeps black with yellow trim")]
         public string officials = "";
+        [Tooltip("Referees' trim and letter (hex); empty follows the shirt")]
+        public string officialsTrim = "", officialsLetter = "";
+        public Stadium stadium = Stadium.MainStand;
         [Tooltip("Line paint in the snow")]
         public bool orangeSnowLines;
 
@@ -72,6 +80,13 @@ namespace SoccerVision.Runtime
             l.awayNumber = d.awayNumber ?? "";
             l.awayKeeper = d.awayKeeper ?? "";
             l.officials = d.officials ?? "";
+            l.officialsTrim = d.officialsTrim ?? "";
+            l.officialsLetter = d.officialsLetter ?? "";
+            l.homeKeeperTrim = d.homeKeeperTrim ?? "";
+            l.homeKeeperNumber = d.homeKeeperNumber ?? "";
+            l.awayKeeperTrim = d.awayKeeperTrim ?? "";
+            l.awayKeeperNumber = d.awayKeeperNumber ?? "";
+            l.stadium = d.stadium == "open" ? Stadium.Open : d.stadium == "bowl" ? Stadium.Bowl : Stadium.MainStand;
             l.orangeSnowLines = d.snowLines == "orange";
             return l;
         }
@@ -84,6 +99,8 @@ namespace SoccerVision.Runtime
         /// <summary>Wind in m/s and the direction it blows towards (world radians).</summary>
         public static float WindSpeed, WindAngle;
         public static bool Windy => WindSpeed > 0.5f;
+        /// <summary>What the flags and the HUD show: the wind, or a light breeze when none is set (too light to move the ball).</summary>
+        public static float Breeze;
 
         /// <summary>Floodlight towers outside the corners (world metres).</summary>
         public static readonly Vector2[] Towers = { new Vector2(-60f, -42f), new Vector2(-60f, 42f), new Vector2(60f, -42f), new Vector2(60f, 42f) };

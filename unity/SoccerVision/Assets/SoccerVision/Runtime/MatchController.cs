@@ -102,8 +102,8 @@ namespace SoccerVision.Runtime
             config.Conditions = look.ToConditions(matchSeed);
             var home = DemoTeams.Red();
             var away = DemoTeams.Blue();
-            Recolour(home.Kit, look.homePrimary, look.homeSecondary, look.homeNumber, look.homeKeeper);
-            Recolour(away.Kit, look.awayPrimary, look.awaySecondary, look.awayNumber, look.awayKeeper);
+            Recolour(home.Kit, look.homePrimary, look.homeSecondary, look.homeNumber, look.homeKeeper, look.homeKeeperTrim, look.homeKeeperNumber);
+            Recolour(away.Kit, look.awayPrimary, look.awaySecondary, look.awayNumber, look.awayKeeper, look.awayKeeperTrim, look.awayKeeperNumber);
             Engine = new MatchEngine(home, away, (ulong)matchSeed, config);
             SetAtmosphere();
             Commentary.Clear();
@@ -158,7 +158,7 @@ namespace SoccerVision.Runtime
                 var view = new GameObject("Player " + p.Team.ShortName + " " + p.Number).AddComponent<PlayerView>();
                 view.transform.SetParent(_world, false);
                 Color fill = SpriteFactory.Hex(p.IsGoalkeeper ? kit.GoalkeeperPrimary : kit.Primary, Color.gray);
-                Color ring = SpriteFactory.Hex(kit.Secondary, Color.white);
+                Color ring = SpriteFactory.Hex(p.IsGoalkeeper && !string.IsNullOrEmpty(kit.GoalkeeperSecondary) ? kit.GoalkeeperSecondary : kit.Secondary, Color.white);
                 Color number = SpriteFactory.Hex(p.IsGoalkeeper ? kit.GoalkeeperNumber : kit.Number, Color.white);
                 view.Init(p, fill, ring, number);
                 _players.Add(view);
@@ -173,7 +173,7 @@ namespace SoccerVision.Runtime
                 var o = new GameObject(i == 0 ? "Referee" : "Assistant " + i).AddComponent<OfficialView>();
                 o.transform.SetParent(_world, false);
                 o.Init(Engine.Officials[i], i > 0);
-                o.SetColour(look.officials);
+                o.SetColour(look.officials, look.officialsTrim, look.officialsLetter);
                 _officials.Add(o);
             }
         }
@@ -351,17 +351,19 @@ namespace SoccerVision.Runtime
             // team colours: the engine's kits and every player view
             var homeKit = DemoTeams.Red().Kit;
             var awayKit = DemoTeams.Blue().Kit;
-            Recolour(homeKit, look.homePrimary, look.homeSecondary, look.homeNumber, look.homeKeeper);
-            Recolour(awayKit, look.awayPrimary, look.awaySecondary, look.awayNumber, look.awayKeeper);
+            Recolour(homeKit, look.homePrimary, look.homeSecondary, look.homeNumber, look.homeKeeper, look.homeKeeperTrim, look.homeKeeperNumber);
+            Recolour(awayKit, look.awayPrimary, look.awaySecondary, look.awayNumber, look.awayKeeper, look.awayKeeperTrim, look.awayKeeperNumber);
             Engine.Home.Setup.Kit = homeKit;
             Engine.Away.Setup.Kit = awayKit;
             foreach (var v in _players)
             {
                 var kit = v.Agent.Team.Setup.Kit;
-                v.SetKit(SpriteFactory.Hex(v.Agent.IsGoalkeeper ? kit.GoalkeeperPrimary : kit.Primary, Color.gray), SpriteFactory.Hex(kit.Secondary, Color.white),
+                bool gk = v.Agent.IsGoalkeeper;
+                v.SetKit(SpriteFactory.Hex(gk ? kit.GoalkeeperPrimary : kit.Primary, Color.gray),
+                    SpriteFactory.Hex(gk && !string.IsNullOrEmpty(kit.GoalkeeperSecondary) ? kit.GoalkeeperSecondary : kit.Secondary, Color.white),
                     SpriteFactory.Hex(v.Agent.IsGoalkeeper ? kit.GoalkeeperNumber : kit.Number, Color.white));
             }
-            foreach (var o in _officials) o.SetColour(look.officials);
+            foreach (var o in _officials) o.SetColour(look.officials, look.officialsTrim, look.officialsLetter);
             _bridge.Emit("MatchReady", BuildReady());
         }
 
@@ -371,7 +373,7 @@ namespace SoccerVision.Runtime
         /// The picked shirt, trim, number and goalkeeper colours (empty keeps the kit). Numbers not picked follow the shirt
         /// (black or white, whichever reads best); the keeper's number follows his shirt.
         /// </summary>
-        private static void Recolour(KitColors kit, string primary, string secondary, string number, string keeper)
+        private static void Recolour(KitColors kit, string primary, string secondary, string number, string keeper, string keeperTrim, string keeperNumber)
         {
             if (!string.IsNullOrEmpty(primary) && ColorUtility.TryParseHtmlString(primary, out var p))
             {
@@ -385,13 +387,18 @@ namespace SoccerVision.Runtime
                 kit.GoalkeeperPrimary = keeper;
                 kit.GoalkeeperNumber = Contrast(g);
             }
+            if (!string.IsNullOrEmpty(keeperTrim) && ColorUtility.TryParseHtmlString(keeperTrim, out _)) kit.GoalkeeperSecondary = keeperTrim;
+            if (!string.IsNullOrEmpty(keeperNumber) && ColorUtility.TryParseHtmlString(keeperNumber, out _)) kit.GoalkeeperNumber = keeperNumber;
         }
 
         private void SetAtmosphere()
         {
             Atmosphere.Look = look;
             Atmosphere.WindSpeed = Engine.Conditions.WindSpeed;
-            Atmosphere.WindAngle = Engine.Conditions.WindAngle;
+            // with no wind set there is still a light breeze from a direction fixed per match (flags and HUD only)
+            bool calm = Engine.Conditions.WindSpeed <= 0.5f;
+            Atmosphere.WindAngle = calm ? (seed * 97 % 360) * Mathf.Deg2Rad : Engine.Conditions.WindAngle;
+            Atmosphere.Breeze = calm ? 1.4f + (seed % 9) * 0.35f : Engine.Conditions.WindSpeed;
         }
 
         private MatchReadyDto BuildReady()
@@ -424,6 +431,8 @@ namespace SoccerVision.Runtime
                     secondaryColor = t.Setup.Kit.Secondary,
                     goalkeeperColor = t.Setup.Kit.GoalkeeperPrimary,
                     numberColor = t.Setup.Kit.Number,
+                    goalkeeperTrimColor = string.IsNullOrEmpty(t.Setup.Kit.GoalkeeperSecondary) ? t.Setup.Kit.Secondary : t.Setup.Kit.GoalkeeperSecondary,
+                    goalkeeperNumberColor = t.Setup.Kit.GoalkeeperNumber,
                     formation = t.Formation.Name,
                     players = players,
                 };

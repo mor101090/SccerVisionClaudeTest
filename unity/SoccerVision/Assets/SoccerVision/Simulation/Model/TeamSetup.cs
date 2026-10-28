@@ -52,6 +52,8 @@ namespace SoccerVision.Simulation
         public string Number = "#FFFFFF";
         public string GoalkeeperPrimary = "#FBC02D";
         public string GoalkeeperNumber = "#000000";
+        /// <summary>Goalkeeper's trim (empty: the team's).</summary>
+        public string GoalkeeperSecondary = "";
     }
 
     /// <summary>Everything the engine needs to field a team.</summary>

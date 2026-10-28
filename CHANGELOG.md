@@ -2,6 +2,27 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/stadium-shadows-night-perf-breeze-kits`
+
+- **Shade from the stands on a sunny day**: the low sun comes from the top left, the same direction the players'
+  shadows fall. Part of the pitch lies in the stands' shade with a sharp edge, as in the reference. New setting
+  **Stadium**:
+  - **Open**: no shade;
+  - **Main stand**: a slanting band of shade along the far touchline, with the steps of the roof trusses;
+  - **Bowl**: the curved roof shades the top and the left of the pitch.
+  Same in the demo page, React and Unity.
+- **Night no longer drops frames**: every frame used to add four full-screen light gradients on top of the darkness.
+  The floodlit darkness is now drawn once per screen size and laid over as a single image. Cloud shadows are drawn
+  into an image an eighth of the size. The canvas resolution is capped at 2× on 3× phone screens. In a headless
+  browser, night went from about the same as day to almost twice as fast (40+ frames a second).
+- **The wind is always shown**: with no wind set there is a light breeze, about 5 to 16 km/h from a direction fixed
+  per match. It shows on the weather chip, the corner flags lean with it and the clouds drift with it. It is too light
+  to move the ball, so the matches themselves are unchanged.
+- **Goalkeepers and referees get colours like the players**:
+  - each team's goalkeeper: shirt, trim (the ring around him) and number;
+  - the referees: shirt, trim and letter (R/L). Trim and letter follow the shirt in black or white until they are
+    picked.
+
 ## `fix/snow-cleared-pitch-coloured-lines`
 
 - **Snow as in the reference games** (demo page, React and Unity):

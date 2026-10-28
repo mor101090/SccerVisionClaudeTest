@@ -15,7 +15,7 @@ export interface ReplayPlayer {
 export interface ReplayTeam {
   name: string;
   shortName: string;
-  kit: { primary: string; secondary: string; number: string; gk: string; gkNumber: string };
+  kit: { primary: string; secondary: string; number: string; gk: string; gkNumber: string; gkTrim?: string };
   players: ReplayPlayer[];
 }
 

@@ -85,11 +85,18 @@ function UnityPlayer() {
           homeSecondary: s.home?.secondary ?? "",
           homeNumber: s.home?.number ?? "",
           homeKeeper: s.home?.gk ?? "",
+          homeKeeperTrim: s.home?.gkTrim ?? "",
+          homeKeeperNumber: s.home?.gkNumber ?? "",
           awayPrimary: s.away?.primary ?? "",
           awaySecondary: s.away?.secondary ?? "",
           awayNumber: s.away?.number ?? "",
           awayKeeper: s.away?.gk ?? "",
-          officials: s.refs ?? "",
+          awayKeeperTrim: s.away?.gkTrim ?? "",
+          awayKeeperNumber: s.away?.gkNumber ?? "",
+          officials: s.refs?.shirt ?? "",
+          officialsTrim: s.refs?.trim ?? "",
+          officialsLetter: s.refs?.letter ?? "",
+          stadium: s.stadium,
           snowLines: s.snowLines,
         },
       }),
@@ -110,7 +117,14 @@ function UnityPlayer() {
       const r = parsePayload<MatchReady>(payload);
       if (!r) return;
       setReady(r);
-      const own = (t: MatchReady["home"]) => ({ primary: t.color, secondary: t.secondaryColor, number: t.numberColor ?? textOn(t.color), gk: t.goalkeeperColor });
+      const own = (t: MatchReady["home"]) => ({
+        primary: t.color,
+        secondary: t.secondaryColor,
+        number: t.numberColor ?? textOn(t.color),
+        gk: t.goalkeeperColor,
+        gkTrim: t.goalkeeperTrimColor ?? t.secondaryColor,
+        gkNumber: t.goalkeeperNumberColor ?? textOn(t.goalkeeperColor),
+      });
       setKits((k) => k ?? [own(r.home), own(r.away)]);
       setLines([]);
       send({ type: "setHud", flag: false }); // React draws the HUD

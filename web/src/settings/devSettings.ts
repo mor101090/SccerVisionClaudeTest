@@ -11,9 +11,20 @@ export interface TeamColours {
   secondary: string;
   /** Shirt numbers (default: black or white, whichever reads best on the shirt). */
   number?: string;
-  /** Goalkeeper's shirt (his number follows it). */
+  /** Goalkeeper's shirt (his number follows it until picked). */
   gk?: string;
+  gkTrim?: string;
+  gkNumber?: string;
 }
+
+/** Referee and assistants: shirt, trim and letter (trim and letter follow the shirt until picked). */
+export interface RefColours {
+  shirt?: string;
+  trim?: string;
+  letter?: string;
+}
+
+export type Stadium = "open" | "stand" | "bowl";
 
 export interface DevSettings {
   /** Match pace in percent (50-100): slows the whole match down. */
@@ -28,8 +39,10 @@ export interface DevSettings {
   /** null: the team's own kit. */
   home: TeamColours | null;
   away: TeamColours | null;
-  /** Referee and assistants' shirt (null: black with yellow trim). */
-  refs: string | null;
+  /** Referee and assistants (null: black with yellow trim). */
+  refs: RefColours | null;
+  /** What shades the pitch from a low sun: nothing, a main stand, or a bowl. */
+  stadium: Stadium;
   /** Line paint in the snow. */
   snowLines: "yellow" | "orange";
 }
@@ -46,6 +59,7 @@ export const DEFAULT_SETTINGS: DevSettings = {
   away: null,
   refs: null,
   snowLines: "yellow",
+  stadium: "stand",
 };
 
 const KEY = "sv-dev-settings-react";
@@ -53,7 +67,11 @@ const KEY = "sv-dev-settings-react";
 export function loadSettings(): DevSettings {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<DevSettings>) };
+    if (raw) {
+      const s = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<DevSettings>) };
+      if (typeof s.refs === "string") s.refs = { shirt: s.refs }; // older settings
+      return s;
+    }
   } catch {
     // storage unavailable: defaults
   }
@@ -93,8 +111,16 @@ export function applyKit<K extends { primary: string; secondary: string; number:
     secondary: c.secondary,
     number: c.number ?? textOn(c.primary),
     gk: c.gk ?? kit.gk,
-    gkNumber: c.gk ? textOn(c.gk) : kit.gkNumber,
+    gkNumber: c.gkNumber ?? (c.gk ? textOn(c.gk) : kit.gkNumber),
+    gkTrim: c.gkTrim ?? c.secondary,
   };
+}
+
+/** The officials' colours with the defaults filled in. */
+export function refColours(r: RefColours | null): Required<RefColours> {
+  const shirt = r?.shirt ?? "#141414";
+  const auto = r?.shirt ? textOn(r.shirt) : "#f6d43a";
+  return { shirt, trim: r?.trim ?? auto, letter: r?.letter ?? auto };
 }
 
 /** Black or white, whichever reads best on the colour. */

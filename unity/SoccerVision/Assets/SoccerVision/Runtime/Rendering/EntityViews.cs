@@ -327,22 +327,21 @@ namespace SoccerVision.Runtime
         private TextMesh _letter;
         private Color _trim;
 
-        /// <summary>Shirt colour from the developer settings (empty: black with yellow trim); trim and letter in contrast.</summary>
-        public void SetColour(string hex)
+        /// <summary>
+        /// Shirt, trim and letter from the developer settings (empty shirt: black with yellow trim; trim and letter not
+        /// picked follow the shirt in black or white).
+        /// </summary>
+        public void SetColour(string shirt, string trim, string letter)
         {
-            if (!string.IsNullOrEmpty(hex) && ColorUtility.TryParseHtmlString(hex, out var c))
+            Color mark = _trim;
+            if (!string.IsNullOrEmpty(shirt) && ColorUtility.TryParseHtmlString(shirt, out var c))
             {
                 _fill.color = c;
-                var mark = c.r * 0.299f + c.g * 0.587f + c.b * 0.114f > 0.63f ? new Color(0.07f, 0.07f, 0.07f) : Color.white;
-                _ringSr.color = mark;
-                _letter.color = mark;
+                mark = c.r * 0.299f + c.g * 0.587f + c.b * 0.114f > 0.63f ? new Color(0.07f, 0.07f, 0.07f) : Color.white;
             }
-            else
-            {
-                _fill.color = new Color(0.08f, 0.08f, 0.08f, 1f);
-                _ringSr.color = _trim;
-                _letter.color = _trim;
-            }
+            else _fill.color = new Color(0.08f, 0.08f, 0.08f, 1f);
+            _ringSr.color = !string.IsNullOrEmpty(trim) && ColorUtility.TryParseHtmlString(trim, out var t) ? t : mark;
+            _letter.color = !string.IsNullOrEmpty(letter) && ColorUtility.TryParseHtmlString(letter, out var l) ? l : mark;
         }
 
         public void Render(float alpha, float time)
@@ -375,13 +374,10 @@ namespace SoccerVision.Runtime
         private Transform _cloth;
         private Transform _shadow;
         private float _phase;
-        private float _outward;
 
         public void Init(float phase)
         {
             _phase = phase;
-            var p = transform.localPosition;
-            _outward = Mathf.Atan2(Mathf.Sign(p.y), Mathf.Sign(p.x)) * Mathf.Rad2Deg;
             _shadow = SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Cloth, new Color(0f, 0f, 0f, 0.22f), 20, 1f).transform;
             _shadow.localPosition = new Vector3(0.35f, -0.35f, 0f);
             _cloth = SpriteFactory.AddSprite(transform, "Cloth", SpriteFactory.Cloth, new Color(1f, 0.82f, 0.12f), 21, 1f).transform;
@@ -393,10 +389,10 @@ namespace SoccerVision.Runtime
             float t = Time.time + _phase;
             // in a strong wind the cloth streams out downwind, stretched and rippling fast; in still air it hangs limp
             bool windy = Atmosphere.Windy;
-            float baseAngle = windy ? Atmosphere.WindAngle * Mathf.Rad2Deg : _outward;
+            float baseAngle = Atmosphere.WindAngle * Mathf.Rad2Deg; // the wind, or at least a breeze
             float angle = baseAngle + (Mathf.Sin(t * (windy ? 1.3f : 0.45f)) * (windy ? 0.07f : 0.16f) + Mathf.Sin(t * 0.17f) * 0.1f) * Mathf.Rad2Deg;
             var rot = Quaternion.Euler(0f, 0f, angle);
-            var scale = new Vector3((windy ? 1.4f : 0.9f) * (0.97f + 0.03f * Mathf.Sin(t * (windy ? 4.2f : 1.7f))), 0.56f, 1f);
+            var scale = new Vector3((windy ? 1.4f : 1.05f) * (0.97f + 0.03f * Mathf.Sin(t * (windy ? 4.2f : 1.7f))), 0.56f, 1f);
             _cloth.localRotation = _shadow.localRotation = rot;
             _cloth.localScale = _shadow.localScale = scale;
         }

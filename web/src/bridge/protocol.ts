@@ -33,6 +33,8 @@ export interface TeamInfo {
   goalkeeperColor: string;
   /** shirt numbers */
   numberColor?: string;
+  goalkeeperTrimColor?: string;
+  goalkeeperNumberColor?: string;
   formation: string;
   players: PlayerInfo[];
 }
@@ -126,12 +128,20 @@ export interface LookSettings {
   homeSecondary: string;
   homeNumber: string;
   homeKeeper: string;
+  homeKeeperTrim: string;
+  homeKeeperNumber: string;
   awayPrimary: string;
   awaySecondary: string;
   awayNumber: string;
   awayKeeper: string;
+  awayKeeperTrim: string;
+  awayKeeperNumber: string;
   /** referee and assistants' shirt */
   officials: string;
+  officialsTrim: string;
+  officialsLetter: string;
+  /** open | stand | bowl: what shades the pitch from a low sun */
+  stadium: string;
   /** line paint in the snow: yellow | orange */
   snowLines: string;
 }

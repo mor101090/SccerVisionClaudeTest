@@ -147,7 +147,7 @@ function Player({ replay: recorded, settings, onSettings, note }: { replay: Repl
       const c = canvas.current;
       const w = wrap.current;
       if (c && w) {
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.min(2, window.devicePixelRatio || 1); // 3x screens: 2x is plenty and much faster
         const cssW = w.clientWidth;
         const cssH = (cssW * WORLD_H) / WORLD_W;
         if (c.width !== Math.round(cssW * dpr)) {
@@ -237,8 +237,8 @@ function Player({ replay: recorded, settings, onSettings, note }: { replay: Repl
             homeReds,
             awayReds,
             weather: `${settings.night ? "Night" : "Day"} · ${settings.night && settings.sky === "Sunny" ? "Clear" : settings.sky}`,
-            windArrow: look.wind.speed > 0.5 ? (look.wind.screenAngle * 180) / Math.PI : undefined,
-            windText: `${Math.round(look.wind.speed * 3.6)} km/h`,
+            windArrow: (look.wind.screenAngle * 180) / Math.PI,
+            windText: `${Math.round(look.wind.breeze * 3.6)} km/h`,
           }}
         />
         <TopControls
@@ -248,7 +248,7 @@ function Player({ replay: recorded, settings, onSettings, note }: { replay: Repl
             <DevSettingsPanel
               value={settings}
               onChange={onSettings}
-              kits={[recorded.home.kit, recorded.away.kit].map((k) => ({ primary: k.primary, secondary: k.secondary, number: k.number, gk: k.gk })) as [Required<TeamColours>, Required<TeamColours>]}
+              kits={[recorded.home.kit, recorded.away.kit].map((k) => ({ primary: k.primary, secondary: k.secondary, number: k.number, gk: k.gk, gkTrim: k.gkTrim ?? k.secondary, gkNumber: k.gkNumber })) as [Required<TeamColours>, Required<TeamColours>]}
               names={[recorded.home.shortName, recorded.away.shortName]}
               note={note}
             />

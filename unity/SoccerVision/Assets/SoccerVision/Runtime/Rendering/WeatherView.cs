@@ -13,7 +13,8 @@ namespace SoccerVision.Runtime
         private const float MinX = -60f, MaxX = 60f, MinY = -42f, MaxY = 48f;
         private SpriteRenderer[] _drops, _flakes, _rings, _clouds;
         private Vector3[] _dropState, _flakeState, _ringState;
-        private SpriteRenderer _tint, _dark;
+        private SpriteRenderer _tint, _dark, _stand;
+        private Stadium _standBuilt = (Stadium)(-1);
         private Vector2[] _puddles = new Vector2[0];
         private int _nextRing;
 
@@ -196,9 +197,59 @@ namespace SoccerVision.Runtime
                 : look.sky == Weather.Snow ? new Color(0.16f, 0.2f, 0.29f, 0.12f) : new Color(0.09f, 0.12f, 0.16f, 0.16f);
             _tint.color = tint;
             if (_dark.enabled != look.night) _dark.enabled = look.night;
+            // the stands' shade on a sunny day
+            bool shade = !look.night && look.sky == Weather.Sunny && look.stadium != Stadium.Open;
+            if (shade && _standBuilt != look.stadium) BuildStandShadow(look.stadium);
+            if (_stand != null && _stand.enabled != shade) _stand.enabled = shade;
         }
 
         private float[] _ringAge = new float[90];
+
+        /// <summary>
+        /// The low sun (from the top left, like the players' shadows) is blocked by the stands: a main stand along the far
+        /// touchline throws a slanting band of shade with the steps of its roof trusses; a bowl's curved roof shades the
+        /// top and the left. Soft-edged, built once per stadium.
+        /// </summary>
+        private void BuildStandShadow(Stadium stadium)
+        {
+            _standBuilt = stadium;
+            const int ppm = 2;
+            int w = Mathf.RoundToInt((MaxX - MinX) * ppm), h = Mathf.RoundToInt((MaxY - MinY) * ppm);
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, name = "sv_stand_shade" };
+            var px = new Color32[w * h];
+            Vector2[] roof = { new Vector2(-70f, 5.5f), new Vector2(-47f, 8f), new Vector2(-46f, 9.6f), new Vector2(-7f, 13.8f), new Vector2(-6f, 15.5f), new Vector2(33f, 19.8f), new Vector2(34f, 21.5f), new Vector2(70f, 25.5f) };
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float wx = MinX + (x + 0.5f) / ppm, wy = MinY + (y + 0.5f) / ppm;
+                    float d; // signed distance into the shade (m)
+                    if (stadium == Stadium.Bowl)
+                    {
+                        float ex = (wx - 14f) / 66f, ey = (wy + 9f) / 47f;
+                        d = (Mathf.Sqrt(ex * ex + ey * ey) - 1f) * 50f;
+                    }
+                    else
+                    {
+                        float edge = roof[0].y;
+                        for (int i = 0; i < roof.Length - 1; i++)
+                            if (wx >= roof[i].x && wx <= roof[i + 1].x) { edge = Mathf.Lerp(roof[i].y, roof[i + 1].y, (wx - roof[i].x) / Mathf.Max(0.01f, roof[i + 1].x - roof[i].x)); break; }
+                        d = wy - edge;
+                    }
+                    float a = 0.34f * Mathf.Clamp01(d / 0.7f + 0.5f);
+                    px[y * w + x] = new Color(10f / 255f, 24f / 255f, 40f / 255f, a);
+                }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+            if (_stand == null)
+            {
+                var go = new GameObject("StandShade");
+                go.transform.SetParent(transform, false);
+                go.transform.localPosition = new Vector3(MinX, MinY, 0f);
+                _stand = go.AddComponent<SpriteRenderer>();
+                _stand.sortingOrder = 84;
+            }
+            _stand.sprite = Sprite.Create(tex, new Rect(0, 0, w, h), Vector2.zero, ppm, 0, SpriteMeshType.FullRect);
+        }
 
         private void Ring(Vector2 at, float size)
         {

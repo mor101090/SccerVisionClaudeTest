@@ -1,5 +1,5 @@
-import type { DevSettings, GrassPattern, Sky, TeamColours, Upkeep } from "../settings/devSettings";
-import { DEFAULT_SETTINGS, textOn } from "../settings/devSettings";
+import type { DevSettings, GrassPattern, RefColours, Sky, Stadium, TeamColours, Upkeep } from "../settings/devSettings";
+import { DEFAULT_SETTINGS, refColours, textOn } from "../settings/devSettings";
 
 interface Props {
   value: DevSettings;
@@ -29,14 +29,34 @@ export function DevSettingsPanel({ value: s, onChange, kits, names, note }: Prop
     const cur: TeamColours = { ...((side ? s.away : s.home) ?? { primary: kits[side].primary, secondary: kits[side].secondary }) };
     cur[key] = v;
     if (key === "primary") delete cur.number; // the numbers follow a new shirt colour until they are picked again
+    if (key === "gk") delete cur.gkNumber;
     set(side ? { away: cur } : { home: cur });
   };
   const shown = (side: 0 | 1): Required<TeamColours> => {
     const c = side ? s.away : s.home;
     const k = kits[side];
     if (!c) return k;
-    return { primary: c.primary, secondary: c.secondary, number: c.number ?? textOn(c.primary), gk: c.gk ?? k.gk };
+    const gk = c.gk ?? k.gk;
+    return {
+      primary: c.primary,
+      secondary: c.secondary,
+      number: c.number ?? textOn(c.primary),
+      gk,
+      gkTrim: c.gkTrim ?? c.secondary,
+      gkNumber: c.gkNumber ?? (c.gk ? textOn(c.gk) : k.gkNumber),
+    };
   };
+  const refs = refColours(s.refs);
+  const refColour = (key: keyof RefColours, v: string) => {
+    const r: RefColours = { ...(s.refs ?? {}) };
+    r[key] = v;
+    if (key === "shirt") {
+      delete r.trim;
+      delete r.letter;
+    }
+    set({ refs: r });
+  };
+  const picker = (label: string, value: string, onPick: (v: string) => void) => <input type="color" aria-label={label} title={label} value={value} onChange={(e) => onPick(e.target.value)} />;
   return (
     <div className="dev-settings">
       <div className="srow">
@@ -75,34 +95,50 @@ export function DevSettingsPanel({ value: s, onChange, kits, names, note }: Prop
         <Seg<boolean> options={[[false, "Calm"], [true, "Strong"]]} value={s.windy} onPick={(windy) => set({ windy })} />
       </div>
       <div className="srow">
+        <span className="l">Stadium</span>
+        <Seg<Stadium> options={[["open", "Open"], ["stand", "Main stand"], ["bowl", "Bowl"]]} value={s.stadium} onPick={(stadium) => set({ stadium })} />
+      </div>
+      <div className="srow">
         <span className="l">Kick-off</span>
         <Seg<boolean> options={[[false, "Day"], [true, "Night"]]} value={s.night} onPick={(night) => set({ night })} />
       </div>
       <h3>Team colours</h3>
+      <div className="srow">
+        <span className="l" />
+        <div className="colors">
+          <small>shirt · trim · numbers</small>
+        </div>
+      </div>
       {([0, 1] as const).map((side) => {
         const c = shown(side);
+        const n = names[side];
         return (
-          <div className="srow" key={side}>
-            <span className="l">{names[side]}</span>
-            <div className="colors">
-              <input type="color" aria-label={`${names[side]} shirt colour`} value={c.primary} onChange={(e) => colour(side, "primary", e.target.value)} />
-              <input type="color" aria-label={`${names[side]} trim colour`} value={c.secondary} onChange={(e) => colour(side, "secondary", e.target.value)} />
-              <input type="color" aria-label={`${names[side]} number colour`} value={c.number} onChange={(e) => colour(side, "number", e.target.value)} />
-              <input type="color" aria-label={`${names[side]} goalkeeper colour`} value={c.gk} onChange={(e) => colour(side, "gk", e.target.value)} />
+          <div key={side}>
+            <div className="srow">
+              <span className="l">{n}</span>
+              <div className="colors">
+                {picker(`${n} shirt`, c.primary, (v) => colour(side, "primary", v))}
+                {picker(`${n} trim`, c.secondary, (v) => colour(side, "secondary", v))}
+                {picker(`${n} numbers`, c.number, (v) => colour(side, "number", v))}
+              </div>
+            </div>
+            <div className="srow">
+              <span className="l">{n} keeper</span>
+              <div className="colors">
+                {picker(`${n} goalkeeper shirt`, c.gk, (v) => colour(side, "gk", v))}
+                {picker(`${n} goalkeeper trim`, c.gkTrim, (v) => colour(side, "gkTrim", v))}
+                {picker(`${n} goalkeeper number`, c.gkNumber, (v) => colour(side, "gkNumber", v))}
+              </div>
             </div>
           </div>
         );
       })}
       <div className="srow">
-        <span className="l" />
+        <span className="l">Referees</span>
         <div className="colors">
-          <small>shirt · trim · numbers · goalkeeper</small>
-        </div>
-      </div>
-      <div className="srow">
-        <label htmlFor="sv-refs">Referees</label>
-        <div className="colors">
-          <input id="sv-refs" type="color" value={s.refs ?? "#141414"} onChange={(e) => set({ refs: e.target.value })} />
+          {picker("Referees' shirt", refs.shirt, (v) => refColour("shirt", v))}
+          {picker("Referees' trim", refs.trim, (v) => refColour("trim", v))}
+          {picker("Referees' letter", refs.letter, (v) => refColour("letter", v))}
         </div>
       </div>
       {note && <p className="note">{note}</p>}

@@ -159,12 +159,15 @@ td.l { color: var(--muted); }
       <div class="srow"><span class="l">Sky</span><div class="seg" data-set="weather"><button type="button" data-v="Sunny">Sunny</button><button type="button" data-v="Cloudy">Cloudy</button><button type="button" data-v="Rain">Rain</button><button type="button" data-v="Snow">Snow</button></div></div>
       <div class="srow"><span class="l">Snow lines</span><div class="seg" data-set="snowLines"><button type="button" data-v="yellow">Yellow</button><button type="button" data-v="orange">Orange</button></div></div>
       <div class="srow"><span class="l">Wind</span><div class="seg" data-set="wind"><button type="button" data-v="0">Calm</button><button type="button" data-v="1">Strong</button></div></div>
+      <div class="srow"><span class="l">Stadium</span><div class="seg" data-set="stadium"><button type="button" data-v="open">Open</button><button type="button" data-v="stand">Main stand</button><button type="button" data-v="bowl">Bowl</button></div></div>
       <div class="srow"><span class="l">Kick-off</span><div class="seg" data-set="night"><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div></div>
       <h3>Team colours</h3>
-      <div class="srow"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour" title="Shirt"><input id="homeS" type="color" aria-label="Home trim colour" title="Trim"><input id="homeN" type="color" aria-label="Home number colour" title="Numbers"><input id="homeG" type="color" aria-label="Home goalkeeper colour" title="Goalkeeper"></div></div>
-      <div class="srow"><span class="l" id="awayLabel">Away</span><div class="colors"><input id="awayP" type="color" aria-label="Away shirt colour" title="Shirt"><input id="awayS" type="color" aria-label="Away trim colour" title="Trim"><input id="awayN" type="color" aria-label="Away number colour" title="Numbers"><input id="awayG" type="color" aria-label="Away goalkeeper colour" title="Goalkeeper"></div></div>
-      <div class="srow"><span class="l"></span><div class="colors"><small>shirt · trim · numbers · goalkeeper</small></div></div>
-      <div class="srow"><label for="refC">Referees</label><div class="colors"><input id="refC" type="color" value="#121212"></div></div>
+      <div class="srow"><span class="l"></span><div class="colors"><small>shirt · trim · numbers</small></div></div>
+      <div class="srow"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour" title="Shirt"><input id="homeS" type="color" aria-label="Home trim colour" title="Trim"><input id="homeN" type="color" aria-label="Home number colour" title="Numbers"></div></div>
+      <div class="srow"><span class="l" id="homeGkLabel">Home keeper</span><div class="colors"><input id="homeG" type="color" aria-label="Home goalkeeper shirt colour" title="Shirt"><input id="homeGS" type="color" aria-label="Home goalkeeper trim colour" title="Trim"><input id="homeGN" type="color" aria-label="Home goalkeeper number colour" title="Number"></div></div>
+      <div class="srow"><span class="l" id="awayLabel">Away</span><div class="colors"><input id="awayP" type="color" aria-label="Away shirt colour" title="Shirt"><input id="awayS" type="color" aria-label="Away trim colour" title="Trim"><input id="awayN" type="color" aria-label="Away number colour" title="Numbers"></div></div>
+      <div class="srow"><span class="l" id="awayGkLabel">Away keeper</span><div class="colors"><input id="awayG" type="color" aria-label="Away goalkeeper shirt colour" title="Shirt"><input id="awayGS" type="color" aria-label="Away goalkeeper trim colour" title="Trim"><input id="awayGN" type="color" aria-label="Away goalkeeper number colour" title="Number"></div></div>
+      <div class="srow"><span class="l">Referees</span><div class="colors"><input id="refC" type="color" aria-label="Referees' shirt colour" title="Shirt"><input id="refT" type="color" aria-label="Referees' trim colour" title="Trim"><input id="refL" type="color" aria-label="Referees' letter colour" title="Letter"></div></div>
       <div class="note" id="setNote"></div>
       <button class="reset" id="setReset" type="button">Reset to defaults</button>
     </div>
@@ -257,10 +260,10 @@ td.l { color: var(--muted); }
   function X(x) { return view.ox + x * view.s; }
   function Y(y) { return view.oy - y * view.s; }
   function resize() {
-    var dpr = window.devicePixelRatio || 1, r = cv.getBoundingClientRect();
+    var dpr = Math.min(2, window.devicePixelRatio || 1), r = cv.getBoundingClientRect(); // (3x screens: 2x is plenty and twice as fast)
     cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
     view.s = Math.min(cv.width / W, cv.height / H); view.ox = cv.width / 2; view.oy = (cv.height - H * view.s) / 2 + TOP * view.s;
-    grassNoise = null; darkCv = null; drops = []; flakes = []; rings = [];
+    grassNoise = null; darkCv = null; standCv = null; drops = []; flakes = []; rings = [];
   }
   window.addEventListener("resize", resize);
   function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(X(x1), Y(y1)); ctx.lineTo(X(x2), Y(y2)); ctx.stroke(); }
@@ -494,7 +497,7 @@ td.l { color: var(--muted); }
   // In a strong wind the cloth streams out downwind, stretched and rippling fast; in still air it hangs limp, shorter
   // seen from above, and only sways.
   function cornerFlag(x, y, s, t, i, ax, ay) {
-    var wind = WIND.speed > .5, base = wind ? WIND.screenAngle : Math.atan2(ay, ax), len = (wind ? 1.4 : .9) * s, wid = .42 * s, n = 6;
+    var wind = WIND.speed > .5, base = WIND.screenAngle, len = (wind ? 1.4 : 1.05) * s, wid = .42 * s, n = 6; // a breeze at least
     var swayAmp = wind ? .07 : .16, rate = wind ? 4.2 : 1.7, bendAmp = wind ? .1 : .12;
     var ang = base + Math.sin(t * (wind ? 1.3 : .45) + i * 1.7) * swayAmp + Math.sin(t * .17 + i * 3.4) * .1;
     var dx = Math.cos(ang), dy = Math.sin(ang), nx = -dy, ny = dx, top = [], bot = [];
@@ -514,7 +517,7 @@ td.l { color: var(--muted); }
   function assistantFlag(x, y, s, t) {
     var fx = x + .3 * s;
     ctx.strokeStyle = "#111"; ctx.lineWidth = Math.max(1.5, .15 * s); ctx.beginPath(); ctx.moveTo(fx, y - .5 * s); ctx.lineTo(fx, y - 2.6 * s); ctx.stroke();
-    var wind = WIND.speed > .5, dir = wind && Math.cos(WIND.screenAngle) < 0 ? -1 : 1;
+    var wind = WIND.speed > .5, dir = Math.cos(WIND.screenAngle) < 0 ? -1 : 1;
     cloth(fx, y - 2.6 * s, 1.6 * s, 1.1 * s, t * (wind ? 3.2 : 1.6), 3.1, dir, function (pts, hh) {
       // four quadrants: neon yellow top-left / bottom-right, orange top-right / bottom-left
       for (var qx = 0; qx < 2; qx++) for (var qy = 0; qy < 2; qy++) {
@@ -555,7 +558,7 @@ td.l { color: var(--muted); }
     ctx.save(); ctx.translate(x, y); ctx.rotate(a);
     ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.ellipse(.15 * view.s, .2 * view.s, r * 1.2, r * .96, 0, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(0, 0, r * 1.22, r * .93, 0, 0, Math.PI * 2);
-    ctx.fillStyle = p.gk ? tm.kit.gk : tm.kit.primary; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = tm.kit.secondary; ctx.stroke();
+    ctx.fillStyle = p.gk ? tm.kit.gk : tm.kit.primary; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = p.gk ? tm.kit.gkTrim || tm.kit.secondary : tm.kit.secondary; ctx.stroke();
     ctx.restore();
     ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * 1.05) + "px Barlow, system-ui, sans-serif";
     fillC(String(info.number), x, y);
@@ -608,9 +611,9 @@ td.l { color: var(--muted); }
       var ox = X(o.x), oy = Y(o.y);
       if (i > 0 && o.flag) assistantFlag(ox, oy, s, now);
       castShadow(o.x, o.y, ox, oy, r, r * .9, .45);
-      var kitO = SET.refs || "#121212", markO = SET.refs ? (textOn(SET.refs) === "#111" ? "#111111" : "#ffffff") : "#f2c230";
-      disc(ox, oy, r, kitO, markO); // same size as the players
-      ctx.fillStyle = markO; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
+      var rc = refColours();
+      disc(ox, oy, r, rc.shirt, rc.trim); // same size as the players
+      ctx.fillStyle = rc.letter; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
       if (i === 0 && o.card) refereeCard(ox, oy, s, o.card);
     });
     S.ps.forEach(function (p, i) {
@@ -618,7 +621,7 @@ td.l { color: var(--muted); }
       var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * 2.2 * s, g = 1 + jh * .1, sh = 1 - jh * .6;
       if (p.sl || p.gr) { downPlayer(p, tm, info, x, gy); if (p.inj) injuryMark(x, gy, r); return; }
       castShadow(p.x, p.y, x, gy, r * 1.05 * sh, r * .95 * sh, .5 * sh);
-      disc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary, tm.kit.secondary);
+      disc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary, p.gk ? tm.kit.gkTrim || tm.kit.secondary : tm.kit.secondary);
       ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * g * 1.05) + "px Barlow, system-ui, sans-serif";
       fillC(String(info.number), x, y);
       if (p.bk) { ctx.fillStyle = "#ffd23f"; ctx.fillRect(x + r * .55, y - r * 1.05, r * .32, r * .45); }
@@ -641,12 +644,12 @@ td.l { color: var(--muted); }
 
   // ---- weather and light -----------------------------------------------------------------------------
   // Wind of the loaded recording: speed (m/s) and the direction it blows towards, on screen (y down).
-  var WIND = { speed: 0, angle: 0, screenAngle: 0 };
+  var WIND = { speed: 0, angle: 0, screenAngle: 0, breeze: 0 };
   function rgba(hex, a) { var n = parseInt(String(hex).slice(1), 16); return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")"; }
   var drops = [], flakes = [], rings = [], cloudSeed = Math.random() * 100;
   function windScreen(k) { return { x: Math.cos(WIND.screenAngle) * WIND.speed * k, y: Math.sin(WIND.screenAngle) * WIND.speed * k }; }
   function weatherFx(now, dt) {
-    var w = cv.width, h = cv.height, s = view.s, dpr = window.devicePixelRatio || 1;
+    var w = cv.width, h = cv.height, s = view.s, dpr = Math.min(2, window.devicePixelRatio || 1);
     if (SET.weather === "Rain") {
       // seen from above, rain is a fast hail of short streaks blown along by the wind, splashing on the grass
       var want = Math.round(w * h / 2600);
@@ -687,26 +690,32 @@ td.l { color: var(--muted); }
     }
   }
   // Cloud shadows drift across the pitch with the wind ("grunge" clouds from layered noise blobs).
+  // (drawn into a small image an eighth of the size and scaled up: soft shadows need no detail, and it is much cheaper)
+  var cloudCv = document.createElement("canvas"), cloudCx = cloudCv.getContext("2d");
   function cloudShadows(now, strength) {
-    var s = view.s, drift = Math.max(1.5, WIND.speed) * now * .6;
-    var ux = Math.cos(WIND.speed > .5 ? WIND.angle : .4), uy = Math.sin(WIND.speed > .5 ? WIND.angle : .4);
+    var k = 8, cw = Math.ceil(cv.width / k), ch = Math.ceil(cv.height / k);
+    if (cloudCv.width !== cw || cloudCv.height !== ch) { cloudCv.width = cw; cloudCv.height = ch; }
+    var g2 = cloudCx, s = view.s / k, drift = Math.max(1.5, WIND.breeze || WIND.speed) * now * .6;
+    var ux = Math.cos(WIND.angle), uy = Math.sin(WIND.angle);
+    g2.clearRect(0, 0, cw, ch);
     for (var i = 0; i < 6; i++) {
       var span = 260, ox = ((hash2(i, 7) * span + drift * ux) % span + span) % span - span / 2, oy = ((hash2(i, 9) * 160 + drift * uy) % 160 + 160) % 160 - 80;
-      var rad = (22 + hash2(i, 3) * 26) * s, g = ctx.createRadialGradient(X(ox), Y(oy), 0, X(ox), Y(oy), rad);
+      var cx = X(ox) / k, cy = Y(oy) / k, rad = (22 + hash2(i, 3) * 26) * s, g = g2.createRadialGradient(cx, cy, 0, cx, cy, rad);
       g.addColorStop(0, "rgba(10,18,28," + strength + ")"); g.addColorStop(.6, "rgba(10,18,28," + strength * .6 + ")"); g.addColorStop(1, "rgba(10,18,28,0)");
-      ctx.fillStyle = g; ctx.fillRect(X(ox) - rad, Y(oy) - rad, rad * 2, rad * 2);
+      g2.fillStyle = g; g2.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
     }
+    ctx.drawImage(cloudCv, 0, 0, cv.width, cv.height);
   }
   // Night: everything outside the floodlights' reach falls into the dark; the four towers light the pitch.
   var darkCv = null;
   function buildDark() {
     darkCv = document.createElement("canvas"); darkCv.width = cv.width; darkCv.height = cv.height;
     var g = darkCv.getContext("2d"), s = view.s;
-    g.fillStyle = "rgba(2,7,22,.66)"; g.fillRect(0, 0, cv.width, cv.height);
+    g.fillStyle = "rgba(2,7,22,.62)"; g.fillRect(0, 0, cv.width, cv.height);
     g.globalCompositeOperation = "destination-out";
     TOWERS.forEach(function (L) {
       var cx = X(L[0] * .4), cy = Y(L[1] * .4), gr = g.createRadialGradient(cx, cy, 0, cx, cy, 72 * s);
-      gr.addColorStop(0, "rgba(0,0,0,.5)"); gr.addColorStop(.55, "rgba(0,0,0,.4)"); gr.addColorStop(.85, "rgba(0,0,0,.12)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+      gr.addColorStop(0, "rgba(0,0,0,.55)"); gr.addColorStop(.55, "rgba(0,0,0,.45)"); gr.addColorStop(.85, "rgba(0,0,0,.14)"); gr.addColorStop(1, "rgba(0,0,0,0)");
       g.fillStyle = gr; g.fillRect(0, 0, cv.width, cv.height);
     });
     g.globalCompositeOperation = "source-over";
@@ -716,22 +725,42 @@ td.l { color: var(--muted); }
       g.fillStyle = gr; g.fillRect(cx - 7 * s, cy - 7 * s, 14 * s, 14 * s);
     });
   }
+  // The low sun (from the top left, like the players' shadows) is blocked by the stands: part of the pitch lies in
+  // their shade with a sharp edge. A main stand along the far touchline throws a slanting band; a bowl's curved roof
+  // shades the top and the left. Drawn once per size into an image.
+  var standCv = null;
+  function buildStandShadow() {
+    standCv = document.createElement("canvas"); standCv.width = cv.width; standCv.height = cv.height; standCv.key = SET.stadium + cv.width + "x" + cv.height;
+    var g = standCv.getContext("2d"), s = view.s, P = function (x, y) { return [X(x), Y(y)]; };
+    g.fillStyle = "rgba(255,214,140,.05)"; g.fillRect(0, 0, cv.width, cv.height);
+    if (SET.stadium === "open") return;
+    g.fillStyle = "rgba(10,24,40,.34)";
+    g.filter = "blur(" + Math.max(1, .35 * s) + "px)";
+    g.beginPath();
+    if (SET.stadium === "bowl") {
+      g.rect(-50, -50, cv.width + 100, cv.height + 100); // everything outside the roof's curved opening
+      g.ellipse(X(14), Y(-9), 66 * s, 47 * s, 0, 0, Math.PI * 2);
+      g.fill("evenodd");
+    } else {
+      // the main stand's roof line, with the steps of its trusses
+      var pts = [[-70, 60], [70, 60], [70, 25.5], [34, 21.5], [33, 19.8], [-6, 15.5], [-7, 13.8], [-46, 9.6], [-47, 8], [-70, 5.5]];
+      pts.forEach(function (q, i) { var p2 = P(q[0], q[1]); if (i) g.lineTo(p2[0], p2[1]); else g.moveTo(p2[0], p2[1]); });
+      g.closePath(); g.fill();
+    }
+  }
   function lighting(now) {
     var w = cv.width, h = cv.height, wx = SET.weather;
     if (SET.night) {
       if (!darkCv || darkCv.width !== w || darkCv.height !== h) buildDark();
-      ctx.drawImage(darkCv, 0, 0);
-      // the floodlights' cool white light over the pitch
-      ctx.save(); ctx.globalCompositeOperation = "lighter";
-      TOWERS.forEach(function (L) {
-        var cx = X(L[0] * .45), cy = Y(L[1] * .45), gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, 55 * view.s);
-        gr.addColorStop(0, "rgba(120,130,150,.07)"); gr.addColorStop(1, "rgba(120,130,150,0)");
-        ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
-      });
-      ctx.restore();
+      ctx.drawImage(darkCv, 0, 0); // built once per size: one image per frame
       return;
     }
-    if (wx === "Sunny") { cloudShadows(now, .07); ctx.fillStyle = "rgba(255,214,140,.05)"; ctx.fillRect(0, 0, w, h); return; }
+    if (wx === "Sunny") {
+      if (!standCv || standCv.key !== SET.stadium + w + "x" + h) buildStandShadow();
+      ctx.drawImage(standCv, 0, 0); // warm sunlight and the stands' shade, one image per frame
+      cloudShadows(now, .06);
+      return;
+    }
     cloudShadows(now, wx === "Cloudy" ? .1 : .08);
     ctx.fillStyle = wx === "Rain" ? "rgba(18,28,44,.28)" : wx === "Snow" ? "rgba(40,52,74,.12)" : "rgba(22,30,42,.16)";
     ctx.fillRect(0, 0, w, h);
@@ -746,12 +775,12 @@ td.l { color: var(--muted); }
   function updateWeatherChip() {
     var sky = SET.night && SET.weather === "Sunny" ? "Night" : SET.weather, label = (SET.night ? "Night" : "Day") + " · " + (SET.weather === "Sunny" && SET.night ? "Clear" : SET.weather);
     var html = WX_ICON[sky] + "<span>" + label + "</span>";
-    if (WIND.speed > .5) html += '<svg viewBox="0 0 16 16" style="transform:rotate(' + (WIND.screenAngle * 180 / Math.PI) + 'deg)"><path d="M1.5 8h11M9 4.5L12.8 8 9 11.5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>' + Math.round(WIND.speed * 3.6) + " km/h</span>";
+    if (WIND.breeze > .1) html += '<svg viewBox="0 0 16 16" style="transform:rotate(' + (WIND.screenAngle * 180 / Math.PI) + 'deg)"><path d="M1.5 8h11M9 4.5L12.8 8 9 11.5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>' + Math.round(WIND.breeze * 3.6) + " km/h</span>";
     $("wx").innerHTML = html;
   }
 
   // ---- developer settings ----------------------------------------------------------------------------
-  var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null, refs: null, snowLines: "yellow" };
+  var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null, refs: null, snowLines: "yellow", stadium: "stand" };
   var SET = (function () { var o = {}; for (var k in DEFAULTS) o[k] = DEFAULTS[k]; try { var st = JSON.parse(localStorage.getItem("sv-dev-settings") || "{}"); for (var k2 in st) if (k2 in DEFAULTS) o[k2] = st[k2]; } catch (e) {} return o; })();
   SET.night = SET.night === true || SET.night === "1";
   function saveSettings() { try { var o = {}; for (var k in DEFAULTS) o[k] = SET[k]; o.night = SET.night ? "1" : "0"; localStorage.setItem("sv-dev-settings", JSON.stringify(o)); } catch (e) {} }
@@ -766,10 +795,13 @@ td.l { color: var(--muted); }
     $("netColor").value = SET.net;
     if (R) {
       var c = teamColours();
-      $("homeP").value = c[0].primary; $("homeS").value = c[0].secondary; $("homeN").value = c[0].number; $("homeG").value = c[0].gk;
-      $("awayP").value = c[1].primary; $("awayS").value = c[1].secondary; $("awayN").value = c[1].number; $("awayG").value = c[1].gk;
-      $("refC").value = SET.refs || "#121212";
+      ["home", "away"].forEach(function (side, i) {
+        $(side + "P").value = c[i].primary; $(side + "S").value = c[i].secondary; $(side + "N").value = c[i].number;
+        $(side + "G").value = c[i].gk; $(side + "GS").value = c[i].gkTrim; $(side + "GN").value = c[i].gkNumber;
+      });
+      var rc = refColours(); $("refC").value = rc.shirt; $("refT").value = rc.trim; $("refL").value = rc.letter;
       $("homeLabel").textContent = R.home.shortName; $("awayLabel").textContent = R.away.shortName;
+      $("homeGkLabel").textContent = R.home.shortName + " keeper"; $("awayGkLabel").textContent = R.away.shortName + " keeper";
     }
   }
   function note(text) { $("setNote").textContent = text || ""; }
@@ -780,11 +812,14 @@ td.l { color: var(--muted); }
     return [0, 1].map(function (i) {
       var base = (i ? R.away : R.home)._kit0, pick = SET[i ? "away" : "home"];
       var k = {}; for (var key in base) k[key] = hex6(base[key]);
+      k.gkTrim = k.secondary; // the keeper's trim follows the team's until it is picked
       if (!pick) return k;
       if (pick.primary) { k.primary = pick.primary; k.number = textOn(pick.primary) === "#111" ? "#111111" : "#ffffff"; }
-      if (pick.secondary) k.secondary = pick.secondary;
+      if (pick.secondary) { k.secondary = pick.secondary; k.gkTrim = pick.secondary; }
       if (pick.number) k.number = pick.number;
       if (pick.gk) { k.gk = pick.gk; k.gkNumber = textOn(pick.gk) === "#111" ? "#111111" : "#ffffff"; }
+      if (pick.gkTrim) k.gkTrim = pick.gkTrim;
+      if (pick.gkNumber) k.gkNumber = pick.gkNumber;
       return k;
     });
   }
@@ -793,9 +828,14 @@ td.l { color: var(--muted); }
     $("hb").style.setProperty("--team", c[0].primary); $("ab").style.setProperty("--team", c[1].primary);
     $("cbar").dataset.bg = "";
   }
+  // The wind of the recording; with no wind set there is still a light breeze (too light to move the ball, shown on the
+  // chip and in the flags), from a direction fixed per match.
   function applyWind() {
     var c = R.conditions || {};
-    WIND.speed = c.wind || 0; WIND.angle = c.windAngle || 0; WIND.screenAngle = Math.atan2(-Math.sin(WIND.angle), Math.cos(WIND.angle));
+    WIND.speed = c.wind || 0;
+    WIND.angle = WIND.speed > .5 ? c.windAngle || 0 : (R.seed * 97 % 360) * Math.PI / 180;
+    WIND.breeze = WIND.speed > .5 ? WIND.speed : 1.4 + (R.seed % 9) * .35;
+    WIND.screenAngle = Math.atan2(-Math.sin(WIND.angle), Math.cos(WIND.angle));
     updateWeatherChip();
   }
   document.querySelectorAll(".seg[data-set]").forEach(function (g) {
@@ -811,16 +851,31 @@ td.l { color: var(--muted); }
   });
   $("pace").addEventListener("input", function () { SET.pace = +this.value; $("paceText").textContent = SET.pace + "%"; saveSettings(); });
   $("netColor").addEventListener("input", function () { SET.net = this.value; saveSettings(); });
-  [["homeP", "home", "primary"], ["homeS", "home", "secondary"], ["homeN", "home", "number"], ["homeG", "home", "gk"],
-   ["awayP", "away", "primary"], ["awayS", "away", "secondary"], ["awayN", "away", "number"], ["awayG", "away", "gk"]].forEach(function (d) {
-    $(d[0]).addEventListener("input", function () {
-      var pick = SET[d[1]] || {};
-      pick[d[2]] = this.value;
-      if (d[2] === "primary") delete pick.number; // the number follows a new shirt colour until it is picked again
-      SET[d[1]] = pick; saveSettings(); applyColours(); syncSettingsUi();
+  [["P", "primary"], ["S", "secondary"], ["N", "number"], ["G", "gk"], ["GS", "gkTrim"], ["GN", "gkNumber"]].forEach(function (d) {
+    ["home", "away"].forEach(function (side) {
+      $(side + d[0]).addEventListener("input", function () {
+        var pick = SET[side] || {};
+        pick[d[1]] = this.value;
+        if (d[1] === "primary") delete pick.number; // numbers follow a new shirt colour until they are picked again
+        if (d[1] === "gk") delete pick.gkNumber;
+        SET[side] = pick; saveSettings(); applyColours(); syncSettingsUi();
+      });
     });
   });
-  $("refC").addEventListener("input", function () { SET.refs = this.value; saveSettings(); });
+  // Referees and assistants: shirt, trim and letter (the trim and letter follow a new shirt until they are picked).
+  function refColours() {
+    var r = typeof SET.refs === "string" ? { shirt: SET.refs } : SET.refs || {};
+    var shirt = r.shirt || "#121212", auto = r.shirt ? (textOn(r.shirt) === "#111" ? "#111111" : "#ffffff") : "#f2c230";
+    return { shirt: shirt, trim: r.trim || auto, letter: r.letter || auto };
+  }
+  [["refC", "shirt"], ["refT", "trim"], ["refL", "letter"]].forEach(function (d) {
+    $(d[0]).addEventListener("input", function () {
+      var r = typeof SET.refs === "string" ? { shirt: SET.refs } : SET.refs || {};
+      r[d[1]] = this.value;
+      if (d[1] === "shirt") { delete r.trim; delete r.letter; }
+      SET.refs = r; saveSettings(); syncSettingsUi();
+    });
+  });
   $("setReset").addEventListener("click", function () {
     var before = condCode();
     for (var k in DEFAULTS) SET[k] = DEFAULTS[k]; SET.night = false;

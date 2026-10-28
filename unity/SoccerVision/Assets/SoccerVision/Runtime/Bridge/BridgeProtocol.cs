@@ -36,6 +36,10 @@ namespace SoccerVision.Runtime
         public string net = "#ebf0eb";
         public string homePrimary = "", homeSecondary = "", awayPrimary = "", awaySecondary = "";
         public string homeNumber = "", homeKeeper = "", awayNumber = "", awayKeeper = "";
+        public string homeKeeperTrim = "", homeKeeperNumber = "", awayKeeperTrim = "", awayKeeperNumber = "";
+        public string officialsTrim = "", officialsLetter = "";
+        /// <summary>open | stand | bowl</summary>
+        public string stadium = "stand";
         /// <summary>Referee and assistants' shirt ("" keeps black with yellow trim).</summary>
         public string officials = "";
         /// <summary>Line paint in the snow: yellow | orange.</summary>
@@ -94,6 +98,8 @@ namespace SoccerVision.Runtime
         public string secondaryColor;
         public string goalkeeperColor;
         public string numberColor;
+        public string goalkeeperTrimColor;
+        public string goalkeeperNumberColor;
         public string formation;
         public PlayerDto[] players;
     }

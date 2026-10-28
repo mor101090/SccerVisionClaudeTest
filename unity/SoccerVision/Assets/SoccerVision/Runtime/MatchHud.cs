@@ -111,6 +111,15 @@ namespace SoccerVision.Runtime
             var comp = new GUIStyle(_small) { fontSize = Mathf.RoundToInt(14 * s) };
             comp.normal.textColor = Color.white;
             GUI.Label(new Rect(x + logoW + 20f * s, y + h, subW - logoW - 20f * s, subH), "Ligue match", comp);
+            // Weather, and the wind (a breeze at least) with its direction
+            var look = Controller.look;
+            string sky = look.night && look.sky == Weather.Sunny ? "Clear" : look.sky.ToString();
+            float deg = Atmosphere.WindAngle * Mathf.Rad2Deg;
+            string[] arrows = { "→", "↗", "↑", "↖", "←", "↙", "↓", "↘" };
+            string arrow = arrows[Mathf.RoundToInt(Mathf.Repeat(deg, 360f) / 45f) % 8];
+            string wx = (look.night ? "Night" : "Day") + " · " + sky + "   " + arrow + " " + Mathf.RoundToInt(Atmosphere.Breeze * 3.6f) + " km/h";
+            Fill(new Rect(x, y + h + subH + 4f * s, subW, subH), ClockBg);
+            GUI.Label(new Rect(x + 8f * s, y + h + subH + 4f * s, subW - 8f * s, subH), wx, comp);
         }
 
         private void DrawTeamBlock(Rect r, string name, Color teamColor, int reds, float underline, GUIStyle text)
@@ -146,7 +155,7 @@ namespace SoccerVision.Runtime
             GUI.DrawTexture(new Rect(gearRect.center.x - g * 0.5f, gearRect.center.y - g * 0.5f, g, g), _iconGear);
             if (_settingsOpen)
             {
-                var panel = new Rect(right - 380f * s, gearRect.yMax + 8f * s, 380f * s, 370f * s);
+                var panel = new Rect(right - 380f * s, gearRect.yMax + 8f * s, 380f * s, 404f * s);
                 Fill(panel, new Color(0.08f, 0.1f, 0.12f, 0.94f));
                 GUI.Label(new Rect(panel.x + 12f * s, panel.y + 6f * s, panel.width, 26f * s), "<b>SETTINGS</b>  <color=#f2b31b><b>DEV</b></color>", _small);
                 if (GUI.Button(new Rect(panel.xMax - 36f * s, panel.y + 6f * s, 28f * s, 24f * s), "X", _button)) _settingsOpen = false;
@@ -185,6 +194,7 @@ namespace SoccerVision.Runtime
             l.sky = (Weather)Seg("Sky", new[] { "Sunny", "Cloudy", "Rain", "Snow" }, (int)l.sky);
             l.orangeSnowLines = Seg("Snow lines", new[] { "Yellow", "Orange" }, l.orangeSnowLines ? 1 : 0) == 1;
             l.windy = Seg("Wind", new[] { "Calm", "Strong" }, l.windy ? 1 : 0) == 1;
+            l.stadium = (Stadium)Seg("Stadium", new[] { "Open", "Main stand", "Bowl" }, (int)l.stadium);
             l.night = Seg("Kick-off", new[] { "Day", "Night" }, l.night ? 1 : 0) == 1;
             GUI.Label(new Rect(x, y, panel.width - 24f * s, bh * 2f), "<size=" + Mathf.RoundToInt(11f * s) + ">Team and net colours: inspector or the React settings.</size>", _small);
             if (changed) Controller.ApplyLook(l);

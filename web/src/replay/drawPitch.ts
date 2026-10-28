@@ -1,5 +1,5 @@
 import { Ball3D } from "./ball3d";
-import { type DevSettings, textOn } from "../settings/devSettings";
+import { type DevSettings, refColours } from "../settings/devSettings";
 import { PitchLook } from "./conditions";
 import { playerAt } from "./replay";
 import type { Replay, Snapshot } from "./replay";
@@ -218,10 +218,9 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   // Officials
   snap.officials.forEach((o, i) => {
     look.shadow(ctx, v, settings, o.x, o.y, px(v, o.x), py(v, o.y), r, r * 0.9, 0.45);
-    const kit = settings.refs ?? "#141414";
-    const mark = settings.refs ? textOn(settings.refs) : "#f6d43a";
-    disc(ctx, px(v, o.x), py(v, o.y), r, kit, mark); // same size as the players
-    ctx.fillStyle = mark;
+    const rc = refColours(settings.refs);
+    disc(ctx, px(v, o.x), py(v, o.y), r, rc.shirt, rc.trim); // same size as the players
+    ctx.fillStyle = rc.letter;
     ctx.font = `800 ${Math.max(8, 1.05 * s)}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -244,7 +243,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     const lift = h * 2.2 * s;
     const y = gy - lift;
     if (p.sliding || p.grounded) {
-      drawDownPlayer(ctx, x, gy, r, s, -p.facing, p.sliding, p.gk ? team.kit.gk : team.kit.primary, team.kit.secondary);
+      drawDownPlayer(ctx, x, gy, r, s, -p.facing, p.sliding, p.gk ? team.kit.gk : team.kit.primary, p.gk ? (team.kit.gkTrim ?? team.kit.secondary) : team.kit.secondary);
       ctx.fillStyle = p.gk ? team.kit.gkNumber : team.kit.number;
       ctx.font = `bold ${Math.max(8, r * 1.05)}px system-ui, sans-serif`;
       ctx.textAlign = "center";
@@ -260,7 +259,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     const grow = 1 + h * 0.1;
     const shrink = 1 - h * 0.6;
     look.shadow(ctx, v, settings, p.x, p.y, x, gy, r * 1.05 * shrink, r * 0.95 * shrink, 0.5 * shrink);
-    disc(ctx, x, y, r * grow, p.gk ? team.kit.gk : team.kit.primary, team.kit.secondary);
+    disc(ctx, x, y, r * grow, p.gk ? team.kit.gk : team.kit.primary, p.gk ? (team.kit.gkTrim ?? team.kit.secondary) : team.kit.secondary);
     ctx.fillStyle = p.gk ? team.kit.gkNumber : team.kit.number;
     ctx.font = `bold ${Math.max(8, r * grow * 1.05)}px system-ui, sans-serif`;
     ctx.textAlign = "center";
@@ -351,11 +350,13 @@ function clothPath(ctx: CanvasRenderingContext2D, pts: [number, number][], y0: n
 function cornerFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number, seed: number, ax: number, ay: number) {
   // In a strong wind the cloth streams out downwind, stretched and rippling fast; in still air it hangs limp and sways.
   const windy = look.wind.speed > 0.5;
-  const len = (windy ? 1.4 : 0.9) * s;
+  const len = (windy ? 1.4 : 1.05) * s; // a breeze at least
   const wid = 0.42 * s;
   const n = 6;
   const rate = windy ? 4.2 : 1.7;
-  const ang = (windy ? look.wind.screenAngle : Math.atan2(ay, ax)) + Math.sin(t * (windy ? 1.3 : 0.45) + seed * 1.7) * (windy ? 0.07 : 0.16) + Math.sin(t * 0.17 + seed * 3.4) * 0.1;
+  void ax;
+  void ay;
+  const ang = look.wind.screenAngle + Math.sin(t * (windy ? 1.3 : 0.45) + seed * 1.7) * (windy ? 0.07 : 0.16) + Math.sin(t * 0.17 + seed * 3.4) * 0.1;
   const dx = Math.cos(ang);
   const dy = Math.sin(ang);
   const top: [number, number][] = [];
@@ -405,7 +406,7 @@ function assistantFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
   const w = 1.6 * s;
   const h = 1.1 * s;
   const windy = look.wind.speed > 0.5;
-  const pts = clothEdge(fx, y - 2.6 * s, w, h, t * (windy ? 3.2 : 1.6), 3.1, windy && Math.cos(look.wind.screenAngle) < 0 ? -1 : 1);
+  const pts = clothEdge(fx, y - 2.6 * s, w, h, t * (windy ? 3.2 : 1.6), 3.1, Math.cos(look.wind.screenAngle) < 0 ? -1 : 1);
   for (let qx = 0; qx < 2; qx++)
     for (let qy = 0; qy < 2; qy++) {
       clothPath(ctx, pts, (qy * h) / 2, ((qy + 1) * h) / 2, qx * 3, qx * 3 + 3);

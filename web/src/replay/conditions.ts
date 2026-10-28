@@ -16,13 +16,16 @@ export interface Wind {
   angle: number;
   /** the same on screen (y down) */
   screenAngle: number;
+  /** What the flags and the chip show: the wind, or a light breeze when none is set (too light to move the ball). */
+  breeze: number;
 }
 
 export function windOf(replay: Replay): Wind {
   const c = replay.conditions;
   const speed = c?.wind ?? 0;
-  const angle = c?.windAngle ?? 0;
-  return { speed, angle, screenAngle: Math.atan2(-Math.sin(angle), Math.cos(angle)) };
+  const angle = speed > 0.5 ? (c?.windAngle ?? 0) : (((replay.seed * 97) % 360) * Math.PI) / 180;
+  const breeze = speed > 0.5 ? speed : 1.4 + (replay.seed % 9) * 0.35;
+  return { speed, angle, screenAngle: Math.atan2(-Math.sin(angle), Math.cos(angle)), breeze };
 }
 
 function hash2(i: number, j: number) {
@@ -72,7 +75,10 @@ export class PitchLook {
   private dark: HTMLCanvasElement | null = null;
   private grain: { ctx: CanvasRenderingContext2D; pattern: CanvasPattern } | null = null;
   private key = "";
-  wind: Wind = { speed: 0, angle: 0, screenAngle: 0 };
+  wind: Wind = { speed: 0, angle: 0, screenAngle: 0, breeze: 0 };
+  private cloud = document.createElement("canvas");
+  private stand: HTMLCanvasElement | null = null;
+  private standKey = "";
 
   /** Rebuilds the mud, puddle and snow textures when the match or the sky changes. */
   update(replay: Replay, s: DevSettings) {
@@ -250,7 +256,7 @@ export class PitchLook {
     const w = ctx.canvas.width;
     const h = ctx.canvas.height;
     const k = v.scale;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
     const ws = (m: number) => ({ x: Math.cos(this.wind.screenAngle) * this.wind.speed * m, y: Math.sin(this.wind.screenAngle) * this.wind.speed * m });
     if (s.sky === "Rain") {
       const want = Math.round((w * h) / 2600);
@@ -324,23 +330,67 @@ export class PitchLook {
     }
   }
 
+  /** Cloud shadows drifting with the wind, drawn into an image an eighth of the size (soft, so no detail is lost). */
   private cloudShadows(ctx: CanvasRenderingContext2D, v: View, now: number, strength: number) {
-    const k = v.scale;
-    const drift = Math.max(1.5, this.wind.speed) * now * 0.6;
-    const ang = this.wind.speed > 0.5 ? this.wind.angle : 0.4;
-    const ux = Math.cos(ang);
-    const uy = Math.sin(ang);
+    const f = 8;
+    const cw = Math.ceil(ctx.canvas.width / f);
+    const ch = Math.ceil(ctx.canvas.height / f);
+    if (this.cloud.width !== cw || this.cloud.height !== ch) {
+      this.cloud.width = cw;
+      this.cloud.height = ch;
+    }
+    const g2 = this.cloud.getContext("2d");
+    if (!g2) return;
+    g2.clearRect(0, 0, cw, ch);
+    const k = v.scale / f;
+    const drift = Math.max(1.5, this.wind.breeze) * now * 0.6;
+    const ux = Math.cos(this.wind.angle);
+    const uy = Math.sin(this.wind.angle);
     for (let i = 0; i < 6; i++) {
       const ox = ((((hash2(i, 7) * 260 + drift * ux) % 260) + 260) % 260) - 130;
       const oy = ((((hash2(i, 9) * 160 + drift * uy) % 160) + 160) % 160) - 80;
+      const cx = px(v, ox) / f;
+      const cy = py(v, oy) / f;
       const rad = (22 + hash2(i, 3) * 26) * k;
-      const g = ctx.createRadialGradient(px(v, ox), py(v, oy), 0, px(v, ox), py(v, oy), rad);
+      const g = g2.createRadialGradient(cx, cy, 0, cx, cy, rad);
       g.addColorStop(0, `rgba(10,18,28,${strength})`);
       g.addColorStop(0.6, `rgba(10,18,28,${strength * 0.6})`);
       g.addColorStop(1, "rgba(10,18,28,0)");
-      ctx.fillStyle = g;
-      ctx.fillRect(px(v, ox) - rad, py(v, oy) - rad, rad * 2, rad * 2);
+      g2.fillStyle = g;
+      g2.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
     }
+    ctx.drawImage(this.cloud, 0, 0, ctx.canvas.width, ctx.canvas.height);
+  }
+
+  /**
+   * The low sun (from the top left, like the players' shadows) is blocked by the stands: a main stand along the far
+   * touchline throws a slanting band of shade, a bowl's curved roof shades the top and the left. With the sun's warm
+   * tint, drawn once per size into an image.
+   */
+  private buildStand(ctx: CanvasRenderingContext2D, v: View, stadium: DevSettings["stadium"]) {
+    const c = document.createElement("canvas");
+    c.width = ctx.canvas.width;
+    c.height = ctx.canvas.height;
+    const g = c.getContext("2d");
+    if (!g) return c;
+    g.fillStyle = "rgba(255,214,140,0.05)";
+    g.fillRect(0, 0, c.width, c.height);
+    if (stadium === "open") return c;
+    g.fillStyle = "rgba(10,24,40,0.34)";
+    g.filter = `blur(${Math.max(1, 0.35 * v.scale)}px)`;
+    g.beginPath();
+    if (stadium === "bowl") {
+      g.rect(-50, -50, c.width + 100, c.height + 100); // everything outside the roof's curved opening
+      g.ellipse(px(v, 14), py(v, -9), 66 * v.scale, 47 * v.scale, 0, 0, Math.PI * 2);
+      g.fill("evenodd");
+    } else {
+      // the main stand's roof line, with the steps of its trusses
+      const pts = [[-70, 60], [70, 60], [70, 25.5], [34, 21.5], [33, 19.8], [-6, 15.5], [-7, 13.8], [-46, 9.6], [-47, 8], [-70, 5.5]];
+      pts.forEach(([x, y], i) => (i ? g.lineTo(px(v, x), py(v, y)) : g.moveTo(px(v, x), py(v, y))));
+      g.closePath();
+      g.fill();
+    }
+    return c;
   }
 
   private buildDark(ctx: CanvasRenderingContext2D, v: View) {
@@ -350,16 +400,16 @@ export class PitchLook {
     const g = c.getContext("2d");
     if (!g) return null;
     const k = v.scale;
-    g.fillStyle = "rgba(2,7,22,0.66)";
+    g.fillStyle = "rgba(2,7,22,0.62)";
     g.fillRect(0, 0, c.width, c.height);
     g.globalCompositeOperation = "destination-out";
     for (const [lx, ly] of TOWERS) {
       const cx = px(v, lx * 0.4);
       const cy = py(v, ly * 0.4);
       const gr = g.createRadialGradient(cx, cy, 0, cx, cy, 72 * k);
-      gr.addColorStop(0, "rgba(0,0,0,0.5)");
-      gr.addColorStop(0.55, "rgba(0,0,0,0.4)");
-      gr.addColorStop(0.85, "rgba(0,0,0,0.12)");
+      gr.addColorStop(0, "rgba(0,0,0,0.55)");
+      gr.addColorStop(0.55, "rgba(0,0,0,0.45)");
+      gr.addColorStop(0.85, "rgba(0,0,0,0.14)");
       gr.addColorStop(1, "rgba(0,0,0,0)");
       g.fillStyle = gr;
       g.fillRect(0, 0, c.width, c.height);
@@ -384,26 +434,17 @@ export class PitchLook {
     const h = ctx.canvas.height;
     if (s.night) {
       if (!this.dark || this.dark.width !== w || this.dark.height !== h) this.dark = this.buildDark(ctx, v);
-      if (this.dark) ctx.drawImage(this.dark, 0, 0);
-      // the floodlights' cool white light over the pitch
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      for (const [lx, ly] of TOWERS) {
-        const cx = px(v, lx * 0.45);
-        const cy = py(v, ly * 0.45);
-        const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, 55 * v.scale);
-        gr.addColorStop(0, "rgba(120,130,150,0.07)");
-        gr.addColorStop(1, "rgba(120,130,150,0)");
-        ctx.fillStyle = gr;
-        ctx.fillRect(0, 0, w, h);
-      }
-      ctx.restore();
+      if (this.dark) ctx.drawImage(this.dark, 0, 0); // built once per size: one image per frame
       return;
     }
     if (s.sky === "Sunny") {
-      this.cloudShadows(ctx, v, now, 0.07);
-      ctx.fillStyle = "rgba(255,214,140,0.05)";
-      ctx.fillRect(0, 0, w, h);
+      const key = `${s.stadium}|${w}x${h}`;
+      if (!this.stand || this.standKey !== key) {
+        this.stand = this.buildStand(ctx, v, s.stadium);
+        this.standKey = key;
+      }
+      ctx.drawImage(this.stand, 0, 0);
+      this.cloudShadows(ctx, v, now, 0.06);
       return;
     }
     this.cloudShadows(ctx, v, now, s.sky === "Cloudy" ? 0.1 : 0.08);
