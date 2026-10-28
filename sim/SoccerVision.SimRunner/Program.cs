@@ -24,7 +24,7 @@ int replayFps = 8;
 var conditions = new MatchConditions();
 MatchScript script = null;
 // --home "line=0.9,width=0.2,passing=short,tempo=0.8,aggression=0.8": the home team's tactics
-string homeTactics = null;
+string homeTactics = null, awayTactics = null;
 for (int i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -43,6 +43,7 @@ for (int i = 0; i < args.Length; i++)
         case "--night": conditions.Night = true; break;
         // --script staged: the staged match (light injury, yellow, direct red, serious injury + substitution, second yellow and red)
         case "--home": homeTactics = args[++i]; break;
+        case "--away": awayTactics = args[++i]; break;
         case "--script": if (args[++i] == "staged") script = MatchScript.Staged(); break;
     }
 }
@@ -56,11 +57,13 @@ MatchConfig MakeConfig()
     return c;
 }
 
-TeamSetup Home()
+TeamSetup Home() => WithTactics(DemoTeams.Red(), homeTactics);
+TeamSetup Away() => WithTactics(DemoTeams.Blue(), awayTactics);
+
+static TeamSetup WithTactics(TeamSetup t, string spec)
 {
-    var t = DemoTeams.Red();
-    if (homeTactics == null) return t;
-    foreach (var kv in homeTactics.Split(','))
+    if (spec == null) return t;
+    foreach (var kv in spec.Split(','))
     {
         var parts = kv.Split('=');
         string k = parts[0].Trim(), v = parts[1].Trim();
@@ -125,7 +128,7 @@ var diagnostics = new Dictionary<string, int>();
 var sw = Stopwatch.StartNew();
 Parallel.For(0, matches, i =>
 {
-    var engine = new MatchEngine(Home(), DemoTeams.Blue(), seed + (ulong)i, MakeConfig());
+    var engine = new MatchEngine(Home(), Away(), seed + (ulong)i, MakeConfig());
     engine.CollectDiagnostics = args.Contains("--diag");
     var t0 = Stopwatch.GetTimestamp();
     engine.RunToEnd(0.25f);
@@ -150,7 +153,7 @@ if (args.Contains("--scan"))
 {
     for (int i = 0; i < matches; i++)
     {
-        var e = new MatchEngine(Home(), DemoTeams.Blue(), seed + (ulong)i, MakeConfig());
+        var e = new MatchEngine(Home(), Away(), seed + (ulong)i, MakeConfig());
         e.RunToEnd(0.25f);
         var log = e.EventLog;
         Console.WriteLine($"seed {seed + (ulong)i,6}  {e.Home.Score}-{e.Away.Score}  pens {log.Count(x => x.Type == MatchEventType.PenaltyAwarded)}"
@@ -235,6 +238,7 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Home: possession % / goals", Avg(x => x.HomePossession), Avg(x => x.HomeGoals).ToString("0.00") + " (away " + Avg(x => x.AwayGoals).ToString("0.00") + ")");
     Row("Home: fouls / yellows", Avg(x => x.HomeFouls), Avg(x => x.HomeYellows).ToString("0.00"));
     Row("Home: avg back-line depth (m from own goal)", Avg(x => x.HomeLineDepth), "width of outfield spread " + Avg(x => x.HomeSpread).ToString("0.0") + " m");
+    Row("Home: midfield / forwards depth (m)", Avg(x => x.HomeMidDepth), Avg(x => x.HomeAttackDepth).ToString("0.0"));
     Row("Real minutes per match", Avg(x => x.RealMinutes), "");
     Row("Crosses by full-backs", Avg(x => x.FullBackCrosses), "~35-45% of crosses");
     Row("Crosses by wingers", Avg(x => x.WingerCrosses), "~35-45% of crosses");
@@ -310,7 +314,7 @@ sealed class MatchResult
     public int RecoveredErrors;
     public double WallMs;
     public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots, LightInjuries, SeriousInjuries, Substitutions, Switches, SwitchesCompleted, FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks, CrossesAll, Interceptions, AnticipatedInterceptions, ThroughBalls, ThroughBallsCompleted, PassesIntoSpace, ShieldedOut, ShoulderDuelsWon, OneTwos, OneTwosCompleted, HomePasses, HomeLongBalls, HomeFouls, HomeYellows;
-    public double HomeLineDepth, HomeSpread, RealMinutes;
+    public double HomeLineDepth, HomeSpread, RealMinutes, HomeMidDepth, HomeAttackDepth;
     public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy, FoulsAnchor, FoulsCm, FoulsCb, FoulsFb, FoulsWide, FoulsSt, TacklesAnchor, TacklesCm, TacklesCb, TacklesFb, TacklesWide, TacklesSt, IntAnchor, IntCm, IntCb, IntFb, IntWide, IntSt, PassAnchor, PassCm, PassCb, PassFb, PassWide, PassSt, EnergyFullBack, EnergyCentreBack, EnergyWide, EnergyCentral, EnergyStriker, EnergyKeeper;
     public string Score;
 
@@ -373,6 +377,8 @@ sealed class MatchResult
             HomeYellows = h.YellowCards,
             HomeLineDepth = e.HomeLineSamples > 0 ? e.HomeLineSum / e.HomeLineSamples : 0,
             HomeSpread = e.HomeLineSamples > 0 ? e.HomeSpreadSum / e.HomeLineSamples : 0,
+            HomeMidDepth = e.HomeLineSamples > 0 ? e.HomeMidSum / e.HomeLineSamples : 0,
+            HomeAttackDepth = e.HomeLineSamples > 0 ? e.HomeAttackSum / e.HomeLineSamples : 0,
             RealMinutes = e.SimTime / e.Config.MotionSpeed / 60.0,
             SwitchesCompleted = h.SwitchesCompleted + a.SwitchesCompleted,
             FullBackCrosses = h.FullBackCrosses + a.FullBackCrosses,

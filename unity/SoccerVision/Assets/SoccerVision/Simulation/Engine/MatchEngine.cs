@@ -329,23 +329,28 @@ namespace SoccerVision.Simulation
         }
 
         /// <summary>Diagnostics of the home team's shape (tactics checks): back-line depth from its own goal and lateral spread.</summary>
-        public double HomeLineSum, HomeSpreadSum;
+        public double HomeLineSum, HomeSpreadSum, HomeMidSum, HomeAttackSum;
         public int HomeLineSamples;
 
         private void SampleHomeShape()
         {
             var t = Home;
-            float line = 0f, n = 0f, lo = float.PositiveInfinity, hi = float.NegativeInfinity;
+            float line = 0f, n = 0f, mid = 0f, nm = 0f, att = 0f, na = 0f, lo = float.PositiveInfinity, hi = float.NegativeInfinity;
             foreach (var p in t.Players)
             {
                 if (p.SentOff || p.IsGoalkeeper) continue;
                 float lat = t.Lateral(p.Pos);
                 lo = MathF.Min(lo, lat);
                 hi = MathF.Max(hi, lat);
-                if (p.Slot.Line == Line.Defence) { line += t.Forward(p.Pos) + Pitch.HalfLength; n++; }
+                float depth = t.Forward(p.Pos) + Pitch.HalfLength;
+                if (p.Slot.Line == Line.Defence) { line += depth; n++; }
+                else if (p.Slot.Line == Line.Midfield) { mid += depth; nm++; }
+                else { att += depth; na++; }
             }
             if (n == 0f) return;
             HomeLineSum += line / n;
+            if (nm > 0f) HomeMidSum += mid / nm;
+            if (na > 0f) HomeAttackSum += att / na;
             HomeSpreadSum += hi - lo;
             HomeLineSamples++;
         }

@@ -293,7 +293,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     const lift = h * 2.2 * s;
     const y = gy - lift;
     if (p.sliding || p.grounded) {
-      drawDownPlayer(ctx, x, gy, r, s, -p.facing, p.sliding, p.gk ? team.kit.gk : team.kit.primary, p.gk ? (team.kit.gkTrim ?? team.kit.secondary) : team.kit.secondary);
+      drawDownPlayer(ctx, x, gy, r, s, -p.facing, p.sliding, p.gk ? team.kit.gk : team.kit.primary, PLAYER_EDGE);
       ctx.fillStyle = p.gk ? team.kit.gkNumber : team.kit.number;
       ctx.font = `bold ${Math.max(8, r * 1.05)}px system-ui, sans-serif`;
       ctx.textAlign = "center";
@@ -309,7 +309,8 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     const grow = 1 + h * 0.1;
     const shrink = 1 - h * 0.6;
     look.shadow(ctx, v, settings, p.x, p.y, x, gy, r * 1.05 * shrink, r * 0.95 * shrink, 0.5 * shrink);
-    disc(ctx, x, y, r * grow, p.gk ? team.kit.gk : team.kit.primary, p.gk ? (team.kit.gkTrim ?? team.kit.secondary) : team.kit.secondary);
+    // the design's player marker: a plain circle in the shirt colour, a thin black edge, the number
+    disc(ctx, x, y, r * grow, p.gk ? team.kit.gk : team.kit.primary, PLAYER_EDGE, 0.12);
     ctx.fillStyle = p.gk ? team.kit.gkNumber : team.kit.number;
     ctx.font = `bold ${Math.max(8, r * grow * 1.05)}px system-ui, sans-serif`;
     ctx.textAlign = "center";
@@ -542,12 +543,16 @@ function drawDownPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
   ctx.restore();
 }
 
-function disc(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, stroke: string) {
+/** The players' edge colour (the design's marker: shirt colour, thin black edge, number). */
+const PLAYER_EDGE = "#1a1a1a";
+
+function disc(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, stroke: string, edge = 0.18) {
+  const lw = Math.max(1, r * edge);
   ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.arc(x, y, edge < 0.18 ? r - lw / 2 : r, 0, Math.PI * 2);
   ctx.fillStyle = fill;
   ctx.fill();
-  ctx.lineWidth = Math.max(1, r * 0.18);
+  ctx.lineWidth = lw;
   ctx.strokeStyle = stroke;
   ctx.stroke();
 }

@@ -19,6 +19,7 @@ namespace SoccerVision.Runtime
 
         private Transform _body, _lift;
         private SpriteRenderer _fill, _ring, _shadow, _card, _streak;
+        private static readonly Color Edge = new Color(0.1f, 0.1f, 0.1f);
         private readonly SpriteRenderer[] _extraShadows = new SpriteRenderer[3];
         private readonly Vector3[] _lights = new Vector3[4];
         private GameObject _injury;
@@ -41,7 +42,8 @@ namespace SoccerVision.Runtime
             _body = new GameObject("Body").transform;
             _body.SetParent(_lift, false);
             _fill = SpriteFactory.AddSprite(_body, "Fill", SpriteFactory.Circle, kit, 12, 1f);
-            _ring = SpriteFactory.AddSprite(_body, "Ring", SpriteFactory.Ring, ringColor, 13, 1f);
+            // the design's player marker: shirt colour, a thin black edge, the number
+            _ring = SpriteFactory.AddSprite(_body, "Ring", SpriteFactory.ThinRing, Edge, 13, 1f);
             _streak = SpriteFactory.AddSprite(transform, "SlideStreak", SpriteFactory.Square, new Color(0.88f, 0.94f, 0.8f, 0.3f), 11, 1f);
             _streak.enabled = false;
             // TextMesh world height ~= fontSize * characterSize * 0.1 (relative to the 1-unit body here).
@@ -86,7 +88,7 @@ namespace SoccerVision.Runtime
         public void SetKit(Color kit, Color ringColor, Color numberColor)
         {
             _fill.color = kit;
-            _ring.color = ringColor;
+            _ring.color = Edge;
             _number.color = numberColor;
         }
 

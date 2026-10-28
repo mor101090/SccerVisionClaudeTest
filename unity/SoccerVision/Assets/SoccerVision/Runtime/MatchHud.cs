@@ -105,7 +105,7 @@ namespace SoccerVision.Runtime
             float logoH = subH * 0.72f, logoW = _logo != null ? logoH * _logo.width / (float)_logo.height : 0f;
             if (_logo != null)
             {
-                Fill(new Rect(x + 6f * s, y + h + (subH - logoH) * 0.5f, logoW + 4f * s, logoH), Color.white);
+                // (the logo has a transparent background: no white box behind it)
                 GUI.DrawTexture(new Rect(x + 8f * s, y + h + (subH - logoH) * 0.5f, logoW, logoH), _logo, ScaleMode.ScaleToFit);
             }
             var comp = new GUIStyle(_small) { fontSize = Mathf.RoundToInt(14 * s) };

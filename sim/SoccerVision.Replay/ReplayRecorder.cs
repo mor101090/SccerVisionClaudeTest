@@ -71,6 +71,18 @@ namespace SoccerVision.Replay
             b.Append('"');
         }
 
+        /// <summary>A player's card: height, feet, age, fitness and the skill categories (0-100) as the profile has them.</summary>
+        private static void Profile(StringBuilder b, PlayerProfile pr)
+        {
+            var a = pr.Attributes;
+            b.Append(",\"height\":").Append(pr.HeightCm).Append(",\"age\":").Append(pr.Age);
+            b.Append(",\"foot\":\"").Append(a.LeftFoot == 3 && a.RightFoot == 3 ? "Both" : a.StrongFoot == Foot.Left ? "Left" : "Right").Append('"');
+            b.Append(",\"weakFoot\":").Append(a.WeakFootRating);
+            b.Append(",\"fitness\":\"").Append(a.Fitness == FitnessLevel.Low ? "Low" : a.Fitness == FitnessLevel.High ? "Peak" : "Moderate").Append('"');
+            b.Append(",\"cats\":[").Append((int)MathF.Round(a.Mental)).Append(',').Append((int)MathF.Round(a.Defence)).Append(',').Append((int)MathF.Round(a.Playmaking))
+             .Append(',').Append((int)MathF.Round(a.Attacking)).Append(',').Append((int)MathF.Round(a.Athletic)).Append(',').Append((int)MathF.Round(a.Goalkeeping)).Append(']');
+        }
+
         /// <summary>
         /// The fields of the replay file apart from the frames, events and stats: seed, timing, conditions, the mud and
         /// water map, and both teams with their players. A JSON object body (no braces), so a file writer can continue it.
@@ -142,7 +154,22 @@ namespace SoccerVision.Replay
                 b.Append(",\"name\":"); Str(b, p.Profile.FullName);
                 b.Append(",\"shortName\":"); Str(b, p.Profile.ShortName);
                 b.Append(",\"role\":"); Str(b, Formation.RoleAbbreviation(p.Slot.Role));
-                b.Append(",\"passing\":").Append(p.Attr.Passing).Append(",\"speed\":").Append(p.Attr.Speed).Append(",\"stamina\":").Append(p.Attr.Stamina).Append('}');
+                b.Append(",\"passing\":").Append(p.Attr.Passing).Append(",\"speed\":").Append(p.Attr.Speed).Append(",\"stamina\":").Append(p.Attr.Stamina);
+                Profile(b, p.Profile);
+                b.Append('}');
+            }
+            b.Append("],\"bench\":[");
+            for (int i = 0; i < t.Setup.Bench.Count; i++)
+            {
+                var q = t.Setup.Bench[i];
+                if (i > 0) b.Append(',');
+                b.Append("{\"number\":").Append(q.ShirtNumber);
+                b.Append(",\"name\":"); Str(b, q.FullName);
+                b.Append(",\"shortName\":"); Str(b, q.ShortName);
+                b.Append(",\"role\":"); Str(b, q.NaturalPosition == PositionGroup.Goalkeeper ? "GK" : q.NaturalPosition == PositionGroup.Defender ? "D" : q.NaturalPosition == PositionGroup.Midfielder ? "M" : "ST");
+                b.Append(",\"passing\":").Append(q.Attributes.Passing).Append(",\"speed\":").Append(q.Attributes.Speed).Append(",\"stamina\":").Append(q.Attributes.Stamina);
+                Profile(b, q);
+                b.Append('}');
             }
             b.Append(']');
             if (finalStats)

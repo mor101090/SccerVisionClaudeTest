@@ -376,7 +376,7 @@ namespace SoccerVision.Simulation
             if (_nextPassIntoSpace) success *= 0.85f;
             // Through balls behind the line: keepers sweep, defenders turn and recover - the race is harder to win
             // than the simple estimate suggests (measured: well below the predicted success).
-            else if (kind == KickKind.ThroughBall) success *= 0.68f;
+            else if (kind == KickKind.ThroughBall) success *= 0.68f + 0.3f * SpaceBehindLine(team);
             float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure) * StyleFactor(team, kind, d, false);
             float relief = SwitchRelief(p, from, target, pressure);
             value += relief;
@@ -507,7 +507,7 @@ namespace SoccerVision.Simulation
             float capture = 2.2f + 0.04f * d;
             float pAccuracy = 1f - MathF.Exp(-0.635f * capture * capture / (sd * sd));
             float success = pWin * pControl * pAccuracy;
-            if (kind == KickKind.ThroughBall) success *= 0.8f; // the keeper and the recovering defenders (see AddGroundPass)
+            if (kind == KickKind.ThroughBall) success *= 0.8f + 0.18f * SpaceBehindLine(team); // the keeper and the recovering defenders (see AddGroundPass)
             float value = ExpectedThreat.At(team, target) * StyleFactor(team, kind, d, true);
             float relief = SwitchRelief(p, from, target, pressure);
             value += relief;
@@ -794,6 +794,13 @@ namespace SoccerVision.Simulation
                     break;
             }
         }
+
+        /// <summary>
+        /// 0..1: how much room the opponents leave behind their back line - nothing for a line on the edge of its box, a
+        /// lot for a high line near halfway. A ball in behind a high line is the classic way to beat it: the runner has
+        /// space to run into and the defenders have to turn and chase.
+        /// </summary>
+        private float SpaceBehindLine(TeamAgent team) => MathUtil.Clamp01((team.Opponent.LineForward + Pitch.HalfLength - 30f) / 16f);
 
         /// <summary>
         /// The team's passing style: short combinations value the short ball to feet, direct play the ball in behind and the

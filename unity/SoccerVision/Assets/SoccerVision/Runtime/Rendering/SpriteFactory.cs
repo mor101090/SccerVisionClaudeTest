@@ -19,6 +19,9 @@ namespace SoccerVision.Runtime
 
         public static Sprite Circle => _circle != null ? _circle : (_circle = MakeDisc(128, 0f, false));
         public static Sprite Ring => _ring != null ? _ring : (_ring = MakeDisc(128, 0.82f, false));
+        /// <summary>The players' thin black edge (the design's marker).</summary>
+        public static Sprite ThinRing => _thinRing != null ? _thinRing : (_thinRing = MakeDisc(128, 0.88f, false));
+        private static Sprite _thinRing;
         public static Sprite Shadow => _shadow != null ? _shadow : (_shadow = MakeDisc(64, 0f, true));
         public static Sprite Square => _square != null ? _square : (_square = MakeSquare());
         public static Sprite Flag => _flag != null ? _flag : (_flag = MakeFlag());

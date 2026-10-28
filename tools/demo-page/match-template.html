@@ -49,7 +49,7 @@ h1 { margin: 2px 0 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--display); lett
 .sb-reds { position: absolute; left: .45em; top: -.5em; display: flex; gap: .2em; }
 .sb-reds i { display: block; width: .42em; height: .42em; background: #ed1c24; }
 .sb-sub { display: inline-flex; align-items: center; gap: .5em; height: 1.3em; padding: 0 .8em 0 .3em; background: #7b8bb0; color: #fff; font-size: .78em; }
-.sb-sub img { height: 1.05em; width: auto; background: #fff; padding: .05em .2em; display: block; }
+.sb-sub img { height: 1.15em; width: auto; display: block; filter: drop-shadow(0 0 1px rgba(0,0,0,.35)); }
 .topctl { position: absolute; right: 2.2%; top: 2.4%; display: flex; align-items: center; gap: .5em; font-size: clamp(18px, 2.6cqi, 32px); }
 .topctl button.icon { background: none; border: 0; padding: .1em; color: #fff; line-height: 0; border-radius: 6px; }
 .topctl button.icon:hover { background: rgba(0,0,0,.15); }
@@ -125,6 +125,22 @@ td.l { color: var(--muted); }
 .moments button { text-align: left; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 6px; padding: 8px 10px; line-height: 1.3; }
 .foot { color: var(--muted); font-size: 13px; }
 
+/* ---- Player card on hover (design doc: tooltip with the player's skills) ---- */
+.pcard { position: absolute; z-index: 5; width: 230px; pointer-events: none; background: rgba(14, 20, 17, .95); border: 1px solid var(--rule); border-left: 4px solid var(--pc, #888); border-radius: 8px; padding: 9px 11px 10px; color: var(--text); font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.pcard[hidden] { display: none; }
+.pc-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.pc-top b { font: 700 15px/1.1 var(--display); letter-spacing: .02em; }
+.pc-top span { font: 700 11px/1 var(--body); color: #120d00; background: var(--amber); border-radius: 3px; padding: 3px 5px; }
+.pc-meta { color: var(--muted); margin: 4px 0 6px; line-height: 1.35; }
+.pc-body { display: grid; grid-template-columns: 112px 1fr; gap: 8px; align-items: center; }
+.pc-body svg { width: 112px; height: 104px; display: block; }
+.pc-body svg .web { fill: none; stroke: #33463b; stroke-width: .8; }
+.pc-body svg .val { fill: rgba(242,179,27,.35); stroke: var(--amber); stroke-width: 1.3; }
+.pc-body svg text { fill: #c9d6cd; font: 700 8px var(--body); }
+.pc-kv { display: grid; gap: 3px; }
+.pc-kv div { display: flex; justify-content: space-between; }
+.pc-kv div b { font-variant-numeric: tabular-nums; }
+
 /* ---- Team tactic: the manager's board ---- */
 .tactics { padding: 14px 16px 16px; background: linear-gradient(180deg, #17221c, #131c17); }
 .tac-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; margin-bottom: 12px; }
@@ -143,7 +159,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .tac-board .dot { transition: transform .45s cubic-bezier(.3,.7,.2,1); }
 .tac-board .dot circle { fill: var(--home, #d32f2f); stroke: #fff; stroke-width: .6; }
 .tac-board .dot.gk circle { fill: #f2c230; }
-.tac-board .lineband { fill: rgba(242,179,27,.16); stroke: var(--amber); stroke-width: .4; stroke-dasharray: 1.4 1; transition: x .45s, width .45s; }
+.tac-board .lineband { stroke: var(--amber); stroke-width: .9; transition: transform .45s cubic-bezier(.3,.7,.2,1); }
 .tac-board .arrow { fill: none; stroke: #fff; stroke-width: .7; stroke-linecap: round; marker-end: url(#tacHead); opacity: .85; }
 .tac-board .press { fill: none; stroke: #ff6a4a; stroke-width: .6; stroke-dasharray: 1 .8; opacity: .9; }
 .tac-controls { display: grid; gap: 14px; }
@@ -230,6 +246,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       <button class="reset" id="setReset" type="button">Reset to defaults</button>
     </div>
     <div class="tac-toast" id="tacToast" role="status"></div>
+    <div class="pcard" id="pcard" hidden></div>
     <div class="cbar" id="cbar" aria-live="polite"><span id="cbarText">Kick-off</span></div>
     <div class="overlay" id="ht" hidden>
       <div class="box">
@@ -272,7 +289,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
         <rect class="stripe" x="12" y="2" width="12" height="74"/><rect class="stripe" x="36" y="2" width="12" height="74"/><rect class="stripe" x="60" y="2" width="12" height="74"/><rect class="stripe" x="84" y="2" width="12" height="74"/><rect class="stripe" x="108" y="2" width="10" height="74"/>
         <rect class="ln" x="2" y="2" width="116" height="74"/><line class="ln" x1="60" y1="2" x2="60" y2="76"/><circle class="ln" cx="60" cy="39" r="9"/>
         <rect class="ln" x="2" y="20" width="17" height="38"/><rect class="ln" x="101" y="20" width="17" height="38"/>
-        <rect class="lineband" id="tacBand" x="20" y="3" width="2" height="72"/>
+        <line class="lineband" id="tacBand" x1="0" y1="3" x2="0" y2="75"/>
         <g id="tacArrows"></g><g id="tacDots"></g>
       </svg>
       <div class="tac-controls">
@@ -733,7 +750,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     ctx.save(); ctx.translate(x, y); ctx.rotate(a);
     ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.ellipse(.15 * view.s, .2 * view.s, r * 1.2, r * .96, 0, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(0, 0, r * 1.22, r * .93, 0, 0, Math.PI * 2);
-    ctx.fillStyle = p.gk ? tm.kit.gk : tm.kit.primary; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = p.gk ? tm.kit.gkTrim || tm.kit.secondary : tm.kit.secondary; ctx.stroke();
+    ctx.fillStyle = p.gk ? tm.kit.gk : tm.kit.primary; ctx.fill(); ctx.lineWidth = Math.max(1, r * .12); ctx.strokeStyle = PLAYER_EDGE; ctx.stroke();
     ctx.restore();
     ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * 1.05) + "px Barlow, system-ui, sans-serif";
     fillC(String(info.number), x, y);
@@ -778,6 +795,9 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     else ctx.ellipse(x + o.dx * s, gy + o.dy * s, rx * 1.02, ry * 1.02, 0, 0, Math.PI * 2);
     ctx.fill();
   }
+  // A player: a plain circle in the shirt colour with a thin black edge and the number (the design's player marker).
+  var PLAYER_EDGE = "#1a1a1a";
+  function playerDisc(x, y, r, fill) { var lw = Math.max(1.2, r * .12); ctx.beginPath(); ctx.arc(x, y, r - lw / 2, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = PLAYER_EDGE; ctx.stroke(); }
   function disc(x, y, r, fill, stroke) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = stroke; ctx.stroke(); }
   function entities(S, now, dt) {
     var s = view.s, r = .95 * s;
@@ -796,7 +816,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * 2.2 * s, g = 1 + jh * .1, sh = 1 - jh * .6;
       if (p.sl || p.gr) { downPlayer(p, tm, info, x, gy); if (p.inj) injuryMark(x, gy, r); return; }
       castShadow(p.x, p.y, x, gy, r * 1.05 * sh, r * .95 * sh, .5 * sh);
-      disc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary, p.gk ? tm.kit.gkTrim || tm.kit.secondary : tm.kit.secondary);
+      playerDisc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary);
       ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * g * 1.05) + "px Barlow, system-ui, sans-serif";
       fillC(String(info.number), x, y);
       if (p.bk) { ctx.fillStyle = "#ffd23f"; ctx.fillRect(x + r * .55, y - r * 1.05, r * .32, r * .45); }
@@ -1137,7 +1157,9 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   var LINE_WORDS = ["Deep block", "Low", "Middle", "High", "Very high"], WIDTH_WORDS = ["Very narrow", "Narrow", "Normal", "Wide", "Very wide"];
   var SHAPE = { d: [-.75, -.26, .26, .75], m: [-.8, -.26, .26, .8], a: [-.24, .24] };
   function boardXY(row, i) {
-    var lineX = 15 + TAC.line * .3, midX = lineX + 16 - TAC.line * .04, attX = Math.min(100, midX + 17 + TAC.line * .03);
+    // the whole block moves with the line (a high line pushes the midfield and the forwards up too, about 30 m from
+    // back to front), as the engine plays it
+    var lineX = 15 + TAC.line * .3, midX = lineX + 15, attX = lineX + 30;
     var spread = .6 + .44 * TAC.width / 100, lat = SHAPE[row][i], y = 39 + lat * spread * (row === "a" ? 30 : 36);
     return [row === "d" ? lineX : row === "m" ? midX : attX, Math.max(5, Math.min(73, y))];
   }
@@ -1149,12 +1171,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       ["d", "m", "a"].forEach(function (row) { SHAPE[row].forEach(function (_, i) { mk(row + i).dataset.k = row + i; }); });
     }
     dots.querySelectorAll("[data-k]").forEach(function (g) { var k = g.dataset.k, xy = boardXY(k[0], +k[1]); g.style.transform = "translate(" + xy[0] + "px," + xy[1] + "px)"; });
-    var lx = boardXY("d", 0)[0]; $("tacBand").setAttribute("x", (lx - .9).toFixed(1)); $("tacBand").setAttribute("width", "1.8");
+    $("tacBand").style.transform = "translateX(" + boardXY("d", 0)[0].toFixed(1) + "px)";
     // passing arrows (moving at the chosen tempo) and pressing (style)
     var P = function (a, b) { return boardXY(a[0], +a[1]); }, segs = [];
     if (TAC.passing === 0) segs = [[P("d1"), P("m1")], [P("m1"), P("m2")], [P("m2"), P("a0")], [P("a0"), P("m2")]];
     else if (TAC.passing === 1) segs = [[P("d2"), P("m2")], [P("m2"), P("a1")], [P("m0"), P("a0")]];
-    else segs = [[P("d1"), [108, P("a0")[1] - 4]], [P("m3"), [110, P("a1")[1] + 6]]];
+    else segs = [[P("m0"), [110, P("m0")[1] + 8]], [P("m3"), [110, P("m3")[1] - 8]]]; // the wingers go long, in behind
     var html = "", dur = [3.2, 1.8, .9][TAC.tempo];
     segs.forEach(function (sg) {
       var a = sg[0], b = sg[1], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
@@ -1359,6 +1381,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     }
     lastT = t; snd.tick(dt);
     var S = sample(t), second = t >= secondHalfT, ended = finished && t >= tEnd;
+    lastS = S;
     treadSnow(S, adv);
     pitch(); entities(S, now / 1000, adv); weatherFx(now / 1000, dt); lighting(now / 1000);
     setText("sc", S.hs + "-" + S.as);
@@ -1376,6 +1399,44 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     setText("rt", mmss(t - t0) + " / " + mmss(tEnd - t0));
     rebuildFeed();
   }
+
+  // ---- player card on hover ----------------------------------------------------------------------------
+  // Category averages (mental, defence, playmaking, attacking, athletic) on a pentagon, as on the player page of the
+  // web game; height, feet, age and fitness; a few key skills.
+  var lastS = null;
+  function playerCard(i) {
+    var tm = teams[i < 11 ? 0 : 1], cur = infoAt(i), base = tm.players[i % 11], p = base;
+    if (cur !== base) { (tm.bench || []).forEach(function (b) { if (b.number === cur.number) p = b; }); if (p === base) p = { number: cur.number, name: cur.shortName, role: "SUB" }; }
+    var gk = i % 11 === 0 && p === base, c = p.cats || [0, 0, 0, 0, 0, 0];
+    var axes = [["ATT", c[3]], ["ATH", c[4]], ["PLA", c[2]], ["DEF", c[1]], ["MEN", c[0]]], cx = 56, cy = 54, R = 38;
+    var pt = function (k, v) { var a = -Math.PI / 2 + k * 2 * Math.PI / 5; return [cx + Math.cos(a) * R * v, cy + Math.sin(a) * R * v]; };
+    var poly = function (v) { return axes.map(function (_, k) { return pt(k, typeof v === "number" ? v : v[k]).map(function (n) { return n.toFixed(1); }).join(","); }).join(" "); };
+    var svg = '<svg viewBox="0 0 112 104" aria-hidden="true">' + [1, .66, .33].map(function (f) { return '<polygon class="web" points="' + poly(f) + '"/>'; }).join("") +
+      '<polygon class="val" points="' + poly(axes.map(function (a) { return Math.max(.04, a[1] / 100); })) + '"/>' +
+      axes.map(function (a, k) { var q = pt(k, 1.22); return '<text x="' + q[0].toFixed(1) + '" y="' + (q[1] + 3).toFixed(1) + '" text-anchor="middle">' + a[0] + "</text>"; }).join("") + "</svg>";
+    var kv = function (k, v) { return "<div><span>" + k + "</span><b>" + v + "</b></div>"; };
+    var el = $("pcard");
+    el.style.setProperty("--pc", gk ? tm.kit.gk : tm.kit.primary);
+    el.innerHTML = '<div class="pc-top"><b></b><span></span></div><div class="pc-meta"></div><div class="pc-body">' + svg + '<div class="pc-kv">' +
+      (gk ? kv("Goalkeeping", c[5]) : kv("Attacking", c[3])) + kv("Speed", p.speed != null ? p.speed : "-") + kv("Passing", p.passing != null ? p.passing : "-") + kv("Stamina", p.stamina != null ? p.stamina : "-") + "</div></div>";
+    el.querySelector(".pc-top b").textContent = "#" + p.number + " " + (p.name || p.shortName);
+    el.querySelector(".pc-top span").textContent = p.role || "";
+    el.querySelector(".pc-meta").textContent = p.height ? p.height + " cm · " + (p.foot === "Both" ? "both feet" : p.foot + " foot (weak foot " + p.weakFoot + "/3)") + " · " + p.age + " y · fitness " + p.fitness : "";
+  }
+  cv.addEventListener("mousemove", function (ev) {
+    var el = $("pcard");
+    if (!lastS || !R) { el.hidden = true; return; }
+    var rect = cv.getBoundingClientRect(), k = cv.width / rect.width, mx = (ev.clientX - rect.left) * k, my = (ev.clientY - rect.top) * k;
+    var best = -1, bd = view.s * 1.4;
+    lastS.ps.forEach(function (p, i) { if (p.off) return; var d = Math.hypot(X(p.x) - mx, Y(p.y) - my); if (d < bd) { bd = d; best = i; } });
+    if (best < 0) { el.hidden = true; el.dataset.i = ""; cv.style.cursor = ""; return; }
+    cv.style.cursor = "pointer";
+    if (el.dataset.i !== String(best)) { playerCard(best); el.dataset.i = String(best); }
+    el.hidden = false;
+    var sx = ev.clientX - rect.left, sy = ev.clientY - rect.top, w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = Math.min(rect.width - w - 6, sx + 16) + "px"; el.style.top = Math.max(6, Math.min(rect.height - h - 6, sy - h / 2)) + "px";
+  });
+  cv.addEventListener("mouseleave", function () { $("pcard").hidden = true; $("pcard").dataset.i = ""; });
   resize();
   startMatch("staged", STAGED_SEED);
   requestAnimationFrame(frame);

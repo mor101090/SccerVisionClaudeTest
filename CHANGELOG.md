@@ -38,6 +38,19 @@ Each round of changes is developed on its own branch, named after what it change
   foot makes shots and passes worse. The 4-4-2 line-up follows the generator's positions; left-footed full-backs and
   wingers go on the left. (Goals per match stay about 2.9; fewer fouls and cards, since these players are less
   aggressive.)
+- **The whole team moves with the defensive line** (as a real high block: the forwards press near the opponents'
+  defenders, the midfield right behind, the back line near halfway, about 30 m from back to front). Measured (60
+  matches): deep block 25 / 39 / 56 m from own goal for the back line / midfield / forwards, normal 33 / 46 / 64, high
+  line 42 / 54 / 72. A high block also engages the ball earlier. Its risk: balls in behind succeed more the more room
+  is left behind the line.
+- **Tactics board**: the defensive line is one solid line; the "balls in behind" arrows start from the two wingers;
+  the whole shape moves with the line.
+- **Player marker as in the design**: a plain circle in the shirt colour with a thin black edge and the number (no
+  trim ring) - demo page, React, Unity.
+- **Logo without the white box**: the scoreboard's SoccerVision logo is the new transparent PNG (demo, React, Unity).
+- **Player card on hover** (design doc: tooltip with the player's skills): name, number, position, height, foot and
+  weak foot, age, fitness, a pentagon of the five skill categories (ATT, ATH, PLA, DEF, MEN, as on the web game's
+  player page) and speed, passing and stamina. The replay header now carries these, and the bench.
 - **Skills checked against the Stats spec** (Notion, "Stats"): every skill does what the spec says. Changed to match it:
   - **Fitness** changes all of a player's skills: low -10%, moderate unchanged, peak +5% (before, it only changed how
     fresh he started).

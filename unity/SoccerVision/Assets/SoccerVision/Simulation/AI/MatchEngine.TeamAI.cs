@@ -21,7 +21,8 @@ namespace SoccerVision.Simulation
             float lineTarget;
             if (inPossession)
             {
-                lineTarget = ballF * 0.62f - 17f + 10f * (tac.Mentality - 0.5f) + 9f * (tac.DefensiveLine - 0.5f);
+                // (the whole team plays higher with a high line, in possession too)
+                lineTarget = ballF * 0.62f - 17f + 10f * (tac.Mentality - 0.5f) + 16f * (tac.DefensiveLine - 0.5f);
                 lineTarget = MathUtil.Clamp(lineTarget, -41f, 3f);
             }
             else
@@ -276,9 +277,14 @@ namespace SoccerVision.Simulation
                 }
                 else
                 {
-                    // Strikers stay higher to start counters and screen the opponent's build-up.
-                    f = MathF.Max(f, -14f);
-                    f = MathF.Max(f, ballF - 14f);
+                    // Strikers stay higher to start counters and screen the opponent's build-up. The block moves as one:
+                    // with a high line the forwards press up near the opponents' defenders and the midfield follows
+                    // (a compact high block, about 30 m from back to front); with a deep block they drop in front of
+                    // the midfield.
+                    float high = tac.DefensiveLine - 0.5f;
+                    f = MathF.Max(f, -14f + 26f * high);
+                    f = MathF.Max(f, ballF - 14f + 5f * high);
+                    f = MathF.Min(f, line + 36f);
                     l = slot.BaseLateral * 0.9f + ballL * 0.3f;
                 }
             }
@@ -458,8 +464,8 @@ namespace SoccerVision.Simulation
                     return;
                 }
                 var tac = def.Tactics;
-                // Pressing trigger: how far from his zone a player will engage the carrier.
-                float engage = 8f + 14f * tac.PressingIntensity;
+                // Pressing trigger: how far from his zone a player will engage the carrier (a high block engages earlier).
+                float engage = 8f + 14f * tac.PressingIntensity + 6f * (tac.DefensiveLine - 0.5f);
                 if (best != null)
                 {
                     float fromZone = Vec2.Distance(best.ShapeTarget, carrier.Pos);
