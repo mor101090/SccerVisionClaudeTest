@@ -3,7 +3,7 @@
 under data/teams/) into the engine's squads: unity/.../Simulation/Demo/GeneratedTeams.cs.
 
 Each squad: 11 starters in a 4-4-2 (the generator's positions decide who plays where; left-footed full-backs and
-wingers go on the left, right-footed on the right, a second winger of the same foot plays "inverted") and a bench of 7
+wingers go on the left, right-footed on the right, a second winger of the same foot plays "inverted") and a bench of 9
 (a keeper, two defenders, two midfielders, two forwards). Every attribute, the height, the feet (the strong foot is
 rated 3, the other by the weak-foot level), the stamina and the fitness come from the generator unchanged.
 
@@ -102,8 +102,11 @@ def squad(players):
     starters = [gk, rb, cbr, cbl, lb, rm, cmr, cml, lm, str_, stl]
     bench = []
     if gk2: bench.append(gk2)
+    # nine on the bench (Premier League rules): a keeper, three defenders, three midfielders, two forwards
     bench += pick(pool, ["defender", "fullback"], "cb", 2)
+    bench += pick(pool, ["fullback", "defender"], "fb", 1)
     bench += pick(pool, ["midfielder", "winger"], "cm", 2)
+    bench += pick(pool, ["winger", "midfielder"], "wide", 1)
     bench += pick(pool, ["striker", "winger"], "st", 2)
     return starters, bench
 

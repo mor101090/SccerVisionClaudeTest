@@ -115,6 +115,8 @@ namespace SoccerVision.Simulation
             // Losing the ball also forfeits what we have now; cautious teams weigh that more.
             _riskPremium = xtNow * (0.6f + 0.8f * (1f - team.Eff.Mentality)) * (f < -17.5f ? 1.3f : 1f);
             if (team.Tactics.Special == SpecialTactic.Possession) _riskPremium *= 1.65f; // keeping the ball: no gambles
+            if (p.PlayRole == PlayerRole.TempoSetter) _riskPremium *= 1.3f;             // he keeps it moving, safely
+            else if (p.PlayRole == PlayerRole.DeepLyingPlaymaker) _riskPremium *= 1.15f;
             _options.Clear();
 
             // HOLD / shield
@@ -139,7 +141,7 @@ namespace SoccerVision.Simulation
 
             // SHOOT
             float distGoal = Vec2.Distance(pos, team.AttackGoal);
-            bool longShots = team.Tactics.Attack == AttackStyle.LongShots;
+            bool longShots = team.Tactics.Attack == AttackStyle.LongShots || p.Orders.LongShots == Amount.More;
             if (distGoal < 34f && f > (longShots ? 12f : 18f))
             {
                 float xg = EstimateShotXG(p, pos);
@@ -151,6 +153,9 @@ namespace SoccerVision.Simulation
                 // long shots: the manager wants them from 20-30 m (the range where the shooter can still trouble the keeper)
                 if (longShots && distGoal > 16f && distGoal < 33f) tendency *= 1.9f;
                 if (team.Tactics.Special == SpecialTactic.Siege) tendency *= 1.2f;
+                // the individual instruction: shoot from distance more / less (inside the box he shoots as usual)
+                if (distGoal > 18f) tendency *= PlayerAgent.Scale(p.Orders.LongShots, 0.35f, 1.75f);
+                if (p.PlayRole == PlayerRole.ShadowStriker && distGoal < 18f) tendency *= 1.15f;
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
                 float afterShotLoss = 0.006f + 0.25f * _riskPremium;
                 _options.Add(new KickPlan
@@ -419,7 +424,8 @@ namespace SoccerVision.Simulation
             else if (kind == KickKind.ThroughBall && !_nextOneTwo) success *= 0.68f + 0.5f * SpaceBehindLine(team);
             float styleBoost = (kind == KickKind.ThroughBall && team.Tactics.Attack == AttackStyle.RunsInBehind ? 1.28f : 1f)
                                * (team.CounterUntil > SimTime && team.Forward(target) > team.Forward(from) + 8f ? 1.45f : 1f);
-            float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure) * StyleFactor(team, kind, d, false) * styleBoost;
+            float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure) * StyleFactor(team, kind, d, false) * styleBoost
+                          * RolePassFactor(p, q, kind, d, false, team.Forward(target) - team.Forward(from));
             float relief = SwitchRelief(p, from, target, pressure);
             value += relief;
             // Cut-back: from the by-line, low and square to a team-mate arriving in the middle of the box.
@@ -556,7 +562,7 @@ namespace SoccerVision.Simulation
             float pAccuracy = 1f - MathF.Exp(-0.635f * capture * capture / (sd * sd));
             float success = pWin * pControl * pAccuracy;
             if (kind == KickKind.ThroughBall) success *= 0.78f + 0.3f * SpaceBehindLine(team); // the keeper and the recovering defenders (see AddGroundPass)
-            float value = ExpectedThreat.At(team, target) * StyleFactor(team, kind, d, true);
+            float value = ExpectedThreat.At(team, target) * StyleFactor(team, kind, d, true) * RolePassFactor(p, q, kind, d, true, team.Forward(target) - team.Forward(from));
             float relief = SwitchRelief(p, from, target, pressure);
             value += relief;
             float progress = team.Forward(target) - team.Forward(from);
@@ -678,8 +684,41 @@ namespace SoccerVision.Simulation
                 bool progressive = team.Forward(target) - team.Forward(pos) > 3f;
                 float stale = MathF.Max(0f, p.HoldTime - (progressive ? 3f : 1.5f)) * 0.005f;
                 float utility = keep * value - (1f - keep) * (lossNow + _riskPremium) - stale;
+                float like = DribbleFactor(p, progressive);
+                utility = utility > 0f ? utility * like : utility / like;
                 _options.Add(new KickPlan { Action = BallAction.Dribble, DribbleTarget = target, Utility = utility, Success = keep });
             }
+        }
+
+        /// <summary>How much the player wants to run with the ball: his individual instruction and his role.</summary>
+        private static float DribbleFactor(PlayerAgent p, bool progressive)
+        {
+            float f = PlayerAgent.Scale(p.Orders.Dribbling, 0.55f, 1.4f);
+            switch (p.PlayRole)
+            {
+                case PlayerRole.Carrier: f *= 1.3f; break;
+                case PlayerRole.BallPlayingDefender: if (progressive) f *= 1.15f; break;
+                case PlayerRole.ClassicWinger: case PlayerRole.InvertedWinger: f *= 1.12f; break;
+                case PlayerRole.TempoSetter: case PlayerRole.TargetForward: case PlayerRole.AnchorMan: f *= 0.8f; break;
+            }
+            return f;
+        }
+
+        /// <summary>How the roles of passer and receiver weigh a pass: playmakers look for the ball in behind, a target man is the outlet for the long ball.</summary>
+        private static float RolePassFactor(PlayerAgent p, PlayerAgent q, KickKind kind, float d, bool lofted, float progress)
+        {
+            float m = 1f;
+            switch (p.PlayRole)
+            {
+                case PlayerRole.TempoSetter: m *= d < 22f && !lofted ? 1.1f : 0.8f; break;
+                case PlayerRole.DeepLyingPlaymaker: if (d > 25f || kind == KickKind.ThroughBall) m *= 1.25f; break;
+                case PlayerRole.ClassicPlaymaker: if (kind == KickKind.ThroughBall) m *= 1.3f; break;
+                case PlayerRole.BallPlayingDefender: if (progress > 8f) m *= 1.3f; if (lofted && d > 30f) m *= 1.15f; break;
+                case PlayerRole.SecondStriker: case PlayerRole.WidePlaymaker: if (kind == KickKind.ThroughBall) m *= 1.15f; break;
+            }
+            var r = q.PlayRole;
+            if (lofted && (r == PlayerRole.TargetForward || r == PlayerRole.WideTargetMan)) m *= 1.35f;
+            return m;
         }
 
         // ---- Crossing and clearing -----------------------------------------------------------------------
@@ -733,6 +772,9 @@ namespace SoccerVision.Simulation
                 // the manager wants crosses: into the box from everywhere wide (crosses style, relentless pressure)
                 if (team.Tactics.Attack == AttackStyle.CrossesIntoBox) utility = utility > 0f ? utility * 1.7f + 0.0015f : utility * 0.6f;
                 else if (team.Tactics.Special == SpecialTactic.Siege) utility = utility > 0f ? utility * 1.25f : utility;
+                // the classic winger lives to cross, the inverted one would rather come inside
+                float crosser = p.PlayRole == PlayerRole.ClassicWinger ? 1.3f : p.PlayRole == PlayerRole.WingBack ? 1.15f : p.PlayRole == PlayerRole.InvertedWinger ? 0.8f : 1f;
+                if (utility > 0f) utility *= crosser;
                 _options.Add(new KickPlan
                 {
                     Action = BallAction.Cross,
@@ -1295,9 +1337,12 @@ namespace SoccerVision.Simulation
         {
             var slot = p.Slot;
             if (!(slot.IsWideMidfielder || (slot.Line == Line.Attack && MathF.Abs(slot.BaseLateral) > 12f))) return false;
+            var role = p.PlayRole;
+            if (role == PlayerRole.ClassicWinger || role == PlayerRole.WideTargetMan) return false; // he stays wide
             bool inverted = (slot.BaseLateral > 0f) == (p.Attr.StrongFoot == Foot.Right);
-            if (!inverted) return false;
             float skill = (p.Attr.Dribbling + p.Attr.LongShots + p.Attr.Finishing + p.Attr.BallControl) / 4f;
+            if (role == PlayerRole.InvertedWinger) return skill >= 45f; // the manager asked him to come inside
+            if (!inverted) return false;
             return skill >= 55f;
         }
 

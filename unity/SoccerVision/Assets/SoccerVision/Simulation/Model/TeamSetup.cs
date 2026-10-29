@@ -53,8 +53,31 @@ namespace SoccerVision.Simulation
         public DefenceStyle Defence = DefenceStyle.Balanced;
         public AttackStyle Attack = AttackStyle.Mixed;
         public SpecialTactic Special = SpecialTactic.None;
+        /// <summary>The formation to play (a name from <see cref="SoccerVision.Simulation.Formation.Names"/>); empty: the team's own.</summary>
+        public string FormationName = "";
+        /// <summary>Role and individual instructions per formation slot (slot 0 the keeper); the player in the slot plays them, a substitute too.</summary>
+        public PlayerOrders[] Orders = NewOrders();
+        /// <summary>Set-piece takers by shirt number (0: the best one on the pitch is chosen).</summary>
+        public int CornerTaker, FreeKickTaker, PenaltyTaker;
 
-        public TeamTactics Clone() => (TeamTactics)MemberwiseClone();
+        public static PlayerOrders[] NewOrders()
+        {
+            var o = new PlayerOrders[11];
+            for (int i = 0; i < o.Length; i++) o[i] = new PlayerOrders();
+            return o;
+        }
+
+        /// <summary>The orders for a slot (never null).</summary>
+        public PlayerOrders OrdersFor(int slot) => Orders != null && slot >= 0 && slot < Orders.Length && Orders[slot] != null ? Orders[slot] : Default;
+        private static readonly PlayerOrders Default = new PlayerOrders();
+
+        public TeamTactics Clone()
+        {
+            var c = (TeamTactics)MemberwiseClone();
+            c.Orders = NewOrders();
+            for (int i = 0; i < 11; i++) c.Orders[i] = OrdersFor(i).Clone();
+            return c;
+        }
 
         /// <summary>
         /// The tactics as the players play them: the chosen defence, attack and special tactic set (or limit) the
@@ -120,7 +143,7 @@ namespace SoccerVision.Simulation
             if (Defence != DefenceStyle.Balanced) extra += ", " + (Defence == DefenceStyle.HighPress ? "high press" : Defence == DefenceStyle.OffsideTrap ? "offside trap" : Defence == DefenceStyle.ParkTheBus ? "parking the bus" : Defence == DefenceStyle.HighBackline ? "high backline" : "inverted full-backs");
             if (Attack != AttackStyle.Mixed) extra += ", " + (Attack == AttackStyle.CrossesIntoBox ? "crosses into the box" : Attack == AttackStyle.RunsInBehind ? "runs in behind" : "long shots");
             if (Special != SpecialTactic.None) extra += ", " + (Special == SpecialTactic.Possession ? "keeping the ball" : Special == SpecialTactic.TimeWasting ? "wasting time" : Special == SpecialTactic.CounterAttack ? "counter-attacks" : "relentless pressure on the box");
-            return mind + line + ", " + width + ", " + pass + ", " + tempo + ", " + style + extra;
+            return (string.IsNullOrEmpty(FormationName) ? "" : FormationName + ", ") + mind + line + ", " + width + ", " + pass + ", " + tempo + ", " + style + extra;
         }
 
         public void Sanitize()

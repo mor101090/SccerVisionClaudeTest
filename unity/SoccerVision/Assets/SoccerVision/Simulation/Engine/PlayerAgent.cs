@@ -177,6 +177,14 @@ namespace SoccerVision.Simulation
         }
 
         public FormationSlot Slot => Team.Formation.Slots[SlotIndex];
+        /// <summary>The kind of position he plays (keeper, centre-back, ... striker).</summary>
+        public PositionKind Kind => Team.Formation.KindAt(SlotIndex);
+        /// <summary>The manager's orders for his position (role and individual instructions).</summary>
+        public PlayerOrders Orders => Team.Tactics.OrdersFor(SlotIndex);
+        /// <summary>His role (Auto when none is set, or it does not fit the position).</summary>
+        public PlayerRole PlayRole { get { var r = Orders.Role; return r == PlayerRole.Auto || PlayerOrders.Fits(r, Kind) ? r : PlayerRole.Auto; } }
+        /// <summary>An individual instruction as a multiplier: <paramref name="less"/> for Less, 1 for Mixed, <paramref name="more"/> for More.</summary>
+        public static float Scale(Amount a, float less, float more) => a == Amount.Less ? less : a == Amount.More ? more : 1f;
         public bool IsActive => !SentOff;
         public int Number => Profile.ShirtNumber;
         public Vec2 FacingDir => Vec2.FromAngle(Facing);

@@ -53,7 +53,11 @@ namespace SoccerVision.Simulation
                 foreach (var p in Players)
                 {
                     if (p.SentOff || p.IsGoalkeeper || !p.Slot.IsCentralMidfielder) continue;
-                    int score = p.Attr.Tackling + p.Attr.Positioning + p.Attr.Marking + p.Attr.Aggression;
+                    var role = p.PlayRole;
+                    // (a box-to-box man, a carrier or a number 10 is never the holding man; a holding role or slot comes first)
+                    if (role == PlayerRole.BoxToBoxDefensive || role == PlayerRole.Carrier || p.Kind == PositionKind.AttackingMidfielder) continue;
+                    int score = p.Attr.Tackling + p.Attr.Positioning + p.Attr.Marking + p.Attr.Aggression
+                                + (p.Kind == PositionKind.DefensiveMidfielder ? 400 : 0) + (role == PlayerRole.AnchorMan ? 300 : role == PlayerRole.Destroyer || role == PlayerRole.DeepLyingPlaymaker ? 200 : 0);
                     if (score > bestScore) { bestScore = score; best = p; }
                 }
                 return best;
@@ -62,6 +66,11 @@ namespace SoccerVision.Simulation
 
         /// <summary>Substitutions made so far (IFAB: at most five in a match).</summary>
         public int SubstitutionsUsed;
+        /// <summary>Substitution opportunities used during play (IFAB: three; half-time does not count) and the stoppage of the last one.</summary>
+        public int WindowsUsed;
+        public Restart WindowRestart;
+        /// <summary>The players who have been substituted (they cannot come back on).</summary>
+        public readonly List<PlayerProfile> SubbedOff = new List<PlayerProfile>();
         /// <summary>Covering defender: diagonally behind the presser, inside him (pressure - cover - balance).</summary>
         public PlayerAgent Cover;
         public Vec2 CoverSpot;

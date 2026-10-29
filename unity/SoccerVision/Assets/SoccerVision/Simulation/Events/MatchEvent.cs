@@ -48,6 +48,8 @@ namespace SoccerVision.Simulation
         Injury,
         /// <summary>Player (the shirt index) is replaced: Info = "number|short name" of the player coming on.</summary>
         Substitution,
+        /// <summary>The manager asks for a change: Info = "out|in" shirt numbers, Value 0 accepted (made at the next stoppage), 1 refused (Text says why).</summary>
+        SubstitutionRequest,
         /// <summary>Play restarted with a dropped ball after the referee stopped it for an injury (Law 8).</summary>
         DroppedBall,
         /// <summary>A player loses his footing on a wet, snowy or muddy pitch (Detail 1: with the ball, which runs loose).</summary>

@@ -476,7 +476,8 @@ namespace SoccerVision.Simulation
             float aerial = MathUtil.A(gk.Attr.AerialAbility);
             float handling = MathUtil.A(gk.Attr.Handling);
             float skill = Ball.Z > 1.3f ? 0.6f * aerial + 0.4f * handling : handling;
-            float pCatch = MathUtil.Clamp(0.68f + 0.3f * skill - crowd * 0.09f - (contested ? 0.12f : 0f), 0.35f, 0.98f);
+            bool dominant = gk.PlayRole == PlayerRole.DominantKeeper; // he owns his six-yard box: claims through the crowd
+            float pCatch = MathUtil.Clamp(0.68f + 0.3f * skill + (dominant ? 0.08f : 0f) - crowd * (dominant ? 0.045f : 0.09f) - (contested ? 0.12f : 0f), 0.35f, 0.98f);
             if (Conditions.IsWet) pCatch *= 0.9f; // a wet ball slips through the gloves
             if (Ball.Z > 1.5f) StartJump(gk, Ball.Z - 1.2f);
             if (_rng.Chance(pCatch))
@@ -512,7 +513,7 @@ namespace SoccerVision.Simulation
             float handling = MathUtil.A(gk.Attr.Handling);
             bool close = shooter != null && Vec2.Distance(shooter.Pos, gk.Pos) < 12f;
             float positioning = close ? MathUtil.A(gk.Attr.OneOnOne) : MathUtil.A((gk.Attr.Positioning + gk.Attr.OneOnOne) / 2);
-            float skill = 0.5f * reflex + 0.2f * handling + 0.3f * positioning;
+            float skill = 0.5f * reflex + 0.2f * handling + 0.3f * positioning + (gk.PlayRole == PlayerRole.ShotStopper ? 0.05f : 0f); // (a shot-stopper lives on his line)
             float reachNeeded = MathUtil.Clamp(Ball.ShotGoalkeeperDistance / 3.2f, 0f, 1.4f);
             float shotDistance = shooter != null ? Vec2.Distance(shooter.Pos, gk.Team.OwnGoal) : 20f;
             float closeRange = MathUtil.Clamp01((15f - shotDistance) / 10f); // little time to react
@@ -611,6 +612,19 @@ namespace SoccerVision.Simulation
         private static float TackleStyleFactor(TeamAgent t) =>
             t.Tactics.Tackling == TacklingStyle.StayOnFeet ? 0.7f : t.Tactics.Tackling == TacklingStyle.GetStuckIn ? 1.35f : 1f;
 
+        /// <summary>How readily this player goes into a tackle: his aggression instruction and his role (a destroyer lives for it).</summary>
+        private static float PlayerTackleFactor(PlayerAgent d)
+        {
+            float f = PlayerAgent.Scale(d.Orders.Aggression, 0.7f, 1.3f);
+            switch (d.PlayRole)
+            {
+                case PlayerRole.Destroyer: f *= 1.25f; break;
+                case PlayerRole.Stopper: f *= 1.15f; break;
+                case PlayerRole.DeepLyingPlaymaker: case PlayerRole.TempoSetter: f *= 0.85f; break;
+            }
+            return f;
+        }
+
         /// <summary>How clean a team's challenges are: a gentle team pulls out of the risky ones, an aggressive one goes through.</summary>
         private static float FoulStyleFactor(TeamAgent t) =>
             t.Tactics.Tackling == TacklingStyle.StayOnFeet ? 0.72f : t.Tactics.Tackling == TacklingStyle.GetStuckIn ? 1.2f : 1f;
@@ -651,7 +665,7 @@ namespace SoccerVision.Simulation
 
                 // Standing tackle: defenders mostly jockey and wait for the moment the carrier is exposed.
                 // (only once the ball itself is within reach, so the moment is short: a higher rate per second)
-                float rate = (0.1f + 0.22f * aggression + 0.17f * defenders.Eff.PressingIntensity) * TackleStyleFactor(defenders);
+                float rate = (0.1f + 0.22f * aggression + 0.17f * defenders.Eff.PressingIntensity) * TackleStyleFactor(defenders) * PlayerTackleFactor(d);
                 if (d.Slot.IsCentralMidfielder) rate *= d == defenders.Anchor ? 1.45f : 1.35f; // the midfield ball-winners
                 float exposed = 1f;
                 if (carrier.HoldTime < 0.45f) exposed += 0.9f;                                         // still controlling the ball
@@ -709,7 +723,7 @@ namespace SoccerVision.Simulation
             if (Vec2.Dot(run, team.DirToWorld(-Vec2.UnitX)) < -0.3f) return false; // running away from our goal: no need
             if (d.Vel.Length < 3f) return false;                                    // slides come out of a run
             float aggression = MathUtil.A(d.Attr.Aggression);
-            float rate = 0.09f * SlideStyleFactor(team) * (0.35f + 0.65f * aggression) * (0.6f + 0.4f * MathUtil.A(d.Attr.Tackling));
+            float rate = 0.09f * SlideStyleFactor(team) * PlayerAgent.Scale(d.Orders.Aggression, 0.35f, 1.6f) * (0.35f + 0.65f * aggression) * (0.6f + 0.4f * MathUtil.A(d.Attr.Tackling));
             if (team.Forward(carrier.Pos) < -10f) rate *= 1.5f; // danger: he must be stopped
             if (inBox) rate *= 0.2f;
             if (d.YellowCards > 0) rate *= 0.25f;
@@ -786,7 +800,7 @@ namespace SoccerVision.Simulation
             float defend = (0.6f * da.Tackling + 0.2f * da.Decisions + 0.2f * da.Acceleration) * d.FatigueFactor;
             float pFoul = 0.14f + 0.14f * MathUtil.A(da.Aggression) + (fromBehind ? 0.3f : 0.05f) - 0.1f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
-            pFoul = MathUtil.Clamp(pFoul * FoulStyleFactor(d.Team), 0.05f, 0.7f);
+            pFoul = MathUtil.Clamp(pFoul * FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.7f, 1.25f), 0.05f, 0.7f);
             float pWin = MathUtil.Clamp(0.62f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.12f : 0f), 0.2f, 0.9f);
             if (_rng.Chance(pFoul))
             {
@@ -927,7 +941,7 @@ namespace SoccerVision.Simulation
             float pFoul = 0.22f + 0.15f * MathUtil.A(da.Aggression) + (fromBehind ? 0.18f : 0f) - 0.06f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
             if (d == d.Team.Anchor) pFoul += 0.025f; // the holding midfielder's challenges are the most robust
-            pFoul *= FoulStyleFactor(d.Team);
+            pFoul *= FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.7f, 1.25f);
             if (d.YellowCards > 0) pFoul *= 0.45f;
             if (IsDenyingObviousGoalScoringOpportunity(carrier, d)) pFoul *= 0.4f; // tries to stay clean
             if (Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign)) pFoul *= 0.25f; // careful in the box

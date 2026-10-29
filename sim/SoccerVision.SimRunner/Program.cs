@@ -76,6 +76,7 @@ static TeamSetup WithTactics(TeamSetup t, string spec)
             case "defence": t.Tactics.Defence = v == "press" ? DefenceStyle.HighPress : v == "trap" ? DefenceStyle.OffsideTrap : v == "bus" ? DefenceStyle.ParkTheBus : v == "highline" ? DefenceStyle.HighBackline : v == "inverted" ? DefenceStyle.InvertedFullBacks : DefenceStyle.Balanced; break;
             case "attack": t.Tactics.Attack = v == "crosses" ? AttackStyle.CrossesIntoBox : v == "runs" ? AttackStyle.RunsInBehind : v == "long" ? AttackStyle.LongShots : AttackStyle.Mixed; break;
             case "special": t.Tactics.Special = v == "possession" ? SpecialTactic.Possession : v == "waste" ? SpecialTactic.TimeWasting : v == "counter" ? SpecialTactic.CounterAttack : v == "siege" ? SpecialTactic.Siege : SpecialTactic.None; break;
+            case "formation": TeamPlan.Parse("formation=" + v).ApplyBeforeKickOff(t); break;
             case "aggression":
                 float a = float.Parse(v);
                 t.Tactics.PressingIntensity = 0.5f + 0.6f * (a - 0.5f);

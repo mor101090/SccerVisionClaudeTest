@@ -183,6 +183,10 @@ namespace SoccerVision.Simulation
                         }
                         break;
                 }
+                // the manager's set-piece takers come first (corners, free kicks at goal, penalties)
+                int wanted = r.Type == RestartType.CornerKick ? team.Tactics.CornerTaker : r.Type == RestartType.PenaltyKick ? team.Tactics.PenaltyTaker
+                             : r.Type != RestartType.KickOff && r.Type != RestartType.ThrowIn && r.Type != RestartType.GoalKick && IsDangerousFreeKick(r) ? team.Tactics.FreeKickTaker : 0;
+                if (wanted > 0 && p.Number == wanted && !p.IsGoalkeeper) score = 100000f;
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -423,7 +427,8 @@ namespace SoccerVision.Simulation
             var opp = team.Opponent;
             float tempo = team.Eff.Tempo;
             float kicking = r.Taker != null ? MathUtil.A(r.Taker.Attr.Kicking) : 0.5f;
-            float pShort = MathUtil.Clamp(0.35f + 0.35f * (1f - tempo) + 0.2f * (1f - opp.Eff.PressingIntensity) - 0.25f * kicking, 0.1f, 0.85f);
+            float pShort = MathUtil.Clamp(0.35f + 0.35f * (1f - tempo) + 0.2f * (1f - opp.Eff.PressingIntensity) - 0.25f * kicking
+                                          + (r.Taker != null && r.Taker.PlayRole == PlayerRole.SweeperKeeper ? 0.25f : 0f), 0.1f, 0.85f); // (a sweeper-keeper plays it out from the back)
             _shortGoalKick = _rng.Chance(pShort);
             LayoutShapeAround(r.Spot, team);
             foreach (var p in team.Players)
@@ -863,6 +868,7 @@ namespace SoccerVision.Simulation
                     continue;
                 }
                 if (StepInjuredPlayer(p, dt)) continue;
+                if (IsComingOff(p)) continue; // (walking off for a change: see StepSubstitutions)
                 p.Task = PlayerTask.SetPiece;
                 p.FaceBall = true;
                 if (p == r.Taker)
@@ -890,8 +896,9 @@ namespace SoccerVision.Simulation
                 Ball.Place(r.Taker.Pos + r.Taker.FacingDir * 0.15f, 2.15f);
             }
 
-            // Nobody restarts while an injured player is being treated or helped off (the time is added on).
-            if (InjuryBeingHandled())
+            // Nobody restarts while an injured player is being treated or helped off, or a change is being made (the time is added on).
+            bool changing = StepSubstitutions(dt);
+            if (InjuryBeingHandled() || changing)
             {
                 r.CountsAsLostTime = true;
                 r.Timer = MathF.Min(r.Timer, r.SetupTime);

@@ -34,6 +34,8 @@ namespace SoccerVision.Simulation
         public int MaxAddedMinutes = 10;
         /// <summary>IFAB Law 3: up to five substitutes (competition rules).</summary>
         public int MaxSubstitutions = 5;
+        /// <summary>IFAB Law 3: the five changes in at most three opportunities during play (half-time does not count).</summary>
+        public int MaxSubstitutionWindows = 3;
         /// <summary>Sim seconds a seriously injured player is treated on the pitch before he is helped off.</summary>
         public float InjuryTreatmentSeconds = 9f;
         /// <summary>

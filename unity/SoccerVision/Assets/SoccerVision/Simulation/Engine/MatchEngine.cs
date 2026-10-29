@@ -234,6 +234,7 @@ namespace SoccerVision.Simulation
             {
                 if (Phase == MatchPhase.HalfTimeBreak)
                 {
+                    ProcessCommands(); // (changes made in the dressing room)
                     float used = MathF.Min(realDt, HalftimeRemaining);
                     HalftimeRemaining -= used;
                     HalftimeRealSeconds += used;
@@ -799,6 +800,14 @@ namespace SoccerVision.Simulation
             var team = TeamOf(teamIndex);
             var copy = tactics.Clone();
             copy.Sanitize();
+            // A new formation: everybody moves to the nearest new position (a LineupCommand can then place them exactly).
+            if (!string.IsNullOrEmpty(copy.FormationName) && copy.FormationName != team.Formation.Name)
+            {
+                var next = Formation.ByName(copy.FormationName);
+                var map = Formation.Remap(team.Formation, next);
+                foreach (var p in team.Players) p.SlotIndex = map[p.SlotIndex];
+                team.Formation = next;
+            }
             team.Tactics = copy;
             var e = Emit(MatchEventType.TacticsChanged, team, null, null, Ball.Pos);
             e.Info = copy.Describe();

@@ -374,6 +374,68 @@ namespace SoccerVision.Simulation
                 }
             }
 
+            // The player's role on the shape.
+            float sideOf = MathF.Sign(slot.BaseLateral == 0f ? 1f : slot.BaseLateral);
+            switch (p.PlayRole)
+            {
+                case PlayerRole.CoverDefender:
+                    // a couple of metres behind his partner, sweeping up behind the line; never far up in possession
+                    if (!inPossession) f -= 2.2f; else f = MathF.Min(f, line + 1f);
+                    break;
+                case PlayerRole.DefensiveFullBack:
+                    if (inPossession) { f = MathF.Min(f, line + 8f); l = sideOf * MathF.Min(MathF.Abs(l), 24f); }
+                    break;
+                case PlayerRole.InvertedFullBack:
+                    if (inPossession) { f = MathUtil.Clamp(ballF - 11f, line + 7f, 14f); l = sideOf * (8f + 2.5f * tac.Width) + ballL * 0.15f; }
+                    break;
+                case PlayerRole.WingBack:
+                    if (inPossession) { f += 6f; l = sideOf * (25f + 6f * tac.Width); }
+                    break;
+                case PlayerRole.AnchorMan:
+                    f = MathF.Min(f, line + (inPossession ? 9f : 6f));
+                    l = MathUtil.Clamp(l, -9f, 9f);
+                    break;
+                case PlayerRole.DeepLyingPlaymaker:
+                    if (inPossession) { f = MathF.Min(f, MathF.Max(ballF - 9f, line + 4f)); l = MathUtil.Clamp(ballL * 0.3f, -8f, 8f); }
+                    break;
+                case PlayerRole.BoxToBoxDefensive:
+                    if (inPossession && ballF > -5f) f = MathF.Max(f, MathF.Min(ballF - 1f, offsideLine - 3f));
+                    break;
+                case PlayerRole.Carrier:
+                    if (inPossession) f += 3f;
+                    break;
+                case PlayerRole.TempoSetter:
+                    if (inPossession) f = MathF.Min(f, ballF - 3f);
+                    break;
+                case PlayerRole.WidePlaymaker:
+                    if (inPossession) l = (MathF.Abs(ballL) > 6f ? MathF.Sign(ballL) : sideOf) * 15f;
+                    break;
+                case PlayerRole.ShadowStriker:
+                    if (inPossession) f = MathF.Max(f, MathF.Min(ballF + 5f, offsideLine - 0.8f));
+                    break;
+                case PlayerRole.ClassicPlaymaker:
+                    if (inPossession) f = MathF.Min(MathF.Max(f, ballF + 2f), offsideLine - 8f); // between the lines
+                    break;
+                case PlayerRole.ClassicWinger:
+                    if (inPossession) l = sideOf * (28f + 3f * tac.Width);
+                    break;
+                case PlayerRole.InvertedWinger:
+                    if (inPossession && ballF > 5f) l = sideOf * MathF.Min(MathF.Abs(l), 15f + 3f * tac.Width);
+                    break;
+                case PlayerRole.WideTargetMan:
+                    if (!inPossession) f -= 4f; // he works back
+                    break;
+                case PlayerRole.TargetForward:
+                    if (inPossession) f = MathF.Max(f, offsideLine - 1.2f); // always the highest, the outlet for the long ball
+                    break;
+                case PlayerRole.SecondStriker:
+                    if (inPossession) f = MathF.Min(f, offsideLine - 7f);
+                    break;
+                case PlayerRole.FalseNine:
+                    if (inPossession) f = MathF.Min(f, MathF.Max(ballF - 2f, offsideLine - 16f)); // drops into midfield and drags a centre-back with him
+                    break;
+            }
+
             // Box presence when a cross is on (ball wide in the final third).
             bool crossy = team.Tactics.Attack == AttackStyle.CrossesIntoBox || team.Tactics.Special == SpecialTactic.Siege;
             if (inPossession && ballF > (crossy ? 18f : 24f) && MathF.Abs(ballL) > (crossy ? 9f : 12f) && Ball.Owner != null && Ball.Owner.Team == team && Ball.Owner != p)
@@ -578,6 +640,7 @@ namespace SoccerVision.Simulation
                     // In the middle third the central midfielders go and win it (the holding one first).
                     float carrierF = def.Forward(carrier.Pos);
                     if (d.Slot.IsCentralMidfielder && carrierF > -28f && carrierF < 18f) t *= d == def.Anchor ? 0.8f : 0.9f;
+                    t *= RolePressFactor(d);
                     if (t < t1) { second = best; t2 = t1; best = d; t1 = t; }
                     else if (t < t2) { second = d; t2 = t; }
                 }
@@ -641,6 +704,20 @@ namespace SoccerVision.Simulation
             }
             AssignAnticipation();
             AssignShielding();
+        }
+
+        /// <summary>How eagerly a role goes to the ball carrier (a time multiplier: below 1 he goes sooner).</summary>
+        private static float RolePressFactor(PlayerAgent d)
+        {
+            switch (d.PlayRole)
+            {
+                case PlayerRole.Destroyer: return 0.85f;
+                case PlayerRole.Carrier: case PlayerRole.WideTargetMan: case PlayerRole.BoxToBoxDefensive: return 0.9f;
+                case PlayerRole.AnchorMan: case PlayerRole.CoverDefender: return 1.2f;
+                case PlayerRole.FalseNine: case PlayerRole.ClassicPlaymaker: case PlayerRole.TempoSetter: return 1.1f;
+                case PlayerRole.Stopper: return 0.9f;
+                default: return 1f;
+            }
         }
 
         /// <summary>How long the counter-press lasts after losing the ball (sim seconds): longer for a pressing team, hardly at all for a bunker.</summary>
@@ -799,7 +876,9 @@ namespace SoccerVision.Simulation
             // no defender is nearer, the ball is not too far from goal).
             var team = gk.Team;
             float depth = Pitch.HalfLength - point.X * team.OwnGoalSign;
-            if (depth > Pitch.PenaltyAreaDepth + 16f || MathF.Abs(point.Y) > Pitch.PenaltyAreaHalfWidth + 4f) return false;
+            var role = gk.PlayRole;
+            float range = role == PlayerRole.SweeperKeeper ? 24f : role == PlayerRole.ShotStopper ? 8f : 16f; // a sweeper-keeper comes far out, a shot-stopper stays home
+            if (depth > Pitch.PenaltyAreaDepth + range || MathF.Abs(point.Y) > Pitch.PenaltyAreaHalfWidth + 4f) return false;
             if (Ball.IntendedReceiver != null && Ball.IntendedReceiver.Team == team) return false;
             float own = gk.TimeToReach(point);
             float rival = float.PositiveInfinity, mate = float.PositiveInfinity;
@@ -810,7 +889,7 @@ namespace SoccerVision.Simulation
                 if (p.Team == team) mate = MathF.Min(mate, t);
                 else rival = MathF.Min(rival, t);
             }
-            bool go = own + 0.1f < rival && own < mate + 0.25f;
+            bool go = own + (role == PlayerRole.SweeperKeeper ? 0f : 0.1f) < rival && own < mate + (role == PlayerRole.SweeperKeeper ? 0.45f : 0.25f);
             if (go && SimTime - gk.LastSortieTime > 4f)
             {
                 gk.LastSortieTime = SimTime;
@@ -1013,8 +1092,9 @@ namespace SoccerVision.Simulation
                         float willing = 0.2f + 0.4f * MathUtil.A(p.Attr.OffTheBall) + 0.25f * team.Eff.Mentality;
                         if (team.Tactics.Attack == AttackStyle.RunsInBehind) willing *= 1.6f;
                         if (team.CounterUntil > SimTime) willing *= 1.8f;
-                        // Central midfielders arrive late from deep (third-man runs), only around the box.
-                        if (p.Slot.IsCentralMidfielder) willing *= team.Forward(carrier.Pos) > 12f ? 0.35f : 0f;
+                        // Central midfielders arrive late from deep (third-man runs), only around the box; the role decides.
+                        willing *= RoleRunFactor(p, team.Forward(carrier.Pos));
+                        if (p.PlayRole != PlayerRole.FalseNine && FalseNineOn(team)) willing *= 1.25f; // the space a false nine leaves is there to be run into
                         // Timing (a dynamic advantage): the run is made when the carrier can play it - facing forward, head up.
                         // Too early and he cannot use it; a run into a carrier with his back to goal is wasted.
                         bool headUp = Vec2.Dot(carrier.FacingDir, team.DirToWorld(Vec2.UnitX)) > 0.25f && pressure < 0.4f;
@@ -1116,6 +1196,8 @@ namespace SoccerVision.Simulation
                     // ...and in a zonal back four nobody steps out of the line to follow a man into midfield: the
                     // midfield picks him up. (Man-markers do follow their man - that is the point of man-marking.)
                     float stepOut = 2.5f + 5f * (1f - chem);
+                    if (p.PlayRole == PlayerRole.Stopper) stepOut += 4f;        // he follows his man into midfield to win it early
+                    else if (p.PlayRole == PlayerRole.CoverDefender) stepOut = 0.5f; // he never leaves the line
                     if (team.Tactics.Marking == MarkingStyle.Zonal && trusts && team.Forward(target) > line + stepOut)
                         target = team.ToWorld(line + stepOut, team.Lateral(target));
                 }
@@ -1136,6 +1218,30 @@ namespace SoccerVision.Simulation
             else if (dist < 2.5f && !lineDefender && !(p.Task == PlayerTask.Mark && p.MarkTarget != null && p.MarkTarget.Vel.Length > 2f)) urgency = MathF.Min(urgency, 0.35f);
             p.Target = target;
             p.Urgency = urgency;
+        }
+
+        /// <summary>How readily the player's role makes runs in behind (1 = as a forward does).</summary>
+        private static float RoleRunFactor(PlayerAgent p, float carrierF)
+        {
+            switch (p.PlayRole)
+            {
+                case PlayerRole.ShadowStriker: return 1.3f;
+                case PlayerRole.BoxToBoxDefensive: return carrierF > 0f ? 0.9f : 0.3f;
+                case PlayerRole.Carrier: return carrierF > 5f ? 0.6f : 0f;
+                case PlayerRole.AnchorMan: case PlayerRole.DeepLyingPlaymaker: case PlayerRole.Destroyer: case PlayerRole.TempoSetter: return 0f;
+                case PlayerRole.TargetForward: return 0.6f;
+                case PlayerRole.FalseNine: return 0.4f;
+                case PlayerRole.SecondStriker: return 0.8f;
+                case PlayerRole.ClassicWinger: return 1.2f;
+            }
+            if (p.Slot.IsCentralMidfielder) return carrierF > 12f ? 0.35f : 0f;
+            return 1f;
+        }
+
+        private static bool FalseNineOn(TeamAgent team)
+        {
+            foreach (var q in team.Players) if (!q.SentOff && q.PlayRole == PlayerRole.FalseNine) return true;
+            return false;
         }
 
         private static bool IsRunner(PlayerAgent p)

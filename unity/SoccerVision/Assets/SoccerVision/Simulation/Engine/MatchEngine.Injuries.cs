@@ -172,7 +172,7 @@ namespace SoccerVision.Simulation
         private PlayerAgent FindSubstitute(PlayerAgent injured)
         {
             var team = injured.Team;
-            if (team.SubstitutionsUsed >= Config.MaxSubstitutions) return null;
+            if (SubstitutionsLeft(team) <= 0 || !WindowAvailable(team)) return null;
             PositionGroup want = injured.IsGoalkeeper ? PositionGroup.Goalkeeper
                                : injured.Slot.Line == Line.Defence ? PositionGroup.Defender
                                : injured.Slot.Line == Line.Midfield ? PositionGroup.Midfielder : PositionGroup.Forward;
@@ -207,9 +207,13 @@ namespace SoccerVision.Simulation
                 return;
             }
             team.Bench.Remove(sub);
+            team.SubbedOff.Add(p.Profile);
             team.SubstitutionsUsed++;
             team.Stats.Substitutions++;
+            // (the change uses one of the three opportunities, unless one is already open at this stoppage)
+            if (_restart != null && team.WindowRestart != _restart) { team.WindowRestart = _restart; team.WindowsUsed++; }
             string outLabel = p.Label;
+            int outNumber = p.Number;
             p.Substitute(sub.Profile);
             // Law 3: the substitute enters at the halfway line, by his bench - where the injured player went off.
             p.Pos = p.PrevPos = walkOn ? BenchSpot(team) : p.ShapeTarget;
@@ -218,7 +222,7 @@ namespace SoccerVision.Simulation
             if (CollectDiagnostics) Count("substitution");
             if (walkOn) _substituteOnUntil = SimTime + 2.5f * Config.MotionSpeed;
             var e = Emit(MatchEventType.Substitution, team, p, null, p.Pos);
-            e.Info = p.Number + "|" + p.Profile.ShortName;
+            e.Info = p.Number + "|" + p.Profile.ShortName + "|" + outNumber;
             e.Text = Commentary.Substitution(team, p, outLabel);
         }
     }
