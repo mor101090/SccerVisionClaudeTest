@@ -20,8 +20,14 @@ namespace SoccerVision.Simulation
     /// <summary>How the team moves the ball: short passing combinations, a mix, or balls in behind and long.</summary>
     public enum PassingStyle { Short, Mixed, Direct }
 
-    /// <summary>How the team defends: balanced, a high press (wins it high, costs stamina), an offside trap (the whole line steps up together to catch the forwards), or parking the bus (a bunker, time wasting).</summary>
-    public enum DefenceStyle { Balanced, HighPress, OffsideTrap, ParkTheBus }
+    /// <summary>
+    /// How the team defends: balanced, a high press (wins it high, costs stamina), an offside trap (the whole line steps up
+    /// together to catch the forwards), parking the bus (a bunker, time wasting), a high backline (the whole team compact
+    /// round halfway, the line steps up on every back pass and the keeper sweeps behind it), or inverted full-backs (in
+    /// possession the full-backs come inside into midfield beside the holding man - a 3-2 base that stops counters through
+    /// the middle, but leaves the flanks open).
+    /// </summary>
+    public enum DefenceStyle { Balanced, HighPress, OffsideTrap, ParkTheBus, HighBackline, InvertedFullBacks }
 
     /// <summary>How the team attacks: mixed, crosses into the box, runs in behind, or shots from distance (20-30 m).</summary>
     public enum AttackStyle { Mixed, CrossesIntoBox, RunsInBehind, LongShots }
@@ -66,6 +72,8 @@ namespace SoccerVision.Simulation
                 case DefenceStyle.HighPress: Shift(ref e.PressingIntensity, 0.3f); Shift(ref e.DefensiveLine, 0.22f); break;
                 case DefenceStyle.OffsideTrap: Shift(ref e.DefensiveLine, 0.18f); Shift(ref e.PressingIntensity, 0.1f); break;
                 case DefenceStyle.ParkTheBus: Shift(ref e.DefensiveLine, -0.35f); Shift(ref e.Width, -0.25f); Shift(ref e.Mentality, -0.3f); Shift(ref e.PressingIntensity, -0.3f); Shift(ref e.Tempo, -0.2f); break;
+                case DefenceStyle.HighBackline: Shift(ref e.DefensiveLine, 0.28f); Shift(ref e.PressingIntensity, 0.15f); break;
+                case DefenceStyle.InvertedFullBacks: if (e.Passing == PassingStyle.Mixed) e.Passing = PassingStyle.Short; break;
             }
             switch (Attack)
             {
@@ -92,6 +100,7 @@ namespace SoccerVision.Simulation
                 float f = 1f;
                 if (Defence == DefenceStyle.HighPress) f *= 1.4f;
                 else if (Defence == DefenceStyle.ParkTheBus) f *= 0.82f;
+                else if (Defence == DefenceStyle.HighBackline) f *= 1.12f;
                 if (Special == SpecialTactic.Siege) f *= 1.25f;
                 else if (Special == SpecialTactic.TimeWasting) f *= 0.88f;
                 else if (Special == SpecialTactic.Possession) f *= 0.94f;
@@ -108,7 +117,7 @@ namespace SoccerVision.Simulation
             string style = Tackling == TacklingStyle.GetStuckIn ? "aggressive" : Tackling == TacklingStyle.StayOnFeet ? "gentle" : "balanced";
             string mind = Mentality > 0.65f ? "all-out attack, " : Mentality < 0.35f ? "defensive, " : "";
             string extra = "";
-            if (Defence != DefenceStyle.Balanced) extra += ", " + (Defence == DefenceStyle.HighPress ? "high press" : Defence == DefenceStyle.OffsideTrap ? "offside trap" : "parking the bus");
+            if (Defence != DefenceStyle.Balanced) extra += ", " + (Defence == DefenceStyle.HighPress ? "high press" : Defence == DefenceStyle.OffsideTrap ? "offside trap" : Defence == DefenceStyle.ParkTheBus ? "parking the bus" : Defence == DefenceStyle.HighBackline ? "high backline" : "inverted full-backs");
             if (Attack != AttackStyle.Mixed) extra += ", " + (Attack == AttackStyle.CrossesIntoBox ? "crosses into the box" : Attack == AttackStyle.RunsInBehind ? "runs in behind" : "long shots");
             if (Special != SpecialTactic.None) extra += ", " + (Special == SpecialTactic.Possession ? "keeping the ball" : Special == SpecialTactic.TimeWasting ? "wasting time" : Special == SpecialTactic.CounterAttack ? "counter-attacks" : "relentless pressure on the box");
             return mind + line + ", " + width + ", " + pass + ", " + tempo + ", " + style + extra;

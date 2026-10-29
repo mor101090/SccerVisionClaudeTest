@@ -120,6 +120,11 @@ namespace SoccerVision.Simulation
         /// <summary>One-two: the team-mate this player just passed to and runs past for the return ball, until OneTwoUntil.</summary>
         public PlayerAgent OneTwoWith;
         public float OneTwoUntil = -1f;
+        /// <summary>Counter-movement: until this sim time the runner first comes short (drags his marker up), then goes in behind.</summary>
+        public float RunCheckUntil = -1f;
+        /// <summary>Third-man run: this player sprints in behind as the ball goes into ThirdManVia, for the lay-off first time.</summary>
+        public PlayerAgent ThirdManVia;
+        public float ThirdManUntil = -1f;
         /// <summary>
         /// A kick or pass in progress, for the legs: sim seconds left of the swing (KickSwing at the start). The kicking foot goes
         /// back (the backswing), then forward through the ball, then settles. KickLeft: it is the left foot.
@@ -249,6 +254,9 @@ namespace SoccerVision.Simulation
             RunTimer = 0f;
             OneTwoWith = null;
             OneTwoUntil = -1f;
+            RunCheckUntil = -1f;
+            ThirdManVia = null;
+            ThirdManUntil = -1f;
             Task = PlayerTask.Shape;
             Touches = PassesAttempted = PassesCompleted = Shots = Goals = Tackles = SlideTackles = Saves = Interceptions = 0;
             DistanceCovered = 0f;

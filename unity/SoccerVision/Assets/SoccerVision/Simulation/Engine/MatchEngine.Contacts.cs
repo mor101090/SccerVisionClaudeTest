@@ -259,17 +259,26 @@ namespace SoccerVision.Simulation
             Ball.LastToucher = p;
             Ball.LastTouchTeam = p.Team;
             PossessionTeam = p.Team;
-            if (changeOfPossession) p.Team.LastAttackSeconds = SimTime;
+            if (changeOfPossession)
+            {
+                p.Team.LastAttackSeconds = SimTime;
+                // (won back inside the counter-press window, near where it was lost)
+                if (SimTime - p.Team.LostBallAt < CounterPressWindow(p.Team) && Vec2.Distance(Ball.Pos, p.Team.LostBallSpot) < 25f) p.Team.Stats.CounterPressWins++;
+                p.Team.Opponent.LostBallAt = SimTime;
+                p.Team.Opponent.LostBallSpot = Ball.Pos;
+            }
             SnapshotOffside(p, false);
             _penaltyKickTime = -1f;
             float tempo = p.Team.Eff.Tempo;
             p.DecisionTimer = MathUtil.Clamp(0.1f + 0.3f * (1f - MathUtil.A(p.Attr.BallControl)) + relSpeed * 0.012f - 0.08f * (tempo - 0.5f), 0.08f, 0.6f);
             p.OneTwoUntil = -1f; // (the return ball has arrived, or the run is over)
+            p.ThirdManUntil = -1f;
+            p.RunCheckUntil = -1f;
             // Counter-attack: winning the ball in our own half starts the break.
             if (changeOfPossession && p.Team.Tactics.Special == SpecialTactic.CounterAttack && p.Team.Forward(Ball.Pos) < 12f) { p.Team.CounterUntil = SimTime + 7f; if (CollectDiagnostics) Count("counter.start"); }
             // A team-mate is on a give-and-go run past me: the wall pass is played first time.
             foreach (var r in p.Team.Players)
-                if (r.OneTwoWith == p && r.OneTwoUntil > SimTime) { p.DecisionTimer = MathF.Min(p.DecisionTimer, 0.1f); break; }
+                if ((r.OneTwoWith == p && r.OneTwoUntil > SimTime) || (r.ThirdManVia == p && r.ThirdManUntil > SimTime)) { p.DecisionTimer = MathF.Min(p.DecisionTimer, 0.12f); break; }
             p.Task = PlayerTask.OnBall;
             p.HasPendingPlan = false;
             p.HoldTime = 0f;

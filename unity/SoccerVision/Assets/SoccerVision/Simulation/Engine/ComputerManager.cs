@@ -52,6 +52,8 @@ namespace SoccerVision.Simulation
             if (human.Defence == DefenceStyle.OffsideTrap) { t.Attack = AttackStyle.LongShots; t.Passing = PassingStyle.Short; }       // no balls in behind into a trap
             else if (human.Defence == DefenceStyle.ParkTheBus) { t.Attack = AttackStyle.CrossesIntoBox; t.Special = SpecialTactic.Possession; } // work it wide against a bunker
             else if (human.Defence == DefenceStyle.HighPress) { t.Attack = AttackStyle.RunsInBehind; }
+            else if (human.Defence == DefenceStyle.HighBackline) { t.Attack = AttackStyle.RunsInBehind; t.Passing = PassingStyle.Direct; } // balls over the top, races with the keeper
+            else if (human.Defence == DefenceStyle.InvertedFullBacks) { t.Width = 0.85f; t.Special = SpecialTactic.CounterAttack; }  // the flanks are left open: break into them
             if (human.Special == SpecialTactic.CounterAttack) { t.Special = SpecialTactic.Possession; t.DefensiveLine = Math.Min(t.DefensiveLine, 0.5f); } // do not leave space for the break
             else if (human.Special == SpecialTactic.TimeWasting && diff <= 0) t.Special = SpecialTactic.Siege;
 

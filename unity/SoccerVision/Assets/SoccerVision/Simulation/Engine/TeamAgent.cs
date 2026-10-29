@@ -31,7 +31,13 @@ namespace SoccerVision.Simulation
         /// <summary>Offside trap: the defender who misses the step up for a moment (the trap fails when someone does).</summary>
         public PlayerAgent TrapBreaker;
         public float TrapBrokenUntil;
-        public float LastAttackSeconds;      // sim time of the last possession change in favour of this team
+        public float LastAttackSeconds;
+        /// <summary>Sim time this team last lost the ball in open play (the counter-press window starts here) and where.</summary>
+        public float LostBallAt = -100f;
+        public Vec2 LostBallSpot;
+        /// <summary>The counter-press for the ball lost at LostBallAt has been counted.</summary>
+        public float CounterPressCountedFor = -1f;
+        public bool OverloadOn;      // sim time of the last possession change in favour of this team
         public PlayerAgent Presser, SecondPresser, Chaser;
         /// <summary>
         /// The holding midfielder ("anchor"): of the central midfielders, the one built for the dirty work (tackling,
@@ -180,6 +186,16 @@ namespace SoccerVision.Simulation
         /// <summary>One-twos: return balls into a team-mate's give-and-go run, and how many reached him.</summary>
         public int OneTwos;
         public int OneTwosCompleted;
+        /// <summary>Third-man combinations: A plays into B as C runs, B lays it off first time into C's run.</summary>
+        public int ThirdManRuns, ThirdManPasses, ThirdManCompleted;
+        /// <summary>Counter-movements: a runner comes short first to drag his marker, then goes in behind.</summary>
+        public int CounterMovements;
+        /// <summary>Counter-press: the ball lost, the nearest players swarm it at once; won back inside the window.</summary>
+        public int CounterPresses, CounterPressWins;
+        /// <summary>Long throws into the six-yard box.</summary>
+        public int LongThrows;
+        /// <summary>Wide overloads: the ball-side midfielder joins the full-back and winger on the flank.</summary>
+        public int Overloads;
         public int SwitchesCompleted;
         /// <summary>Crosses and shots by role (full-backs / wide players).</summary>
         public int FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks;

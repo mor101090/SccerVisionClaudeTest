@@ -181,6 +181,9 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .tac-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border: 1px solid var(--rule); border-radius: 7px; overflow: hidden; }
 .tac-seg button { border: 0; border-radius: 0; border-left: 1px solid var(--rule); padding: 9px 6px; font-size: 13px; background: #1a2620; }
 .tac-seg button:first-child { border-left: 0; }
+.tac-seg3 { grid-auto-flow: row; grid-template-columns: repeat(3, 1fr); }
+.tac-seg3 button:nth-child(3n+1) { border-left: 0; }
+.tac-seg3 button:nth-child(n+4) { border-top: 1px solid var(--rule); }
 .tac-seg button[aria-pressed="true"] { background: var(--amber); color: #120d00; }
 .tac-cpu { background: rgba(0,0,0,.22); border: 1px solid var(--rule); border-radius: 8px; padding: 12px; display: grid; gap: 8px; }
 .cpu-head { display: flex; align-items: center; gap: 8px; font: 700 12px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
@@ -322,7 +325,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
         </div>
         <div class="tac-row">
           <div class="tac-label"><span>Defence</span><b id="tacDefenceNote"></b></div>
-          <div class="tac-seg" data-tac="defence" role="group" aria-label="Defence"><button type="button" data-v="0" title="Normal shape and pressing">Balanced</button><button type="button" data-v="1" title="Win the ball high up the pitch - tires the players faster">High press</button><button type="button" data-v="2" title="The whole line steps up together to catch the forwards offside">Offside trap</button><button type="button" data-v="3" title="A bunker in front of the box, wasting time">Park the bus</button></div>
+          <div class="tac-seg tac-seg3" data-tac="defence" role="group" aria-label="Defence"><button type="button" data-v="0" title="Normal shape and pressing">Balanced</button><button type="button" data-v="1" title="Win the ball high up the pitch - tires the players faster">High press</button><button type="button" data-v="2" title="The whole line steps up together to catch the forwards offside">Offside trap</button><button type="button" data-v="3" title="A bunker in front of the box, wasting time">Park the bus</button><button type="button" data-v="4" title="The back four squeeze up to halfway, the whole team compact, the keeper sweeping behind - beaten by balls over the top">High backline</button><button type="button" data-v="5" title="In possession the full-backs come inside into midfield beside the holding man - control in the middle, but the flanks are open">Inverted full-backs</button></div>
         </div>
         <div class="tac-row">
           <div class="tac-label"><span>Attack</span></div>
@@ -1180,7 +1183,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   // The line and width the players really play, with the chosen styles applied (as TeamTactics.Effective in the engine).
   function effTac() {
     var line = TAC.line, width = TAC.width, sh = function (v, d) { return Math.max(0, Math.min(100, v + d)); };
-    if (TAC.defence === 1) line = sh(line, 22); else if (TAC.defence === 2) line = sh(line, 18); else if (TAC.defence === 3) { line = sh(line, -35); width = sh(width, -25); }
+    if (TAC.defence === 1) line = sh(line, 22); else if (TAC.defence === 2) line = sh(line, 18); else if (TAC.defence === 3) { line = sh(line, -35); width = sh(width, -25); } else if (TAC.defence === 4) line = sh(line, 28);
     if (TAC.attack === 1) width = sh(width, 25);
     if (TAC.special === 2 || TAC.special === 3) line = sh(line, -15); else if (TAC.special === 4) { line = sh(line, 30); width = sh(width, 20); }
     return { line: line, width: width };
@@ -1190,7 +1193,11 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     // back to front), as the engine plays it
     var E = effTac(), lineX = 15 + E.line * .3, midX = lineX + 15, attX = lineX + 30;
     if (TAC.defence === 3) { midX = lineX + 10; attX = lineX + 19; } // the bunker is compact
+    else if (TAC.defence === 4) { midX = lineX + 12; attX = lineX + 23; } // the high backline: the whole team within ~25 m
     var spread = .6 + .44 * E.width / 100, lat = SHAPE[row][i], y = 39 + lat * spread * (row === "a" ? 30 : 36);
+    // inverted full-backs: in possession they stand in midfield beside the holding man; the wingers keep the width
+    if (TAC.defence === 5 && row === "d" && (i === 0 || i === 3)) return [lineX + 10, 39 + (i === 0 ? -9 : 9)];
+    if (TAC.defence === 5 && row === "m" && (i === 0 || i === 3)) y = 39 + (i === 0 ? -33 : 33);
     return [row === "d" ? lineX : row === "m" ? midX : attX, Math.max(5, Math.min(73, y))];
   }
   function drawBoard() {
@@ -1223,9 +1230,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     if (TAC.special === 4) presses = ["a0", "a1", "m0", "m1", "m2", "m3"];
     presses.forEach(function (k) { var xy = boardXY(k[0], +k[1]); html += '<path class="press" d="M' + (xy[0] + 4).toFixed(1) + " " + (xy[1] - 4).toFixed(1) + " A5.5 5.5 0 0 1 " + (xy[0] + 4).toFixed(1) + " " + (xy[1] + 4).toFixed(1) + '"/>'; });
     // the offside trap: the whole line steps up together
-    if (TAC.defence === 2) { ["d0", "d1", "d2", "d3"].forEach(function (k) { var xy = boardXY(k[0], +k[1]); html += '<path d="M' + (xy[0] + 4).toFixed(1) + " " + xy[1].toFixed(1) + " l4 0 m-2 -1.6 l2 1.6 l-2 1.6" + '" fill="none" stroke="#fff" stroke-width=".8" stroke-linecap="round"/>'; }); }
+    if (TAC.defence === 2 || TAC.defence === 4) { (TAC.defence === 4 ? ["d1", "d2"] : ["d0", "d1", "d2", "d3"]).forEach(function (k) { var xy = boardXY(k[0], +k[1]); html += '<path d="M' + (xy[0] + 4).toFixed(1) + " " + xy[1].toFixed(1) + " l4 0 m-2 -1.6 l2 1.6 l-2 1.6" + '" fill="none" stroke="#fff" stroke-width=".8" stroke-linecap="round"/>'; }); }
+    // the high backline: the keeper sweeps the space behind it; inverted full-backs: the arrows inside
+    if (TAC.defence === 4) html += '<path d="M8 39 L' + (boardXY("d", 1)[0] - 4).toFixed(1) + ' 39" fill="none" stroke="#fff" stroke-width=".7" stroke-dasharray="1.6 1.2"/>';
+    if (TAC.defence === 5) [0, 3].forEach(function (i) { var a = [15 + effTac().line * .3, 39 + SHAPE.d[i] * (.6 + .44 * effTac().width / 100) * 36], b = boardXY("d", i); html += '<path class="arrow" d="M' + a[0].toFixed(1) + " " + a[1].toFixed(1) + " L" + (b[0] - 2).toFixed(1) + " " + (b[1] + (i === 0 ? -2 : 2)).toFixed(1) + '" stroke-dasharray="2 1.2"/>'; });
     arrows.innerHTML = html;
-    $("tacDefenceNote").textContent = TAC.defence === 1 ? "tires the legs fast" : TAC.defence === 3 ? "wastes time" : TAC.defence === 2 ? "catches forwards offside" : "";
+    $("tacDefenceNote").textContent = TAC.defence === 1 ? "tires the legs fast" : TAC.defence === 3 ? "wastes time" : TAC.defence === 2 ? "catches forwards offside" : TAC.defence === 4 ? "compact - but space behind" : TAC.defence === 5 ? "control inside, flanks open" : "";
   }
   function syncTacUi() {
     $("tacLine").value = TAC.line; $("tacWidth").value = TAC.width;

@@ -71,7 +71,9 @@ namespace SoccerVision.Simulation
             if (PossessionTeam == team && team.Forward(ballPos) > -5f)
             {
                 // Sweeper position behind the defensive line, ready for counters.
-                depth = MathUtil.Clamp(8f + 0.12f * (team.Forward(ballPos) + 5f) + 4f * team.Eff.DefensiveLine, 8f, 19f);
+                // (a sweeper-keeper behind a high backline stands far off his line to clear the balls played over it)
+                bool sweeper = team.Tactics.Defence == DefenceStyle.HighBackline;
+                depth = MathUtil.Clamp(8f + 0.12f * (team.Forward(ballPos) + 5f) + 4f * team.Eff.DefensiveLine + (sweeper ? 4f : 0f), 8f, sweeper ? 23f : 19f);
                 depth = MathF.Min(depth, team.LineForward + Pitch.HalfLength - 6f);
                 depth = MathF.Max(depth, 2f);
             }

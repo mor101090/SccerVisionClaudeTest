@@ -64,6 +64,8 @@ namespace SoccerVision.Simulation
         public int CornerRoutine;
         /// <summary>Corner: the team wants an in-swinger this time (otherwise an out-swinger) - it decides who takes it.</summary>
         public bool PreferInswing;
+        /// <summary>Throw-in: a long throw into the six-yard box (near-post flick, far-post runners, a blocker on the keeper, a second-ball man).</summary>
+        public bool LongThrow;
         /// <summary>Restart timer value when the referee blew; the kick follows WhistleToKickRealSeconds later.</summary>
         public float WhistleAt = -1f;
         /// <summary>The taker walks back to RunUpStart first, then runs up to the ball (penalties, corners, free kicks, goal kicks).</summary>

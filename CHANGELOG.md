@@ -2,6 +2,46 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/tactics-intelligence-articles`
+
+Read and applied ten tactics articles (the-footballanalyst.com: high backline, inverted full-backs, counter-movements, rest
+defence, the third-man principle, set-piece coaching, cover shadows, dynamic advantages, long throw-ins, wide overloads).
+
+- **Two new defence options** (next to the offside trap, demo tactics panel and engine):
+  - **High backline**: the back four squeeze up towards halfway, so the whole team stays compact (block about 3 m
+    shorter out of possession). The line steps up together harder on every back pass or turned carrier, and it hardly
+    drops for a free carrier. The keeper plays as a sweeper further off his line. The risk is the ball over the top: the
+    computer answers it with runs in behind and direct balls.
+  - **Inverted full-backs**: in possession the full-backs come off the flank into midfield beside the holding man (a
+    double pivot, a 3-2 base). The centre-backs split wider and the wingers hold the touchline. The flanks are left open:
+    the computer answers with width and counter-attacks.
+- **Smarter players, every team**:
+  - **Rest defence**: while attacking in the opponent's half, at least five players stay behind the ball (2+3 / 3+2,
+    full-backs tucked into the half-spaces). Three stay in a siege, four in a counter or all-out attack, six when parking
+    the bus or wasting time.
+  - **Counter-press**: for the first seconds after losing the ball (longer for a pressing team), the players round it swarm
+    the new carrier, with a second man too. About 68 per match, about 7 won back.
+  - **Counter-movements**: a forward or winger making a run often first comes short to drag his marker up, then spins in
+    behind (about 85 per match; better movers do it more).
+  - **Run timing (dynamic advantage)**: runs are made when the carrier is facing forward with his head up, much less when
+    he has his back to goal.
+  - **Third-man runs**: A plays into B, and C (whom A could not reach) sets off as the ball travels. B lays it off first
+    time into C's run, and the defenders, watching the ball, are caught facing the wrong way. About 36 runs, 6 lay-offs and
+    3 completed per match.
+  - **Wide overloads**: with the ball on a flank, the ball-side central midfielder joins the full-back and winger in the
+    half-space. The far winger holds the far touchline, and the switch to a winger left one against one is valued more
+    ("overload to isolate").
+  - **Long throws**: near the box, the strongest thrower comes over. A flat, fast throw goes to the near post for the
+    flick-on, with runners at the far post and in the middle, one man blocking the keeper and one at the edge of the box
+    for the second ball. The defenders pack the box: man-markers on each attacker, plus zonal cover at the near post and
+    the six-yard line.
+  - (Cover shadows, where the presser curves his run to block the pass into midfield, were already in.)
+- Calibration (60 matches): goals 2.88, pass completion 77%, offsides 3.4. A team keeping the ball now gambles even less.
+- SimRunner: new rows (third-man runs, counter-movements, counter-presses, overloads, long throws) and
+  `defence=highline|inverted`.
+- Tests: high backline (higher, more compact), inverted full-backs (inside in possession), rest defence (4.5+ behind the
+  ball), the new principles all appear, long throws, the computer answers (6 tests).
+
 ## `fix/tactic-sliders-stay-live`
 
 - **Bug: with some tactics chosen, the defensive-line and width sliders did nothing.** The defence, attack and extra

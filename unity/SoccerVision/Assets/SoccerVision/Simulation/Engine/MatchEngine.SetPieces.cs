@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SoccerVision.Simulation
 {
@@ -150,6 +151,8 @@ namespace SoccerVision.Simulation
                         if (p.IsGoalkeeper) { score = -1000f; break; }
                         score = -Vec2.Distance(p.Pos, r.Spot) + (p.Slot.IsFullBack || p.Slot.IsWideMidfielder ? 8f : 0f)
                                 + (MathF.Sign(team.Lateral(r.Spot)) == MathF.Sign(p.Slot.BaseLateral) ? 6f : 0f);
+                        // near the box the long-throw specialist comes over to take it
+                        if (team.Forward(r.Spot) > 30f && !p.Slot.IsCentreBack) score += MathF.Max(0f, p.Attr.PhysicalPower - 60) * 1.2f;
                         break;
                     case RestartType.CornerKick:
                         if (p.IsGoalkeeper) { score = -1000f; break; }
@@ -346,6 +349,10 @@ namespace SoccerVision.Simulation
             var att = r.Team;
             var def = att.Opponent;
             LayoutShapeAround(r.Spot, att);
+            // A long throw (a weapon against a deep, compact block): only near the box, by a strong thrower - and now and
+            // then a short one instead, when they expect the long one.
+            r.LongThrow = att.Forward(r.Spot) > 28f && r.Taker != null && r.Taker.Attr.PhysicalPower > 62 && _rng.Chance(0.6f);
+            if (r.LongThrow) { LayoutLongThrow(r); return; }
             float inward = -MathF.Sign(r.Spot.Y);
             Vec2 forward = att.DirToWorld(Vec2.UnitX);
             Vec2 offerA = Pitch.ClampToField(r.Spot + forward * 6f + new Vec2(0f, inward * 6f), -1.5f);
@@ -364,6 +371,50 @@ namespace SoccerVision.Simulation
                 defUsed.Add(m);
                 m.ShapeTarget = mark.ShapeTarget + (def.OwnGoal - mark.ShapeTarget).Normalized * 1.6f;
             }
+        }
+
+        /// <summary>
+        /// Long throw: one or two at the near post to flick it on across the six-yard box, a group at the far post for the
+        /// flick and the rebound, one blocking the keeper, one at the edge of the box for the second ball. The defenders
+        /// pack the box and pick them up goal-side.
+        /// </summary>
+        private void LayoutLongThrow(Restart r)
+        {
+            var att = r.Team;
+            var def = att.Opponent;
+            float side = MathF.Sign(att.Lateral(r.Spot));
+            var spots = new[]
+            {
+                new Vec2(45.8f, side * 3.2f),    // near post: the flick-on
+                new Vec2(47.6f, -side * 3.6f),   // far post
+                new Vec2(43.5f, -side * 1.2f),   // arriving late in the middle
+                new Vec2(50.2f, side * 0.4f),    // on the keeper (the block)
+                new Vec2(36.5f, -side * 4f),     // edge of the box: the second ball
+            };
+            var cands = new List<PlayerAgent>();
+            foreach (var p in att.Players) if (!p.SentOff && !p.IsGoalkeeper && p != r.Taker) cands.Add(p);
+            cands.Sort((x, y) => (y.Attr.Heading + y.Attr.Jumping + (y.Profile.HeightCm - 180) * 1.2f).CompareTo(x.Attr.Heading + x.Attr.Jumping + (x.Profile.HeightCm - 180) * 1.2f));
+            var box = new List<PlayerAgent>();
+            for (int i = 0; i < cands.Count && i < spots.Length; i++)
+            {
+                // (the second-ball man is the best shooter of the rest, not the fifth header)
+                var p = i == spots.Length - 1 ? cands.Skip(spots.Length - 1).OrderByDescending(q => q.Attr.LongShots + q.Attr.Passing).First() : cands[i];
+                p.ShapeTarget = att.ToWorld(spots[i].X + _rng.Range(-0.5f, 0.5f), spots[i].Y + _rng.Range(-0.6f, 0.6f));
+                if (i < 4) box.Add(p);
+            }
+            var defUsed = new HashSet<PlayerAgent>();
+            foreach (var a in box)
+            {
+                var m = NearestTo(def, a.ShapeTarget, defUsed);
+                if (m == null) break;
+                defUsed.Add(m);
+                m.ShapeTarget = a.ShapeTarget + (def.OwnGoal - a.ShapeTarget).Normalized * 1.1f;
+            }
+            // two more defenders zonal at the near post and on the six-yard line
+            var z1 = NearestTo(def, def.ToWorld(-49.5f, -side * 2.5f), defUsed);
+            if (z1 != null) { defUsed.Add(z1); z1.ShapeTarget = def.ToWorld(-49.5f, -side * 2.5f); }
+            var z2 = NearestTo(def, def.ToWorld(-46.5f, 0f), defUsed);
+            if (z2 != null) { defUsed.Add(z2); z2.ShapeTarget = def.ToWorld(-46.5f, 0f); }
         }
 
         private void LayoutGoalKick(Restart r)
@@ -1022,7 +1073,7 @@ namespace SoccerVision.Simulation
                         ExecuteKickOff(taker);
                         break;
                     case RestartType.ThrowIn:
-                        ExecuteThrowIn(taker, spot);
+                        ExecuteThrowIn(taker, spot, r.LongThrow);
                         break;
                     case RestartType.GoalKick:
                         ExecuteGoalKick(taker);
@@ -1094,16 +1145,18 @@ namespace SoccerVision.Simulation
             return best;
         }
 
-        private void ExecuteThrowIn(PlayerAgent taker, Vec2 spot)
+        private void ExecuteThrowIn(PlayerAgent taker, Vec2 spot, bool longThrow)
         {
             var team = taker.Team;
-            float f = team.Forward(spot);
             PlayerAgent receiver = null;
             Vec2 target;
-            bool longThrow = f > 33f && taker.Attr.PhysicalPower > 70 && _rng.Chance(0.6f);
             if (longThrow)
             {
-                target = team.ToWorld(44f, -MathF.Sign(team.Lateral(spot)) * _rng.Range(0f, 4f));
+                // Low and fast, flat rather than looping, into the near post for the flick (or now and then straight to the far post).
+                float side = MathF.Sign(team.Lateral(spot));
+                target = _rng.Chance(0.7f) ? team.ToWorld(45.8f + _rng.Range(-0.8f, 0.8f), side * _rng.Range(2f, 4.2f)) : team.ToWorld(47f, -side * _rng.Range(1f, 4f));
+                team.Stats.LongThrows++;
+                if (CollectDiagnostics) Count("throw.long");
             }
             else
             {
@@ -1120,9 +1173,9 @@ namespace SoccerVision.Simulation
             }
             Vec2 from = new Vec2(spot.X, spot.Y - MathF.Sign(spot.Y) * 0.05f);
             float d = Vec2.Distance(from, target);
-            float horizontal = MathUtil.Clamp(7f + 0.35f * d, 7f, longThrow ? 15f : 14f);
-            Vec2 dir = (target - from).Normalized.Rotate(_rng.Gaussian(0f, 0.05f));
-            float vz = KickSolver.VerticalSpeedFor(dir * horizontal, 2.15f, d, 0.6f, Config);
+            float horizontal = longThrow ? MathUtil.Clamp(9f + 0.38f * d, 12f, 17f) : MathUtil.Clamp(7f + 0.35f * d, 7f, 14f);
+            Vec2 dir = (target - from).Normalized.Rotate(_rng.Gaussian(0f, longThrow ? 0.035f : 0.05f));
+            float vz = KickSolver.VerticalSpeedFor(dir * horizontal, 2.15f, d, longThrow ? 1.9f : 0.6f, Config);
             KickBall(taker, from, dir * horizontal, vz, 0f, 0f, KickKind.Restart, receiver, target, true, true, 2.15f);
         }
 

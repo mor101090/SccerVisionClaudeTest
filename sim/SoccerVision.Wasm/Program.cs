@@ -81,7 +81,7 @@ public static partial class LiveEngine
     private static TeamTactics MakeTactics(TeamTactics from, double line, double width, int passing, double tempo, double aggression, int defence, int attack, int special)
     {
         var t = from.Clone();
-        t.Defence = defence == 1 ? DefenceStyle.HighPress : defence == 2 ? DefenceStyle.OffsideTrap : defence == 3 ? DefenceStyle.ParkTheBus : DefenceStyle.Balanced;
+        t.Defence = defence == 1 ? DefenceStyle.HighPress : defence == 2 ? DefenceStyle.OffsideTrap : defence == 3 ? DefenceStyle.ParkTheBus : defence == 4 ? DefenceStyle.HighBackline : defence == 5 ? DefenceStyle.InvertedFullBacks : DefenceStyle.Balanced;
         t.Attack = attack == 1 ? AttackStyle.CrossesIntoBox : attack == 2 ? AttackStyle.RunsInBehind : attack == 3 ? AttackStyle.LongShots : AttackStyle.Mixed;
         t.Special = special == 1 ? SpecialTactic.Possession : special == 2 ? SpecialTactic.TimeWasting : special == 3 ? SpecialTactic.CounterAttack : special == 4 ? SpecialTactic.Siege : SpecialTactic.None;
         t.DefensiveLine = (float)line;

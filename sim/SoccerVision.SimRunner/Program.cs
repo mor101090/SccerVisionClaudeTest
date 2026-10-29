@@ -73,7 +73,7 @@ static TeamSetup WithTactics(TeamSetup t, string spec)
             case "width": t.Tactics.Width = float.Parse(v); break;
             case "tempo": t.Tactics.Tempo = float.Parse(v); break;
             case "passing": t.Tactics.Passing = Enum.Parse<PassingStyle>(v, true); break;
-            case "defence": t.Tactics.Defence = v == "press" ? DefenceStyle.HighPress : v == "trap" ? DefenceStyle.OffsideTrap : v == "bus" ? DefenceStyle.ParkTheBus : DefenceStyle.Balanced; break;
+            case "defence": t.Tactics.Defence = v == "press" ? DefenceStyle.HighPress : v == "trap" ? DefenceStyle.OffsideTrap : v == "bus" ? DefenceStyle.ParkTheBus : v == "highline" ? DefenceStyle.HighBackline : v == "inverted" ? DefenceStyle.InvertedFullBacks : DefenceStyle.Balanced; break;
             case "attack": t.Tactics.Attack = v == "crosses" ? AttackStyle.CrossesIntoBox : v == "runs" ? AttackStyle.RunsInBehind : v == "long" ? AttackStyle.LongShots : AttackStyle.Mixed; break;
             case "special": t.Tactics.Special = v == "possession" ? SpecialTactic.Possession : v == "waste" ? SpecialTactic.TimeWasting : v == "counter" ? SpecialTactic.CounterAttack : v == "siege" ? SpecialTactic.Siege : SpecialTactic.None; break;
             case "aggression":
@@ -237,6 +237,11 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Shoulder duels won", Avg(x => x.ShoulderDuelsWon), "n/a");
     Row("Switches of play (completed)", Avg(x => x.Switches), Avg(x => x.SwitchesCompleted).ToString("0.00"));
     Row("One-twos (completed)", Avg(x => x.OneTwos), Avg(x => x.OneTwosCompleted).ToString("0.00"));
+    Row("Third-man runs / lay-offs (done)", Avg(x => x.ThirdManRuns), Avg(x => x.ThirdManPasses).ToString("0.00") + " / " + Avg(x => x.ThirdManCompleted).ToString("0.00"));
+    Row("Counter-movements", Avg(x => x.CounterMovements), "");
+    Row("Counter-presses (won back)", Avg(x => x.CounterPresses), Avg(x => x.CounterPressWins).ToString("0.00"));
+    Row("Wide overloads", Avg(x => x.Overloads), "");
+    Row("Long throws", Avg(x => x.LongThrows), "");
     Row("Home: passes / long balls", Avg(x => x.HomePasses), Avg(x => x.HomeLongBalls).ToString("0.0"));
     Row("Home: possession % / goals", Avg(x => x.HomePossession), Avg(x => x.HomeGoals).ToString("0.00") + " (away " + Avg(x => x.AwayGoals).ToString("0.00") + ")");
     Row("Home: fouls / yellows", Avg(x => x.HomeFouls), Avg(x => x.HomeYellows).ToString("0.00"));
@@ -319,7 +324,7 @@ sealed class MatchResult
     public bool Finished;
     public int RecoveredErrors;
     public double WallMs;
-    public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots, LightInjuries, SeriousInjuries, Substitutions, Switches, SwitchesCompleted, FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks, CrossesAll, Interceptions, AnticipatedInterceptions, ThroughBalls, ThroughBallsCompleted, PassesIntoSpace, ShieldedOut, ShoulderDuelsWon, OneTwos, OneTwosCompleted, HomePasses, HomeLongBalls, HomeFouls, HomeYellows;
+    public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots, LightInjuries, SeriousInjuries, Substitutions, Switches, SwitchesCompleted, FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks, CrossesAll, Interceptions, AnticipatedInterceptions, ThroughBalls, ThroughBallsCompleted, PassesIntoSpace, ShieldedOut, ShoulderDuelsWon, OneTwos, OneTwosCompleted, ThirdManRuns, ThirdManPasses, ThirdManCompleted, CounterMovements, CounterPresses, CounterPressWins, Overloads, LongThrows, HomePasses, HomeLongBalls, HomeFouls, HomeYellows;
     public double HomeLineDepth, HomeSpread, RealMinutes, HomeMidDepth, HomeAttackDepth, HomeCrosses, HomeLongShots, HomeEnergy, AwayOffsides, HomeThrough;
     public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy, FoulsAnchor, FoulsCm, FoulsCb, FoulsFb, FoulsWide, FoulsSt, TacklesAnchor, TacklesCm, TacklesCb, TacklesFb, TacklesWide, TacklesSt, IntAnchor, IntCm, IntCb, IntFb, IntWide, IntSt, PassAnchor, PassCm, PassCb, PassFb, PassWide, PassSt, EnergyFullBack, EnergyCentreBack, EnergyWide, EnergyCentral, EnergyStriker, EnergyKeeper;
     public string Score;
@@ -377,6 +382,14 @@ sealed class MatchResult
             Switches = h.Switches + a.Switches,
             OneTwos = h.OneTwos + a.OneTwos,
             OneTwosCompleted = h.OneTwosCompleted + a.OneTwosCompleted,
+            ThirdManRuns = h.ThirdManRuns + a.ThirdManRuns,
+            ThirdManPasses = h.ThirdManPasses + a.ThirdManPasses,
+            ThirdManCompleted = h.ThirdManCompleted + a.ThirdManCompleted,
+            CounterMovements = h.CounterMovements + a.CounterMovements,
+            CounterPresses = h.CounterPresses + a.CounterPresses,
+            CounterPressWins = h.CounterPressWins + a.CounterPressWins,
+            Overloads = h.Overloads + a.Overloads,
+            LongThrows = h.LongThrows + a.LongThrows,
             HomePasses = h.Passes,
             HomeLongBalls = e.EventLog.Count(x => x.Type == MatchEventType.LongBall && x.Team == 0),
             HomeFouls = h.Fouls,

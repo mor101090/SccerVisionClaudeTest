@@ -29,6 +29,8 @@ namespace SoccerVision.Simulation
         public bool IsSwitch;
         /// <summary>The return ball of a one-two (give-and-go) into the passer's run.</summary>
         public bool OneTwo;
+        /// <summary>A third-man lay-off: first time into the run of the man the first passer could not reach.</summary>
+        public bool ThirdMan;
     }
 
     /// <summary>
@@ -46,7 +48,7 @@ namespace SoccerVision.Simulation
         private float _riskPremium;
         private bool _shotCountedOnTarget;
         private string _lastPassKey;
-        private bool _pendingThrough, _pendingIntoSpace, _pendingSwitch, _pendingOneTwo;
+        private bool _pendingThrough, _pendingIntoSpace, _pendingSwitch, _pendingOneTwo, _pendingThirdMan;
         // A corner routine for the commentary (Cross event Detail: 1 near post, 2 far post, 3 middle, 4 edge of the box;
         // Value: 1 in-swinger, 2 out-swinger) and how much harder a corner taker bends it.
         private int _crossDetail;
@@ -112,7 +114,7 @@ namespace SoccerVision.Simulation
             float lossNow = LossCost(team, pos);
             // Losing the ball also forfeits what we have now; cautious teams weigh that more.
             _riskPremium = xtNow * (0.6f + 0.8f * (1f - team.Eff.Mentality)) * (f < -17.5f ? 1.3f : 1f);
-            if (team.Tactics.Special == SpecialTactic.Possession) _riskPremium *= 1.45f; // keeping the ball: no gambles
+            if (team.Tactics.Special == SpecialTactic.Possession) _riskPremium *= 1.65f; // keeping the ball: no gambles
             _options.Clear();
 
             // HOLD / shield
@@ -252,6 +254,8 @@ namespace SoccerVision.Simulation
             foreach (var q in team.Players)
             {
                 if (q == p || q.SentOff) continue;
+                int firstOption = _options.Count;
+                try {
                 float dist = Vec2.Distance(q.Pos, from);
                 if (dist < 4f || dist > 58f) continue;
                 if (q.IsGoalkeeper && (fromF > -8f || pressure < 0.35f)) continue;
@@ -335,6 +339,25 @@ namespace SoccerVision.Simulation
                             _nextPassIntoSpace = false;
                         }
                     }
+                }
+                }
+                finally
+                {
+                    // Third man: q set off as the ball came into me - the lay-off into his run is the pass the defence did
+                    // not see coming (they were watching the ball into me, facing the wrong way).
+                    if (q.ThirdManVia == p && q.ThirdManUntil > SimTime && CollectDiagnostics) Count(_options.Count > firstOption ? "thirdman.options" : "thirdman.nooption");
+                    if (q.ThirdManVia == p && q.ThirdManUntil > SimTime)
+                        for (int i = firstOption; i < _options.Count; i++)
+                        {
+                            var o = _options[i];
+                            if (o.OneTwo || team.Forward(o.Target) < fromF + 3f) continue;
+                            // (a team keeping the ball plays it into his feet, not over the top)
+                            if (team.Tactics.Special == SpecialTactic.Possession && (o.Lofted || o.Kind == KickKind.ThroughBall)) continue;
+                            o.ThirdMan = true;
+                            o.Success = MathF.Min(0.97f, o.Success * 1.15f);
+                            if (o.Success > 0.4f) o.Utility = o.Utility * (o.Utility > 0f ? 1.8f : 0.6f) + 0.012f;
+                            _options[i] = o;
+                        }
                 }
             }
         }
@@ -447,7 +470,13 @@ namespace SoccerVision.Simulation
             if (crowd < 2 && pressure < 0.35f) return 0f;
             float free = MathUtil.Clamp01((SpaceAround(team, target) - 4f) / 8f);
             float vision = 0.6f + 0.6f * MathUtil.Clamp01((p.Attr.Passing + p.Attr.Decisions) / 200f);
-            return (0.005f * MathF.Min(crowd, 4) + 0.012f * pressure) * free * vision * (p.Slot.IsFullBack ? 1.8f : 1f);
+            // Overload to isolate: the block has shifted over to the ball - a wide man left one against one on the far side
+            // is exactly what the overload was for.
+            int nearTarget = 0;
+            foreach (var o in team.Opponent.Players)
+                if (!o.SentOff && !o.IsGoalkeeper && Vec2.DistanceSq(o.Pos, target) < 12f * 12f) nearTarget++;
+            float isolate = nearTarget <= 1 && crowd >= 3 ? 1.35f : 1f;
+            return (0.005f * MathF.Min(crowd, 4) + 0.012f * pressure) * free * vision * isolate * (p.Slot.IsFullBack ? 1.8f : 1f);
         }
 
         /// <summary>Distance from a point to the nearest opponent outfield player (how much space there is).</summary>
@@ -786,13 +815,19 @@ namespace SoccerVision.Simulation
                 }
                 _pendingOneTwo = plan.OneTwo;
                 if (plan.OneTwo) p.Team.Stats.OneTwos++;
+                _pendingThirdMan = plan.ThirdMan;
+                if (plan.ThirdMan) p.Team.Stats.ThirdManPasses++;
                 if (_pendingThrough) p.Team.Stats.ThroughBalls++;
                 if (_pendingIntoSpace) p.Team.Stats.PassesIntoSpace++;
                 if (CollectDiagnostics && plan.IntoSpace) Count("pass.intospace");
             }
-            else _pendingThrough = _pendingIntoSpace = _pendingSwitch = _pendingOneTwo = false;
+            else _pendingThrough = _pendingIntoSpace = _pendingSwitch = _pendingOneTwo = _pendingThirdMan = false;
             float pressure = Pressure(p, out _);
-            if (plan.Action == BallAction.Pass && !plan.Lofted && plan.Kind == KickKind.Pass && plan.Receiver != null) MaybeStartOneTwo(p, plan.Receiver);
+            if (plan.Action == BallAction.Pass && !plan.Lofted && plan.Kind == KickKind.Pass && plan.Receiver != null)
+            {
+                MaybeStartOneTwo(p, plan.Receiver);
+                MaybeStartThirdMan(p, plan.Receiver);
+            }
             switch (plan.Action)
             {
                 case BallAction.Shoot:
@@ -869,6 +904,44 @@ namespace SoccerVision.Simulation
             p.OneTwoUntil = SimTime + 3.6f;
             p.OneTwoSpot = spot;
             if (CollectDiagnostics) Count("onetwo.run");
+        }
+
+        /// <summary>
+        /// Third-man principle: A plays into B, and C - the man A could not reach (the lane to him is blocked, or he is
+        /// beyond the next line) - sets off as the ball travels, so that B can lay it first time into his run (A-B-C).
+        /// Players who read the game (B's decisions and passing, C's movement) make it more often.
+        /// </summary>
+        private void MaybeStartThirdMan(PlayerAgent a, PlayerAgent b)
+        {
+            var team = a.Team;
+            if (b.IsGoalkeeper || b.Slot.IsCentreBack) return;
+            float bF = team.Forward(b.Pos);
+            if (bF < -22f || bF > 40f) return;
+            float offsideLine = MathF.Max(MathF.Max(SecondLastDefenderForward(team), team.Forward(Ball.Pos)), 0f);
+            PlayerAgent best = null;
+            float bestScore = 0f;
+            foreach (var c in team.Players)
+            {
+                if (c == a || c == b || c.SentOff || c.IsGoalkeeper || !IsRunner(c) || c.OneTwoUntil > SimTime || c.ThirdManUntil > SimTime) continue;
+                float cF = team.Forward(c.Pos);
+                if (cF < bF + 2f || cF > offsideLine + 0.3f) continue;
+                float d = Vec2.Distance(c.Pos, b.Pos);
+                if (d < 6f || d > 30f) continue;
+                bool blocked = LaneClearance(team, a.Pos, c.Pos) < 2.5f;
+                float score = (blocked ? 1.4f : 0.6f) * (0.5f + MathUtil.A(c.Attr.OffTheBall)) - 0.015f * d;
+                if (score > bestScore) { bestScore = score; best = c; }
+            }
+            if (best == null) return;
+            float chance = (0.12f + 0.2f * MathUtil.A(b.Attr.Decisions) + 0.2f * MathUtil.A(best.Attr.OffTheBall)) * (0.7f + 0.3f * StyleShort(team)) * (0.8f + 0.4f * team.Eff.Mentality);
+            if (!_rng.Chance(chance)) return;
+            float lane = BestGapInLine(team, offsideLine, team.Lateral(best.Pos));
+            best.RunTimer = 3.4f; // (he counts as a runner for the through ball)
+            best.RunCheckUntil = -1f;
+            best.RunPlan = new Vec2(_rng.Gaussian(1f, 0.8f * (1.4f - MathUtil.A(best.Attr.OffTheBall))), MathUtil.Clamp(MathUtil.Lerp(team.Lateral(best.Pos), lane, 0.5f), -28f, 28f));
+            best.ThirdManVia = b;
+            best.ThirdManUntil = SimTime + 3.4f;
+            team.Stats.ThirdManRuns++;
+            if (CollectDiagnostics) Count("thirdman.run");
         }
 
         /// <summary>+1 when the kicker's natural curl bends the ball to the left of its path (right-footers), -1 for left-footers.</summary>
@@ -1301,8 +1374,8 @@ namespace SoccerVision.Simulation
             var passer = Ball.PendingPassFrom;
             if (passer == null) return;
             Ball.PendingPassFrom = null;
-            bool through = _pendingThrough, intoSpace = _pendingIntoSpace, wasSwitch = _pendingSwitch, oneTwo = _pendingOneTwo;
-            _pendingThrough = _pendingIntoSpace = _pendingSwitch = _pendingOneTwo = false;
+            bool through = _pendingThrough, intoSpace = _pendingIntoSpace, wasSwitch = _pendingSwitch, oneTwo = _pendingOneTwo, thirdMan = _pendingThirdMan;
+            _pendingThrough = _pendingIntoSpace = _pendingSwitch = _pendingOneTwo = _pendingThirdMan = false;
             string key = _lastPassKey;
             if (controller == null)
             {
@@ -1323,6 +1396,7 @@ namespace SoccerVision.Simulation
                     if (intoSpace && CollectDiagnostics) Count("pass.intospace.ok");
                     if (wasSwitch) passer.Team.Stats.SwitchesCompleted++;
                     if (oneTwo && controller.OneTwoWith == passer) passer.Team.Stats.OneTwosCompleted++;
+                    if (thirdMan) passer.Team.Stats.ThirdManCompleted++;
                     if (CollectDiagnostics)
                     {
                         Count("pass.completed");

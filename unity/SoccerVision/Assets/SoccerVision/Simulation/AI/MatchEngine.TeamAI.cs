@@ -37,17 +37,19 @@ namespace SoccerVision.Simulation
                 float chem = team.DefensiveChemistry;
                 var opp = Ball.Owner != null && Ball.Owner.Team != team && !Ball.InHands ? Ball.Owner : null;
                 Vec2 ourAttack = team.DirToWorld(Vec2.UnitX);
+                bool highBackline = tac0.Defence == DefenceStyle.HighBackline;
+                float stepUp = highBackline ? 1.6f : 1f;
                 if (opp != null && Vec2.Dot(opp.FacingDir, ourAttack) > 0.3f && Pressure(opp, out _) > 0.45f && ballF > lineTarget + 12f)
-                    lineTarget += 5f * chem;
+                    lineTarget += 5f * chem * stepUp;
                 else if (Ball.Owner == null && Ball.LastTouchTeam != team && Vec2.Dot(Ball.Velocity, ourAttack) > 4f && ballF > lineTarget + 10f)
-                    lineTarget += 6f * chem;
+                    lineTarget += 6f * chem * stepUp;
                 // Stay goal-side of the ball.
                 lineTarget = MathF.Min(lineTarget, ballF - 2f);
                 // Drop off when the ball carrier has time to play a ball over the top.
                 if (Ball.Owner != null && Ball.Owner.Team != team && !Ball.InHands)
                 {
                     float pressure = Pressure(Ball.Owner, out _);
-                    if (pressure < 0.3f && ballF < lineTarget + 40f) lineTarget -= (tac0.Defence == DefenceStyle.OffsideTrap ? 2f : 7f) * (1f - 0.6f * tac.DefensiveLine);
+                    if (pressure < 0.3f && ballF < lineTarget + 40f) lineTarget -= (tac0.Defence == DefenceStyle.OffsideTrap ? 2f : tac0.Defence == DefenceStyle.HighBackline ? 3.5f : 7f) * (1f - 0.6f * tac.DefensiveLine);
                 }
                 // A ball in the air over the line: everybody drops.
                 if (Ball.Owner == null && Ball.LastTouchTeam != team && Ball.Z > 2.5f) lineTarget -= 6f;
@@ -63,11 +65,20 @@ namespace SoccerVision.Simulation
                         if (back.Count > 0) { team.TrapBreaker = back[_rng.Range(0, back.Count)]; team.TrapBrokenUntil = SimTime + 3.2f; if (CollectDiagnostics) Count("trap.broken"); }
                     }
                 }
+                if (highBackline)
+                {
+                    // A high backline: the back four squeeze right up towards halfway so the whole team is compact (about
+                    // 25-30 m from front to back) - the pitch is shortened and the opponent has no time between the lines.
+                    // The keeper sweeps the space behind it; the risk is the ball over the top and a slow defender in a race.
+                    float squeeze = -19f + 14f * (tac.DefensiveLine - 0.5f);
+                    if (ballF > squeeze + 12f) lineTarget = MathF.Max(lineTarget, squeeze);
+                    lineTarget = MathF.Min(lineTarget, ballF - 3f);
+                }
             }
             lineTarget = MathF.Max(lineTarget, -47.5f);
             // The line moves like a unit: rate limited (steps up / drops at ~4.5 m/s).
             // A well-drilled line moves faster as one.
-            team.LineForward = MathUtil.MoveTowards(team.LineForward, lineTarget, (3.6f + 1.8f * team.DefensiveChemistry) * 0.2f * (tac0.Defence == DefenceStyle.OffsideTrap ? 1.7f : 1f));
+            team.LineForward = MathUtil.MoveTowards(team.LineForward, lineTarget, (3.6f + 1.8f * team.DefensiveChemistry) * 0.2f * (tac0.Defence == DefenceStyle.OffsideTrap ? 1.7f : tac0.Defence == DefenceStyle.HighBackline ? 1.45f : 1f));
 
             float offsideLine = MathF.Max(MathF.Max(SecondLastDefenderForward(team), ballF), 0f);
 
@@ -76,11 +87,57 @@ namespace SoccerVision.Simulation
                 if (p.SentOff || p.IsGoalkeeper) continue;
                 p.ShapeTarget = ComputeShapeTarget(p, team, inPossession, ballF, ballL, offsideLine);
             }
+            if (inPossession && ballF > -8f) ApplyRestDefence(team, ballF);
+            bool overload = inPossession && IsWideOverload(team, ballF, ballL);
+            if (overload && !team.OverloadOn) team.Stats.Overloads++;
+            team.OverloadOn = overload;
 
             if (inPossession) AssignSupport(team);
             else team.Supporters.Clear();
             AssignMarking(team, inPossession, ballF);
         }
+
+        private readonly List<PlayerAgent> _rest = new List<PlayerAgent>(11);
+
+        /// <summary>
+        /// Rest defence: while the team attacks, enough players stay behind the ball to stop the counter the moment it is
+        /// lost - normally five (a 2+3 or 3+2: the centre-backs, the holding man and the full-backs or a midfielder, the
+        /// full-backs tucked into the half-spaces), fewer in a siege or a counter, more when protecting a lead.
+        /// </summary>
+        private void ApplyRestDefence(TeamAgent team, float ballF)
+        {
+            var s = team.Tactics;
+            int need = 5;
+            if (s.Special == SpecialTactic.Siege) need = 3;
+            else if (team.CounterUntil > SimTime || team.Eff.Mentality > 0.78f) need = 4;
+            if (s.Defence == DefenceStyle.ParkTheBus || s.Special == SpecialTactic.TimeWasting) need = 6;
+            float behind = ballF - 7f;
+            int have = 0;
+            _rest.Clear();
+            foreach (var p in team.Players)
+            {
+                if (p.SentOff || p.IsGoalkeeper || p == Ball.Owner) continue;
+                if (team.Forward(p.ShapeTarget) < behind) { have++; continue; }
+                if (p.Slot.Line == Line.Attack || p.OneTwoUntil > SimTime || p.RunTimer > 0f || p.ThirdManUntil > SimTime || team.Supporters.Contains(p)) continue;
+                _rest.Add(p);
+            }
+            if (have >= need || _rest.Count == 0) return;
+            // the deepest players in the formation hold first (centre-backs, full-backs, the holding man)
+            var anchor = team.Anchor;
+            _rest.Sort((a, b) => (a.Slot.Depth - (a == anchor ? 0.25f : 0f)).CompareTo(b.Slot.Depth - (b == anchor ? 0.25f : 0f)));
+            for (int i = 0; i < _rest.Count && have < need; i++, have++)
+            {
+                var q = _rest[i];
+                Vec2 loc = team.ToLocal(q.ShapeTarget);
+                float l = q.Slot.IsFullBack ? MathF.Sign(loc.Y) * MathF.Min(MathF.Abs(loc.Y), 18f) : loc.Y; // (full-backs tuck into the half-spaces)
+                q.ShapeTarget = team.ToWorld(MathF.Min(loc.X, behind - 2f), l);
+                if (CollectDiagnostics) Count("rest.hold");
+            }
+        }
+
+        /// <summary>The ball on a flank in the middle or final third, in our possession: the wide overload is on.</summary>
+        private bool IsWideOverload(TeamAgent team, float ballF, float ballL) =>
+            MathF.Abs(ballL) > 14f && ballF > -12f && ballF < 34f && Ball.Owner != null && Ball.Owner.Team == team;
 
         private readonly List<PlayerAgent> _markPool = new List<PlayerAgent>(11);
         private readonly List<PlayerAgent> _threats = new List<PlayerAgent>(11);
@@ -214,7 +271,7 @@ namespace SoccerVision.Simulation
             var tac = team.Eff;
             var slot = p.Slot;
             float line = team.LineForward;
-            float blockLength = inPossession ? 34f + 10f * tac.Mentality + 5f * tac.Tempo : 26f + 5f * tac.DefensiveLine;
+            float blockLength = inPossession ? 34f + 10f * tac.Mentality + 5f * tac.Tempo : (team.Tactics.Defence == DefenceStyle.HighBackline ? 21f : 26f) + 5f * tac.DefensiveLine;
             // tactical width: how far apart the players spread across the pitch (narrow 0 .. wide 1)
             float widthScale = inPossession ? 1.12f + 0.55f * (tac.Width - 0.5f) : 0.74f + 0.28f * (tac.Width - 0.5f);
             float shift = inPossession ? 0.2f : 0.36f;
@@ -224,7 +281,17 @@ namespace SoccerVision.Simulation
 
             if (slot.Line == Line.Defence)
             {
-                if (inPossession && slot.IsFullBack)
+                bool invertedFullBacks = team.Tactics.Defence == DefenceStyle.InvertedFullBacks;
+                if (inPossession && slot.IsFullBack && invertedFullBacks)
+                {
+                    // Inverted full-back: in possession he comes off the flank into midfield beside the holding man (a
+                    // double pivot - with both inverted, a midfield three): numbers in the middle for the build-up and,
+                    // when the ball is lost, already central to stop the counter. The winger keeps the width on his own.
+                    float side = MathF.Sign(slot.BaseLateral);
+                    f = MathUtil.Clamp(ballF - 11f, line + 7f, 14f);
+                    l = side * (8f + 2.5f * tac.Width) + ballL * 0.15f;
+                }
+                else if (inPossession && slot.IsFullBack)
                 {
                     // Fullbacks overlap the winger on the ball side (design doc) and push up anyway. How far they go is
                     // the team's choice (mentality) and the player's: a quick, fit full-back who crosses well goes forward
@@ -249,6 +316,8 @@ namespace SoccerVision.Simulation
                     }
                 }
                 if (inPossession && slot.IsCentreBack) f = MathF.Min(f, 0f); // CBs: no further than halfway
+                // (with the full-backs inside, the centre-backs split wider to cover the flanks behind them)
+                if (inPossession && slot.IsCentreBack && invertedFullBacks) l = MathF.Sign(slot.BaseLateral == 0f ? 1f : slot.BaseLateral) * (11f + 3f * tac.Width) + ballL * 0.2f;
                 if (!inPossession && slot.IsFullBack) f += 1.5f * (1f - team.DefensiveChemistry); // a well-drilled line is flat
             }
             else if (slot.Line == Line.Midfield)
@@ -259,7 +328,8 @@ namespace SoccerVision.Simulation
                     l = MathF.Sign(slot.BaseLateral) * (24f + 10f * tac.Width);
                     // Inverted winger (strong foot on the inside) tucks in when the ball is in the final third.
                     bool inverted = (slot.BaseLateral > 0f) == (p.Attr.StrongFoot == Foot.Right);
-                    if (inverted && ballF > 15f) l *= 0.72f;
+                    if (team.Tactics.Defence == DefenceStyle.InvertedFullBacks) l = MathF.Sign(slot.BaseLateral) * (27f + 4f * tac.Width); // he is the width now
+                    else if (inverted && ballF > 15f) l *= 0.72f;
                 }
                 if (!inPossession && slot.IsWideMidfielder) f -= 1.5f;
                 // Out of possession the midfield stays goal-side of the ball (screens the back four).
@@ -324,6 +394,24 @@ namespace SoccerVision.Simulation
                 {
                     f = 34f;
                     l = side * 4f;
+                }
+            }
+
+            // Wide overload: with the ball on a flank the ball-side central midfielder joins the full-back and the winger in
+            // the half-space (3 v 2 there, the third man for combinations), while the far winger holds the far touchline
+            // for the switch - overload one side to isolate him one against one on the other.
+            if (inPossession && Ball.Owner != p && IsWideOverload(team, ballF, ballL))
+            {
+                float side = MathF.Sign(ballL);
+                if (slot.IsCentralMidfielder && p != team.Anchor && MathF.Sign(slot.BaseLateral) == side)
+                {
+                    f = MathUtil.Clamp(ballF + 1f, line + 8f, offsideLine - 1.5f);
+                    l = side * 14f;
+                }
+                else if (slot.IsWideMidfielder && MathF.Sign(slot.BaseLateral) == -side)
+                {
+                    f = MathF.Max(f, MathF.Min(ballF - 4f, offsideLine - 1f));
+                    l = -side * (27f + 3f * tac.Width);
                 }
             }
 
@@ -502,6 +590,14 @@ namespace SoccerVision.Simulation
                 var tac = def.Eff;
                 // Pressing trigger: how far from his zone a player will engage the carrier (a high block engages earlier).
                 float engage = 8f + 14f * tac.PressingIntensity + 6f * (tac.DefensiveLine - 0.5f);
+                // Counter-press: for the first seconds after losing the ball, the players round it swarm the new carrier
+                // at once (before the opponent can look up), the second man too - the best moment to win it back.
+                bool counterPress = SimTime - def.LostBallAt < CounterPressWindow(def) && Vec2.Distance(carrier.Pos, def.LostBallSpot) < 22f;
+                if (counterPress)
+                {
+                    engage += 12f;
+                    if (def.CounterPressCountedFor != def.LostBallAt) { def.CounterPressCountedFor = def.LostBallAt; def.Stats.CounterPresses++; }
+                }
                 if (best != null)
                 {
                     float fromZone = Vec2.Distance(best.ShapeTarget, carrier.Pos);
@@ -509,7 +605,7 @@ namespace SoccerVision.Simulation
                     if (fromZone < engage || inOwnThird || t1 < 1.2f) def.Presser = best;
                     else def.Presser = null;
                 }
-                if (def.Presser != null && second != null && tac.PressingIntensity > 0.3f && t2 < 1.4f + 1.6f * tac.PressingIntensity)
+                if (def.Presser != null && second != null && (tac.PressingIntensity > 0.3f || counterPress) && t2 < 1.4f + 1.6f * tac.PressingIntensity + (counterPress ? 1.2f : 0f))
                 {
                     def.SecondPresser = second; // never more than two on the ball
                 }
@@ -544,6 +640,14 @@ namespace SoccerVision.Simulation
             }
             AssignAnticipation();
             AssignShielding();
+        }
+
+        /// <summary>How long the counter-press lasts after losing the ball (sim seconds): longer for a pressing team, hardly at all for a bunker.</summary>
+        private static float CounterPressWindow(TeamAgent team)
+        {
+            float w = 1.6f + 3f * team.Eff.PressingIntensity;
+            if (team.Tactics.Defence == DefenceStyle.ParkTheBus || team.Tactics.Special == SpecialTactic.TimeWasting) w *= 0.3f;
+            return w;
         }
 
         /// <summary>
@@ -885,6 +989,19 @@ namespace SoccerVision.Simulation
                     return;
                 }
 
+                // Third-man run: the ball is going into (or is with) the team-mate who will lay it off - go now, in behind,
+                // while the defenders watch the ball.
+                if (p.ThirdManUntil > SimTime && p.ThirdManVia != null && (Ball.Owner == p.ThirdManVia || Ball.IntendedReceiver == p.ThirdManVia || Ball.IntendedReceiver == p))
+                {
+                    float offsideLine = MathF.Max(MathF.Max(SecondLastDefenderForward(team), team.Forward(Ball.Pos)), 0f);
+                    // (onside until the lay-off: hold on the shoulder while the ball goes in, then go)
+                    float f = Ball.Owner == p.ThirdManVia ? offsideLine + p.RunPlan.X + 4f : offsideLine - 0.8f;
+                    p.Target = team.ToWorld(MathUtil.Clamp(f, -10f, 49f), p.RunPlan.Y);
+                    p.Task = PlayerTask.Run;
+                    p.Urgency = 1f;
+                    return;
+                }
+
                 // Runs in behind (strikers / wide players), timed on the last defender's shoulder.
                 if (carrier != null && IsRunner(p))
                 {
@@ -897,9 +1014,21 @@ namespace SoccerVision.Simulation
                         if (team.CounterUntil > SimTime) willing *= 1.8f;
                         // Central midfielders arrive late from deep (third-man runs), only around the box.
                         if (p.Slot.IsCentralMidfielder) willing *= team.Forward(carrier.Pos) > 12f ? 0.35f : 0f;
+                        // Timing (a dynamic advantage): the run is made when the carrier can play it - facing forward, head up.
+                        // Too early and he cannot use it; a run into a carrier with his back to goal is wasted.
+                        bool headUp = Vec2.Dot(carrier.FacingDir, team.DirToWorld(Vec2.UnitX)) > 0.25f && pressure < 0.4f;
+                        willing *= headUp ? 1.3f : 0.65f;
                         if (_rng.Chance(willing * 0.45f))
                         {
                             p.RunTimer = _rng.Range(2.2f, 3.6f);
+                            // Counter-movement: a clever forward first comes short (as if for the ball at his feet) to drag his
+                            // marker up, then spins in behind into the space the marker left.
+                            if ((p.Slot.Line == Line.Attack || p.Slot.IsWideMidfielder) && _rng.Chance(0.15f + 0.5f * MathUtil.A(p.Attr.OffTheBall)))
+                            {
+                                p.RunCheckUntil = SimTime + _rng.Range(0.6f, 1.0f);
+                                p.RunTimer += 0.8f;
+                                team.Stats.CounterMovements++;
+                            }
                             // Imperfect timing: low off-the-ball players drift offside more often.
                             float timingError = _rng.Gaussian(0.9f, 2.0f * (1.4f - MathUtil.A(p.Attr.OffTheBall)));
                             float lateral = MathUtil.Clamp(team.Lateral(p.Pos) * 0.8f + _rng.Range(-6f, 6f), -26f, 26f);
@@ -907,7 +1036,14 @@ namespace SoccerVision.Simulation
                         }
                         p.RunCooldown = _rng.Range(4f, 9f) * (team.Tactics.Attack == AttackStyle.RunsInBehind || team.CounterUntil > SimTime ? 0.5f : 1f);
                     }
-                    if (p.RunTimer > 0f)
+                    if (p.RunTimer > 0f && p.RunCheckUntil > SimTime)
+                    {
+                        // (the check: a few steps towards the ball)
+                        target = p.Pos + (carrier.Pos - p.Pos).Normalized * 3.5f;
+                        p.Task = PlayerTask.Run;
+                        urgency = 0.7f;
+                    }
+                    else if (p.RunTimer > 0f)
                     {
                         float offsideLine = MathF.Max(MathF.Max(SecondLastDefenderForward(team), team.Forward(Ball.Pos)), 0f);
                         float f = MathUtil.Clamp(offsideLine - 0.5f + p.RunPlan.X, -10f, 49f);
