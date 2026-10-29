@@ -2,6 +2,19 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/referee-flag-cards-injuries`
+
+- **The assistant's flag**, checked against the rules: it points the way the team awarded the restart attacks (a team
+  playing left to right: flag right) for offsides, balls out, and now **fouls** too (test over three matches: never
+  wrong, both sides used).
+- **No foul without contact**: a foul needs the two players within reach (3.2 m, a slide's reach) - otherwise no free kick,
+  no card, no injury (handballs excepted).
+- **Injuries come from tackles**: muscle strains only for an exhausted player (energy under 50%) or one in poor shape
+  (low fitness and stamina), and half as often as before; tackle and foul injuries a little more likely.
+- **Play restarts only after the referee has put the card away**: no restart while a card is shown or a second-yellow red is
+  due. The card is also a little smaller (demo, React, Unity).
+- Tests: flag direction, no restart during a card, injuries from contact (3 tests).
+
 ## `fix/assistant-feet-flag-direction`
 
 - **The assistants' and referee's feet point the way they move** (an assistant running along the touchline faces along

@@ -719,7 +719,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   }
   // The referee holds a card up above his head: yellow, or red.
   function refereeCard(x, y, s, card) {
-    var w = 1.05 * s, h = 1.45 * s, cx = x + .45 * s, top = y - 3.6 * s;
+    var w = .9 * s, h = 1.25 * s, cx = x + .45 * s, top = y - 3.4 * s;
     ctx.strokeStyle = "#121212"; ctx.lineWidth = Math.max(1.2, .14 * s); ctx.beginPath(); ctx.moveTo(x + .25 * s, y - .5 * s); ctx.lineTo(cx, top + h); ctx.stroke(); // raised arm
     ctx.fillStyle = card === 2 ? "#e0262b" : "#ffd21a"; ctx.fillRect(cx - w / 2, top, w, h);
     ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.lineWidth = Math.max(1, .06 * s); ctx.strokeRect(cx - w / 2, top, w, h);

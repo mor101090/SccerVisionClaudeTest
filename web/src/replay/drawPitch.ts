@@ -483,10 +483,10 @@ function assistantFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
 
 /** The referee holds a card up above his head: yellow, or red. */
 function refereeCard(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, card: number) {
-  const w = 1.05 * s;
-  const h = 1.45 * s;
+  const w = 0.9 * s;
+  const h = 1.25 * s;
   const cx = x + 0.45 * s;
-  const top = y - 3.6 * s;
+  const top = y - 3.4 * s;
   ctx.strokeStyle = "#121212";
   ctx.lineWidth = Math.max(1.2, 0.14 * s);
   ctx.beginPath();

@@ -76,9 +76,13 @@ namespace SoccerVision.Simulation
         /// <summary>Muscle strains: sprinting flat out on tired legs now and then pulls a hamstring.</summary>
         private void MaybeStrain(PlayerAgent p, float intensity, float clockDt)
         {
-            if (p.IsGoalkeeper || intensity < 0.85f || p.Injury == InjuryLevel.Serious || Phase != MatchPhase.Live || ScriptExclusive) return;
+            // Injuries come from tackles. A muscle only pulls on its own when a player is exhausted (very low energy) or in poor
+            // condition (low stamina, low fitness) and sprinting flat out - and even then rarely.
+            if (p.IsGoalkeeper || intensity < 0.9f || p.Injury == InjuryLevel.Serious || Phase != MatchPhase.Live || ScriptExclusive) return;
+            float poorShape = p.Profile.Attributes.Fitness == FitnessLevel.Low ? 1.6f : 1f;
+            if (p.Energy > 0.5f && !(poorShape > 1f && p.Energy > 0.4f && p.Attr.Stamina < 55)) return;
             float tired = 1.25f - MathUtil.Clamp01(p.Energy);
-            float rate = 0.00006f * tired * tired * (1.3f - 0.6f * MathUtil.A(p.Attr.Stamina));
+            float rate = 0.00003f * tired * tired * poorShape * (1.3f - 0.6f * MathUtil.A(p.Attr.Stamina));
             if (!_rng.Chance(rate * clockDt)) return;
             if (_rng.Chance(0.35f)) InjureSeriously(p, "strain");
             else if (p.Injury == InjuryLevel.None) InjureLightly(p, "strain");

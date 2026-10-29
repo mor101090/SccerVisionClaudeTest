@@ -364,7 +364,7 @@ namespace SoccerVision.Simulation
                 return;
             }
             Ball.Stop();
-            CommitFoul(p, victim, false, false, p.Pos);
+            CommitFoul(p, victim, false, false, p.Pos, noContactNeeded: true); // (a handball is not a contact between players)
         }
 
         // ---- Headers ---------------------------------------------------------------------------------

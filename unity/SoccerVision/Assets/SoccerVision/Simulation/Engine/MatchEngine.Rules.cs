@@ -356,8 +356,15 @@ namespace SoccerVision.Simulation
         /// <summary>Set while a foul from a slide tackle is being judged (a higher card risk).</summary>
         private bool _slideFoul;
 
-        private void CommitFoul(PlayerAgent offender, PlayerAgent victim, bool fromBehind, bool playedForBall, Vec2 contact)
+        private void CommitFoul(PlayerAgent offender, PlayerAgent victim, bool fromBehind, bool playedForBall, Vec2 contact, bool noContactNeeded = false)
         {
+            // A foul is physical contact: with the players not within reach of each other (a slide reaches about 3 m) there was
+            // no foul - no free kick, no card, no injury.
+            if (!noContactNeeded && !_scriptedFoul && Vec2.Distance(offender.Pos, victim.Pos) > 3.2f)
+            {
+                if (CollectDiagnostics) Count("foul.nocontact");
+                return;
+            }
             offender.Team.Stats.Fouls++;
             offender.FoulsCommitted++;
             bool penaltyArea = Pitch.InPenaltyArea(contact, offender.Team.OwnGoalSign);
@@ -381,9 +388,10 @@ namespace SoccerVision.Simulation
             // The victim may be hurt: more often from behind, in a slide, and when it was a red-card challenge.
             bool redChallenge = sanction != null && sanction.Red && sanction.Reason != "DOGSO";
             MaybeInjure(victim, 0.03f + (fromBehind ? 0.025f : 0f) + (_slideFoul ? 0.035f : 0f),
-                        0.006f + (fromBehind ? 0.006f : 0f) + (_slideFoul ? 0.012f : 0f) + (redChallenge ? 0.12f : 0f), "foul");
+                        0.009f + (fromBehind ? 0.008f : 0f) + (_slideFoul ? 0.012f : 0f) + (redChallenge ? 0.12f : 0f), "foul");
 
             Whistle(penaltyArea || (sanction != null && sanction.Red) ? WhistleKind.Long : WhistleKind.Foul);
+            FlagBallOut(contact, victim.Team); // the assistant signals the free kick: the flag points the way the team awarded it attacks
             if (sanction != null) ApplySanction(sanction);
 
             Ball.Owner = null;

@@ -366,8 +366,8 @@ namespace SoccerVision.Runtime
                 _cardArm.localScale = new Vector3(0.14f, 2.1f, 1f);
                 _cardArm.localPosition = new Vector3(0.3f, 1.5f, 0f);
                 _card = SpriteFactory.AddSprite(transform, "Card", SpriteFactory.Square, Color.yellow, 16, 1f);
-                _card.transform.localScale = new Vector3(1.05f, 1.45f, 1f);
-                _card.transform.localPosition = new Vector3(0.45f, 2.9f, 0f);
+                _card.transform.localScale = new Vector3(0.9f, 1.25f, 1f);
+                _card.transform.localPosition = new Vector3(0.45f, 2.75f, 0f);
                 _card.enabled = false;
                 _cardArm.gameObject.SetActive(false);
             }
