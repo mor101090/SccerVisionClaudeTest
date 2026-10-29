@@ -12,7 +12,7 @@ public static partial class LiveEngine
     private static MatchEngine _engine;
     private static ReplayRecorder _rec;
     private static ReplayChunk _last;
-    private static ComputerManager _computer;
+    private static ComputerManager _computer, _homeComputer;
 
     public static void Main() { }
 
@@ -36,7 +36,9 @@ public static partial class LiveEngine
         home.Tactics = MakeTactics(home.Tactics, line, width, passing, tempo, aggression, defence, attack, special);
         _engine = new MatchEngine(home, DemoTeams.Blue(), (ulong)seed, config);
         // live: you are the home team, the computer manages the away team and answers you
-        _computer = mode == "live" ? new ComputerManager(_engine, 1) : null;
+        _computer = mode == "live" || mode == "random" ? new ComputerManager(_engine, 1) : null;
+        // random: both teams have a manager who changes the tactics during the match (live: the home team is yours)
+        _homeComputer = mode == "random" ? new ComputerManager(_engine, 0) : null;
         _rec = new ReplayRecorder(_engine, 10);
         _last = null;
         return "{" + _rec.Header(false) + "}";
@@ -48,6 +50,7 @@ public static partial class LiveEngine
     {
         _last = _rec.Step(frames);
         _computer?.Update();
+        _homeComputer?.Update();
         return _last.Frames;
     }
 
@@ -55,7 +58,7 @@ public static partial class LiveEngine
     [JSExport]
     public static string Events() => _last == null ? "[]" : _last.EventsJson;
 
-    /// <summary>Stats rows of the last Step (15 numbers each).</summary>
+    /// <summary>Stats rows of the last Step (ReplayRecorder.StatsLength numbers each: time, team stats, player energy).</summary>
     [JSExport]
     public static int[] Stats() => _last == null ? new int[0] : _last.Stats;
 
@@ -73,10 +76,6 @@ public static partial class LiveEngine
         if (_engine == null) return;
         _engine.Submit(new ChangeTacticsCommand(0, MakeTactics(_engine.Home.Tactics, line, width, passing, tempo, aggression, defence, attack, special)));
     }
-
-    /// <summary>The away team's tactics in words (what the computer is doing), for the page.</summary>
-    [JSExport]
-    public static string AwayTactics() => _engine == null ? "" : _engine.Away.Tactics.Describe();
 
     /// <summary>Line, width, tempo 0..1; passing 0 short, 1 mixed, 2 direct; aggression 0 gentle .. 1 aggressive.</summary>
     private static TeamTactics MakeTactics(TeamTactics from, double line, double width, int passing, double tempo, double aggression, int defence, int attack, int special)

@@ -19,7 +19,6 @@ namespace SoccerVision.Runtime
 
         private Transform _body, _lift;
         private SpriteRenderer _fill, _ring, _shadow, _card, _streak;
-        private static readonly Color Edge = new Color(0.1f, 0.1f, 0.1f);
         private Transform _feet;
         private readonly SpriteRenderer[] _boots = new SpriteRenderer[2];
         private readonly SpriteRenderer[] _extraShadows = new SpriteRenderer[3];
@@ -44,15 +43,15 @@ namespace SoccerVision.Runtime
             _body = new GameObject("Body").transform;
             _body.SetParent(_lift, false);
             _fill = SpriteFactory.AddSprite(_body, "Fill", SpriteFactory.Circle, kit, 12, 1f);
-            // the design's player marker: shirt colour, a thin black edge, the number
-            _ring = SpriteFactory.AddSprite(_body, "Ring", SpriteFactory.ThinRing, Edge, 13, 1f);
+            // the design's player marker: shirt colour, a thin edge in the team's trim colour (black by default), the number
+            _ring = SpriteFactory.AddSprite(_body, "Ring", SpriteFactory.ThinRing, ringColor, 13, 1f);
             // two small boots peeking out under the circle, pointing where he faces (static, as in the design)
             _feet = new GameObject("Feet").transform;
             _feet.SetParent(_body, false);
             for (int side = -1; side <= 1; side += 2)
             {
                 var boot = SpriteFactory.AddSprite(_feet, "Boot", SpriteFactory.Circle, new Color(0.91f, 0.925f, 0.937f), 11, 1f);
-                boot.transform.localPosition = new Vector3(0.4f, 0.2f * side, 0f); // close under the front edge, a little back
+                boot.transform.localPosition = new Vector3(0.4f, 0.16f * side, 0f); // close under the front edge, a little back, close together
                 boot.transform.localScale = new Vector3(0.3f, 0.21f, 1f);
                 _boots[side < 0 ? 0 : 1] = boot;
             }
@@ -100,7 +99,7 @@ namespace SoccerVision.Runtime
         public void SetKit(Color kit, Color ringColor, Color numberColor)
         {
             _fill.color = kit;
-            _ring.color = Edge;
+            _ring.color = ringColor;
             _number.color = numberColor;
         }
 
@@ -333,14 +332,14 @@ namespace SoccerVision.Runtime
             SpriteFactory.AddSprite(transform, "Shadow", SpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.3f), 10, d * 1.25f);
             _fill = SpriteFactory.AddSprite(transform, "Fill", SpriteFactory.Circle, new Color(0.08f, 0.08f, 0.08f, 1f), 12, d);
             _trim = assistant ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.92f, 0.2f);
-            _ringSr = SpriteFactory.AddSprite(transform, "Ring", SpriteFactory.Ring, _trim, 13, d);
+            _ringSr = SpriteFactory.AddSprite(transform, "Ring", SpriteFactory.ThinRing, _trim, 13, d);
             // two small boots, as the players have: the referee watches the ball, the assistants face the pitch
             _feet = new GameObject("Feet").transform;
             _feet.SetParent(transform, false);
             for (int side = -1; side <= 1; side += 2)
             {
                 var boot = SpriteFactory.AddSprite(_feet, "Boot", SpriteFactory.Circle, new Color(0.91f, 0.925f, 0.937f), 11, d * 0.3f);
-                boot.transform.localPosition = new Vector3(d * 0.35f, d * 0.19f * side, 0f);
+                boot.transform.localPosition = new Vector3(d * 0.4f, d * 0.16f * side, 0f); // (as a player's)
                 boot.transform.localScale = new Vector3(d * 0.3f, d * 0.21f, 1f);
             }
             var letter = SpriteFactory.AddText(transform, "Letter", assistant ? "L" : "R", _trim, 14, 0.112f);

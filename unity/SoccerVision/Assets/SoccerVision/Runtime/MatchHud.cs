@@ -371,7 +371,7 @@ namespace SoccerVision.Runtime
             if (p == null) return;
             var a = p.Attr;
             float s = _scale;
-            string text = "<b>#" + p.Number + " " + p.Profile.FullName + "</b>  (" + Formation.RoleAbbreviation(p.Slot.Role) + ", " + p.Team.ShortName + ")  " + p.Profile.HeightCm + " cm, " + (a.LeftFoot >= 3 && a.RightFoot >= 3 ? "two-footed" : a.StrongFoot == Foot.Left ? "left-footed" : "right-footed") + "\n" +
+            string text = "<b>" + p.Number + " " + p.Profile.FullName + "</b>  (" + Formation.RoleAbbreviation(p.Slot.Role) + ", " + p.Team.ShortName + ")  " + p.Profile.HeightCm + " cm, " + (a.LeftFoot >= 3 && a.RightFoot >= 3 ? "two-footed" : a.StrongFoot == Foot.Left ? "left-footed" : "right-footed") + "\n" +
                           (p.IsGoalkeeper
                               ? "Reflexes " + a.Reflexes + "   Handling " + a.Handling + "   Aerial " + a.AerialAbility
                               : "Passing " + a.Passing + "   Speed " + a.Speed + "   Stamina " + a.Stamina + "\nFinishing " + a.Finishing + "   Tackling " + a.Tackling + "   Dribbling " + a.Dribbling) +

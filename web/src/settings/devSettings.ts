@@ -15,6 +15,8 @@ export interface TeamColours {
   gk?: string;
   gkTrim?: string;
   gkNumber?: string;
+  /** Boots (default light grey). */
+  boots?: string;
 }
 
 /** Referee and assistants: shirt, trim and letter (trim and letter follow the shirt until picked). */
@@ -22,6 +24,7 @@ export interface RefColours {
   shirt?: string;
   trim?: string;
   letter?: string;
+  boots?: string;
 }
 
 export type Stadium = "open" | "stand" | "bowl";
@@ -103,7 +106,7 @@ export function samePlay(a: DevSettings, b: DevSettings): boolean {
 }
 
 /** A team's kit with the colours picked in the settings applied. */
-export function applyKit<K extends { primary: string; secondary: string; number: string; gk: string; gkNumber: string }>(kit: K, c: TeamColours | null): K {
+export function applyKit<K extends { primary: string; secondary: string; number: string; gk: string; gkNumber: string; boots?: string }>(kit: K, c: TeamColours | null): K {
   if (!c) return kit;
   return {
     ...kit,
@@ -113,6 +116,7 @@ export function applyKit<K extends { primary: string; secondary: string; number:
     gk: c.gk ?? kit.gk,
     gkNumber: c.gkNumber ?? (c.gk ? textOn(c.gk) : kit.gkNumber),
     gkTrim: c.gkTrim ?? c.secondary,
+    boots: c.boots ?? kit.boots,
   };
 }
 
@@ -120,7 +124,7 @@ export function applyKit<K extends { primary: string; secondary: string; number:
 export function refColours(r: RefColours | null): Required<RefColours> {
   const shirt = r?.shirt ?? "#141414";
   const auto = r?.shirt ? textOn(r.shirt) : "#f6d43a";
-  return { shirt, trim: r?.trim ?? auto, letter: r?.letter ?? auto };
+  return { shirt, trim: r?.trim ?? auto, letter: r?.letter ?? auto, boots: r?.boots ?? "#e9ecef" };
 }
 
 /** Black or white, whichever reads best on the colour. */

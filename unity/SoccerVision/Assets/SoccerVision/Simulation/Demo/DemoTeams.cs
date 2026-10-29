@@ -39,7 +39,7 @@ namespace SoccerVision.Simulation
             var t = FromGenerated("Red Rovers", "RED", new KitColors
             {
                 Primary = "#D32F2F",
-                Secondary = "#FFFFFF",
+                Secondary = "#1A1A1A", // the edge of the player marker (black, as in the design)
                 Number = "#FFFFFF",
                 GoalkeeperPrimary = "#F9D71C",
                 GoalkeeperNumber = "#1A1A1A",
@@ -55,7 +55,7 @@ namespace SoccerVision.Simulation
             var t = FromGenerated("Blue Falcons", "BLU", new KitColors
             {
                 Primary = "#1E5BC6",
-                Secondary = "#FFFFFF",
+                Secondary = "#1A1A1A", // the edge of the player marker (black, as in the design)
                 Number = "#FFFFFF",
                 GoalkeeperPrimary = "#2E9E4F",
                 GoalkeeperNumber = "#FFFFFF",

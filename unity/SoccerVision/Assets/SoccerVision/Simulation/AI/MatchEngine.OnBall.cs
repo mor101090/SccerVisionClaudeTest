@@ -47,7 +47,12 @@ namespace SoccerVision.Simulation
         private bool _shotCountedOnTarget;
         private string _lastPassKey;
         private bool _pendingThrough, _pendingIntoSpace, _pendingSwitch, _pendingOneTwo;
-        private bool _nextPassIntoSpace;
+        // A corner routine for the commentary (Cross event Detail: 1 near post, 2 far post, 3 middle, 4 edge of the box;
+        // Value: 1 in-swinger, 2 out-swinger) and how much harder a corner taker bends it.
+        private int _crossDetail;
+        private float _crossValue;
+        private float _curlBoost = 1f;
+        private bool _nextPassIntoSpace, _nextOneTwo;
 
         private void ThinkOnBall(PlayerAgent p, float dt)
         {
@@ -263,17 +268,22 @@ namespace SoccerVision.Simulation
                     Vec2 toSpot = q.OneTwoSpot - q.Pos;
                     float left = toSpot.Length;
                     Vec2 runDir = left > 0.5f ? toSpot / left : team.DirToWorld(Vec2.UnitX);
-                    Vec2 into = Pitch.ClampToField(q.Pos + runDir * MathUtil.Clamp(MathF.Max(left * 0.8f, q.Vel.Length * 1.1f), 3.5f, 10f), -2f);
+                    // (just ahead of him, into his stride: a wall pass is short and simple, not a long ball into space)
+                    Vec2 into = Pitch.ClampToField(q.Pos + runDir * MathUtil.Clamp(MathF.Max(left * 0.5f, q.Vel.Length * 0.7f), 2f, 6f), -2f);
                     int before = _options.Count;
                     _nextPassIntoSpace = true;
+                    _nextOneTwo = true; // (the wall pass is played first time into a run both players expect: a simple ball)
                     AddGroundPass(p, q, from, into, KickKind.ThroughBall, pressure);
                     _nextPassIntoSpace = false;
-                    float pull = 0.002f * StyleShort(team);
+                    _nextOneTwo = false;
+                    float pull = 0.009f * StyleShort(team);
                     for (int i = before; i < _options.Count; i++)
                     {
                         var o = _options[i];
                         o.OneTwo = true;
-                        o.Utility = o.Utility * (o.Utility > 0f ? 1.12f : 0.9f) + pull;
+                        o.Success *= 0.7f; // (measured: the lane model is optimistic about balls played into a run)
+                        if (o.Success < 0.5f) { _options[i] = o; continue; } // a wall pass into a closed lane is not on: no bonus
+                        o.Utility = o.Utility * (o.Utility > 0f ? 1.6f : 0.6f) + pull;
                         _options[i] = o;
                     }
                 }
@@ -380,10 +390,10 @@ namespace SoccerVision.Simulation
 
             float success = (1f - pIntercept) * pControl * pAccuracy;
             // A ball into space must also be weighted perfectly - harder than the lane model alone says.
-            if (_nextPassIntoSpace) success *= 0.85f;
+            if (_nextPassIntoSpace && !_nextOneTwo) success *= 0.85f;
             // Through balls behind the line: keepers sweep, defenders turn and recover - the race is harder to win
             // than the simple estimate suggests (measured: well below the predicted success).
-            else if (kind == KickKind.ThroughBall) success *= 0.68f + 0.5f * SpaceBehindLine(team);
+            else if (kind == KickKind.ThroughBall && !_nextOneTwo) success *= 0.68f + 0.5f * SpaceBehindLine(team);
             float styleBoost = (kind == KickKind.ThroughBall && team.Tactics.Attack == AttackStyle.RunsInBehind ? 1.28f : 1f)
                                * (team.CounterUntil > SimTime && team.Forward(target) > team.Forward(from) + 8f ? 1.45f : 1f);
             float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure) * StyleFactor(team, kind, d, false) * styleBoost;
@@ -845,18 +855,18 @@ namespace SoccerVision.Simulation
             var team = p.Team;
             if (p.IsGoalkeeper || p.Slot.IsCentreBack || q.IsGoalkeeper) return;
             float f = team.Forward(p.Pos), d = Vec2.Distance(p.Pos, q.Pos);
-            if (d < 5f || d > 22f || f < -22f || f > 42f) return;
+            if (d < 4f || d > 30f || f < -34f || f > 45f) return;
             float offsideLine = MathF.Max(MathF.Max(SecondLastDefenderForward(team), team.Forward(Ball.Pos)), 0f);
             float ahead = MathF.Min(f + 13f, MathF.Max(offsideLine + 1.5f, f + 6f));
             if (ahead < f + 5f) return;
             float lat = team.Lateral(p.Pos), qLat = team.Lateral(q.Pos);
             // past the man on the side away from the receiver's marker: drift a little towards the receiver's line
             Vec2 spot = Pitch.ClampToField(team.ToWorld(ahead, MathUtil.Clamp(lat + (qLat - lat) * 0.3f, -30f, 30f)), -2f);
-            if (SpaceAround(team, spot) < 4f) return;
-            float chance = (0.15f + 0.35f * MathUtil.A(p.Attr.OffTheBall) + 0.15f * MathUtil.A(p.Attr.Teamwork)) * StyleShort(team) * (0.7f + 0.6f * team.Eff.Mentality);
+            if (SpaceAround(team, spot) < 3f) return;
+            float chance = (0.75f + 0.5f * MathUtil.A(p.Attr.OffTheBall) + 0.3f * MathUtil.A(p.Attr.Teamwork)) * StyleShort(team) * (0.8f + 0.4f * team.Eff.Mentality);
             if (!_rng.Chance(chance)) return;
             p.OneTwoWith = q;
-            p.OneTwoUntil = SimTime + 3.2f;
+            p.OneTwoUntil = SimTime + 3.6f;
             p.OneTwoSpot = spot;
             if (CollectDiagnostics) Count("onetwo.run");
         }
@@ -912,10 +922,10 @@ namespace SoccerVision.Simulation
             {
                 // The ball bends the way the kicking foot naturally curls it: right-footers bend it to the left, left-footers
                 // to the right. From the left wing that is an in-swinger for a right-footer, from the right wing an out-swinger.
-                spin = NaturalCurlSign(p) * _rng.Range(10f, 30f);
+                spin = NaturalCurlSign(p) * _rng.Range(10f, 30f) * _curlBoost;
             }
             KickBall(p, from, v, vz, spin, 0f, kind, receiver, target, false, false, startZ);
-            if (kind == KickKind.Cross) Emit(MatchEventType.Cross, p.Team, p, receiver, from);
+            if (kind == KickKind.Cross) Emit(MatchEventType.Cross, p.Team, p, receiver, from, _crossValue, WhistleKind.Short, _crossDetail);
             else if (kind == KickKind.Clearance) Emit(MatchEventType.Clearance, p.Team, p, null, from);
             else EmitPass(p, receiver, kind);
         }
@@ -1019,6 +1029,16 @@ namespace SoccerVision.Simulation
             }
             Vec2 horizontal = dir * power;
             float vz = KickSolver.VerticalSpeedFor(horizontal, startZ, distToAim, aimZ, Config, curlSign * curlMag, 0f);
+            // Some finishes are aimed into the ground: a header nodded down so it bounces up past the keeper, a volley kept
+            // down, a low drive that skips off the turf in front of him. (Bounces are hard for keepers.)
+            bool bouncer = !penalty && tech != ShotTechnique.Chip && distToAim > 5f
+                           && ((header && startZ > 1.4f && _rng.Chance(0.25f)) || (volley && _rng.Chance(0.35f)) || (tech == ShotTechnique.Power && distToAim > 14f && _rng.Chance(0.18f)));
+            if (bouncer)
+            {
+                float bounceAt = MathF.Max(2f, distToAim - _rng.Range(1.5f, header ? 4.5f : 6.5f));
+                vz = KickSolver.VerticalSpeedFor(horizontal, startZ, bounceAt, Pitch.BallRadius, Config, curlSign * curlMag, 0f);
+                if (CollectDiagnostics) Count("shot.bouncer");
+            }
 
             float pressure = penalty ? 0f : Pressure(p, out _);
             float composure = MathUtil.A(p.Attr.Composure);
@@ -1042,7 +1062,7 @@ namespace SoccerVision.Simulation
             float angle = dir.Angle + _rng.Gaussian(0f, sigmaA) + _rng.Gaussian(0f, fixedLateral / MathF.Max(3f, distToAim));
             vz += _rng.Gaussian(0f, sigmaZ) + _rng.Gaussian(0f, fixedHeight / flight);
             Vec2 v = Vec2.FromAngle(angle) * power;
-            float curl = header ? 0f : (curlMag > 0f ? curlSign * curlMag + _rng.Gaussian(0f, 2.5f) : _rng.Gaussian(0f, tech == ShotTechnique.Chip ? 1f : 6f));
+            float curl = header ? 0f : (curlMag > 0f ? curlSign * curlMag + _rng.Gaussian(0f, 2.5f) : _rng.Gaussian(0f, tech == ShotTechnique.Chip ? 1f : 8f));
             if (CollectDiagnostics) Count("shot.tech." + tech);
             _lastShotTechnique = tech;
 

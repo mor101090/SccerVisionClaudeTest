@@ -60,6 +60,10 @@ namespace SoccerVision.Simulation
         public bool CountsAsLostTime;
         /// <summary>The taker waits for the referee's whistle (kick-off, penalty, free kick with a wall or after a card).</summary>
         public bool WaitForWhistle;
+        /// <summary>Corner routine chosen when the corner is set up: 1 near post, 2 far post, 3 penalty spot, 4 pulled back to the edge of the box, 5 short.</summary>
+        public int CornerRoutine;
+        /// <summary>Corner: the team wants an in-swinger this time (otherwise an out-swinger) - it decides who takes it.</summary>
+        public bool PreferInswing;
         /// <summary>Restart timer value when the referee blew; the kick follows WhistleToKickRealSeconds later.</summary>
         public float WhistleAt = -1f;
         /// <summary>The taker walks back to RunUpStart first, then runs up to the ball (penalties, corners, free kicks, goal kicks).</summary>

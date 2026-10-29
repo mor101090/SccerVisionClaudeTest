@@ -291,7 +291,7 @@ function Player({ replay: recorded, settings, onSettings, note }: { replay: Repl
             <DevSettingsPanel
               value={settings}
               onChange={onSettings}
-              kits={[recorded.home.kit, recorded.away.kit].map((k) => ({ primary: k.primary, secondary: k.secondary, number: k.number, gk: k.gk, gkTrim: k.gkTrim ?? k.secondary, gkNumber: k.gkNumber })) as [Required<TeamColours>, Required<TeamColours>]}
+              kits={[recorded.home.kit, recorded.away.kit].map((k) => ({ primary: k.primary, secondary: k.secondary, number: k.number, gk: k.gk, gkTrim: k.gkTrim ?? k.secondary, gkNumber: k.gkNumber, boots: k.boots ?? "#e9ecef" })) as [Required<TeamColours>, Required<TeamColours>]}
               names={[recorded.home.shortName, recorded.away.shortName]}
               note={note}
             />

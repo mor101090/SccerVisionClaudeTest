@@ -44,6 +44,7 @@ export function DevSettingsPanel({ value: s, onChange, kits, names, note }: Prop
       gk,
       gkTrim: c.gkTrim ?? c.secondary,
       gkNumber: c.gkNumber ?? (c.gk ? textOn(c.gk) : k.gkNumber),
+      boots: c.boots ?? k.boots,
     };
   };
   const refs = refColours(s.refs);
@@ -106,7 +107,7 @@ export function DevSettingsPanel({ value: s, onChange, kits, names, note }: Prop
       <div className="srow">
         <span className="l" />
         <div className="colors">
-          <small>shirt · trim · numbers</small>
+          <small>shirt · edge · numbers · boots</small>
         </div>
       </div>
       {([0, 1] as const).map((side) => {
@@ -120,6 +121,7 @@ export function DevSettingsPanel({ value: s, onChange, kits, names, note }: Prop
                 {picker(`${n} shirt`, c.primary, (v) => colour(side, "primary", v))}
                 {picker(`${n} trim`, c.secondary, (v) => colour(side, "secondary", v))}
                 {picker(`${n} numbers`, c.number, (v) => colour(side, "number", v))}
+                {picker(`${n} boots`, c.boots, (v) => colour(side, "boots", v))}
               </div>
             </div>
             <div className="srow">
@@ -139,6 +141,7 @@ export function DevSettingsPanel({ value: s, onChange, kits, names, note }: Prop
           {picker("Referees' shirt", refs.shirt, (v) => refColour("shirt", v))}
           {picker("Referees' trim", refs.trim, (v) => refColour("trim", v))}
           {picker("Referees' letter", refs.letter, (v) => refColour("letter", v))}
+          {picker("Referees' boots", refs.boots, (v) => refColour("boots", v))}
         </div>
       </div>
       {note && <p className="note">{note}</p>}

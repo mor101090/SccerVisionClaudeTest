@@ -241,12 +241,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       <div class="srow"><span class="l">Stadium</span><div class="seg" data-set="stadium"><button type="button" data-v="open">Open</button><button type="button" data-v="stand">Main stand</button><button type="button" data-v="bowl">Bowl</button></div></div>
       <div class="srow"><span class="l">Kick-off</span><div class="seg" data-set="night"><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div></div>
       <h3>Team colours</h3>
-      <div class="srow"><span class="l"></span><div class="colors"><small>shirt · trim · numbers</small></div></div>
-      <div class="srow"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour" title="Shirt"><input id="homeS" type="color" aria-label="Home trim colour" title="Trim"><input id="homeN" type="color" aria-label="Home number colour" title="Numbers"></div></div>
+      <div class="srow"><span class="l"></span><div class="colors"><small>shirt · edge · numbers · boots</small></div></div>
+      <div class="srow"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour" title="Shirt"><input id="homeS" type="color" aria-label="Home trim colour" title="Trim"><input id="homeN" type="color" aria-label="Home number colour" title="Numbers"><input id="homeB" type="color" aria-label="Home boots colour" title="Boots"></div></div>
       <div class="srow"><span class="l" id="homeGkLabel">Home keeper</span><div class="colors"><input id="homeG" type="color" aria-label="Home goalkeeper shirt colour" title="Shirt"><input id="homeGS" type="color" aria-label="Home goalkeeper trim colour" title="Trim"><input id="homeGN" type="color" aria-label="Home goalkeeper number colour" title="Number"></div></div>
-      <div class="srow"><span class="l" id="awayLabel">Away</span><div class="colors"><input id="awayP" type="color" aria-label="Away shirt colour" title="Shirt"><input id="awayS" type="color" aria-label="Away trim colour" title="Trim"><input id="awayN" type="color" aria-label="Away number colour" title="Numbers"></div></div>
+      <div class="srow"><span class="l" id="awayLabel">Away</span><div class="colors"><input id="awayP" type="color" aria-label="Away shirt colour" title="Shirt"><input id="awayS" type="color" aria-label="Away trim colour" title="Trim"><input id="awayN" type="color" aria-label="Away number colour" title="Numbers"><input id="awayB" type="color" aria-label="Away boots colour" title="Boots"></div></div>
       <div class="srow"><span class="l" id="awayGkLabel">Away keeper</span><div class="colors"><input id="awayG" type="color" aria-label="Away goalkeeper shirt colour" title="Shirt"><input id="awayGS" type="color" aria-label="Away goalkeeper trim colour" title="Trim"><input id="awayGN" type="color" aria-label="Away goalkeeper number colour" title="Number"></div></div>
-      <div class="srow"><span class="l">Referees</span><div class="colors"><input id="refC" type="color" aria-label="Referees' shirt colour" title="Shirt"><input id="refT" type="color" aria-label="Referees' trim colour" title="Trim"><input id="refL" type="color" aria-label="Referees' letter colour" title="Letter"></div></div>
+      <div class="srow"><span class="l">Referees</span><div class="colors"><input id="refC" type="color" aria-label="Referees' shirt colour" title="Shirt"><input id="refT" type="color" aria-label="Referees' trim colour" title="Trim"><input id="refL" type="color" aria-label="Referees' letter colour" title="Letter"><input id="refB" type="color" aria-label="Referees' boots colour" title="Boots"></div></div>
       <div class="note" id="setNote"></div>
       <button class="reset" id="setReset" type="button">Reset to defaults</button>
     </div>
@@ -481,7 +481,6 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   function grunge(x, y) { return .55 * vnoise(x * .7, y * .7) + .3 * vnoise(x * 2.3 + 7, y * 2.3 - 3) + .15 * vnoise(x * 6.1 - 11, y * 6.1 + 5); }
   var SNOW = { x: -60, y: 48, w: 120, h: 92 }; // the snow covers the whole view
   var SPX = 6, surfCv = null, snowCv = null, trodCv = null, puddles = [];
-  function sm(a, b, x) { var k = Math.max(0, Math.min(1, (x - a) / (b - a))); return k * k * (3 - 2 * k); }
   // Textures from the shared module (web/src/replay/textures.ts): a new texture seed every time the page renders them.
   var TEXSEED = Math.floor(Math.random() * 1e9);
   function buildSurface() {
@@ -742,7 +741,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     ctx.save(); ctx.translate(x, y); ctx.rotate(a);
     ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.ellipse(.15 * view.s, .2 * view.s, r * 1.2, r * .96, 0, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(0, 0, r * 1.22, r * .93, 0, 0, Math.PI * 2);
-    ctx.fillStyle = p.gk ? tm.kit.gk : tm.kit.primary; ctx.fill(); ctx.lineWidth = Math.max(1, r * .12); ctx.strokeStyle = PLAYER_EDGE; ctx.stroke();
+    ctx.fillStyle = p.gk ? tm.kit.gk : tm.kit.primary; ctx.fill(); ctx.lineWidth = Math.max(1, r * .12); ctx.strokeStyle = p.gk ? tm.kit.gkTrim || tm.kit.secondary : tm.kit.secondary; ctx.stroke();
     ctx.restore();
     ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * 1.05) + "px Barlow, system-ui, sans-serif";
     fillC(String(info.number), x, y);
@@ -788,21 +787,21 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     ctx.fill();
   }
   // A player: a plain circle in the shirt colour with a thin black edge and the number (the design's player marker).
-  var PLAYER_EDGE = "#1a1a1a";
+  // the edge is the team's trim colour (black by default, as in the design); the boots have their own colour
+  var BOOTS = "#e9ecef";
   // Two small boots peeking out under the circle, pointing where the player faces (static, as in the design).
   // The feet sit close under the front edge of the circle, a little back. A kick or a pass swings the kicking foot: back
   // (backswing), forward through the ball, then settles - nobody "runs" in place. side -1 is the left foot.
-  function playerFeet(x, y, r, facing, kick, kickLeft) {
+  function playerFeet(x, y, r, facing, kick, kickLeft, boots) {
     var a = -facing, c = Math.cos(a), sn = Math.sin(a);
-    ctx.fillStyle = "#e9ecef"; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = Math.max(.6, r * .06);
+    ctx.fillStyle = boots || BOOTS; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = Math.max(.6, r * .06);
     [-1, 1].forEach(function (side) {
-      var fwd = .8 + ((side < 0) === !!kickLeft ? (kick || 0) : 0), fx = x + c * r * fwd - sn * r * .4 * side, fy = y + sn * r * fwd + c * r * .4 * side;
+      var fwd = .8 + ((side < 0) === !!kickLeft ? (kick || 0) : 0), fx = x + c * r * fwd - sn * r * .32 * side, fy = y + sn * r * fwd + c * r * .32 * side;
       ctx.beginPath(); ctx.ellipse(fx, fy, r * .3, r * .21, a, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     });
   }
   var KICK_OFF = [0, -.55, .55, .18];  // foot offset (x radius) in the phases of the swing: none, backswing, strike, follow-through
-  function playerDisc(x, y, r, fill) { var lw = Math.max(1.2, r * .12); ctx.beginPath(); ctx.arc(x, y, r - lw / 2, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = PLAYER_EDGE; ctx.stroke(); }
-  function disc(x, y, r, fill, stroke) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = stroke; ctx.stroke(); }
+  function playerDisc(x, y, r, fill, edge) { var lw = Math.max(1.2, r * .12); ctx.beginPath(); ctx.arc(x, y, r - lw / 2, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = edge; ctx.stroke(); }
   function entities(S, now, dt) {
     var s = view.s, r = .95 * s;
     [[-52.5, -34], [-52.5, 34], [52.5, -34], [52.5, 34]].forEach(function (c, i) { cornerFlag(X(c[0]), Y(c[1]), s, now, i, X(c[0] + Math.sign(c[0])) - X(c[0]), Y(c[1] + Math.sign(c[1])) - Y(c[1])); });
@@ -812,8 +811,9 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       castShadow(o.x, o.y, ox, oy, r, r * .9, .45);
       var rc = refColours();
       // the referee watches the ball, the assistants face the pitch from their touchline
-      playerFeet(ox, oy, r, i === 0 ? Math.atan2(S.by - o.y, S.bx - o.x) : Math.atan2(-o.y, 0), 0, false);
-      disc(ox, oy, r, rc.shirt, rc.trim); // same size as the players
+      // (the same marker as a player: same size, same feet, same edge)
+      playerFeet(ox, oy, r, i === 0 ? Math.atan2(S.by - o.y, S.bx - o.x) : Math.atan2(-o.y, 0), 0, false, rc.boots);
+      playerDisc(ox, oy, r, rc.shirt, rc.trim);
       ctx.fillStyle = rc.letter; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
       if (i === 0 && o.card) refereeCard(ox, oy, s, o.card);
     });
@@ -822,8 +822,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * 2.2 * s, g = 1 + jh * .1, sh = 1 - jh * .6;
       if (p.sl || p.gr) { downPlayer(p, tm, info, x, gy); if (p.inj) injuryMark(x, gy, r); return; }
       castShadow(p.x, p.y, x, gy, r * 1.05 * sh, r * .95 * sh, .5 * sh);
-      playerFeet(x, y, r * g, p.f, p.kp, p.kl);
-      playerDisc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary);
+      playerFeet(x, y, r * g, p.f, p.kp, p.kl, tm.kit.boots);
+      playerDisc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary, p.gk ? tm.kit.gkTrim || tm.kit.secondary : tm.kit.secondary);
       ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * g * 1.05) + "px Barlow, system-ui, sans-serif";
       fillC(String(info.number), x, y);
       if (p.bk) { ctx.fillStyle = "#ffd23f"; ctx.fillRect(x + r * .55, y - r * 1.05, r * .32, r * .45); }
@@ -1001,10 +1001,10 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     if (R) {
       var c = teamColours();
       ["home", "away"].forEach(function (side, i) {
-        $(side + "P").value = c[i].primary; $(side + "S").value = c[i].secondary; $(side + "N").value = c[i].number;
+        $(side + "P").value = c[i].primary; $(side + "S").value = c[i].secondary; $(side + "N").value = c[i].number; $(side + "B").value = c[i].boots;
         $(side + "G").value = c[i].gk; $(side + "GS").value = c[i].gkTrim; $(side + "GN").value = c[i].gkNumber;
       });
-      var rc = refColours(); $("refC").value = rc.shirt; $("refT").value = rc.trim; $("refL").value = rc.letter;
+      var rc = refColours(); $("refC").value = rc.shirt; $("refT").value = rc.trim; $("refL").value = rc.letter; $("refB").value = rc.boots;
       $("homeLabel").textContent = R.home.shortName; $("awayLabel").textContent = R.away.shortName;
       $("homeGkLabel").textContent = R.home.shortName + " keeper"; $("awayGkLabel").textContent = R.away.shortName + " keeper";
     }
@@ -1018,7 +1018,9 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       var base = (i ? R.away : R.home)._kit0, pick = SET[i ? "away" : "home"];
       var k = {}; for (var key in base) k[key] = hex6(base[key]);
       k.gkTrim = k.secondary; // the keeper's trim follows the team's until it is picked
+      k.boots = BOOTS;
       if (!pick) return k;
+      if (pick.boots) k.boots = pick.boots;
       if (pick.primary) { k.primary = pick.primary; k.number = textOn(pick.primary) === "#111" ? "#111111" : "#ffffff"; }
       if (pick.secondary) { k.secondary = pick.secondary; k.gkTrim = pick.secondary; }
       if (pick.number) k.number = pick.number;
@@ -1051,13 +1053,13 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       var v = b.getAttribute("data-v"), before = condCode(), wasWeather = SET.weather;
       if (key === "night") SET.night = v === "1"; else SET[key] = v;
       saveSettings(); syncSettingsUi(); updateWeatherChip();
-      if (condCode() !== before) restartMatch();
+      if (condCode() !== before) restartMatch(true);
       else if ((key === "weather" && wasWeather !== SET.weather) || key === "night") buildSurface();
     });
   });
   $("pace").addEventListener("input", function () { SET.pace = +this.value; $("paceText").textContent = SET.pace + "%"; saveSettings(); });
   $("netColor").addEventListener("input", function () { SET.net = this.value; saveSettings(); });
-  [["P", "primary"], ["S", "secondary"], ["N", "number"], ["G", "gk"], ["GS", "gkTrim"], ["GN", "gkNumber"]].forEach(function (d) {
+  [["P", "primary"], ["S", "secondary"], ["N", "number"], ["B", "boots"], ["G", "gk"], ["GS", "gkTrim"], ["GN", "gkNumber"]].forEach(function (d) {
     ["home", "away"].forEach(function (side) {
       $(side + d[0]).addEventListener("input", function () {
         var pick = SET[side] || {};
@@ -1072,9 +1074,9 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   function refColours() {
     var r = typeof SET.refs === "string" ? { shirt: SET.refs } : SET.refs || {};
     var shirt = r.shirt || "#121212", auto = r.shirt ? (textOn(r.shirt) === "#111" ? "#111111" : "#ffffff") : "#f2c230";
-    return { shirt: shirt, trim: r.trim || auto, letter: r.letter || auto };
+    return { shirt: shirt, trim: r.trim || auto, letter: r.letter || auto, boots: r.boots || BOOTS };
   }
-  [["refC", "shirt"], ["refT", "trim"], ["refL", "letter"]].forEach(function (d) {
+  [["refC", "shirt"], ["refT", "trim"], ["refL", "letter"], ["refB", "boots"]].forEach(function (d) {
     $(d[0]).addEventListener("input", function () {
       var r = typeof SET.refs === "string" ? { shirt: SET.refs } : SET.refs || {};
       r[d[1]] = this.value;
@@ -1086,7 +1088,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var before = condCode();
     for (var k in DEFAULTS) SET[k] = DEFAULTS[k]; SET.night = false;
     saveSettings(); syncSettingsUi(); applyColours(); updateWeatherChip();
-    if (condCode() !== before) restartMatch(); else buildSurface();
+    if (condCode() !== before) restartMatch(true); else buildSurface();
   });
 
   // ---- panels ----------------------------------------------------------------------------------------
@@ -1209,7 +1211,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     if (TAC.special === 4) presses = ["a0", "a1", "m0", "m1", "m2", "m3"];
     presses.forEach(function (k) { var xy = boardXY(k[0], +k[1]); html += '<path class="press" d="M' + (xy[0] + 4).toFixed(1) + " " + (xy[1] - 4).toFixed(1) + " A5.5 5.5 0 0 1 " + (xy[0] + 4).toFixed(1) + " " + (xy[1] + 4).toFixed(1) + '"/>'; });
     // the offside trap: the whole line steps up together
-    if (TAC.defence === 2) { var lxy = boardXY("d", 0)[0]; [["d0", 0], ["d1", 1], ["d2", 2], ["d3", 3]].forEach(function (d) { var xy = boardXY(d[0][0], +d[0][1]); html += '<path d="M' + (xy[0] + 4).toFixed(1) + " " + xy[1].toFixed(1) + " l4 0 m-2 -1.6 l2 1.6 l-2 1.6" + '" fill="none" stroke="#fff" stroke-width=".8" stroke-linecap="round"/>'; }); }
+    if (TAC.defence === 2) { ["d0", "d1", "d2", "d3"].forEach(function (k) { var xy = boardXY(k[0], +k[1]); html += '<path d="M' + (xy[0] + 4).toFixed(1) + " " + xy[1].toFixed(1) + " l4 0 m-2 -1.6 l2 1.6 l-2 1.6" + '" fill="none" stroke="#fff" stroke-width=".8" stroke-linecap="round"/>'; }); }
     arrows.innerHTML = html;
     $("tacDefenceNote").textContent = TAC.defence === 1 ? "tires the legs fast" : TAC.defence === 3 ? "wastes time" : TAC.defence === 2 ? "catches forwards offside" : "";
   }
@@ -1265,7 +1267,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   }
   syncTacUi();
 
-  function restartMatch() { startMatch(MODE, MODE === "staged" ? STAGED_SEED : MODE === "random" ? currentSeed : newSeed(), R && MODE !== "live" ? t - t0 : undefined); }
+  // Replay the match with new settings: a tactic change keeps a random match's seed (the same match, your tactics); a
+  // change of weather, wind or pitch in a random match draws a new one.
+  function restartMatch(newConditions) {
+    var seed = MODE === "staged" ? STAGED_SEED : MODE === "random" && !newConditions ? currentSeed : newSeed();
+    startMatch(MODE, seed, R && MODE !== "live" && !(newConditions && MODE === "random") ? t - t0 : undefined);
+  }
   function newSeed() { return 1 + Math.floor(Math.random() * 2000000000); }
   document.querySelectorAll(".modes button").forEach(function (b) {
     b.addEventListener("click", function () {

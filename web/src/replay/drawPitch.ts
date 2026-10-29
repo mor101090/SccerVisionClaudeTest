@@ -270,8 +270,8 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     look.shadow(ctx, v, settings, o.x, o.y, px(v, o.x), py(v, o.y), r, r * 0.9, 0.45);
     const rc = refColours(settings.refs);
     // the referee watches the ball, the assistants face the pitch from their touchline
-    feet(ctx, px(v, o.x), py(v, o.y), r, i === 0 ? Math.atan2(snap.ball.y - o.y, snap.ball.x - o.x) : Math.atan2(-o.y, 0));
-    disc(ctx, px(v, o.x), py(v, o.y), r, rc.shirt, rc.trim); // same size as the players
+    feet(ctx, px(v, o.x), py(v, o.y), r, i === 0 ? Math.atan2(snap.ball.y - o.y, snap.ball.x - o.x) : Math.atan2(-o.y, 0), 0, false, rc.boots);
+    disc(ctx, px(v, o.x), py(v, o.y), r, rc.shirt, rc.trim, 0.12); // the same marker as a player
     ctx.fillStyle = rc.letter;
     ctx.font = `800 ${Math.max(8, 1.05 * s)}px system-ui, sans-serif`;
     ctx.textAlign = "center";
@@ -295,7 +295,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     const lift = h * 2.2 * s;
     const y = gy - lift;
     if (p.sliding || p.grounded) {
-      drawDownPlayer(ctx, x, gy, r, s, -p.facing, p.sliding, p.gk ? team.kit.gk : team.kit.primary, PLAYER_EDGE);
+      drawDownPlayer(ctx, x, gy, r, s, -p.facing, p.sliding, p.gk ? team.kit.gk : team.kit.primary, p.gk ? (team.kit.gkTrim ?? team.kit.secondary) : team.kit.secondary);
       ctx.fillStyle = p.gk ? team.kit.gkNumber : team.kit.number;
       ctx.font = `bold ${Math.max(8, r * 1.05)}px system-ui, sans-serif`;
       ctx.textAlign = "center";
@@ -313,8 +313,8 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     look.shadow(ctx, v, settings, p.x, p.y, x, gy, r * 1.05 * shrink, r * 0.95 * shrink, 0.5 * shrink);
     // the design's player marker: two small boots peeking out (pointing where he faces), a plain circle in the shirt
     // colour with a thin black edge, the number
-    feet(ctx, x, y, r * grow, p.facing, p.kick, p.kickLeft);
-    disc(ctx, x, y, r * grow, p.gk ? team.kit.gk : team.kit.primary, PLAYER_EDGE, 0.12);
+    feet(ctx, x, y, r * grow, p.facing, p.kick, p.kickLeft, team.kit.boots);
+    disc(ctx, x, y, r * grow, p.gk ? team.kit.gk : team.kit.primary, p.gk ? (team.kit.gkTrim ?? team.kit.secondary) : team.kit.secondary, 0.12);
     ctx.fillStyle = p.gk ? team.kit.gkNumber : team.kit.number;
     ctx.font = `bold ${Math.max(8, r * grow * 1.05)}px system-ui, sans-serif`;
     ctx.textAlign = "center";
@@ -551,24 +551,24 @@ function drawDownPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
  * Two small boots close under the front edge of a player's circle, a little back, pointing where he faces. A kick or a
  * pass swings the kicking foot (back, through the ball, settle) - the legs never run on the spot. side -1 is the left foot.
  */
-function feet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, facing: number, kick = 0, kickLeft = false) {
+function feet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, facing: number, kick = 0, kickLeft = false, boots = BOOTS) {
   const a = -facing;
   const c = Math.cos(a);
   const sn = Math.sin(a);
-  ctx.fillStyle = "#e9ecef";
+  ctx.fillStyle = boots;
   ctx.strokeStyle = "rgba(0,0,0,0.45)";
   ctx.lineWidth = Math.max(0.6, r * 0.06);
   for (const side of [-1, 1]) {
     ctx.beginPath();
     const fwd = 0.8 + (side < 0 === kickLeft ? kick : 0);
-    ctx.ellipse(x + c * r * fwd - sn * r * 0.4 * side, y + sn * r * fwd + c * r * 0.4 * side, r * 0.3, r * 0.21, a, 0, Math.PI * 2);
+    ctx.ellipse(x + c * r * fwd - sn * r * 0.32 * side, y + sn * r * fwd + c * r * 0.32 * side, r * 0.3, r * 0.21, a, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
   }
 }
 
-/** The players' edge colour (the design's marker: shirt colour, thin black edge, number). */
-const PLAYER_EDGE = "#1a1a1a";
+/** Default boots colour (the edge of the marker is the team's trim colour, black by default). */
+const BOOTS = "#e9ecef";
 
 function disc(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, stroke: string, edge = 0.18) {
   const lw = Math.max(1, r * edge);

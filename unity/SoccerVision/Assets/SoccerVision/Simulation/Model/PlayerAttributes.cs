@@ -95,6 +95,6 @@ namespace SoccerVision.Simulation
 
         public string ShortName => string.IsNullOrEmpty(LastName) ? FirstName : LastName;
         public string FullName => string.IsNullOrEmpty(FirstName) ? LastName : FirstName + " " + LastName;
-        public string Label => "#" + ShirtNumber + " " + ShortName;
+        public string Label => ShirtNumber + " " + ShortName;
     }
 }

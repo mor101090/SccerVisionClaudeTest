@@ -38,7 +38,7 @@ namespace SoccerVision.Simulation
                 p.DiveTimer = 0f;
             }
 
-            var r = new Restart { Type = type, Team = team, Spot = spot };
+            var r = new Restart { Type = type, Team = team, Spot = spot, PreferInswing = _rng.Chance(0.62f) };
             _restart = r;
             PossessionTeam = team;
             r.Taker = taker ?? ChooseTaker(r);
@@ -153,10 +153,12 @@ namespace SoccerVision.Simulation
                         if (p.IsGoalkeeper) { score = -1000f; break; }
                         score = p.Attr.Crossing + 0.3f * p.Attr.FreeKicks - (p.Slot.IsCentreBack ? 40f : 0f) - (p.Slot.Line == Line.Attack ? 15f : 0f);
                         {
-                            // The foot that swings the ball towards goal (in-swinger) is preferred.
+                            // The foot decides the swing: the team wants an in-swinger (towards goal) for most corners and an
+                            // out-swinger (away from the keeper) for the rest, and picks a taker whose foot gives it.
                             Vec2 toBox = (team.ToWorld(46f, 0f) - r.Spot).Normalized;
                             Vec2 toGoal = (team.AttackGoal - r.Spot).Normalized;
-                            if (MathF.Sign(Vec2.Cross(toBox, toGoal)) == NaturalCurlSign(p)) score += 14f;
+                            bool gives = MathF.Sign(Vec2.Cross(toBox, toGoal)) == NaturalCurlSign(p);
+                            if (gives == r.PreferInswing) score += 14f;
                         }
                         break;
                     case RestartType.PenaltyKick:
@@ -419,6 +421,10 @@ namespace SoccerVision.Simulation
                 new Vec2(32f, side * 9f),       // recycling / rebound
             };
 
+            // The routine: near post, far post, penalty spot, pulled back to the edge, or short (varied, like a real team).
+            float pr = _rng.NextFloat();
+            r.CornerRoutine = pr < 0.3f ? 1 : pr < 0.56f ? 2 : pr < 0.72f ? 3 : pr < 0.86f ? 4 : 5;
+
             // Best headers attack the box (centre-backs go up), the rest guard against the counter.
             var candidates = new List<PlayerAgent>();
             foreach (var p in att.Players) if (!p.SentOff && !p.IsGoalkeeper && p != r.Taker) candidates.Add(p);
@@ -441,6 +447,15 @@ namespace SoccerVision.Simulation
                     float lat = (i % 2 == 0 ? 1f : -1f) * 12f;
                     p.ShapeTarget = att.ToWorld(2f, lat);
                 }
+            }
+
+            // A short corner: one man comes towards the taker to receive; a ball to the edge of the box: someone waits there.
+            if (r.CornerRoutine == 5 || r.CornerRoutine == 4)
+            {
+                PlayerAgent pick = null;
+                foreach (var p in candidates) if (!attackersInBox.Contains(p) && (pick == null || p.Attr.Passing + p.Attr.LongShots > pick.Attr.Passing + pick.Attr.LongShots)) pick = p;
+                if (pick != null)
+                    pick.ShapeTarget = r.CornerRoutine == 5 ? att.ToWorld(43.5f, side * 25.5f) : att.ToWorld(36.5f, -side * 1.5f + _rng.Range(-1f, 1f));
             }
 
             // Defenders: keeper, zonal near post and six-yard line, man-marking the main threats.
@@ -1009,7 +1024,7 @@ namespace SoccerVision.Simulation
                         ExecuteGoalKick(taker);
                         break;
                     case RestartType.CornerKick:
-                        ExecuteCorner(taker);
+                        ExecuteCorner(taker, r);
                         break;
                     case RestartType.PenaltyKick:
                         ExecutePenalty(taker);
@@ -1135,22 +1150,27 @@ namespace SoccerVision.Simulation
             KickLofted(taker, target, 0.6f, KickKind.Restart, longTarget, 0f, kicking, false);
         }
 
-        private void ExecuteCorner(PlayerAgent taker)
+        private void ExecuteCorner(PlayerAgent taker, Restart r)
         {
             var team = taker.Team;
-            if (_rng.Chance(0.12f))
+            int routine = r != null && r.CornerRoutine > 0 ? r.CornerRoutine : 1;
+            if (routine == 5)
             {
-                var plan = BestRestartPass(taker, 16f, false);
+                // Short: to the team-mate who came towards the ball (see LayoutCorner).
+                var plan = BestRestartPass(taker, 18f, false);
                 if (plan.Action == BallAction.Pass)
                 {
                     plan.Kind = KickKind.Restart;
                     KickGround(taker, plan, 0f);
+                    if (CollectDiagnostics) Count("corner.short");
                     return;
                 }
+                routine = 3;
             }
             float side = MathF.Sign(team.Lateral(Ball.Pos));
-            float r = _rng.NextFloat();
-            Vec2 zone = r < 0.36f ? new Vec2(46.8f, side * 2.6f) : (r < 0.68f ? new Vec2(42f, side * 0.5f) : new Vec2(47.4f, -side * 3.2f));
+            // Near post, far post, the penalty spot, or a lower ball back to the players waiting at the edge of the box.
+            Vec2 zone = routine == 1 ? new Vec2(46.8f, side * 2.6f) : routine == 2 ? new Vec2(47.4f, -side * 3.2f)
+                      : routine == 4 ? new Vec2(36.5f, -side * 1.5f) : new Vec2(42f, side * 0.5f);
             Vec2 target = team.ToWorld(zone.X, zone.Y);
             PlayerAgent receiver = null;
             float bestD = float.PositiveInfinity;
@@ -1160,8 +1180,21 @@ namespace SoccerVision.Simulation
                 float d = Vec2.Distance(q.Pos, target);
                 if (d < bestD) { bestD = d; receiver = q; }
             }
+            // The ball bends the way the taker's foot curls it: whether that is an in-swinger (towards goal) or an
+            // out-swinger (away from it) depends on his foot and on the side the corner is taken from.
+            Vec2 path = target - Ball.Pos;
+            Vec2 leftOfPath = new Vec2(-path.Y, path.X);
+            bool inswinger = Vec2.Dot(leftOfPath * NaturalCurlSign(taker), team.AttackGoal - target) > 0f;
             team.Stats.Crosses++;
-            KickLofted(taker, target, _rng.Range(0.36f, 0.46f), KickKind.Cross, receiver, 0f, MathUtil.A((taker.Attr.Crossing * 2 + taker.Attr.FreeKicks) / 3), true);
+            if (CollectDiagnostics) Count("corner." + (routine == 1 ? "near" : routine == 2 ? "far" : routine == 4 ? "edge" : "middle") + (inswinger ? ".in" : ".out"));
+            _crossDetail = routine == 3 ? 3 : routine;
+            _crossValue = inswinger ? 1f : 2f;
+            _curlBoost = 1.25f;
+            KickLofted(taker, target, routine == 4 ? _rng.Range(0.28f, 0.34f) : _rng.Range(0.36f, 0.46f), KickKind.Cross, receiver, 0f,
+                MathUtil.A((taker.Attr.Crossing * 2 + taker.Attr.FreeKicks) / 3), true);
+            _crossDetail = 0;
+            _crossValue = 0f;
+            _curlBoost = 1f;
         }
 
         private void ExecuteFreeKick(PlayerAgent taker, Restart r)

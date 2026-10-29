@@ -2,6 +2,28 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/corners-bounce-onetwos-cleanup`
+
+- **Bug: the player's edge stayed black when the colours changed.** The edge of the marker is the team's trim colour
+  again (the trim picker changes it); the demo teams' trim is black by default, as in the design (demo page, React, Unity).
+- **Boots colour**: a picker per team and for the referees (settings: shirt · edge · numbers · boots), demo page and React.
+- **Feet**: a little closer together. The referee and the assistants use the same marker as the players (same size,
+  same inset edge, same feet), so their feet show the same way.
+- **Random match**: every click draws a new seed (as before); changing the rain, snow, wind or pitch upkeep now also
+  draws a new match; and both teams have a manager who changes tactics during the match.
+- **Commentary without "#"**: "9 Ilvane passes to 8 Corvel" (engine, demo page, React, Unity tooltip).
+- **Corners are varied**: near post, far post, into the middle, pulled back to the edge of the box for the players waiting
+  outside, or short to a team-mate who comes for it. The swing follows the taker's foot and the side - an in-swinger or an
+  out-swinger ("swings an in-swinger to the near post"); the team wants an in-swinger for about 6 corners in 10 and picks
+  the taker whose foot gives it. Corners bend more.
+- **Bounces and curves**: some headers are nodded down to bounce up past the keeper, some volleys are kept down, some
+  low drives skip off the turf (about 5 bouncing finishes a match); struck shots swerve a little more.
+- **One-twos: about 21 a match per team, 12 of them coming off** (were ~3 a match in all): the wall pass is short and
+  into the runner's stride, and only played when the lane is open.
+- Cleanup and checks: dead code removed (unused page helpers, an unused WebAssembly export), stale comments fixed; all
+  modes run without console errors in the browser; calibration: goals 2.97, pass completion 78%.
+- Tests: corners, bounces, one-twos per team, labels without "#" (4 tests).
+
 ## `feature/snow-ball-reference`
 
 - **Snow ball as in the reference photo**: a bright orange ball (255,104,26) with pale grey-white panels and darker

@@ -124,6 +124,7 @@ function UnityPlayer() {
         gk: t.goalkeeperColor,
         gkTrim: t.goalkeeperTrimColor ?? t.secondaryColor,
         gkNumber: t.goalkeeperNumberColor ?? textOn(t.goalkeeperColor),
+        boots: "#e9ecef",
       });
       setKits((k) => k ?? [own(r.home), own(r.away)]);
       setLines([]);

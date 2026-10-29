@@ -32,6 +32,17 @@ namespace SoccerVision.Simulation
                 case MatchEventType.LongBall:
                     return P(e.Player) + " goes long" + (e.OtherPlayer >= 0 ? " for " + P(e.OtherPlayer) : "");
                 case MatchEventType.Cross:
+                    if (e.Detail > 0)
+                    {
+                        string swing = e.Value > 1.5f ? "an out-swinger" : "an in-swinger";
+                        switch (e.Detail)
+                        {
+                            case 1: return P(e.Player) + " swings " + swing + " to the near post";
+                            case 2: return P(e.Player) + " curls " + swing + " to the far post";
+                            case 4: return P(e.Player) + " pulls the corner back to the edge of the box";
+                            default: return P(e.Player) + " whips " + swing + " into the middle";
+                        }
+                    }
                     return P(e.Player) + " whips in a cross";
                 case MatchEventType.Clearance:
                     return P(e.Player) + " clears";
