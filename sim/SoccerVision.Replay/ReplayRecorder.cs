@@ -254,7 +254,7 @@ namespace SoccerVision.Replay
             {
                 f.Add(Q(o.Pos.X));
                 f.Add(Q(o.Pos.Y));
-                f.Add(o.FlagRaised ? 1 : o.CardShown == 1 ? 2 : o.CardShown == 2 ? 3 : 0); // flag up, or the referee showing a yellow (2) or red (3) card
+                f.Add(o.FlagRaised ? (o.FlagDir < 0 ? 4 : 1) : o.CardShown == 1 ? 2 : o.CardShown == 2 ? 3 : 0); // flag up, or the referee showing a yellow (2) or red (3) card
             }
         }
 

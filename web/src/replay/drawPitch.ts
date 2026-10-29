@@ -270,14 +270,14 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
     look.shadow(ctx, v, settings, o.x, o.y, px(v, o.x), py(v, o.y), r, r * 0.9, 0.45);
     const rc = refColours(settings.refs);
     // the referee watches the ball, the assistants face the pitch from their touchline
-    feet(ctx, px(v, o.x), py(v, o.y), r, i === 0 ? Math.atan2(snap.ball.y - o.y, snap.ball.x - o.x) : Math.atan2(-o.y, 0), 0, false, rc.boots);
+    feet(ctx, px(v, o.x), py(v, o.y), r, officialFacing(i, o, snap.ball), 0, false, rc.boots);
     disc(ctx, px(v, o.x), py(v, o.y), r, rc.shirt, rc.trim, 0.12); // the same marker as a player
     ctx.fillStyle = rc.letter;
     ctx.font = `800 ${Math.max(8, 1.05 * s)}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     fillCentered(ctx, i === 0 ? "R" : "L", px(v, o.x), py(v, o.y));
-    if (i > 0 && o.flag) assistantFlag(ctx, px(v, o.x), py(v, o.y), s, time);
+    if (i > 0 && o.flag) assistantFlag(ctx, px(v, o.x), py(v, o.y), s, time, o.flagDir);
     if (i === 0 && o.card) refereeCard(ctx, px(v, o.x), py(v, o.y), s, o.card);
   });
   // Corner flags
@@ -456,8 +456,9 @@ function cornerFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: numb
 }
 
 /** The assistant's flag, raised only when he signals: black handle, checked orange / neon-yellow cloth. */
-function assistantFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number) {
-  const fx = x + 0.3 * s;
+/** The flag points the way the team awarded the free kick or throw-in attacks (left or right), as the officials signal it. */
+function assistantFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number, dir: number) {
+  const fx = x + dir * 0.3 * s;
   ctx.strokeStyle = "#111";
   ctx.lineWidth = Math.max(1.5, 0.15 * s);
   ctx.beginPath();
@@ -467,7 +468,7 @@ function assistantFlag(ctx: CanvasRenderingContext2D, x: number, y: number, s: n
   const w = 1.6 * s;
   const h = 1.1 * s;
   const windy = look.wind.speed > 0.5;
-  const pts = clothEdge(fx, y - 2.6 * s, w, h, t * (windy ? 3.2 : 1.6), 3.1, Math.cos(look.wind.screenAngle) < 0 ? -1 : 1);
+  const pts = clothEdge(fx, y - 2.6 * s, w, h, t * (windy ? 3.2 : 1.6), 3.1, dir);
   for (let qx = 0; qx < 2; qx++)
     for (let qy = 0; qy < 2; qy++) {
       clothPath(ctx, pts, (qy * h) / 2, ((qy + 1) * h) / 2, qx * 3, qx * 3 + 3);
@@ -545,6 +546,22 @@ function drawDownPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
   ctx.strokeStyle = stroke;
   ctx.stroke();
   ctx.restore();
+}
+
+// An official's feet point the way he moves (an assistant running along the touchline faces along it); standing still, the
+// referee watches the ball and an assistant faces the pitch.
+const officialPrev: ({ x: number; y: number } | null)[] = [null, null, null];
+const officialFace = [0, Math.PI / 2, -Math.PI / 2];
+function officialFacing(i: number, o: { x: number; y: number }, ball: { x: number; y: number }): number {
+  let want = i === 0 ? Math.atan2(ball.y - o.y, ball.x - o.x) : Math.atan2(-o.y, 0);
+  const pv = officialPrev[i];
+  if (pv && Math.hypot(o.x - pv.x, o.y - pv.y) > 0.04) want = Math.atan2(o.y - pv.y, o.x - pv.x);
+  officialPrev[i] = { x: o.x, y: o.y };
+  let d = want - officialFace[i];
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  officialFace[i] += d * 0.25;
+  return officialFace[i];
 }
 
 /**

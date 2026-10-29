@@ -2,6 +2,14 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/assistant-feet-flag-direction`
+
+- **The assistants' and referee's feet point the way they move** (an assistant running along the touchline faces along
+  it); standing still, the referee watches the ball and an assistant faces the pitch (demo, React, Unity).
+- **The assistant's flag points the way the restart goes**: for an offside (or a ball out) the flag is raised towards the
+  goal the team awarded the free kick / throw-in attacks - left for a team playing to the left, right for one playing to
+  the right, not always the same side. The recorder carries it (flag 4 = towards -x).
+
 ## `feature/corners-bounce-onetwos-cleanup`
 
 - **Bug: the player's edge stayed black when the colours changed.** The edge of the marker is the team's trim colour

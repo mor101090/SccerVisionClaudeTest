@@ -83,7 +83,7 @@ namespace SoccerVision.Simulation
             ResolvePendingPass(null);
             ClearOffside();
             _penaltyKickTime = -1f;
-            FlagBallOut(spot);
+            FlagBallOut(spot, team);
 
             if (AddedTimeExpired)
             {
@@ -710,6 +710,7 @@ namespace SoccerVision.Simulation
             q.Team.Stats.Offsides++;
             var assistant = Assistant1.CoverSign == MathF.Sign(q.Pos.X) ? Assistant1 : Assistant2;
             assistant.FlagTimer = Config.OffsideFlagRealSeconds * Config.MotionSpeed;
+            assistant.FlagDir = q.Team.Opponent.AttackDir; // towards the goal the free-kick team attacks
             assistant.HoldPosition = true;
             assistant.HoldX = q.Pos.X;
             Emit(MatchEventType.Offside, q.Team, q, null, q.Pos);
@@ -730,9 +731,10 @@ namespace SoccerVision.Simulation
             _restart.SetupTime = MathF.Max(_restart.SetupTime, Config.OffsideRestartRealSeconds * Config.MotionSpeed);
         }
 
-        private void FlagBallOut(Vec2 spot)
+        private void FlagBallOut(Vec2 spot, TeamAgent restartTeam)
         {
             var assistant = Assistant1.CoverSign == MathF.Sign(spot.X) ? Assistant1 : Assistant2;
+            assistant.FlagDir = restartTeam.AttackDir;
             assistant.FlagTimer = MathF.Max(assistant.FlagTimer, 1.2f * Config.MotionSpeed);
         }
     }

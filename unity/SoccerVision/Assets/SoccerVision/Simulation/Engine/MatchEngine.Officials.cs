@@ -90,7 +90,9 @@ namespace SoccerVision.Simulation
             Vec2 dv = (desired - o.Vel).ClampLength(5f * dt);
             o.Vel += dv;
             o.Pos += o.Vel * dt;
-            o.Facing = MathUtil.MoveTowardsAngle(o.Facing, (lookAt - o.Pos).Angle, 5f * dt);
+            // an official's feet point the way he moves; standing still he looks at the ball (the referee) or the pitch
+            Vec2 face = o.Vel.Length > 0.4f ? o.Vel : lookAt - o.Pos;
+            o.Facing = MathUtil.MoveTowardsAngle(o.Facing, face.Angle, 5f * dt);
         }
     }
 }

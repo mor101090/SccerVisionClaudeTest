@@ -68,7 +68,7 @@ export interface Snapshot {
   ball: { x: number; y: number; z: number; owner: number };
   players: { x: number; y: number; facing: number; jump: number; sentOff: boolean; gk: boolean; booked: boolean; offside: boolean; sliding: boolean; grounded: boolean; injured: boolean; kick: number; kickLeft: boolean }[];
   /** flag: assistant's flag up; card: the referee holding up a card (0 none, 1 yellow, 2 red). */
-  officials: { x: number; y: number; flag: boolean; card: number }[];
+  officials: { x: number; y: number; flag: boolean; flagDir: number; card: number }[];
   /** True when t falls in the half-time gap (no frames are recorded during the break). */
   halftime: boolean;
 }
@@ -140,7 +140,7 @@ export function sample(replay: Replay, t: number): Snapshot {
   const officials = [];
   for (let j = 0; j < 3; j++) {
     const o = OFFICIAL_BASE + j * 3;
-    officials.push({ x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, flag: a[o + 2] === 1, card: a[o + 2] === 2 ? 1 : a[o + 2] === 3 ? 2 : 0 });
+    officials.push({ x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, flag: a[o + 2] === 1 || a[o + 2] === 4, flagDir: a[o + 2] === 4 ? -1 : 1, card: a[o + 2] === 2 ? 1 : a[o + 2] === 3 ? 2 : 0 });
   }
   // Ball teleports at restarts: do not interpolate across big jumps.
   const jump = Math.hypot(b[5] - a[5], b[6] - a[6]) > 150;

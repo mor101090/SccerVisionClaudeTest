@@ -392,7 +392,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       ps.push({ kp: lerp(ka, kb, k), kl: (a[o + 4] & 512) !== 0, x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, f: lerpA(a[o + 2] / 100, b[o + 2] / 100, k), j: lerp(a[o + 3], b[o + 3], k) / 100, off: (a[o + 4] & 1) !== 0, gk: (a[o + 4] & 2) !== 0, bk: (a[o + 4] & 4) !== 0, os: (a[o + 4] & 8) !== 0, sl: (a[o + 4] & 16) !== 0, gr: (a[o + 4] & 32) !== 0, inj: (a[o + 4] & 64) !== 0 });
     }
     var os = [];
-    for (var q = 0; q < 3; q++) { var oo = OB + q * 3; os.push({ x: lerp(a[oo], b[oo], k) / 10, y: lerp(a[oo + 1], b[oo + 1], k) / 10, flag: a[oo + 2] === 1, card: a[oo + 2] === 2 ? 1 : a[oo + 2] === 3 ? 2 : 0 }); }
+    for (var q = 0; q < 3; q++) { var oo = OB + q * 3; os.push({ x: lerp(a[oo], b[oo], k) / 10, y: lerp(a[oo + 1], b[oo + 1], k) / 10, flag: a[oo + 2] === 1 || a[oo + 2] === 4, fdir: a[oo + 2] === 4 ? -1 : 1, card: a[oo + 2] === 2 ? 1 : a[oo + 2] === 3 ? 2 : 0 }); }
     var jump = Math.hypot(b[5] - a[5], b[6] - a[6]) > 150, bk = jump ? 0 : k;
     return { clock: lerp(a[1], b[1], half ? 0 : k), phase: a[2], hs: a[3], as: a[4], bx: lerp(a[5], b[5], bk) / 10, by: lerp(a[6], b[6], bk) / 10, bz: lerp(a[7], b[7], bk) / 100, owner: a[8], ps: ps, os: os, half: half };
   }
@@ -697,10 +697,11 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     ctx.lineWidth = Math.max(.6, .05 * s); ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.stroke();
   }
   // The assistant's flag, raised only when he signals (as before): black handle, checked orange / neon-yellow cloth.
-  function assistantFlag(x, y, s, t) {
-    var fx = x + .3 * s;
+  // The flag points the way the team awarded the free kick or throw-in attacks (left or right), as the officials signal it.
+  function assistantFlag(x, y, s, t, fdir) {
+    var fx = x + fdir * .3 * s;
     ctx.strokeStyle = "#111"; ctx.lineWidth = Math.max(1.5, .15 * s); ctx.beginPath(); ctx.moveTo(fx, y - .5 * s); ctx.lineTo(fx, y - 2.6 * s); ctx.stroke();
-    var wind = WIND.speed > .5, dir = Math.cos(WIND.screenAngle) < 0 ? -1 : 1;
+    var wind = WIND.speed > .5, dir = fdir;
     cloth(fx, y - 2.6 * s, 1.6 * s, 1.1 * s, t * (wind ? 3.2 : 1.6), 3.1, dir, function (pts, hh) {
       // four quadrants: neon yellow top-left / bottom-right, orange top-right / bottom-left
       for (var qx = 0; qx < 2; qx++) for (var qy = 0; qy < 2; qy++) {
@@ -792,6 +793,17 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   // Two small boots peeking out under the circle, pointing where the player faces (static, as in the design).
   // The feet sit close under the front edge of the circle, a little back. A kick or a pass swings the kicking foot: back
   // (backswing), forward through the ball, then settles - nobody "runs" in place. side -1 is the left foot.
+  // An official's feet point the way he moves (an assistant running along the touchline faces along it); standing still, the
+  // referee watches the ball and an assistant faces the pitch.
+  var offPrev = [null, null, null], offFace = [0, Math.PI / 2, -Math.PI / 2];
+  function officialFacing(i, o, S) {
+    var pv = offPrev[i], want = i === 0 ? Math.atan2(S.by - o.y, S.bx - o.x) : Math.atan2(-o.y, 0);
+    if (pv) { var dx = o.x - pv[0], dy = o.y - pv[1]; if (Math.hypot(dx, dy) > .04) want = Math.atan2(dy, dx); }
+    offPrev[i] = [o.x, o.y];
+    var d = want - offFace[i]; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+    offFace[i] += d * .25;
+    return offFace[i];
+  }
   function playerFeet(x, y, r, facing, kick, kickLeft, boots) {
     var a = -facing, c = Math.cos(a), sn = Math.sin(a);
     ctx.fillStyle = boots || BOOTS; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = Math.max(.6, r * .06);
@@ -807,12 +819,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     [[-52.5, -34], [-52.5, 34], [52.5, -34], [52.5, 34]].forEach(function (c, i) { cornerFlag(X(c[0]), Y(c[1]), s, now, i, X(c[0] + Math.sign(c[0])) - X(c[0]), Y(c[1] + Math.sign(c[1])) - Y(c[1])); });
     S.os.forEach(function (o, i) {
       var ox = X(o.x), oy = Y(o.y);
-      if (i > 0 && o.flag) assistantFlag(ox, oy, s, now);
+      if (i > 0 && o.flag) assistantFlag(ox, oy, s, now, o.fdir);
       castShadow(o.x, o.y, ox, oy, r, r * .9, .45);
       var rc = refColours();
       // the referee watches the ball, the assistants face the pitch from their touchline
       // (the same marker as a player: same size, same feet, same edge)
-      playerFeet(ox, oy, r, i === 0 ? Math.atan2(S.by - o.y, S.bx - o.x) : Math.atan2(-o.y, 0), 0, false, rc.boots);
+      playerFeet(ox, oy, r, officialFacing(i, o, S), 0, false, rc.boots);
       playerDisc(ox, oy, r, rc.shirt, rc.trim);
       ctx.fillStyle = rc.letter; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
       if (i === 0 && o.card) refereeCard(ox, oy, s, o.card);

@@ -403,6 +403,9 @@ namespace SoccerVision.Runtime
             if (_flag != null)
             {
                 if (_flag.gameObject.activeSelf != _o.FlagRaised) _flag.gameObject.SetActive(_o.FlagRaised);
+                // the flag points the way the team awarded the restart attacks
+                _flag.localPosition = new Vector3(0.3f * _o.FlagDir, 0.5f, 0f);
+                _flag.localScale = new Vector3(_o.FlagDir, 1f, 1f);
                 // A calm sway, no flapping.
                 if (_o.FlagRaised) _flag.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(time * 0.9f) * 2.5f);
             }

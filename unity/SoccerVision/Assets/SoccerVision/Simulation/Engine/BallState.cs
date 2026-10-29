@@ -86,6 +86,8 @@ namespace SoccerVision.Simulation
         public Vec2 Pos, PrevPos, Vel;
         public float Facing;
         public float FlagTimer;
+        /// <summary>The way the raised flag points: the direction (+1 or -1 along the pitch) the team awarded the restart attacks. As the referees signal it, not always to the same side.</summary>
+        public int FlagDir = 1;
         public bool IsAssistant;
         /// <summary>Touchline side for assistants (+1 or -1 in Y); assistants cover the half X*CoverSign &gt; 0.</summary>
         public int TouchlineSign;
