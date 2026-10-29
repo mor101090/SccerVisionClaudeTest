@@ -2,6 +2,11 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/snow-ball-reference`
+
+- **Snow ball as in the reference photo**: a bright orange ball (255,104,26) with pale grey-white panels and darker
+  orange seams - no halo, no glow (demo page, React, Unity).
+
 ## `feature/tactic-styles-feet-restarts`
 
 - **Tactics you choose, not slide** (the panel under the pitch; the engine reads them through `TeamTactics.Effective()`):

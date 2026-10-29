@@ -645,11 +645,11 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       var best = -9, second = -9, pent = false, q, sc;
       for (q = 0; q < 12; q++) { sc = (PENT[q][0] * bx + PENT[q][1] * by + PENT[q][2] * bz) / RP; if (sc > best) { second = best; best = sc; pent = true; } else if (sc > second) second = sc; }
       for (q = 0; q < 20; q++) { sc = (HEX[q][0] * bx + HEX[q][1] * by + HEX[q][2] * bz) / RH; if (sc > best) { second = best; best = sc; pent = false; } else if (sc > second) second = sc; }
-      // a white ball with black pentagons; in snow a marker-orange one (a flat, fluorescent orange, no glow)
+      // a white ball with black pentagons; in snow a bright orange one with pale panels (as the reference photo: no glow)
       var col, diff;
       if (yellowBall) {
-        col = pent ? [240, 84, 0] : [255, 108, 0];
-        if (best - second < .006) col = pent ? [190, 60, 0] : [214, 80, 0]; // stitched seams
+        col = pent ? [236, 236, 230] : [255, 104, 26];
+        if (best - second < .006) col = pent ? [190, 190, 186] : [214, 74, 12]; // stitched seams
         diff = .92 + .08 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]);
       } else {
         col = pent ? [28, 28, 28] : [246, 246, 246];

@@ -127,8 +127,8 @@ export class Ball3D {
           } else if (sc > second) second = sc;
         }
         // snow: a marker-orange ball (a flat, fluorescent orange, no glow)
-        let col = this.winter ? (pent ? [240, 84, 0] : [255, 108, 0]) : pent ? [28, 28, 28] : [246, 246, 246];
-        if (best - second < 0.006) col = this.winter ? (pent ? [190, 60, 0] : [214, 80, 0]) : pent ? [60, 60, 60] : [150, 150, 150]; // stitched seams
+        let col = this.winter ? (pent ? [236, 236, 230] : [255, 104, 26]) : pent ? [28, 28, 28] : [246, 246, 246];
+        if (best - second < 0.006) col = this.winter ? (pent ? [190, 190, 186] : [214, 74, 12]) : pent ? [60, 60, 60] : [150, 150, 150]; // stitched seams
         const lit = Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
         const diff = this.winter ? 0.92 + 0.08 * lit : 0.38 + 0.62 * lit;
         const spec = Math.pow(Math.max(0, nx * HALF[0] + ny * HALF[1] + nz * HALF[2]), 36) * (pent ? 120 : 90);
