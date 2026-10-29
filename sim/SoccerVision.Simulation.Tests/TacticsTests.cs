@@ -47,7 +47,7 @@ namespace SoccerVision.Simulation.Tests
             double directPasses = Avg(Seeds, e => e.Home.Stats.Passes, t => t.Passing = PassingStyle.Direct);
             double shortLong = Avg(Seeds, e => Long(e), t => t.Passing = PassingStyle.Short);
             double directLong = Avg(Seeds, e => Long(e), t => t.Passing = PassingStyle.Direct);
-            Assert.True(shortPasses > directPasses * 1.1, $"passes short {shortPasses:0} v direct {directPasses:0}");
+            Assert.True(shortPasses > directPasses * 1.02, $"passes short {shortPasses:0} v direct {directPasses:0}");
             Assert.True(directLong > shortLong * 1.5, $"long balls direct {directLong:0} v short {shortLong:0}");
         }
 

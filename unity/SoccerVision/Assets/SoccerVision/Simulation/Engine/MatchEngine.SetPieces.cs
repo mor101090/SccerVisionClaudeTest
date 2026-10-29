@@ -36,6 +36,8 @@ namespace SoccerVision.Simulation
                 p.HasPendingPlan = false;
                 p.RunTimer = 0f;
                 p.DiveTimer = 0f;
+                // (a player who ran on over the line as play stopped is back on the pitch at once)
+                if (!p.SentOff && p.Injury != InjuryLevel.Serious) p.Pos = Pitch.ClampToField(p.Pos, -0.2f);
             }
 
             var r = new Restart { Type = type, Team = team, Spot = spot, PreferInswing = _rng.Chance(0.62f) };
