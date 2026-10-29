@@ -2,6 +2,58 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/roles-instructions-substitutions`
+
+- **Formations (11)**: 4-4-2, 4-4-2 narrow, 4-4-2 diamond, 4-3-3, 4-3-3 defensive, 3-5-2, 3-4-3, 3-4-1-2, 4-2-3-1,
+  4-1-4-1 and 4-5-1. Back-three systems have wing-backs who drop into a back five without the ball. A change of
+  formation moves every player to the nearest place in the new shape (before kick-off or live). All of them play full
+  matches cleanly (tests).
+- **Player roles** for every position, with their effect on play:
+  - Keeper: shot-stopper, sweeper-keeper, dominant keeper.
+  - Centre-back: stopper, ball-playing defender, cover defender.
+  - Full-back: wing-back, inverted full-back, defensive full-back.
+  - Holding midfielder: destroyer, deep-lying playmaker, box-to-box, anchor.
+  - Central midfielder: all-rounder, tempo setter, carrier.
+  - Number 10: classic playmaker, shadow striker, wide playmaker.
+  - Winger: inverted winger, classic winger, wide target man.
+  - Striker: centre forward, target forward, second striker, false nine.
+
+  Roles change where the player stands (in and out of possession), his runs, pressing, tackling, passing choices
+  (through balls, long balls, the target man as the outlet), crossing, cutting inside, and the keeper's position, sorties
+  and claims. "Auto" plays as before.
+- **Individual instructions** per player: long shots (more / mixed / less), dribbling (a lot / mixed / little),
+  aggression (very aggressive / mixed / gentle). Tested: more long shots, more dribbles, more fouls.
+- **Set-piece takers**: choose who takes the corners, the free kicks at goal and the penalties (Auto: the best one on the
+  pitch).
+- **Substitutions by IFAB Law 3 as the top leagues play it**:
+  - Nine on the bench (both squads regenerated with nine substitutes).
+  - Five changes in three opportunities during play; half-time and the second-half kick-off do not use one.
+  - A change waits for a stoppage. The player coming off leaves by the nearest point on the boundary line, and the
+    substitute comes on at the halfway line while the restart waits.
+  - A substituted player cannot return, and a sent-off player cannot be replaced.
+  - The computer makes its own changes: about two around the hour, two after 70 minutes and one after 80, the tired and
+    the knocked first.
+- **The manager panel** (demo page), in the palette of the reference screens (navy, slate-blue selection, green /
+  yellow / red values), across the whole page:
+  - **IN / OUT cards** for the eleven and the bench, with live energy, cards and injuries. Pick a player, then a bench
+    player, for a quick change; or two players on the pitch to swap their positions.
+  - **Tabs**:
+    - Team Tactics: a formation picker, a formation board like the reference, and a team sheet with position, role,
+      stamina heart and fitness, followed by the team instructions.
+    - Player Instruction: the role and the three individual instructions per position.
+    - Corners, Free Kicks, Penalty Kickers: the set-piece takers.
+  - **The player page** (click a player on the pitch, or double-click a card): photo, age, height, feet, the five
+    categories on a pentagon, gauges and every skill, form and set pieces.
+  - **Tooltips** on every team instruction, role and individual instruction.
+- **Live match: pick your team before kick-off**. The match waits at the pre-match screen while you choose the eleven
+  (bench players included), the formation, roles, instructions and takers; "Kick off" starts it. In the staged and random
+  matches, a change of eleven or instructions replays the match with it.
+- The scoreboard logo is 3% smaller.
+- Engine: `TeamPlan` (the manager's plan as text, from the page to the engine), `SubstituteCommand`, `LineupCommand`. The
+  replay header carries every skill, the formations and the substitution rules. SimRunner: `formation=`.
+- Tests: formations, the starting eleven from the squad, takers, substitutions (stoppage, no return, five in three, half
+  time free), computer changes, individual instructions, roles, a live reshape (19 tests).
+
 ## `feature/tactics-intelligence-articles`
 
 Read and applied ten tactics articles (the-footballanalyst.com: high backline, inverted full-backs, counter-movements, rest

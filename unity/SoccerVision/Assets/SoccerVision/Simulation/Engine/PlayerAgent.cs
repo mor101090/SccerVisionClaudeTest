@@ -70,6 +70,8 @@ namespace SoccerVision.Simulation
         public bool SentOff;
         public int YellowCards;
         public int FoulsCommitted;
+        /// <summary>Take-ons tried (for the individual dribbling instruction).</summary>
+        public int Dribbles;
 
         // AI intent
         public PlayerTask Task = PlayerTask.Shape;

@@ -42,7 +42,9 @@ namespace SoccerVision.Simulation
 
             var me = _engine.TeamOf(_team);
             var human = _engine.TeamOf(1 - _team).Tactics;
-            var t = new TeamTactics { Marking = me.Tactics.Marking };
+            var t = new TeamTactics { Marking = me.Tactics.Marking, FormationName = me.Tactics.FormationName,
+                                      CornerTaker = me.Tactics.CornerTaker, FreeKickTaker = me.Tactics.FreeKickTaker, PenaltyTaker = me.Tactics.PenaltyTaker };
+            for (int i = 0; i < 11; i++) t.Orders[i] = me.Tactics.OrdersFor(i).Clone(); // (the roles and instructions stay)
             float minute = clock.Seconds / 60f;
             int diff = me.Score - _engine.TeamOf(1 - _team).Score;
 

@@ -18,9 +18,9 @@ public static partial class LiveEngine
 
     /// <summary>Starts a match; returns the replay header (teams, conditions, mud map...) as JSON object text.</summary>
     /// <param name="mode">staged (the scripted incidents) | random | live</param>
+    /// <param name="homePlan">The home manager's plan (see TeamPlan): formation, starting eleven, roles, instructions, takers, tactics.</param>
     [JSExport]
-    public static string Start(int seed, string mode, string weather, double maintenance, double wind, double windAngle, bool night,
-        double line, double width, int passing, double tempo, double aggression, int defence, int attack, int special)
+    public static string Start(int seed, string mode, string weather, double maintenance, double wind, double windAngle, bool night, string homePlan)
     {
         var config = MatchConfig.CreateDefault();
         config.Conditions = new MatchConditions
@@ -33,7 +33,7 @@ public static partial class LiveEngine
         };
         if (mode == "staged") config.Script = MatchScript.Staged();
         var home = DemoTeams.Red();
-        home.Tactics = MakeTactics(home.Tactics, line, width, passing, tempo, aggression, defence, attack, special);
+        TeamPlan.Parse(homePlan).ApplyBeforeKickOff(home);
         _engine = new MatchEngine(home, DemoTeams.Blue(), (ulong)seed, config);
         // live: you are the home team, the computer manages the away team and answers you
         _computer = mode == "live" || mode == "random" ? new ComputerManager(_engine, 1) : null;
@@ -69,28 +69,19 @@ public static partial class LiveEngine
     [JSExport]
     public static string FinalHeader() => "{" + _rec.Header(true) + "}";
 
-    /// <summary>The home team's new tactics, from the next step (live: the human manager's instructions).</summary>
+    /// <summary>The home manager's new plan during the match (tactics, formation, positions, roles, instructions, takers).</summary>
     [JSExport]
-    public static void SetTactics(double line, double width, int passing, double tempo, double aggression, int defence, int attack, int special)
+    public static void SetPlan(string plan)
     {
         if (_engine == null) return;
-        _engine.Submit(new ChangeTacticsCommand(0, MakeTactics(_engine.Home.Tactics, line, width, passing, tempo, aggression, defence, attack, special)));
+        TeamPlan.Parse(plan).Submit(_engine, 0);
     }
 
-    /// <summary>Line, width, tempo 0..1; passing 0 short, 1 mixed, 2 direct; aggression 0 gentle .. 1 aggressive.</summary>
-    private static TeamTactics MakeTactics(TeamTactics from, double line, double width, int passing, double tempo, double aggression, int defence, int attack, int special)
+    /// <summary>The home manager asks for a change: shirt <paramref name="outNumber"/> off, bench player <paramref name="inNumber"/> on (at the next stoppage).</summary>
+    [JSExport]
+    public static void Substitute(int outNumber, int inNumber)
     {
-        var t = from.Clone();
-        t.Defence = defence == 1 ? DefenceStyle.HighPress : defence == 2 ? DefenceStyle.OffsideTrap : defence == 3 ? DefenceStyle.ParkTheBus : defence == 4 ? DefenceStyle.HighBackline : defence == 5 ? DefenceStyle.InvertedFullBacks : DefenceStyle.Balanced;
-        t.Attack = attack == 1 ? AttackStyle.CrossesIntoBox : attack == 2 ? AttackStyle.RunsInBehind : attack == 3 ? AttackStyle.LongShots : AttackStyle.Mixed;
-        t.Special = special == 1 ? SpecialTactic.Possession : special == 2 ? SpecialTactic.TimeWasting : special == 3 ? SpecialTactic.CounterAttack : special == 4 ? SpecialTactic.Siege : SpecialTactic.None;
-        t.DefensiveLine = (float)line;
-        t.Width = (float)width;
-        t.Passing = passing == 0 ? PassingStyle.Short : passing == 2 ? PassingStyle.Direct : PassingStyle.Mixed;
-        t.Tempo = (float)tempo;
-        t.PressingIntensity = (float)(0.5 + 0.6 * (aggression - 0.5));
-        t.Tackling = aggression < 0.34 ? TacklingStyle.StayOnFeet : aggression > 0.66 ? TacklingStyle.GetStuckIn : TacklingStyle.Normal;
-        return t;
+        _engine?.Submit(new SubstituteCommand(0, outNumber, inNumber));
     }
 
     [JSExport]

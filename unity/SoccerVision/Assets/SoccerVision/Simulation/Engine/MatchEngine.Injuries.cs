@@ -211,7 +211,7 @@ namespace SoccerVision.Simulation
             team.SubstitutionsUsed++;
             team.Stats.Substitutions++;
             // (the change uses one of the three opportunities, unless one is already open at this stoppage)
-            if (_restart != null && team.WindowRestart != _restart) { team.WindowRestart = _restart; team.WindowsUsed++; }
+            if (_restart != null && team.WindowRestart != _restart && !SecondHalfKickOff) { team.WindowRestart = _restart; team.WindowsUsed++; }
             string outLabel = p.Label;
             int outNumber = p.Number;
             p.Substitute(sub.Profile);

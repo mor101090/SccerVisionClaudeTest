@@ -2,15 +2,19 @@
 // match to the page as replay data: header, then batches of frames, events and stats.
 //
 // Messages in:  {cmd:"init", base}            load the engine (base = URL of the engine folder)
-//               {cmd:"start", token, mode, seed, weather, maintenance, wind, windAngle, night, lead, tactics}
+//               {cmd:"start", token, mode, seed, weather, maintenance, wind, windAngle, night, lead, plan, hold}
 //                                              lead = 0: generate the whole match as fast as possible;
 //                                              lead = N: stay at most N frames (N/10 s) ahead of the viewer (live)
+//                                              plan: the home manager's plan as text (see TeamPlan.cs)
+//                                              hold: send the header only, play nothing until "go" (pre-match)
+//               {cmd:"go", token}              kick off a held match
 //               {cmd:"progress", token, frames}  the viewer has played this many frames (live pacing)
-//               {cmd:"tactics", token, line, width, passing, tempo, aggression}  the home team's new tactics (live)
+//               {cmd:"plan", token, plan}      the home manager's new plan during the match (live)
+//               {cmd:"sub", token, out, in}    the home manager asks for a change (shirt numbers; live)
 //               {cmd:"stop", token}            drop the current match
 // Messages out: {type:"ready"} | {type:"header", token, header} | {type:"chunk", token, len, frames, events, stats, finished}
 //               | {type:"error", message}
-let L = null, frameLength = 0, token = 0, running = false, again = false, generated = 0, played = 0, lead = 0;
+let L = null, frameLength = 0, token = 0, running = false, again = false, generated = 0, played = 0, lead = 0, held = false;
 
 self.onmessage = async (e) => {
   const m = e.data;
@@ -23,15 +27,18 @@ self.onmessage = async (e) => {
       frameLength = L.FrameLength();
       postMessage({ type: "ready" });
     } else if (m.cmd === "start") {
-      token = m.token; lead = m.lead; generated = 0; played = 0;
-      const k = Object.assign({ line: .5, width: .5, passing: 1, tempo: .5, aggression: .5, defence: 0, attack: 0, special: 0 }, m.tactics || {});
-      const header = L.Start(m.seed, m.mode, m.weather, m.maintenance, m.wind, m.windAngle, m.night, k.line, k.width, k.passing, k.tempo, k.aggression, k.defence, k.attack, k.special);
+      token = m.token; lead = m.lead; generated = 0; played = 0; held = !!m.hold;
+      const header = L.Start(m.seed, m.mode, m.weather, m.maintenance, m.wind, m.windAngle, m.night, m.plan || "");
       postMessage({ type: "header", token, header });
-      pump();
+      if (!held) pump();
+    } else if (m.cmd === "go") {
+      if (m.token === token && held) { held = false; pump(); }
     } else if (m.cmd === "progress") {
-      if (m.token === token) { played = m.frames; pump(); }
-    } else if (m.cmd === "tactics") {
-      if (m.token === token) L.SetTactics(m.line, m.width, m.passing, m.tempo, m.aggression, m.defence | 0, m.attack | 0, m.special | 0);
+      if (m.token === token) { played = m.frames; if (!held) pump(); }
+    } else if (m.cmd === "plan") {
+      if (m.token === token) L.SetPlan(m.plan || "");
+    } else if (m.cmd === "sub") {
+      if (m.token === token) L.Substitute(m.out | 0, m.in | 0);
     } else if (m.cmd === "stop") {
       token = m.token;
     }

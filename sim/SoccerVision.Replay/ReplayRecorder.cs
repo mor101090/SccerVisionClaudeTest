@@ -80,6 +80,18 @@ namespace SoccerVision.Replay
             b.Append(",\"foot\":\"").Append(a.LeftFoot == 3 && a.RightFoot == 3 ? "Both" : a.StrongFoot == Foot.Left ? "Left" : "Right").Append('"');
             b.Append(",\"weakFoot\":").Append(a.WeakFootRating);
             b.Append(",\"fitness\":\"").Append(a.Fitness == FitnessLevel.Low ? "Low" : a.Fitness == FitnessLevel.High ? "Peak" : "Moderate").Append('"');
+            // every skill, in the order of "attrNames" in the header (the player profile page shows them all)
+            b.Append(",\"attrs\":[").Append(a.Aggression).Append(',').Append(a.Teamwork).Append(',').Append(a.Composure).Append(',').Append(a.Decisions)
+             .Append(',').Append(a.Tackling).Append(',').Append(a.Marking).Append(',').Append(a.Positioning)
+             .Append(',').Append(a.Creativity).Append(',').Append(a.Passing).Append(',').Append(a.Crossing)
+             .Append(',').Append(a.Finishing).Append(',').Append(a.LongShots).Append(',').Append(a.OffTheBall)
+             .Append(',').Append(a.PhysicalPower).Append(',').Append(a.BallControl).Append(',').Append(a.Dribbling).Append(',').Append(a.Acceleration)
+             .Append(',').Append(a.Speed).Append(',').Append(a.Jumping).Append(',').Append(a.Heading)
+             .Append(',').Append(a.FreeKicks).Append(',').Append(a.Penalty)
+             .Append(',').Append(a.AerialAbility).Append(',').Append(a.Handling).Append(',').Append(a.Kicking).Append(',').Append(a.OneOnOne).Append(',').Append(a.Reflexes).Append(']');
+            b.Append(",\"leftFoot\":").Append(a.LeftFoot).Append(",\"rightFoot\":").Append(a.RightFoot);
+            b.Append(",\"group\":\"").Append(pr.NaturalPosition).Append('"');
+            b.Append(",\"nation\":"); Str(b, pr.Nationality);
             b.Append(",\"cats\":[").Append((int)MathF.Round(a.Mental)).Append(',').Append((int)MathF.Round(a.Defence)).Append(',').Append((int)MathF.Round(a.Playmaking))
              .Append(',').Append((int)MathF.Round(a.Attacking)).Append(',').Append((int)MathF.Round(a.Athletic)).Append(',').Append((int)MathF.Round(a.Goalkeeping)).Append(']');
         }
@@ -114,6 +126,25 @@ namespace SoccerVision.Replay
                 Bytes(b, s.HasWater ? s.Water : null, s);
                 b.Append('}');
             }
+            b.Append(",\"attrNames\":[\"Aggression\",\"Teamwork\",\"Composure\",\"Decisions\",\"Tackling\",\"Marking\",\"Positioning\",\"Creative\",\"Passing\",\"Crossing\",\"Finishing\",\"Long Shots\",\"Off The Ball\",\"Physical Power\",\"Ball Control\",\"Dribbling\",\"Acceleration\",\"Speed\",\"Jumping\",\"Heading\",\"Free Kicks\",\"Penalty\",\"Aerial Ability\",\"Handling\",\"Kicking\",\"One on One\",\"Reflexes\"]");
+            b.Append(",\"rules\":{\"maxSubs\":").Append(e.Config.MaxSubstitutions).Append(",\"windows\":").Append(e.Config.MaxSubstitutionWindows).Append('}');
+            b.Append(",\"formations\":[");
+            for (int i = 0; i < Formation.Names.Length; i++)
+            {
+                var f = Formation.ByName(Formation.Names[i]);
+                if (i > 0) b.Append(',');
+                b.Append("{\"name\":"); Str(b, f.Name);
+                b.Append(",\"slots\":[");
+                for (int j = 0; j < 11; j++)
+                {
+                    var sl = f.Slots[j];
+                    if (j > 0) b.Append(',');
+                    b.Append("{\"f\":").Append(N(sl.BaseForward)).Append(",\"l\":").Append(N(sl.BaseLateral)).Append(",\"line\":").Append((int)sl.Line)
+                     .Append(",\"kind\":").Append((int)f.KindAt(j)).Append(",\"abbr\":"); Str(b, SlotAbbreviation(f, j)); b.Append('}');
+                }
+                b.Append("]}");
+            }
+            b.Append(']');
             b.Append(",\"home\":");
             Team(b, e.Home, finalStats);
             b.Append(",\"away\":");
@@ -154,12 +185,14 @@ namespace SoccerVision.Replay
                 b.Append("{\"index\":").Append(p.Index).Append(",\"number\":").Append(p.Number);
                 b.Append(",\"name\":"); Str(b, p.Profile.FullName);
                 b.Append(",\"shortName\":"); Str(b, p.Profile.ShortName);
-                b.Append(",\"role\":"); Str(b, Formation.RoleAbbreviation(p.Slot.Role));
+                b.Append(",\"role\":"); Str(b, SlotAbbreviation(t.Formation, p.SlotIndex));
+                b.Append(",\"slot\":").Append(p.SlotIndex);
                 b.Append(",\"passing\":").Append(p.Attr.Passing).Append(",\"speed\":").Append(p.Attr.Speed).Append(",\"stamina\":").Append(p.Attr.Stamina);
                 Profile(b, p.Profile);
                 b.Append('}');
             }
-            b.Append("],\"bench\":[");
+            b.Append("],\"formation\":"); Str(b, t.Formation.Name);
+            b.Append(",\"bench\":[");
             for (int i = 0; i < t.Setup.Bench.Count; i++)
             {
                 var q = t.Setup.Bench[i];
@@ -184,6 +217,15 @@ namespace SoccerVision.Replay
                 b.Append(",\"Passes\":").Append(s.Passes).Append(",\"PassesCompleted\":").Append(s.PassesCompleted).Append('}');
             }
             b.Append('}');
+        }
+
+        /// <summary>The position as the team sheet shows it: GK, RB, CB, LB, DM, CM, AM, RW / RM, LW / LM, ST (a 4-2-3-1's holding pair are DMs).</summary>
+        public static string SlotAbbreviation(Formation f, int slot)
+        {
+            var k = f.KindAt(slot);
+            if (k == PositionKind.DefensiveMidfielder) return "DM";
+            if (k == PositionKind.FullBack && f.Slots[slot].BaseForward > -29f) return f.Slots[slot].BaseLateral < 0f ? "RWB" : "LWB";
+            return Formation.RoleAbbreviation(f.Slots[slot].Role);
         }
 
         /// <summary>Advances up to <paramref name="frames"/> frames (fewer if the match ends) and returns what was recorded.</summary>

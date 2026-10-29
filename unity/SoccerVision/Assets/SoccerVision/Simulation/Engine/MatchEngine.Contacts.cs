@@ -902,6 +902,7 @@ namespace SoccerVision.Simulation
         {
             if (CollectDiagnostics) Count("takeon");
             carrier.Team.Stats.Dribbles++;
+            carrier.Dribbles++;
             var ca = carrier.Attr;
             var da = d.Attr;
             float attack = (0.5f * ca.Dribbling + 0.2f * ca.BallControl + 0.2f * ca.Acceleration + 0.1f * ca.Composure) * carrier.FatigueFactor * BallControlFactor(carrier.Pos);

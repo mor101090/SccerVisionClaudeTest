@@ -31,7 +31,10 @@ namespace SoccerVision.Simulation
 
         /// <summary>True if the team may still use a substitution opportunity: at half-time, during an opportunity already open, or with one left.</summary>
         private bool WindowAvailable(TeamAgent team) =>
-            Phase == MatchPhase.HalfTimeBreak || (_restart != null && team.WindowRestart == _restart) || team.WindowsUsed < Config.MaxSubstitutionWindows;
+            Phase == MatchPhase.HalfTimeBreak || SecondHalfKickOff || (_restart != null && team.WindowRestart == _restart) || team.WindowsUsed < Config.MaxSubstitutionWindows;
+
+        /// <summary>The kick-off of the second half is still being set up: changes now count as made at half-time (Law 3).</summary>
+        private bool SecondHalfKickOff => _restart != null && _restart.Type == RestartType.KickOff && Clock.Period == MatchPeriod.SecondHalf && Clock.Seconds <= Config.RegulationHalfClockSeconds + 1f;
 
         /// <summary>
         /// Asks for a change: the player with shirt <paramref name="outNumber"/> off, the bench player <paramref name="inNumber"/>
@@ -85,7 +88,7 @@ namespace SoccerVision.Simulation
                 var p = s.Out;
                 if (p.SentOff || p.Injury == InjuryLevel.Serious) { _pendingSubs.RemoveAt(i); continue; } // (sent off meanwhile, or the injury change takes over)
                 var team = p.Team;
-                if (team.WindowRestart != _restart)
+                if (team.WindowRestart != _restart && !SecondHalfKickOff)
                 {
                     team.WindowRestart = _restart;
                     team.WindowsUsed++;
