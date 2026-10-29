@@ -8,7 +8,7 @@ Read and applied ten tactics articles (the-footballanalyst.com: high backline, i
 defence, the third-man principle, set-piece coaching, cover shadows, dynamic advantages, long throw-ins, wide overloads).
 
 - **Two new defence options** (next to the offside trap, demo tactics panel and engine):
-  - **High backline**: the back four squeeze up towards halfway, so the whole team stays compact (block about 3 m
+  - **High backline** (+34 on the line slider): the back four squeeze up towards halfway, so the whole team stays compact (block about 3 m
     shorter out of possession). The line steps up together harder on every back pass or turned carrier, and it hardly
     drops for a free carrier. The keeper plays as a sweeper further off his line. The risk is the ball over the top: the
     computer answers it with runs in behind and direct balls.
@@ -36,7 +36,8 @@ defence, the third-man principle, set-piece coaching, cover shadows, dynamic adv
     for the second ball. The defenders pack the box: man-markers on each attacker, plus zonal cover at the near post and
     the six-yard line.
   - (Cover shadows, where the presser curves his run to block the pass into midfield, were already in.)
-- Calibration (60 matches): goals 2.82, pass completion 77%, offsides 3.4-4.1. A team keeping the ball now gambles even less.
+- Calibration (60 matches): goals 2.82, pass completion 77%, offsides 3.4-4.1. A team keeping the ball now gambles even less and circulates a little faster (tempo -0.1
+  instead of -0.2), and builds on its rest defence from deeper. The high backline plays a little higher still (+34 on the line).
 - SimRunner: new rows (third-man runs, counter-movements, counter-presses, overloads, long throws) and
   `defence=highline|inverted`.
 - Tests: high backline (higher, more compact), inverted full-backs (inside in possession), rest defence (4.5+ behind the

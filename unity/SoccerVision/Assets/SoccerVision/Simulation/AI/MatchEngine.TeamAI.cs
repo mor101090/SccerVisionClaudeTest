@@ -70,7 +70,7 @@ namespace SoccerVision.Simulation
                     // A high backline: the back four squeeze right up towards halfway so the whole team is compact (about
                     // 25-30 m from front to back) - the pitch is shortened and the opponent has no time between the lines.
                     // The keeper sweeps the space behind it; the risk is the ball over the top and a slow defender in a race.
-                    float squeeze = -19f + 14f * (tac.DefensiveLine - 0.5f);
+                    float squeeze = -15f + 14f * (tac.DefensiveLine - 0.5f);
                     if (ballF > squeeze + 12f) lineTarget = MathF.Max(lineTarget, squeeze);
                     lineTarget = MathF.Min(lineTarget, ballF - 3f);
                 }
@@ -87,7 +87,8 @@ namespace SoccerVision.Simulation
                 if (p.SentOff || p.IsGoalkeeper) continue;
                 p.ShapeTarget = ComputeShapeTarget(p, team, inPossession, ballF, ballL, offsideLine);
             }
-            if (inPossession && ballF > 6f) ApplyRestDefence(team, ballF);
+            // (in the opponent's half; a team keeping the ball builds on a stable base from further back)
+            if (inPossession && ballF > (team.Tactics.Special == SpecialTactic.Possession ? -8f : 6f)) ApplyRestDefence(team, ballF);
             bool overload = inPossession && IsWideOverload(team, ballF, ballL);
             if (overload && !team.OverloadOn) team.Stats.Overloads++;
             team.OverloadOn = overload;

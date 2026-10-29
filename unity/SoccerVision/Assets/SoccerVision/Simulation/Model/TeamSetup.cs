@@ -72,7 +72,7 @@ namespace SoccerVision.Simulation
                 case DefenceStyle.HighPress: Shift(ref e.PressingIntensity, 0.3f); Shift(ref e.DefensiveLine, 0.22f); break;
                 case DefenceStyle.OffsideTrap: Shift(ref e.DefensiveLine, 0.18f); Shift(ref e.PressingIntensity, 0.1f); break;
                 case DefenceStyle.ParkTheBus: Shift(ref e.DefensiveLine, -0.35f); Shift(ref e.Width, -0.25f); Shift(ref e.Mentality, -0.3f); Shift(ref e.PressingIntensity, -0.3f); Shift(ref e.Tempo, -0.2f); break;
-                case DefenceStyle.HighBackline: Shift(ref e.DefensiveLine, 0.28f); Shift(ref e.PressingIntensity, 0.15f); break;
+                case DefenceStyle.HighBackline: Shift(ref e.DefensiveLine, 0.34f); Shift(ref e.PressingIntensity, 0.15f); break;
                 case DefenceStyle.InvertedFullBacks: if (e.Passing == PassingStyle.Mixed) e.Passing = PassingStyle.Short; break;
             }
             switch (Attack)
@@ -83,7 +83,7 @@ namespace SoccerVision.Simulation
             }
             switch (Special)
             {
-                case SpecialTactic.Possession: if (e.Passing == PassingStyle.Mixed) e.Passing = PassingStyle.Short; Shift(ref e.Tempo, -0.2f); Shift(ref e.PressingIntensity, 0.1f); break;
+                case SpecialTactic.Possession: if (e.Passing == PassingStyle.Mixed) e.Passing = PassingStyle.Short; Shift(ref e.Tempo, -0.1f); Shift(ref e.PressingIntensity, 0.1f); break;
                 case SpecialTactic.TimeWasting: Shift(ref e.Tempo, -0.3f); Shift(ref e.Mentality, -0.2f); Shift(ref e.DefensiveLine, -0.15f); Shift(ref e.PressingIntensity, -0.15f); break;
                 case SpecialTactic.CounterAttack: Shift(ref e.DefensiveLine, -0.15f); Shift(ref e.PressingIntensity, -0.1f); Shift(ref e.Tempo, 0.25f); break;
                 case SpecialTactic.Siege: Shift(ref e.Mentality, 0.4f); Shift(ref e.DefensiveLine, 0.3f); Shift(ref e.Width, 0.2f); Shift(ref e.Tempo, 0.2f); Shift(ref e.PressingIntensity, 0.3f); break;

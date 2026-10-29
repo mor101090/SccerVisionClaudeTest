@@ -139,7 +139,7 @@ namespace SoccerVision.Simulation.Tests
         public void KickOffsAndPenaltiesWaitAfterTheWhistle()
         {
             int checkedRestarts = 0;
-            foreach (var e in PlayMany(5013, 3))
+            foreach (var e in PlayMany(5013, 5))
             {
                 var log = e.EventLog;
                 float minGap = e.Config.WhistleToKickRealSeconds * e.Config.ClockSecondsPerRealSecond - 0.5f;

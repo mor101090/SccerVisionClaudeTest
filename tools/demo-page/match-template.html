@@ -1183,7 +1183,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   // The line and width the players really play, with the chosen styles applied (as TeamTactics.Effective in the engine).
   function effTac() {
     var line = TAC.line, width = TAC.width, sh = function (v, d) { return Math.max(0, Math.min(100, v + d)); };
-    if (TAC.defence === 1) line = sh(line, 22); else if (TAC.defence === 2) line = sh(line, 18); else if (TAC.defence === 3) { line = sh(line, -35); width = sh(width, -25); } else if (TAC.defence === 4) line = sh(line, 28);
+    if (TAC.defence === 1) line = sh(line, 22); else if (TAC.defence === 2) line = sh(line, 18); else if (TAC.defence === 3) { line = sh(line, -35); width = sh(width, -25); } else if (TAC.defence === 4) line = sh(line, 34);
     if (TAC.attack === 1) width = sh(width, 25);
     if (TAC.special === 2 || TAC.special === 3) line = sh(line, -15); else if (TAC.special === 4) { line = sh(line, 30); width = sh(width, 20); }
     return { line: line, width: width };
