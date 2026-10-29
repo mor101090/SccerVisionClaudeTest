@@ -36,11 +36,12 @@ defence, the third-man principle, set-piece coaching, cover shadows, dynamic adv
     for the second ball. The defenders pack the box: man-markers on each attacker, plus zonal cover at the near post and
     the six-yard line.
   - (Cover shadows, where the presser curves his run to block the pass into midfield, were already in.)
-- Calibration (60 matches): goals 2.88, pass completion 77%, offsides 3.4. A team keeping the ball now gambles even less.
+- Calibration (60 matches): goals 2.82, pass completion 77%, offsides 3.4-4.1. A team keeping the ball now gambles even less.
 - SimRunner: new rows (third-man runs, counter-movements, counter-presses, overloads, long throws) and
   `defence=highline|inverted`.
 - Tests: high backline (higher, more compact), inverted full-backs (inside in possession), rest defence (4.5+ behind the
-  ball), the new principles all appear, long throws, the computer answers (6 tests).
+  ball), the new principles all appear, long throws, the computer answers (6 tests). The card test now uses the staged
+  match (which always has a second yellow), and the distance test averages three matches.
 
 ## `fix/tactic-sliders-stay-live`
 
