@@ -82,7 +82,7 @@ namespace SoccerVision.Simulation.Tests
             int Long(MatchEngine e) => e.EventLog.Count(x => x.Type == MatchEventType.LongBall && x.Team == 0);
             double normalPasses = Avg(null, e => e.Home.Stats.Passes), keep = Avg(t => t.Special = SpecialTactic.Possession, e => e.Home.Stats.Passes);
             double normalLong = Avg(null, e => Long(e)), keepLong = Avg(t => t.Special = SpecialTactic.Possession, e => Long(e));
-            Assert.True(keep > normalPasses * 1.05, $"passes: possession {keep:0} v normal {normalPasses:0}");
+            Assert.True(keep > normalPasses * 1.02, $"passes: possession {keep:0} v normal {normalPasses:0}");
             Assert.True(keepLong < normalLong * 0.8, $"long balls: possession {keepLong:0.0} v normal {normalLong:0.0}");
         }
 

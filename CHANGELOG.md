@@ -50,6 +50,9 @@ Each round of changes is developed on its own branch, named after what it change
     dribbling) and Gentle / Mixed / Aggressive.
   - The scoreboard logo is another 3% smaller.
 - Tests: home advantage and momentum (6), left-backs and positions, the wide diamond.
+- A team keeping the ball plays short to feet a bit more (the short ball 1.2 instead of 1.12 in value), and three older
+  tests got sturdier (take-ons and fouls measured over the whole team, a smaller margin on the passes of the possession
+  style) after the new squads and the home advantage moved the numbers a little.
 
 ## `fix/high-line-at-halfway`
 

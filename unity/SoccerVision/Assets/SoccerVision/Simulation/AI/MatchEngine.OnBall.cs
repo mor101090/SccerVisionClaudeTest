@@ -916,7 +916,8 @@ namespace SoccerVision.Simulation
             if (s == PassingStyle.Mixed) return 1f;
             bool shortBall = !lofted && kind == KickKind.Pass && d < 22f;
             bool longBall = lofted || kind == KickKind.ThroughBall || d > 30f;
-            if (s == PassingStyle.Short) return shortBall ? 1.12f : longBall ? 0.75f : 1f;
+            // (a team keeping the ball plays it short to feet even more: the passes are the point)
+            if (s == PassingStyle.Short) return shortBall ? (team.Tactics.Special == SpecialTactic.Possession ? 1.2f : 1.12f) : longBall ? 0.75f : 1f;
             return shortBall ? 0.92f : longBall ? 1.3f : 1f;
         }
 
