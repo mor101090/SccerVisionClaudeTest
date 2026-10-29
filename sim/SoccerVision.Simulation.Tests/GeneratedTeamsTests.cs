@@ -14,10 +14,10 @@ namespace SoccerVision.Simulation.Tests
             {
                 t.Validate();
                 Assert.Equal(11, t.Starters.Count);
-                Assert.Equal(7, t.Bench.Count);
+                Assert.Equal(9, t.Bench.Count);
                 Assert.Equal(PositionGroup.Goalkeeper, t.Starters[0].NaturalPosition);
                 Assert.Single(t.Bench, b => b.NaturalPosition == PositionGroup.Goalkeeper);
-                Assert.Equal(18, t.Starters.Concat(t.Bench).Select(p => p.ShirtNumber).Distinct().Count());
+                Assert.Equal(20, t.Starters.Concat(t.Bench).Select(p => p.ShirtNumber).Distinct().Count());
             }
         }
 

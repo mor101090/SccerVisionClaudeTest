@@ -67,11 +67,19 @@ namespace SoccerVision.Simulation
                 }
                 if (highBackline)
                 {
+                    // Mistimed step-up: now and then one defender is late and splits the line (the price of a high line)
+                    if (team.TrapBrokenUntil < SimTime && ballF > lineTarget + 8f && _rng.Chance(0.014f))
+                    {
+                        var back = team.Players.Where(q => q.Slot.Line == Line.Defence && !q.SentOff && !q.IsGoalkeeper).ToList();
+                        if (back.Count > 0) { team.TrapBreaker = back[_rng.Range(0, back.Count)]; team.TrapBrokenUntil = SimTime + 3.4f; if (CollectDiagnostics) Count("highline.broken"); }
+                    }
                     // A high backline: the back four squeeze right up towards halfway so the whole team is compact (about
                     // 25-30 m from front to back) - the pitch is shortened and the opponent has no time between the lines.
                     // The keeper sweeps the space behind it; the risk is the ball over the top and a slow defender in a race.
-                    float squeeze = -15f + 14f * (tac.DefensiveLine - 0.5f);
-                    if (ballF > squeeze + 12f) lineTarget = MathF.Max(lineTarget, squeeze);
+                    // (reference: the back four stand on the halfway line, the midfield 10-15 m ahead of them, the forwards
+                    // up to 30 m ahead - "high line = high pressure")
+                    float squeeze = -3f + 12f * (tac.DefensiveLine - 0.5f);
+                    if (ballF > squeeze + 6f) lineTarget = MathF.Max(lineTarget, squeeze);
                     lineTarget = MathF.Min(lineTarget, ballF - 3f);
                 }
             }
@@ -1184,7 +1192,7 @@ namespace SoccerVision.Simulation
                     bool ballInFront = team.Forward(Ball.Pos) > line + 4f && Pressure(Ball.Owner, out _) > 0.3f;
                     bool trusts = chem * (0.6f + 0.4f * MathUtil.A(p.Attr.Positioning)) + 0.12f * MathF.Sin(SimTime * 0.31f + p.NoisePhaseB) > 0.55f;
                     float slack = 0.4f + 2.2f * (1f - chem);
-                    bool trap = team.Tactics.Defence == DefenceStyle.OffsideTrap;
+                    bool trap = team.Tactics.Defence == DefenceStyle.OffsideTrap || team.Tactics.Defence == DefenceStyle.HighBackline;
                     bool broken = trap && p == team.TrapBreaker && team.TrapBrokenUntil > SimTime;
                     if (trap) { trusts = !broken; slack = 0.3f; ballInFront = team.Forward(Ball.Pos) > line + 4f; } // the trap holds the line whatever the pressure
                     if (broken) target = team.ToWorld(MathF.Min(team.Forward(target), line - 6.5f), team.Lateral(target)); // one man is left behind: nobody is offside

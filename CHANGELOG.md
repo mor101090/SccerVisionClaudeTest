@@ -2,6 +2,21 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/high-line-at-halfway`
+
+- **The high backline now follows the reference** (the high-line diagrams): the back four stand on the halfway line
+  while the opponent has the ball in his half (measured: +3.9 m from halfway with the ball past +10; the normal line
+  stands 5 m behind halfway there), the midfield 10-15 m ahead of them and the forwards up to about 30 m, "high line =
+  high pressure" (the style adds pressing). With the ball near halfway the line holds at about 10 m behind it, and it
+  drops with the ball in its own half. Before, it stood about 10 m too deep.
+- **The price of a high line**: now and then one defender is late with the step-up and splits the line, and the
+  opponent's through balls against a high backline are worth more. The net goal advantage of the style fell from +0.7
+  (before this fix) to +0.3 over 60 matches; offsides caught: about 10 per match.
+- **The formation board** (demo) shows the dashed defensive line like the reference, and with the high backline the
+  back four on the halfway line, the midfield and the forwards compact in front of it.
+- Test: the back line stands on the halfway line while the opponent attacks in his own half, the block short.
+- Fixes to older tests for the nine-man bench and the substitution event's new third part (the shirt number that went off).
+
 ## `feature/roles-instructions-substitutions`
 
 - **Formations (11)**: 4-4-2, 4-4-2 narrow, 4-4-2 diamond, 4-3-3, 4-3-3 defensive, 3-5-2, 3-4-3, 3-4-1-2, 4-2-3-1,

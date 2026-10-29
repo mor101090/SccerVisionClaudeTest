@@ -238,6 +238,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .fboard .fd { cursor: pointer; transition: transform .4s cubic-bezier(.3,.7,.2,1); }
 .fboard .fd circle { fill: #fff; stroke: #0b5a27; stroke-width: .5; }
 .fboard .fd.gk circle { fill: #f2d22e; }
+.fboard .dl { stroke: #f2d22e; stroke-width: .45; stroke-dasharray: 2.2 1.4; }
+.fboard .dlt { font: 700 2.6px var(--body); fill: #f2d22e; }
 .fboard .fd.sel circle { stroke: #f2d22e; stroke-width: 1.1; }
 .fboard .fd text.n { font: 800 3.4px var(--body); fill: #0e3a1d; }
 .fboard .fd rect { fill: rgba(42,47,64,.78); }
@@ -1573,9 +1575,20 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     if (!R) return;
     var f = formationOf(PLAN.formation); if (!f) return;
     var E2 = effTac(), on = lineupNow(), html = "", ws = .82 + .36 * E2.width / 100, up = (E2.line - 50) * .14;
+    var ys = f.slots.map(function (sl, i) { return 100 - (sl.f + 52.5) / 52.5 * 80 - (i === 0 ? 0 : up); });
+    // the defensive line: a dashed line across the back four. A high backline stands on the halfway line with the whole
+    // team compact in front of it (midfield 10-15 m ahead, forwards up to 30 m), as in the reference.
+    var defYs = f.slots.map(function (sl, i) { return sl.line === 1 ? ys[i] : null; }).filter(function (v) { return v !== null; });
+    var defY = defYs.reduce(function (a, b) { return a + b; }, 0) / defYs.length;
+    if (TAC.defence === 4) {
+      var dy = defY - 54;
+      f.slots.forEach(function (sl, i) { if (i === 0) return; ys[i] -= sl.line === 1 ? dy : sl.line === 2 ? dy * .78 : dy * .35; });
+      defY = 54;
+    }
+    html += '<line class="dl" x1="2" x2="66" y1="' + defY.toFixed(1) + '" y2="' + defY.toFixed(1) + '"/><text class="dlt" x="64.5" y="' + (defY + 3.2).toFixed(1) + '" text-anchor="end">' + (TAC.defence === 4 ? "High line defence" : "Defensive line") + '</text>';
     f.slots.forEach(function (sl, i) {
       var p = byNum(on[i]) || { number: "?", shortName: "" };
-      var x = 34 - sl.l * ws * .98, y = 100 - (sl.f + 52.5) / 52.5 * 80 - (i === 0 ? 0 : up);
+      var x = 34 - sl.l * ws * .98, y = ys[i];
       x = Math.max(5, Math.min(63, x)); y = Math.max(8, Math.min(100, y));
       var nm = esc(p.shortName), w = Math.max(8, nm.length * 1.45 + 2.4);
       html += '<g class="fd' + (i === 0 ? " gk" : "") + (SEL && SEL.kind === "in" && SEL.num === on[i] ? " sel" : "") + '" data-slot="' + i + '" style="transform:translate(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px)" data-tip="' + esc((p.name || nm) + " · " + sl.abbr) + '|' + esc(ROLES[ord(i)[0]][0]) + '">' +

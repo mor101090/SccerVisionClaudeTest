@@ -422,7 +422,9 @@ namespace SoccerVision.Simulation
             // Through balls behind the line: keepers sweep, defenders turn and recover - the race is harder to win
             // than the simple estimate suggests (measured: well below the predicted success).
             else if (kind == KickKind.ThroughBall && !_nextOneTwo) success *= 0.68f + 0.5f * SpaceBehindLine(team);
-            float styleBoost = (kind == KickKind.ThroughBall && team.Tactics.Attack == AttackStyle.RunsInBehind ? 1.28f : 1f)
+            // (against a high backline the space behind it is there for the taking)
+            float styleBoost = (kind == KickKind.ThroughBall && team.Opponent.Tactics.Defence == DefenceStyle.HighBackline ? 1.2f : 1f)
+                               * (kind == KickKind.ThroughBall && team.Tactics.Attack == AttackStyle.RunsInBehind ? 1.28f : 1f)
                                * (team.CounterUntil > SimTime && team.Forward(target) > team.Forward(from) + 8f ? 1.45f : 1f);
             float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure) * StyleFactor(team, kind, d, false) * styleBoost
                           * RolePassFactor(p, q, kind, d, false, team.Forward(target) - team.Forward(from));

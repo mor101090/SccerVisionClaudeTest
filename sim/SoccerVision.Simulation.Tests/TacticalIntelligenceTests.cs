@@ -58,6 +58,23 @@ namespace SoccerVision.Simulation.Tests
         }
 
         [Fact]
+        public void AHighBacklineStandsOnTheHalfwayLineWhileTheOpponentHasTheBallInHisHalf()
+        {
+            // (reference: the back four on the halfway line, the whole team compact in front of it)
+            double sumBack = 0, sumBlock = 0; int n = 0;
+            object gate = new object();
+            Avg(t => t.Defence = DefenceStyle.HighBackline, _ => 0, e =>
+            {
+                if (e.Ball.Owner == null || e.Ball.Owner.Team != e.Away || e.Home.Forward(e.Ball.Pos) < 12f) return;
+                var back = e.Home.Players.Where(p => !p.SentOff && p.Slot.Line == Line.Defence).Select(p => e.Home.Forward(p.Pos)).Average();
+                var outfield = e.Home.Players.Where(p => !p.SentOff && !p.IsGoalkeeper).Select(p => e.Home.Forward(p.Pos)).ToList();
+                lock (gate) { sumBack += back; sumBlock += outfield.Max() - outfield.Min(); n++; }
+            });
+            Assert.True(sumBack / n > -3.5, $"back line {sumBack / n:0.0} m from the halfway line");
+            Assert.True(sumBlock / n < 36, $"block length {sumBlock / n:0.0} m");
+        }
+
+        [Fact]
         public void InvertedFullBacksComeInsideInPossession()
         {
             double Lateral(Action<TeamTactics> tac)

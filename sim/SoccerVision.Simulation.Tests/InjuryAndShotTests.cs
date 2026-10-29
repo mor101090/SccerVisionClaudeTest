@@ -50,7 +50,7 @@ namespace SoccerVision.Simulation.Tests
                             Assert.NotEqual(hurtName, p.Profile.ShortName);
                             Assert.Equal(InjuryLevel.None, p.Injury);
                             Assert.Contains("comes on for", ev.Text);
-                            Assert.Equal(p.Number + "|" + p.Profile.ShortName, ev.Info);
+                            Assert.StartsWith(p.Number + "|" + p.Profile.ShortName + "|", ev.Info); // (then the number of the player who went off)
                             // (hurt just before half-time: the change is made during the break)
                             if (e.Clock.Period == hurtPeriod)
                                 Assert.True(e.RealTimeElapsed - hurtAt < 60f, "the change took " + (e.RealTimeElapsed - hurtAt) + " s");
