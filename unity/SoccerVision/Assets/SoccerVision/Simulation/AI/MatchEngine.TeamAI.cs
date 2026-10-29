@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SoccerVision.Simulation
 {
@@ -13,7 +14,8 @@ namespace SoccerVision.Simulation
 
         private void UpdateTeamShape(TeamAgent team)
         {
-            var tac = team.Tactics;
+            var tac = team.Eff;
+            var tac0 = team.Tactics;
             bool inPossession = PossessionTeam == team;
             float ballF = team.Forward(Ball.Pos);
             float ballL = team.Lateral(Ball.Pos);
@@ -45,15 +47,27 @@ namespace SoccerVision.Simulation
                 if (Ball.Owner != null && Ball.Owner.Team != team && !Ball.InHands)
                 {
                     float pressure = Pressure(Ball.Owner, out _);
-                    if (pressure < 0.3f && ballF < lineTarget + 40f) lineTarget -= 7f * (1f - 0.6f * tac.DefensiveLine);
+                    if (pressure < 0.3f && ballF < lineTarget + 40f) lineTarget -= (tac0.Defence == DefenceStyle.OffsideTrap ? 2f : 7f) * (1f - 0.6f * tac.DefensiveLine);
                 }
                 // A ball in the air over the line: everybody drops.
                 if (Ball.Owner == null && Ball.LastTouchTeam != team && Ball.Z > 2.5f) lineTarget -= 6f;
+                if (tac0.Defence == DefenceStyle.OffsideTrap)
+                {
+                    // The trap: the whole line takes a step forward together whenever the ball is in front of it, to leave the
+                    // forwards offside; it does not drop off when the carrier has time. (Now and then one man misses the step.)
+                    if (ballF > lineTarget + 6f) lineTarget += 5f;
+                    lineTarget = MathF.Min(lineTarget, ballF - 3f);
+                    if (team.TrapBrokenUntil < SimTime && ballF > lineTarget + 8f && _rng.Chance(0.012f))
+                    {
+                        var back = team.Players.Where(q => q.Slot.Line == Line.Defence && !q.SentOff && !q.IsGoalkeeper).ToList();
+                        if (back.Count > 0) { team.TrapBreaker = back[_rng.Range(0, back.Count)]; team.TrapBrokenUntil = SimTime + 3.2f; if (CollectDiagnostics) Count("trap.broken"); }
+                    }
+                }
             }
             lineTarget = MathF.Max(lineTarget, -47.5f);
             // The line moves like a unit: rate limited (steps up / drops at ~4.5 m/s).
             // A well-drilled line moves faster as one.
-            team.LineForward = MathUtil.MoveTowards(team.LineForward, lineTarget, (3.6f + 1.8f * team.DefensiveChemistry) * 0.2f);
+            team.LineForward = MathUtil.MoveTowards(team.LineForward, lineTarget, (3.6f + 1.8f * team.DefensiveChemistry) * 0.2f * (tac0.Defence == DefenceStyle.OffsideTrap ? 1.7f : 1f));
 
             float offsideLine = MathF.Max(MathF.Max(SecondLastDefenderForward(team), ballF), 0f);
 
@@ -197,7 +211,7 @@ namespace SoccerVision.Simulation
 
         private Vec2 ComputeShapeTarget(PlayerAgent p, TeamAgent team, bool inPossession, float ballF, float ballL, float offsideLine)
         {
-            var tac = team.Tactics;
+            var tac = team.Eff;
             var slot = p.Slot;
             float line = team.LineForward;
             float blockLength = inPossession ? 34f + 10f * tac.Mentality + 5f * tac.Tempo : 26f + 5f * tac.DefensiveLine;
@@ -290,7 +304,8 @@ namespace SoccerVision.Simulation
             }
 
             // Box presence when a cross is on (ball wide in the final third).
-            if (inPossession && ballF > 24f && MathF.Abs(ballL) > 12f && Ball.Owner != null && Ball.Owner.Team == team && Ball.Owner != p)
+            bool crossy = team.Tactics.Attack == AttackStyle.CrossesIntoBox || team.Tactics.Special == SpecialTactic.Siege;
+            if (inPossession && ballF > (crossy ? 18f : 24f) && MathF.Abs(ballL) > (crossy ? 9f : 12f) && Ball.Owner != null && Ball.Owner.Team == team && Ball.Owner != p)
             {
                 float side = MathF.Sign(ballL);
                 if (slot.Line == Line.Attack)
@@ -310,6 +325,27 @@ namespace SoccerVision.Simulation
                     f = 34f;
                     l = side * 4f;
                 }
+            }
+
+            // The chosen styles on the shape.
+            var style = team.Tactics;
+            if (style.Defence == DefenceStyle.ParkTheBus)
+            {
+                // A bunker: nobody ahead of the ball, the midfield on the back line's shoulder, one forward left up.
+                if (!inPossession) f = MathF.Min(f, line + (slot.Line == Line.Midfield ? 9f : slot.Line == Line.Attack ? 17f : 6f));
+                else f = MathF.Min(f, MathF.Max(ballF - 5f, line + 22f));
+            }
+            if (style.Special == SpecialTactic.Siege && inPossession && ballF > 14f)
+            {
+                // Relentless pressure: everybody up round the box, the centre-backs at halfway, the midfield at the edge of the box.
+                if (slot.Line == Line.Midfield && !slot.IsWideMidfielder) f = MathF.Max(f, MathF.Min(ballF - 2f, offsideLine - 2f));
+                if (slot.IsFullBack) f += 6f;
+                if (slot.IsCentreBack) f = MathF.Max(f, MathF.Min(6f, ballF - 16f));
+            }
+            if (team.CounterUntil > SimTime && inPossession && !slot.IsCentreBack && !slot.IsFullBack)
+            {
+                // The counter: the players ahead of the ball break forward at once and spread out.
+                f = MathF.Min(MathF.Max(f, ballF + (slot.Line == Line.Attack ? 6f : 2f)), offsideLine - 0.3f);
             }
 
             // Balance: out of possession the far-side fullback tucks in, so there is no gap through the middle.
@@ -463,7 +499,7 @@ namespace SoccerVision.Simulation
                     AssignCover(def, carrier);
                     return;
                 }
-                var tac = def.Tactics;
+                var tac = def.Eff;
                 // Pressing trigger: how far from his zone a player will engage the carrier (a high block engages earlier).
                 float engage = 8f + 14f * tac.PressingIntensity + 6f * (tac.DefensiveLine - 0.5f);
                 if (best != null)
@@ -856,7 +892,9 @@ namespace SoccerVision.Simulation
                     float pressure = Pressure(carrier, out _);
                     if (p.RunTimer <= 0f && p.RunCooldown <= 0f && carrierF > -25f && pressure < 0.6f)
                     {
-                        float willing = 0.2f + 0.4f * MathUtil.A(p.Attr.OffTheBall) + 0.25f * team.Tactics.Mentality;
+                        float willing = 0.2f + 0.4f * MathUtil.A(p.Attr.OffTheBall) + 0.25f * team.Eff.Mentality;
+                        if (team.Tactics.Attack == AttackStyle.RunsInBehind) willing *= 1.6f;
+                        if (team.CounterUntil > SimTime) willing *= 1.8f;
                         // Central midfielders arrive late from deep (third-man runs), only around the box.
                         if (p.Slot.IsCentralMidfielder) willing *= team.Forward(carrier.Pos) > 12f ? 0.35f : 0f;
                         if (_rng.Chance(willing * 0.45f))
@@ -867,7 +905,7 @@ namespace SoccerVision.Simulation
                             float lateral = MathUtil.Clamp(team.Lateral(p.Pos) * 0.8f + _rng.Range(-6f, 6f), -26f, 26f);
                             p.RunPlan = new Vec2(timingError, lateral); // (overshoot beyond the line, lateral) in local space
                         }
-                        p.RunCooldown = _rng.Range(4f, 9f);
+                        p.RunCooldown = _rng.Range(4f, 9f) * (team.Tactics.Attack == AttackStyle.RunsInBehind || team.CounterUntil > SimTime ? 0.5f : 1f);
                     }
                     if (p.RunTimer > 0f)
                     {
@@ -929,6 +967,10 @@ namespace SoccerVision.Simulation
                     bool ballInFront = team.Forward(Ball.Pos) > line + 4f && Pressure(Ball.Owner, out _) > 0.3f;
                     bool trusts = chem * (0.6f + 0.4f * MathUtil.A(p.Attr.Positioning)) + 0.12f * MathF.Sin(SimTime * 0.31f + p.NoisePhaseB) > 0.55f;
                     float slack = 0.4f + 2.2f * (1f - chem);
+                    bool trap = team.Tactics.Defence == DefenceStyle.OffsideTrap;
+                    bool broken = trap && p == team.TrapBreaker && team.TrapBrokenUntil > SimTime;
+                    if (trap) { trusts = !broken; slack = 0.3f; ballInFront = team.Forward(Ball.Pos) > line + 4f; } // the trap holds the line whatever the pressure
+                    if (broken) target = team.ToWorld(MathF.Min(team.Forward(target), line - 6.5f), team.Lateral(target)); // one man is left behind: nobody is offside
                     if (ballInFront && trusts && !Pitch.InPenaltyArea(target, team.OwnGoalSign) && team.Forward(target) < line - slack)
                     {
                         target = team.ToWorld(line - slack, team.Lateral(target));
@@ -1096,10 +1138,17 @@ namespace SoccerVision.Simulation
             p.Pos = Pitch.ClampToField(p.Pos, p.SentOff ? 8f : (Phase == MatchPhase.Stoppage && _restart != null && _restart.Taker == p ? 3.5f : 1.5f));
             p.DistanceCovered += speed * dt;
 
+            if (p.KickTimer > 0f) p.KickTimer -= dt;
             // Facing: run direction when moving, otherwise the ball. A pending kick turns the body first.
             float targetFacing;
             float turnRate;
-            if (p.HasPendingPlan)
+            if (Phase == MatchPhase.Stoppage && _restart != null && _restart.Taker == p && RestartFacing(_restart, p, out float restartFacing))
+            {
+                // the player taking a throw-in, corner, goal kick or free kick faces the way he will play it, into the field
+                targetFacing = restartFacing;
+                turnRate = 7f;
+            }
+            else if (p.HasPendingPlan)
             {
                 targetFacing = p.PendingPlan.Heading;
                 turnRate = 14f;
@@ -1208,7 +1257,7 @@ namespace SoccerVision.Simulation
             float intensity = speed / MathF.Max(1f, p.MaxSpeed);
             float staminaFactor = 1.35f - 0.7f * MathUtil.A(p.Attr.Stamina);
             float drain = (0.00005f + 0.00066f * intensity * intensity * intensity) * staminaFactor;
-            drain *= WorkRate(p);
+            drain *= WorkRate(p) * p.Team.Tactics.EnergyDrain;
             float recover = speed < 2.2f ? 0.00004f : 0f;
             p.Energy = MathUtil.Clamp(p.Energy - (drain - recover) * clockDt, 0.25f, 1f);
             MaybeStrain(p, intensity, clockDt);

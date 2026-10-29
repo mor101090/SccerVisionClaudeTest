@@ -262,9 +262,11 @@ namespace SoccerVision.Simulation
             if (changeOfPossession) p.Team.LastAttackSeconds = SimTime;
             SnapshotOffside(p, false);
             _penaltyKickTime = -1f;
-            float tempo = p.Team.Tactics.Tempo;
+            float tempo = p.Team.Eff.Tempo;
             p.DecisionTimer = MathUtil.Clamp(0.1f + 0.3f * (1f - MathUtil.A(p.Attr.BallControl)) + relSpeed * 0.012f - 0.08f * (tempo - 0.5f), 0.08f, 0.6f);
             p.OneTwoUntil = -1f; // (the return ball has arrived, or the run is over)
+            // Counter-attack: winning the ball in our own half starts the break.
+            if (changeOfPossession && p.Team.Tactics.Special == SpecialTactic.CounterAttack && p.Team.Forward(Ball.Pos) < 12f) { p.Team.CounterUntil = SimTime + 7f; if (CollectDiagnostics) Count("counter.start"); }
             // A team-mate is on a give-and-go run past me: the wall pass is played first time.
             foreach (var r in p.Team.Players)
                 if (r.OneTwoWith == p && r.OneTwoUntil > SimTime) { p.DecisionTimer = MathF.Min(p.DecisionTimer, 0.1f); break; }
@@ -588,7 +590,7 @@ namespace SoccerVision.Simulation
             PossessionTeam = gk.Team;
             _goalkeeperHoldTimer = 0f;
             _penaltyKickTime = -1f;
-            gk.DecisionTimer = _rng.Range(1.4f, 3.2f) * (1.25f - 0.5f * gk.Team.Tactics.Tempo);
+            gk.DecisionTimer = _rng.Range(1.4f, 3.2f) * (1.25f - 0.5f * gk.Team.Eff.Tempo) * (WastesTime(gk.Team) ? 1.4f : 1f);
             gk.Task = PlayerTask.GoalkeeperHold;
             gk.HasPendingPlan = false;
             AssignBallDuties();
@@ -640,7 +642,7 @@ namespace SoccerVision.Simulation
 
                 // Standing tackle: defenders mostly jockey and wait for the moment the carrier is exposed.
                 // (only once the ball itself is within reach, so the moment is short: a higher rate per second)
-                float rate = (0.1f + 0.22f * aggression + 0.17f * defenders.Tactics.PressingIntensity) * TackleStyleFactor(defenders);
+                float rate = (0.1f + 0.22f * aggression + 0.17f * defenders.Eff.PressingIntensity) * TackleStyleFactor(defenders);
                 if (d.Slot.IsCentralMidfielder) rate *= d == defenders.Anchor ? 1.45f : 1.35f; // the midfield ball-winners
                 float exposed = 1f;
                 if (carrier.HoldTime < 0.45f) exposed += 0.9f;                                         // still controlling the ball

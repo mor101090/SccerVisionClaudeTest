@@ -46,7 +46,14 @@ namespace SoccerVision.Simulation
             else if (human.Width > 0.7f) t.Width = 0.4f; // stay compact against a wide team
             if (human.Tackling == TacklingStyle.GetStuckIn) t.Tempo = 0.75f;
             if (human.Passing == PassingStyle.Direct) t.DefensiveLine = MathF.Min(t.DefensiveLine, 0.35f); // no space behind to run into
-            if (human.Passing == PassingStyle.Short) { t.PressingIntensity = 0.7f; t.Tackling = TacklingStyle.Normal; }
+            if (human.Passing == PassingStyle.Short) { t.PressingIntensity = 0.7f; t.Tackling = TacklingStyle.Normal; t.Defence = DefenceStyle.HighPress; }
+
+            // Answer the human's chosen styles.
+            if (human.Defence == DefenceStyle.OffsideTrap) { t.Attack = AttackStyle.LongShots; t.Passing = PassingStyle.Short; }       // no balls in behind into a trap
+            else if (human.Defence == DefenceStyle.ParkTheBus) { t.Attack = AttackStyle.CrossesIntoBox; t.Special = SpecialTactic.Possession; } // work it wide against a bunker
+            else if (human.Defence == DefenceStyle.HighPress) { t.Attack = AttackStyle.RunsInBehind; }
+            if (human.Special == SpecialTactic.CounterAttack) { t.Special = SpecialTactic.Possession; t.DefensiveLine = Math.Min(t.DefensiveLine, 0.5f); } // do not leave space for the break
+            else if (human.Special == SpecialTactic.TimeWasting && diff <= 0) t.Special = SpecialTactic.Siege;
 
             // The score and the time.
             if (diff < 0 && minute >= 55f)
@@ -55,7 +62,7 @@ namespace SoccerVision.Simulation
                 t.DefensiveLine = MathF.Max(t.DefensiveLine, 0.7f);
                 t.Tempo = 0.85f;
                 t.PressingIntensity = 0.8f;
-                if (minute >= 75f) t.Tackling = TacklingStyle.GetStuckIn;
+                if (minute >= 75f) { t.Tackling = TacklingStyle.GetStuckIn; t.Special = SpecialTactic.Siege; t.Attack = AttackStyle.CrossesIntoBox; }
             }
             else if (diff > 0 && minute >= 70f)
             {
@@ -64,6 +71,8 @@ namespace SoccerVision.Simulation
                 t.Width = 0.4f;
                 t.Tempo = 0.25f;
                 t.Passing = PassingStyle.Short;
+                t.Defence = DefenceStyle.ParkTheBus;
+                t.Special = SpecialTactic.TimeWasting;
             }
 
             string now = t.Describe();

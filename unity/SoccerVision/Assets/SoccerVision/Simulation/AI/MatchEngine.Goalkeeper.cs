@@ -71,7 +71,7 @@ namespace SoccerVision.Simulation
             if (PossessionTeam == team && team.Forward(ballPos) > -5f)
             {
                 // Sweeper position behind the defensive line, ready for counters.
-                depth = MathUtil.Clamp(8f + 0.12f * (team.Forward(ballPos) + 5f) + 4f * team.Tactics.DefensiveLine, 8f, 19f);
+                depth = MathUtil.Clamp(8f + 0.12f * (team.Forward(ballPos) + 5f) + 4f * team.Eff.DefensiveLine, 8f, 19f);
                 depth = MathF.Min(depth, team.LineForward + Pitch.HalfLength - 6f);
                 depth = MathF.Max(depth, 2f);
             }
@@ -153,7 +153,7 @@ namespace SoccerVision.Simulation
                 }
             }
 
-            float tempo = team.Tactics.Tempo;
+            float tempo = team.Eff.Tempo;
             float kicking = MathUtil.A(gk.Attr.Kicking);
 
             // Short option: a team-mate in space nearby (roll/throw).

@@ -109,12 +109,11 @@ namespace SoccerVision.Runtime
                         float sc = Vector3.Dot(Hex[q], b) / RH;
                         if (sc > best) { second = best; best = sc; pent = false; } else if (sc > second) second = sc;
                     }
-                    // snow: lit from inside - a hot yellow-orange core fading to deep orange at the rim, white-hot pentagons
-                    float hot = Mathf.Pow(n.z, 1.4f);
-                    Vector3 col = Winter ? (pent ? new Vector3(255f, 250f, 236f) : new Vector3(255f, 92f + 112f * hot, 8f + 72f * hot)) : (pent ? new Vector3(28f, 28f, 28f) : new Vector3(246f, 246f, 246f));
-                    if (best - second < 0.006f) col = Winter ? (pent ? new Vector3(255f, 214f, 150f) : new Vector3(235f, 70f, 0f)) : (pent ? new Vector3(60f, 60f, 60f) : new Vector3(150f, 150f, 150f)); // stitched seams
+                    // snow: a marker-orange ball (a flat, fluorescent orange, no glow)
+                    Vector3 col = Winter ? (pent ? new Vector3(240f, 84f, 0f) : new Vector3(255f, 108f, 0f)) : (pent ? new Vector3(28f, 28f, 28f) : new Vector3(246f, 246f, 246f));
+                    if (best - second < 0.006f) col = Winter ? (pent ? new Vector3(190f, 60f, 0f) : new Vector3(214f, 80f, 0f)) : (pent ? new Vector3(60f, 60f, 60f) : new Vector3(150f, 150f, 150f)); // stitched seams
                     float lit = Mathf.Max(0f, Vector3.Dot(n, Light));
-                    float diff = Winter ? 1f : 0.38f + 0.62f * lit;
+                    float diff = Winter ? 0.92f + 0.08f * lit : 0.38f + 0.62f * lit;
                     float spec = Mathf.Pow(Mathf.Max(0f, Vector3.Dot(n, Half)), 36f) * (pent ? 120f : 90f);
                     float edge = 1f - Mathf.Sqrt(r2);
                     // a thin dark rim keeps the ball readable on the light grass

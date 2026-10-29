@@ -120,6 +120,15 @@ namespace SoccerVision.Simulation
         /// <summary>One-two: the team-mate this player just passed to and runs past for the return ball, until OneTwoUntil.</summary>
         public PlayerAgent OneTwoWith;
         public float OneTwoUntil = -1f;
+        /// <summary>
+        /// A kick or pass in progress, for the legs: sim seconds left of the swing (KickSwing at the start). The kicking foot goes
+        /// back (the backswing), then forward through the ball, then settles. KickLeft: it is the left foot.
+        /// </summary>
+        public float KickTimer;
+        public bool KickLeft;
+        public const float KickSwing = 0.45f;
+        /// <summary>0 none, 1 backswing, 2 strike, 3 follow-through (the swing as the replay records it).</summary>
+        public int KickPhase => KickTimer <= 0f ? 0 : KickTimer > 0.30f ? 1 : KickTimer > 0.15f ? 2 : 3;
         /// <summary>Where the one-two run goes (world).</summary>
         public Vec2 OneTwoSpot;
         /// <summary>The opponent this player marks right now (either system).</summary>

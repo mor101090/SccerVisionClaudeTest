@@ -73,6 +73,9 @@ static TeamSetup WithTactics(TeamSetup t, string spec)
             case "width": t.Tactics.Width = float.Parse(v); break;
             case "tempo": t.Tactics.Tempo = float.Parse(v); break;
             case "passing": t.Tactics.Passing = Enum.Parse<PassingStyle>(v, true); break;
+            case "defence": t.Tactics.Defence = v == "press" ? DefenceStyle.HighPress : v == "trap" ? DefenceStyle.OffsideTrap : v == "bus" ? DefenceStyle.ParkTheBus : DefenceStyle.Balanced; break;
+            case "attack": t.Tactics.Attack = v == "crosses" ? AttackStyle.CrossesIntoBox : v == "runs" ? AttackStyle.RunsInBehind : v == "long" ? AttackStyle.LongShots : AttackStyle.Mixed; break;
+            case "special": t.Tactics.Special = v == "possession" ? SpecialTactic.Possession : v == "waste" ? SpecialTactic.TimeWasting : v == "counter" ? SpecialTactic.CounterAttack : v == "siege" ? SpecialTactic.Siege : SpecialTactic.None; break;
             case "aggression":
                 float a = float.Parse(v);
                 t.Tactics.PressingIntensity = 0.5f + 0.6f * (a - 0.5f);
@@ -240,6 +243,9 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Home: avg back-line depth (m from own goal)", Avg(x => x.HomeLineDepth), "width of outfield spread " + Avg(x => x.HomeSpread).ToString("0.0") + " m");
     Row("Home: midfield / forwards depth (m)", Avg(x => x.HomeMidDepth), Avg(x => x.HomeAttackDepth).ToString("0.0"));
     Row("Real minutes per match", Avg(x => x.RealMinutes), "");
+    Row("Home: crosses / long shots (18 m+)", Avg(x => x.HomeCrosses), Avg(x => x.HomeLongShots).ToString("0.0"));
+    Row("Home: stamina left at the end (%) / shots", Avg(x => x.HomeEnergy), Avg(x => x.HomeShots).ToString("0.0") + " (away " + Avg(x => x.AwayShots).ToString("0.0") + ")");
+    Row("Away caught offside / through balls home", Avg(x => x.AwayOffsides), Avg(x => x.HomeThrough).ToString("0.0"));
     Row("Crosses by full-backs", Avg(x => x.FullBackCrosses), "~35-45% of crosses");
     Row("Crosses by wingers", Avg(x => x.WingerCrosses), "~35-45% of crosses");
     Row("Shots by full-backs", Avg(x => x.FullBackShots), "~1-2");
@@ -314,7 +320,7 @@ sealed class MatchResult
     public int RecoveredErrors;
     public double WallMs;
     public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots, LightInjuries, SeriousInjuries, Substitutions, Switches, SwitchesCompleted, FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks, CrossesAll, Interceptions, AnticipatedInterceptions, ThroughBalls, ThroughBallsCompleted, PassesIntoSpace, ShieldedOut, ShoulderDuelsWon, OneTwos, OneTwosCompleted, HomePasses, HomeLongBalls, HomeFouls, HomeYellows;
-    public double HomeLineDepth, HomeSpread, RealMinutes, HomeMidDepth, HomeAttackDepth;
+    public double HomeLineDepth, HomeSpread, RealMinutes, HomeMidDepth, HomeAttackDepth, HomeCrosses, HomeLongShots, HomeEnergy, AwayOffsides, HomeThrough;
     public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy, FoulsAnchor, FoulsCm, FoulsCb, FoulsFb, FoulsWide, FoulsSt, TacklesAnchor, TacklesCm, TacklesCb, TacklesFb, TacklesWide, TacklesSt, IntAnchor, IntCm, IntCb, IntFb, IntWide, IntSt, PassAnchor, PassCm, PassCb, PassFb, PassWide, PassSt, EnergyFullBack, EnergyCentreBack, EnergyWide, EnergyCentral, EnergyStriker, EnergyKeeper;
     public string Score;
 
@@ -380,6 +386,11 @@ sealed class MatchResult
             HomeMidDepth = e.HomeLineSamples > 0 ? e.HomeMidSum / e.HomeLineSamples : 0,
             HomeAttackDepth = e.HomeLineSamples > 0 ? e.HomeAttackSum / e.HomeLineSamples : 0,
             RealMinutes = e.SimTime / e.Config.MotionSpeed / 60.0,
+            HomeCrosses = h.Crosses,
+            HomeLongShots = e.EventLog.Count(x => x.Type == MatchEventType.Shot && x.Team == 0 && MathF.Min(MathF.Sqrt((52.5f - x.X) * (52.5f - x.X) + x.Y * x.Y), MathF.Sqrt((52.5f + x.X) * (52.5f + x.X) + x.Y * x.Y)) > 18f),
+            HomeEnergy = e.Home.Players.Where(p => !p.IsGoalkeeper).Average(p => p.Energy) * 100.0,
+            AwayOffsides = a.Offsides,
+            HomeThrough = h.ThroughBalls,
             SwitchesCompleted = h.SwitchesCompleted + a.SwitchesCompleted,
             FullBackCrosses = h.FullBackCrosses + a.FullBackCrosses,
             WingerCrosses = h.WingerCrosses + a.WingerCrosses,

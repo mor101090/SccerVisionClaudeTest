@@ -52,8 +52,8 @@ namespace SoccerVision.Runtime
             for (int side = -1; side <= 1; side += 2)
             {
                 var boot = SpriteFactory.AddSprite(_feet, "Boot", SpriteFactory.Circle, new Color(0.91f, 0.925f, 0.937f), 11, 1f);
-                boot.transform.localPosition = new Vector3(0.45f, 0.22f * side, 0f);
-                boot.transform.localScale = new Vector3(0.32f, 0.22f, 1f);
+                boot.transform.localPosition = new Vector3(0.4f, 0.2f * side, 0f); // close under the front edge, a little back
+                boot.transform.localScale = new Vector3(0.3f, 0.21f, 1f);
                 _boots[side < 0 ? 0 : 1] = boot;
             }
             _streak = SpriteFactory.AddSprite(transform, "SlideStreak", SpriteFactory.Square, new Color(0.88f, 0.94f, 0.8f, 0.3f), 11, 1f);
@@ -115,6 +115,7 @@ namespace SoccerVision.Runtime
             ShowOffside(a.OffsideMarkTimer > 0f);
             UpdateBodyScale(jump);
             UpdateDown(a.SlideTimer > 0f, a.IsDown && !a.SentOff, a.Facing);
+            UpdateKick(a.KickTimer, a.KickLeft);
             _card.enabled = a.YellowCards > 0 && !a.SentOff;
             bool hurt = a.Injury != InjuryLevel.None && !a.SentOff;
             if (_injury.activeSelf != hurt) _injury.SetActive(hurt);
@@ -197,6 +198,27 @@ namespace SoccerVision.Runtime
             }
         }
 
+        /// <summary>
+        /// The swing of a kick or a pass: the kicking foot goes back (backswing), forward through the ball, then settles.
+        /// The legs never run on the spot. _boots[0] is the right foot, _boots[1] the left.
+        /// </summary>
+        private void UpdateKick(float timer, bool left)
+        {
+            float offset = 0f;
+            if (timer > 0f)
+            {
+                float t = 1f - timer / PlayerAgent.KickSwing;
+                offset = t < 0.4f ? Mathf.Lerp(0f, -0.55f, t / 0.4f) : t < 0.6f ? Mathf.Lerp(-0.55f, 0.55f, (t - 0.4f) / 0.2f) : Mathf.Lerp(0.55f, 0f, (t - 0.6f) / 0.4f);
+            }
+            for (int i = 0; i < 2; i++)
+            {
+                var p = _boots[i].transform.localPosition;
+                bool kicking = (i == 1) == left;
+                p.x = 0.4f + (kicking ? offset * 0.5f : 0f);
+                _boots[i].transform.localPosition = p;
+            }
+        }
+
         private void ShowOffside(bool on)
         {
             if (_offsideMark.activeSelf != on) _offsideMark.SetActive(on);
@@ -222,7 +244,7 @@ namespace SoccerVision.Runtime
     public sealed class BallView : MonoBehaviour
     {
         public const float Diameter = 0.75f;
-        private SpriteRenderer _ball, _shadow, _glow, _bloom, _pool;
+        private SpriteRenderer _ball, _shadow;
         private Ball3DTexture _look;
         private readonly Vector3[] _lights = new Vector3[4];
         private TrailRenderer _trail;
@@ -241,16 +263,6 @@ namespace SoccerVision.Runtime
             _ball.sprite = _look.Sprite;
             _ball.sortingOrder = 50;
             // the snow ball's glow: a soft orange halo (lit only in the snow)
-            // Glow: an orange haze behind the ball, an additive bloom that brightens what is behind it (the ball looks lit
-            // from inside) and a pool of light on the ground under it. Lit only in the snow; it breathes gently.
-            _glow = SpriteFactory.AddSprite(body, "Glow", SpriteFactory.Shadow, new Color(1f, 0.38f, 0f, 0.6f), 48, 5.5f);
-            _bloom = SpriteFactory.AddSprite(body, "Bloom", SpriteFactory.Shadow, new Color(1f, 0.7f, 0.35f, 0.9f), 49, 3.6f);
-            _pool = SpriteFactory.AddSprite(transform, "LightPool", SpriteFactory.Shadow, new Color(1f, 0.45f, 0.05f, 0.4f), 41, Diameter * 4.5f);
-            var additive = Shader.Find("Legacy Shaders/Particles/Additive") ?? Shader.Find("Particles/Additive");
-            if (additive != null) _bloom.material = new Material(additive);
-            _glow.gameObject.SetActive(false);
-            _bloom.gameObject.SetActive(false);
-            _pool.gameObject.SetActive(false);
             _trail = body.gameObject.AddComponent<TrailRenderer>();
             _trail.time = 0.18f;
             _trail.startWidth = Diameter * 0.8f;
@@ -288,16 +300,6 @@ namespace SoccerVision.Runtime
             bool held = !inPlay || (ball.Owner != null && (ball.InHands || ball.Owner.IsGoalkeeper || z > 0.4f));
             _look.Spin(new Vector2(x, y), h, dt, held);
             _look.Winter = Atmosphere.Look.sky == Weather.Snow;
-            _glow.gameObject.SetActive(_look.Winter);
-            _bloom.gameObject.SetActive(_look.Winter);
-            _pool.gameObject.SetActive(_look.Winter);
-            if (_look.Winter)
-            {
-                float pulse = 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 4.2f);
-                _glow.color = new Color(1f, 0.38f, 0f, 0.6f * pulse);
-                _bloom.color = new Color(1f, 0.7f, 0.35f, 0.9f * pulse);
-                _pool.color = new Color(1f, 0.45f, 0.05f, 0.4f * pulse);
-            }
             _look.Redraw();
             Atmosphere.Shadows(new Vector2(x, y), _lights);
             _shadow.transform.localPosition = new Vector3(_lights[0].x, _lights[0].y, 0f) * (Atmosphere.Look.night ? 0f : 1f);
@@ -321,6 +323,7 @@ namespace SoccerVision.Runtime
         private Transform _flag;
         private SpriteRenderer _card;
         private Transform _cardArm;
+        private Transform _feet;
 
         public void Init(Official official, bool assistant)
         {
@@ -331,6 +334,15 @@ namespace SoccerVision.Runtime
             _fill = SpriteFactory.AddSprite(transform, "Fill", SpriteFactory.Circle, new Color(0.08f, 0.08f, 0.08f, 1f), 12, d);
             _trim = assistant ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.92f, 0.2f);
             _ringSr = SpriteFactory.AddSprite(transform, "Ring", SpriteFactory.Ring, _trim, 13, d);
+            // two small boots, as the players have: the referee watches the ball, the assistants face the pitch
+            _feet = new GameObject("Feet").transform;
+            _feet.SetParent(transform, false);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var boot = SpriteFactory.AddSprite(_feet, "Boot", SpriteFactory.Circle, new Color(0.91f, 0.925f, 0.937f), 11, d * 0.3f);
+                boot.transform.localPosition = new Vector3(d * 0.35f, d * 0.19f * side, 0f);
+                boot.transform.localScale = new Vector3(d * 0.3f, d * 0.21f, 1f);
+            }
             var letter = SpriteFactory.AddText(transform, "Letter", assistant ? "L" : "R", _trim, 14, 0.112f);
             _letter = letter;
             letter.fontStyle = FontStyle.Bold;
@@ -388,6 +400,7 @@ namespace SoccerVision.Runtime
             float x = Mathf.Lerp(_o.PrevPos.X, _o.Pos.X, alpha);
             float y = Mathf.Lerp(_o.PrevPos.Y, _o.Pos.Y, alpha);
             transform.localPosition = new Vector3(x, y, 0f);
+            _feet.localRotation = Quaternion.Euler(0f, 0f, _o.Facing * Mathf.Rad2Deg);
             if (_flag != null)
             {
                 if (_flag.gameObject.activeSelf != _o.FlagRaised) _flag.gameObject.SetActive(_o.FlagRaised);

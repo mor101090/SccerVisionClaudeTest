@@ -83,8 +83,8 @@ export class Ball3D {
   /** High-visibility ball (orange with navy pentagons), used in the snow. */
   winter = false;
 
-  /** Draws the ball at (cx, cy); (gx, gy) is the point on the ground under it (the snow ball lights the ground there). */
-  draw(ctx: CanvasRenderingContext2D, cx: number, cy: number, rad: number, gx?: number, gy?: number) {
+  /** Draws the ball at (cx, cy). */
+  draw(ctx: CanvasRenderingContext2D, cx: number, cy: number, rad: number) {
     const size = Math.ceil(rad * 2) + 2;
     const c = size / 2;
     if (!this.canvas) this.canvas = document.createElement("canvas");
@@ -126,12 +126,11 @@ export class Ball3D {
             pent = false;
           } else if (sc > second) second = sc;
         }
-        // snow: lit from inside - a hot yellow-orange core fading to deep orange at the rim, white-hot pentagons
-        const hot = Math.pow(nz, 1.4);
-        let col = this.winter ? (pent ? [255, 250, 236] : [255, 92 + 112 * hot, 8 + 72 * hot]) : pent ? [28, 28, 28] : [246, 246, 246];
-        if (best - second < 0.006) col = this.winter ? (pent ? [255, 214, 150] : [235, 70, 0]) : pent ? [60, 60, 60] : [150, 150, 150]; // stitched seams
+        // snow: a marker-orange ball (a flat, fluorescent orange, no glow)
+        let col = this.winter ? (pent ? [240, 84, 0] : [255, 108, 0]) : pent ? [28, 28, 28] : [246, 246, 246];
+        if (best - second < 0.006) col = this.winter ? (pent ? [190, 60, 0] : [214, 80, 0]) : pent ? [60, 60, 60] : [150, 150, 150]; // stitched seams
         const lit = Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
-        const diff = this.winter ? 1 : 0.38 + 0.62 * lit;
+        const diff = this.winter ? 0.92 + 0.08 * lit : 0.38 + 0.62 * lit;
         const spec = Math.pow(Math.max(0, nx * HALF[0] + ny * HALF[1] + nz * HALF[2]), 36) * (pent ? 120 : 90);
         const o = (py * size + px) * 4;
         d[o] = Math.min(255, col[0] * diff + spec);
@@ -140,58 +139,11 @@ export class Ball3D {
         d[o + 3] = 255 * Math.min(1, (1 - Math.sqrt(r2)) * rad + 0.5);
       }
     bctx.putImageData(img, 0, 0);
-    if (this.winter) {
-      // Glow: a pool of orange light on the ground, an orange haze (seen on white snow too) and an additive bloom that
-      // brightens whatever is behind it, breathing gently.
-      const pulse = 0.85 + 0.15 * Math.sin(performance.now() / 240);
-      const gr = Math.max(rad * 5.5, 18);
-      ctx.save();
-      if (gx !== undefined && gy !== undefined) {
-        const pool = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr * 0.9);
-        pool.addColorStop(0, `rgba(255,120,10,${0.38 * pulse})`);
-        pool.addColorStop(1, "rgba(255,120,10,0)");
-        ctx.fillStyle = pool;
-        ctx.beginPath();
-        ctx.ellipse(gx, gy, gr * 0.9, gr * 0.7, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      const haze = ctx.createRadialGradient(cx, cy, rad * 0.8, cx, cy, gr);
-      haze.addColorStop(0, `rgba(255,96,0,${0.55 * pulse})`);
-      haze.addColorStop(0.4, `rgba(255,110,0,${0.2 * pulse})`);
-      haze.addColorStop(1, "rgba(255,110,0,0)");
-      ctx.fillStyle = haze;
-      ctx.beginPath();
-      ctx.arc(cx, cy, gr, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalCompositeOperation = "lighter";
-      const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, gr * 0.75);
-      bloom.addColorStop(0, `rgba(255,190,90,${0.95 * pulse})`);
-      bloom.addColorStop(0.3, `rgba(255,130,30,${0.5 * pulse})`);
-      bloom.addColorStop(1, "rgba(255,90,0,0)");
-      ctx.fillStyle = bloom;
-      ctx.beginPath();
-      ctx.arc(cx, cy, gr * 0.75, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
     ctx.drawImage(this.canvas, cx - c, cy - c);
     ctx.beginPath();
     ctx.arc(cx, cy, rad, 0, Math.PI * 2);
     ctx.lineWidth = Math.max(0.6, rad * 0.08);
-    ctx.strokeStyle = this.winter ? "rgba(255,226,170,0.95)" : "rgba(0,0,0,0.45)";
+    ctx.strokeStyle = this.winter ? "rgba(150,50,0,0.7)" : "rgba(0,0,0,0.45)";
     ctx.stroke();
-    if (this.winter) {
-      // a white-hot sheen on top
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      const sh = ctx.createRadialGradient(cx - rad * 0.25, cy - rad * 0.3, 0, cx, cy, rad * 1.15);
-      sh.addColorStop(0, "rgba(255,245,220,0.75)");
-      sh.addColorStop(1, "rgba(255,150,40,0)");
-      ctx.fillStyle = sh;
-      ctx.beginPath();
-      ctx.arc(cx, cy, rad * 1.15, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
   }
 }

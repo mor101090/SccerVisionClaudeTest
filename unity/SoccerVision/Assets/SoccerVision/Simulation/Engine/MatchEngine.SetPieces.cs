@@ -52,6 +52,7 @@ namespace SoccerVision.Simulation
                 default: r.SetupTime = IsDangerousFreeKick(r) ? Config.FreeKickWithWallSetupSeconds : Config.FreeKickSetupSeconds; break;
             }
             r.SetupTime *= _rng.Range(0.85f, 1.2f);
+            if (WastesTime(team)) r.SetupTime *= 1.9f; // time wasting: the restart is taken slowly (the clock runs)
             if (type != RestartType.KickOff && type != RestartType.DroppedBall) r.PauseLeft = Config.RestartPauseRealSeconds * Config.MotionSpeed;
             LayoutRestart(r);
             // IFAB: the whistle restarts kick-offs, penalties and free kicks where the 9.15 m distance is enforced;
@@ -184,6 +185,26 @@ namespace SoccerVision.Simulation
             return best;
         }
 
+        /// <summary>Which way the taker of a restart stands: into the field for a throw-in, at the box for a corner, upfield for a goal kick, at goal for a free kick or a penalty.</summary>
+        private bool RestartFacing(Restart r, PlayerAgent p, out float facing)
+        {
+            facing = 0f;
+            var team = r.Team;
+            switch (r.Type)
+            {
+                case RestartType.ThrowIn: facing = new Vec2(0f, -MathF.Sign(r.Spot.Y)).Angle; return true;
+                case RestartType.CornerKick: facing = (Pitch.PenaltySpot(team.AttackGoalSign) - p.Pos).Angle; return true;
+                case RestartType.GoalKick: facing = team.DirToWorld(Vec2.UnitX).Angle; return true;
+                case RestartType.PenaltyKick: facing = (team.AttackGoal - p.Pos).Angle; return true;
+                case RestartType.DirectFreeKick:
+                case RestartType.IndirectFreeKick:
+                    if (Vec2.Distance(p.Pos, r.Spot) > 6f) return false; // still walking back for his run-up
+                    facing = (IsDangerousFreeKick(r) ? team.AttackGoal - r.Spot : team.DirToWorld(Vec2.UnitX) * 10f).Angle;
+                    return true;
+                default: return false;
+            }
+        }
+
         private Vec2 ApproachPoint(Restart r)
         {
             var team = r.Team;
@@ -249,7 +270,7 @@ namespace SoccerVision.Simulation
             foreach (var t in Teams)
             {
                 bool poss = t == inPossession;
-                var tac = t.Tactics;
+                var tac = t.Eff;
                 float ballF = t.Forward(ballPos);
                 float ballL = t.Lateral(ballPos);
                 float line = poss ? MathUtil.Clamp(ballF * 0.62f - 17f + 10f * (tac.Mentality - 0.5f), -41f, 3f)
@@ -345,9 +366,9 @@ namespace SoccerVision.Simulation
         {
             var team = r.Team;
             var opp = team.Opponent;
-            float tempo = team.Tactics.Tempo;
+            float tempo = team.Eff.Tempo;
             float kicking = r.Taker != null ? MathUtil.A(r.Taker.Attr.Kicking) : 0.5f;
-            float pShort = MathUtil.Clamp(0.35f + 0.35f * (1f - tempo) + 0.2f * (1f - opp.Tactics.PressingIntensity) - 0.25f * kicking, 0.1f, 0.85f);
+            float pShort = MathUtil.Clamp(0.35f + 0.35f * (1f - tempo) + 0.2f * (1f - opp.Eff.PressingIntensity) - 0.25f * kicking, 0.1f, 0.85f);
             _shortGoalKick = _rng.Chance(pShort);
             LayoutShapeAround(r.Spot, team);
             foreach (var p in team.Players)

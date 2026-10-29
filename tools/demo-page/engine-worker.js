@@ -24,14 +24,14 @@ self.onmessage = async (e) => {
       postMessage({ type: "ready" });
     } else if (m.cmd === "start") {
       token = m.token; lead = m.lead; generated = 0; played = 0;
-      const k = m.tactics || { line: .5, width: .5, passing: 1, tempo: .5, aggression: .5 };
-      const header = L.Start(m.seed, m.mode, m.weather, m.maintenance, m.wind, m.windAngle, m.night, k.line, k.width, k.passing, k.tempo, k.aggression);
+      const k = Object.assign({ line: .5, width: .5, passing: 1, tempo: .5, aggression: .5, defence: 0, attack: 0, special: 0 }, m.tactics || {});
+      const header = L.Start(m.seed, m.mode, m.weather, m.maintenance, m.wind, m.windAngle, m.night, k.line, k.width, k.passing, k.tempo, k.aggression, k.defence, k.attack, k.special);
       postMessage({ type: "header", token, header });
       pump();
     } else if (m.cmd === "progress") {
       if (m.token === token) { played = m.frames; pump(); }
     } else if (m.cmd === "tactics") {
-      if (m.token === token) L.SetTactics(m.line, m.width, m.passing, m.tempo, m.aggression);
+      if (m.token === token) L.SetTactics(m.line, m.width, m.passing, m.tempo, m.aggression, m.defence | 0, m.attack | 0, m.special | 0);
     } else if (m.cmd === "stop") {
       token = m.token;
     }

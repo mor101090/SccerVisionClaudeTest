@@ -14,7 +14,11 @@ namespace SoccerVision.Simulation
         public readonly List<PlayerAgent> Players = new List<PlayerAgent>();
         public readonly List<PlayerAgent> Bench = new List<PlayerAgent>();
         public Formation Formation;
-        public TeamTactics Tactics;
+        /// <summary>The manager's tactics (the sliders and the chosen styles).</summary>
+        public TeamTactics Tactics { get => _tactics; set { _tactics = value; Eff = value.Effective(); } }
+        private TeamTactics _tactics;
+        /// <summary>The tactics as played (the styles applied to the sliders, see <see cref="TeamTactics.Effective"/>): what the AI reads.</summary>
+        public TeamTactics Eff { get; private set; }
         public int AttackDir; // +1 attacks the goal at +X
         public int Score;
         public readonly TeamStats Stats = new TeamStats();
@@ -22,6 +26,11 @@ namespace SoccerVision.Simulation
 
         // Tactical state maintained by the team AI
         public float LineForward = -33f;     // current back line (local forward)
+        /// <summary>Counter-attack tactic: until this sim time the team has just won the ball in its own half and goes forward fast.</summary>
+        public float CounterUntil;
+        /// <summary>Offside trap: the defender who misses the step up for a moment (the trap fails when someone does).</summary>
+        public PlayerAgent TrapBreaker;
+        public float TrapBrokenUntil;
         public float LastAttackSeconds;      // sim time of the last possession change in favour of this team
         public PlayerAgent Presser, SecondPresser, Chaser;
         /// <summary>
@@ -83,6 +92,7 @@ namespace SoccerVision.Simulation
             Setup = setup;
             Formation = setup.Formation;
             Tactics = (setup.Tactics ?? new TeamTactics()).Clone();
+            Eff = Tactics.Effective();
             AttackDir = attackDir;
         }
 

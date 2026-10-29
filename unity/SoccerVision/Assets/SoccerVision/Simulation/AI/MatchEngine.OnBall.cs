@@ -74,7 +74,7 @@ namespace SoccerVision.Simulation
                 case BallAction.Dribble:
                     p.Target = plan.DribbleTarget;
                     p.Urgency = plan.Action == BallAction.Dribble ? 0.85f : 0.3f;
-                    p.DecisionTimer = (plan.Action == BallAction.Dribble ? 0.42f : 0.32f) * (1.25f - 0.5f * p.Team.Tactics.Tempo) * _rng.Range(0.8f, 1.2f);
+                    p.DecisionTimer = (plan.Action == BallAction.Dribble ? 0.42f : 0.32f) * (1.25f - 0.5f * p.Team.Eff.Tempo) * _rng.Range(0.8f, 1.2f);
                     break;
                 default:
                     float turn = MathF.Abs(MathUtil.AngleDiff(p.Facing, plan.Heading));
@@ -106,7 +106,8 @@ namespace SoccerVision.Simulation
             float xtNow = ExpectedThreat.At(f, l);
             float lossNow = LossCost(team, pos);
             // Losing the ball also forfeits what we have now; cautious teams weigh that more.
-            _riskPremium = xtNow * (0.6f + 0.8f * (1f - team.Tactics.Mentality)) * (f < -17.5f ? 1.3f : 1f);
+            _riskPremium = xtNow * (0.6f + 0.8f * (1f - team.Eff.Mentality)) * (f < -17.5f ? 1.3f : 1f);
+            if (team.Tactics.Special == SpecialTactic.Possession) _riskPremium *= 1.45f; // keeping the ball: no gambles
             _options.Clear();
 
             // HOLD / shield
@@ -120,6 +121,7 @@ namespace SoccerVision.Simulation
                     if (len < 5f && len > 1e-3f) away += d / len * (5f - len);
                 }
                 float holdPenalty = MathF.Max(0f, p.HoldTime - 1.2f) * 0.006f;
+                if (WastesTime(team)) holdPenalty = MathF.Max(0f, p.HoldTime - 4f) * 0.002f - 0.003f; // time wasting: he holds it, shields it, takes his time
                 _options.Add(new KickPlan
                 {
                     Action = BallAction.Hold,
@@ -130,14 +132,18 @@ namespace SoccerVision.Simulation
 
             // SHOOT
             float distGoal = Vec2.Distance(pos, team.AttackGoal);
-            if (distGoal < 34f && f > 18f)
+            bool longShots = team.Tactics.Attack == AttackStyle.LongShots;
+            if (distGoal < 34f && f > (longShots ? 12f : 18f))
             {
                 float xg = EstimateShotXG(p, pos);
                 float tendency = p.Slot.Line == Line.Attack ? 1.25f : (p.Slot.Line == Line.Midfield ? 1.05f : 0.8f);
                 if (p.Slot.IsFullBack && f > 30f) tendency *= 1.3f + 0.4f * MathUtil.A(p.Attr.LongShots); // an attacking full-back at the edge of the box has a go
-                tendency *= 0.9f + 0.4f * team.Tactics.Mentality;
+                tendency *= 0.9f + 0.4f * team.Eff.Mentality;
                 if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 2.3f; xg *= 1.1f; }
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
+                // long shots: the manager wants them from 20-30 m (the range where the shooter can still trouble the keeper)
+                if (longShots && distGoal > 16f && distGoal < 33f) tendency *= 1.9f;
+                if (team.Tactics.Special == SpecialTactic.Siege) tendency *= 1.2f;
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
                 float afterShotLoss = 0.006f + 0.25f * _riskPremium;
                 _options.Add(new KickPlan
@@ -153,7 +159,8 @@ namespace SoccerVision.Simulation
 
             EvaluatePasses(p, pos, pressure);
             EvaluateDribbles(p, pos, pressure, lossNow);
-            if (f > 20f && MathF.Abs(l) > 13f) EvaluateCrosses(p, pos);
+            bool crossy = team.Tactics.Attack == AttackStyle.CrossesIntoBox;
+            if (crossy ? f > 15f && MathF.Abs(l) > 9f : f > 20f && MathF.Abs(l) > 13f) EvaluateCrosses(p, pos);
             if (f < -24f && pressure > 0.45f) EvaluateClearance(p, pos, pressure);
             if (MathF.Abs(l) > 27f && pressure > 0.55f) EvaluateKickOut(p, pos, pressure);
 
@@ -339,7 +346,7 @@ namespace SoccerVision.Simulation
             }
             else
             {
-                float arrival = MathUtil.Clamp(5f + 0.09f * d, 5f, 10.5f) * (0.9f + 0.25f * team.Tactics.Tempo);
+                float arrival = MathUtil.Clamp(5f + 0.09f * d, 5f, 10.5f) * (0.9f + 0.25f * team.Eff.Tempo);
                 v0 = Roll.KickSpeedFor(d, arrival);
             }
             if (v0 > maxPower) return;
@@ -376,8 +383,10 @@ namespace SoccerVision.Simulation
             if (_nextPassIntoSpace) success *= 0.85f;
             // Through balls behind the line: keepers sweep, defenders turn and recover - the race is harder to win
             // than the simple estimate suggests (measured: well below the predicted success).
-            else if (kind == KickKind.ThroughBall) success *= 0.68f + 0.3f * SpaceBehindLine(team);
-            float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure) * StyleFactor(team, kind, d, false);
+            else if (kind == KickKind.ThroughBall) success *= 0.68f + 0.5f * SpaceBehindLine(team);
+            float styleBoost = (kind == KickKind.ThroughBall && team.Tactics.Attack == AttackStyle.RunsInBehind ? 1.28f : 1f)
+                               * (team.CounterUntil > SimTime && team.Forward(target) > team.Forward(from) + 8f ? 1.45f : 1f);
+            float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure) * StyleFactor(team, kind, d, false) * styleBoost;
             float relief = SwitchRelief(p, from, target, pressure);
             value += relief;
             // Cut-back: from the by-line, low and square to a team-mate arriving in the middle of the box.
@@ -389,8 +398,8 @@ namespace SoccerVision.Simulation
             if (p.Slot.IsCentralMidfielder && progress > 5f) value *= 1.12f;
             // ...and the build-up goes through them: defenders look for the midfielder first.
             if (q.Slot.IsCentralMidfielder && p.Slot.Line == Line.Defence && kind == KickKind.Pass) value *= 1.15f;
-            value += MathF.Max(0f, progress) * 0.00022f * (0.6f + 0.8f * team.Tactics.Tempo);
-            if (progress < -5f) value -= 0.0006f * (team.Tactics.Tempo - 0.3f) * (-progress / 10f);
+            value += MathF.Max(0f, progress) * 0.00022f * (0.6f + 0.8f * team.Eff.Tempo);
+            if (progress < -5f) value -= 0.0006f * (team.Eff.Tempo - 0.3f) * (-progress / 10f);
             float loss = LossCost(team, pIntercept > 0.3f ? riskPoint : target) + _riskPremium;
             float utility = success * value - (1f - success) * loss;
 
@@ -507,12 +516,12 @@ namespace SoccerVision.Simulation
             float capture = 2.2f + 0.04f * d;
             float pAccuracy = 1f - MathF.Exp(-0.635f * capture * capture / (sd * sd));
             float success = pWin * pControl * pAccuracy;
-            if (kind == KickKind.ThroughBall) success *= 0.8f + 0.18f * SpaceBehindLine(team); // the keeper and the recovering defenders (see AddGroundPass)
+            if (kind == KickKind.ThroughBall) success *= 0.78f + 0.3f * SpaceBehindLine(team); // the keeper and the recovering defenders (see AddGroundPass)
             float value = ExpectedThreat.At(team, target) * StyleFactor(team, kind, d, true);
             float relief = SwitchRelief(p, from, target, pressure);
             value += relief;
             float progress = team.Forward(target) - team.Forward(from);
-            value += MathF.Max(0f, progress) * 0.0002f * (0.6f + 0.8f * team.Tactics.Tempo);
+            value += MathF.Max(0f, progress) * 0.0002f * (0.6f + 0.8f * team.Eff.Tempo);
             float utility = success * value - (1f - success) * (LossCost(team, target) * 0.85f + _riskPremium);
 
             _options.Add(new KickPlan
@@ -682,6 +691,9 @@ namespace SoccerVision.Simulation
                 float delivery = 0.45f + 0.4f * crossing;
                 float headerXg = ExpectedGoals.FromLocation(target, team.AttackGoalSign) * 0.55f * (0.65f + 0.7f * MathUtil.A(bestMate.Attr.Heading));
                 float utility = pWin * delivery * (headerXg + 0.01f) - (1f - pWin * delivery) * (LossCost(team, target) * 0.25f + _riskPremium * 0.6f);
+                // the manager wants crosses: into the box from everywhere wide (crosses style, relentless pressure)
+                if (team.Tactics.Attack == AttackStyle.CrossesIntoBox) utility = utility > 0f ? utility * 1.7f + 0.0015f : utility * 0.6f;
+                else if (team.Tactics.Special == SpecialTactic.Siege) utility = utility > 0f ? utility * 1.25f : utility;
                 _options.Add(new KickPlan
                 {
                     Action = BallAction.Cross,
@@ -795,6 +807,9 @@ namespace SoccerVision.Simulation
             }
         }
 
+        /// <summary>A team that wastes time (the time wasting tactic, or parking the bus): slow restarts, the keeper takes his time, the ball is held.</summary>
+        private static bool WastesTime(TeamAgent team) => team.Tactics.Special == SpecialTactic.TimeWasting || team.Tactics.Defence == DefenceStyle.ParkTheBus;
+
         /// <summary>
         /// 0..1: how much room the opponents leave behind their back line - nothing for a line on the edge of its box, a
         /// lot for a high line near halfway. A ball in behind a high line is the classic way to beat it: the runner has
@@ -808,7 +823,7 @@ namespace SoccerVision.Simulation
         /// </summary>
         private static float StyleFactor(TeamAgent team, KickKind kind, float d, bool lofted)
         {
-            var s = team.Tactics.Passing;
+            var s = team.Eff.Passing;
             if (s == PassingStyle.Mixed) return 1f;
             bool shortBall = !lofted && kind == KickKind.Pass && d < 22f;
             bool longBall = lofted || kind == KickKind.ThroughBall || d > 30f;
@@ -818,7 +833,7 @@ namespace SoccerVision.Simulation
 
         /// <summary>How much the team's passing style favours short combinations: 1.6 short, 1 mixed, 0.45 direct.</summary>
         private static float StyleShort(TeamAgent team) =>
-            team.Tactics.Passing == PassingStyle.Short ? 1.6f : team.Tactics.Passing == PassingStyle.Direct ? 0.45f : 1f;
+            team.Eff.Passing == PassingStyle.Short ? 1.6f : team.Eff.Passing == PassingStyle.Direct ? 0.45f : 1f;
 
         /// <summary>
         /// Give-and-go: after a short pass the passer may burst past his marker into the space ahead, for the ball straight
@@ -838,7 +853,7 @@ namespace SoccerVision.Simulation
             // past the man on the side away from the receiver's marker: drift a little towards the receiver's line
             Vec2 spot = Pitch.ClampToField(team.ToWorld(ahead, MathUtil.Clamp(lat + (qLat - lat) * 0.3f, -30f, 30f)), -2f);
             if (SpaceAround(team, spot) < 4f) return;
-            float chance = (0.15f + 0.35f * MathUtil.A(p.Attr.OffTheBall) + 0.15f * MathUtil.A(p.Attr.Teamwork)) * StyleShort(team) * (0.7f + 0.6f * team.Tactics.Mentality);
+            float chance = (0.15f + 0.35f * MathUtil.A(p.Attr.OffTheBall) + 0.15f * MathUtil.A(p.Attr.Teamwork)) * StyleShort(team) * (0.7f + 0.6f * team.Eff.Mentality);
             if (!_rng.Chance(chance)) return;
             p.OneTwoWith = q;
             p.OneTwoUntil = SimTime + 3.2f;
@@ -1200,6 +1215,13 @@ namespace SoccerVision.Simulation
         {
             if (CollectDiagnostics) ContactCheck(p, from, startZ, "kick." + kind + (_restartKick ? ".restart" + (_restart != null ? _restart.Type.ToString() : "") : "") + (Ball.Owner == p ? ".owned" : ".loose"));
             horizontalVelocity = AllowForWind(p, from, startZ, horizontalVelocity, vz, sideSpin, topSpin, kind);
+            // the swing of the leg (seen in the replay): the foot that kicks it - across the body to the left foot, to the right
+            // foot, otherwise his strong one
+            {
+                float cross = Vec2.Cross(p.FacingDir, horizontalVelocity.Normalized);
+                p.KickLeft = cross > 0.15f ? true : cross < -0.15f ? false : p.Attr.StrongFoot == Foot.Left;
+                p.KickTimer = PlayerAgent.KickSwing;
+            }
             Ball.Owner = null;
             Ball.InHands = false;
             Ball.M = new BallMotion

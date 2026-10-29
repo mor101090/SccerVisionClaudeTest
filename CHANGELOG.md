@@ -2,6 +2,31 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/tactic-styles-feet-restarts`
+
+- **Tactics you choose, not slide** (the panel under the pitch; the engine reads them through `TeamTactics.Effective()`):
+  - **Defence**: *Balanced*; *High press* (wins the ball high, a high line and hard pressing, but tires the legs ~40%
+    faster); *Offside trap* (the whole line takes a step up together to leave the forwards offside - 5 caught offside a
+    match instead of 1 - and now and then one man misses the step, so the trap fails); *Park the bus* (a deep bunker, narrow, one
+    forward left up, wasting time - the back line 19 m from goal instead of 33, and the legs stay fresh).
+  - **Attack**: *Mixed*; *Crosses into the box* (the wide men deliver from everywhere wide, more men in the box - 17
+    crosses a match instead of 9); *Runs in behind* (through balls and runs, 20 through balls instead of 11); *Long
+    shots* (from 20-30 m, 19 shots from 18 m+ instead of 8).
+  - **Extra tactic**: *Possession* (short passing, no gambles, 4.7 long balls instead of 9); *Time wasting* (restarts
+    taken 1.9x slower, the keeper and the carrier take their time, the clock runs); *Counter-attacks* (win it in your own
+    half and break at once, everybody forward, through balls); *Relentless pressure* (everybody up round the box,
+    full-backs and centre-backs high, crosses and shots - and it tires the legs).
+  - The board shows the shape and the arrows of the chosen styles. The computer manager uses them too (balls in behind
+    against a high press, crosses against a bunker, a bunker and time wasting when it leads late, relentless pressure
+    when it trails).
+- **Feet**: tucked closer under the player and a little back. A kick or a pass swings the kicking foot (back, forward
+  through the ball, settle - the foot that really kicks it, by the direction); the legs never "run". The referee and
+  the assistants have feet too (the referee watches the ball, the assistants face the pitch). Demo page, React, Unity.
+- **Restarts face the pitch**: the throw-in taker faces into the field, the corner taker the box, the goal-kick taker
+  upfield, a free-kick or penalty taker the goal.
+- **Snow ball**: flat marker-orange, no halo and no glow (demo, React, Unity).
+- Tests: the styles (11 tests).
+
 ## `feature/team-tactics-one-twos`
 
 - **Team tactic panel** (demo page, under the pitch): you are the home team.

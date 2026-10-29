@@ -66,7 +66,7 @@ export interface Snapshot {
   homeScore: number;
   awayScore: number;
   ball: { x: number; y: number; z: number; owner: number };
-  players: { x: number; y: number; facing: number; jump: number; sentOff: boolean; gk: boolean; booked: boolean; offside: boolean; sliding: boolean; grounded: boolean; injured: boolean }[];
+  players: { x: number; y: number; facing: number; jump: number; sentOff: boolean; gk: boolean; booked: boolean; offside: boolean; sliding: boolean; grounded: boolean; injured: boolean; kick: number; kickLeft: boolean }[];
   /** flag: assistant's flag up; card: the referee holding up a card (0 none, 1 yellow, 2 red). */
   officials: { x: number; y: number; flag: boolean; card: number }[];
   /** True when t falls in the half-time gap (no frames are recorded during the break). */
@@ -102,6 +102,9 @@ function lerpAngle(a: number, b: number, t: number) {
   return a + d * t;
 }
 
+/** The kicking foot's offset (in radii) in the phases of the swing: none, backswing, strike, follow-through. */
+const KICK_OFFSET = [0, -0.55, 0.55, 0.18];
+
 export function sample(replay: Replay, t: number): Snapshot {
   const frames = replay.frames;
   const i = findFrame(frames, t);
@@ -116,6 +119,7 @@ export function sample(replay: Replay, t: number): Snapshot {
   for (let p = 0; p < PLAYERS; p++) {
     const o = PLAYER_BASE + p * PLAYER_STRIDE;
     const flags = a[o + 4];
+    const kickB = KICK_OFFSET[(b[o + 4] >> 7) & 3];
     players.push({
       x: lerp(a[o], b[o], k) / 10,
       y: lerp(a[o + 1], b[o + 1], k) / 10,
@@ -128,6 +132,9 @@ export function sample(replay: Replay, t: number): Snapshot {
       sliding: (flags & 16) !== 0,
       grounded: (flags & 32) !== 0,
       injured: (flags & 64) !== 0,
+      // the swing of a kicking leg: back, through the ball, settle (see the player's feet)
+      kick: lerp(KICK_OFFSET[(flags >> 7) & 3], kickB, k),
+      kickLeft: (flags & 512) !== 0,
     });
   }
   const officials = [];

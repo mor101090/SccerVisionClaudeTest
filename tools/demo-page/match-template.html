@@ -320,6 +320,18 @@ body.live .tac-status b { background: #d50000; color: #fff; }
           <div class="tac-label"><span>Style</span></div>
           <div class="tac-seg" data-tac="style" role="group" aria-label="Style"><button type="button" data-v="0">Gentle</button><button type="button" data-v="1">Balanced</button><button type="button" data-v="2">Aggressive</button></div>
         </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Defence</span><b id="tacDefenceNote"></b></div>
+          <div class="tac-seg" data-tac="defence" role="group" aria-label="Defence"><button type="button" data-v="0" title="Normal shape and pressing">Balanced</button><button type="button" data-v="1" title="Win the ball high up the pitch - tires the players faster">High press</button><button type="button" data-v="2" title="The whole line steps up together to catch the forwards offside">Offside trap</button><button type="button" data-v="3" title="A bunker in front of the box, wasting time">Park the bus</button></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Attack</span></div>
+          <div class="tac-seg" data-tac="attack" role="group" aria-label="Attack"><button type="button" data-v="0" title="A bit of everything">Mixed</button><button type="button" data-v="1" title="Wide men deliver into the box">Crosses into the box</button><button type="button" data-v="2" title="Through balls and runs behind the defence">Runs in behind</button><button type="button" data-v="3" title="Shots from 20-30 m">Long shots</button></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Extra tactic</span></div>
+          <div class="tac-seg" data-tac="special" role="group" aria-label="Extra tactic"><button type="button" data-v="0">None</button><button type="button" data-v="1" title="Keep the ball, no gambles">Possession</button><button type="button" data-v="2" title="Slow restarts, hold the ball">Time wasting</button><button type="button" data-v="3" title="Win it and break at once">Counter-attacks</button><button type="button" data-v="4" title="Everybody up, the box under siege - tires the players fast">Relentless pressure</button></div>
+        </div>
       </div>
       <div class="tac-cpu">
         <div class="cpu-head"><span class="cpu-dot"></span>Computer · <b id="cpuTeam">Blue Falcons</b></div>
@@ -376,7 +388,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var ps = [];
     for (var p = 0; p < 22; p++) {
       var o = PB + p * PS;
-      ps.push({ x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, f: lerpA(a[o + 2] / 100, b[o + 2] / 100, k), j: lerp(a[o + 3], b[o + 3], k) / 100, off: (a[o + 4] & 1) !== 0, gk: (a[o + 4] & 2) !== 0, bk: (a[o + 4] & 4) !== 0, os: (a[o + 4] & 8) !== 0, sl: (a[o + 4] & 16) !== 0, gr: (a[o + 4] & 32) !== 0, inj: (a[o + 4] & 64) !== 0 });
+      var ka = KICK_OFF[(a[o + 4] >> 7) & 3], kb = KICK_OFF[(b[o + 4] >> 7) & 3];
+      ps.push({ kp: lerp(ka, kb, k), kl: (a[o + 4] & 512) !== 0, x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, f: lerpA(a[o + 2] / 100, b[o + 2] / 100, k), j: lerp(a[o + 3], b[o + 3], k) / 100, off: (a[o + 4] & 1) !== 0, gk: (a[o + 4] & 2) !== 0, bk: (a[o + 4] & 4) !== 0, os: (a[o + 4] & 8) !== 0, sl: (a[o + 4] & 16) !== 0, gr: (a[o + 4] & 32) !== 0, inj: (a[o + 4] & 64) !== 0 });
     }
     var os = [];
     for (var q = 0; q < 3; q++) { var oo = OB + q * 3; os.push({ x: lerp(a[oo], b[oo], k) / 10, y: lerp(a[oo + 1], b[oo + 1], k) / 10, flag: a[oo + 2] === 1, card: a[oo + 2] === 2 ? 1 : a[oo + 2] === 3 ? 2 : 0 }); }
@@ -617,7 +630,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     ballPrev = { x: S.bx, y: S.by };
   }
   var yellowBall = false;
-  function drawBall(cx, cy, rad, gx, gy) {
+  function drawBall(cx, cy, rad) {
     var size = Math.ceil(rad * 2) + 2, c = size / 2;
     if (ballCv.width !== size) { ballCv.width = size; ballCv.height = size; }
     var img = ballCx.createImageData(size, size), d = img.data, m = ballRot;
@@ -632,14 +645,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       var best = -9, second = -9, pent = false, q, sc;
       for (q = 0; q < 12; q++) { sc = (PENT[q][0] * bx + PENT[q][1] * by + PENT[q][2] * bz) / RP; if (sc > best) { second = best; best = sc; pent = true; } else if (sc > second) second = sc; }
       for (q = 0; q < 20; q++) { sc = (HEX[q][0] * bx + HEX[q][1] * by + HEX[q][2] * bz) / RH; if (sc > best) { second = best; best = sc; pent = false; } else if (sc > second) second = sc; }
-      // a white ball with black pentagons; in snow a glowing one: lit from inside, a hot yellow-orange core fading
-      // to deep orange at the rim, white-hot pentagons, with bloom round it (below)
+      // a white ball with black pentagons; in snow a marker-orange one (a flat, fluorescent orange, no glow)
       var col, diff;
       if (yellowBall) {
-        var hot = Math.pow(nz, 1.4);
-        col = pent ? [255, 250, 236] : [255, 92 + 112 * hot, 8 + 72 * hot];
-        if (best - second < .006) col = pent ? [255, 214, 150] : [235, 70, 0]; // stitched seams
-        diff = 1;
+        col = pent ? [240, 84, 0] : [255, 108, 0];
+        if (best - second < .006) col = pent ? [190, 60, 0] : [214, 80, 0]; // stitched seams
+        diff = .92 + .08 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]);
       } else {
         col = pent ? [28, 28, 28] : [246, 246, 246];
         if (best - second < .006) col = pent ? [60, 60, 60] : [150, 150, 150]; // stitched seams
@@ -650,34 +661,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       d[o] = Math.min(255, col[0] * diff + spec); d[o + 1] = Math.min(255, col[1] * diff + spec); d[o + 2] = Math.min(255, col[2] * diff + spec); d[o + 3] = 255 * a;
     }
     ballCx.putImageData(img, 0, 0);
-    if (yellowBall) {
-      // Glow: a pool of orange light on the ground under the ball, an orange haze round it (seen on white snow too) and
-      // an additive bloom that brightens whatever is behind it - the ball looks lit from inside. It breathes gently.
-      var pulse = .85 + .15 * Math.sin(performance.now() / 240), gr = Math.max(rad * 5.5, 18), gl;
-      ctx.save();
-      if (gx !== undefined) {
-        gl = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr * .9);
-        gl.addColorStop(0, "rgba(255,120,10," + (.38 * pulse) + ")"); gl.addColorStop(1, "rgba(255,120,10,0)");
-        ctx.fillStyle = gl; ctx.beginPath(); ctx.ellipse(gx, gy, gr * .9, gr * .7, 0, 0, Math.PI * 2); ctx.fill();
-      }
-      gl = ctx.createRadialGradient(cx, cy, rad * .8, cx, cy, gr);
-      gl.addColorStop(0, "rgba(255,96,0," + (.55 * pulse) + ")"); gl.addColorStop(.4, "rgba(255,110,0," + (.2 * pulse) + ")"); gl.addColorStop(1, "rgba(255,110,0,0)");
-      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, cy, gr, 0, Math.PI * 2); ctx.fill();
-      ctx.globalCompositeOperation = "lighter";
-      gl = ctx.createRadialGradient(cx, cy, 0, cx, cy, gr * .75);
-      gl.addColorStop(0, "rgba(255,190,90," + (.95 * pulse) + ")"); gl.addColorStop(.3, "rgba(255,130,30," + (.5 * pulse) + ")"); gl.addColorStop(1, "rgba(255,90,0,0)");
-      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, cy, gr * .75, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
     ctx.drawImage(ballCv, cx - c, cy - c);
-    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.lineWidth = Math.max(.6, rad * .08); ctx.strokeStyle = yellowBall ? "rgba(255,226,170,.95)" : "rgba(0,0,0,.45)"; ctx.stroke();
-    if (yellowBall) { // a white-hot sheen on top (additive)
-      ctx.save(); ctx.globalCompositeOperation = "lighter";
-      var sh = ctx.createRadialGradient(cx - rad * .25, cy - rad * .3, 0, cx, cy, rad * 1.15);
-      sh.addColorStop(0, "rgba(255,245,220,.75)"); sh.addColorStop(1, "rgba(255,150,40,0)");
-      ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(cx, cy, rad * 1.15, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.lineWidth = Math.max(.6, rad * .08); ctx.strokeStyle = yellowBall ? "rgba(150,50,0,.7)" : "rgba(0,0,0,.45)"; ctx.stroke();
   }
   // Offside: a small chequered square above the player who was caught (no text, no pole).
   // Cloth that moves the way a real flag does in a light breeze: no flapping, a slow sway of the whole flag and a soft
@@ -805,14 +790,17 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   // A player: a plain circle in the shirt colour with a thin black edge and the number (the design's player marker).
   var PLAYER_EDGE = "#1a1a1a";
   // Two small boots peeking out under the circle, pointing where the player faces (static, as in the design).
-  function playerFeet(x, y, r, facing) {
+  // The feet sit close under the front edge of the circle, a little back. A kick or a pass swings the kicking foot: back
+  // (backswing), forward through the ball, then settles - nobody "runs" in place. side -1 is the left foot.
+  function playerFeet(x, y, r, facing, kick, kickLeft) {
     var a = -facing, c = Math.cos(a), sn = Math.sin(a);
     ctx.fillStyle = "#e9ecef"; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = Math.max(.6, r * .06);
     [-1, 1].forEach(function (side) {
-      var fx = x + c * r * .9 - sn * r * .44 * side, fy = y + sn * r * .9 + c * r * .44 * side;
-      ctx.beginPath(); ctx.ellipse(fx, fy, r * .32, r * .22, a, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      var fwd = .8 + ((side < 0) === !!kickLeft ? (kick || 0) : 0), fx = x + c * r * fwd - sn * r * .4 * side, fy = y + sn * r * fwd + c * r * .4 * side;
+      ctx.beginPath(); ctx.ellipse(fx, fy, r * .3, r * .21, a, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     });
   }
+  var KICK_OFF = [0, -.55, .55, .18];  // foot offset (x radius) in the phases of the swing: none, backswing, strike, follow-through
   function playerDisc(x, y, r, fill) { var lw = Math.max(1.2, r * .12); ctx.beginPath(); ctx.arc(x, y, r - lw / 2, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = PLAYER_EDGE; ctx.stroke(); }
   function disc(x, y, r, fill, stroke) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = Math.max(1, r * .18); ctx.strokeStyle = stroke; ctx.stroke(); }
   function entities(S, now, dt) {
@@ -823,6 +811,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       if (i > 0 && o.flag) assistantFlag(ox, oy, s, now);
       castShadow(o.x, o.y, ox, oy, r, r * .9, .45);
       var rc = refColours();
+      // the referee watches the ball, the assistants face the pitch from their touchline
+      playerFeet(ox, oy, r, i === 0 ? Math.atan2(S.by - o.y, S.bx - o.x) : Math.atan2(-o.y, 0), 0, false);
       disc(ox, oy, r, rc.shirt, rc.trim); // same size as the players
       ctx.fillStyle = rc.letter; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
       if (i === 0 && o.card) refereeCard(ox, oy, s, o.card);
@@ -832,7 +822,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * 2.2 * s, g = 1 + jh * .1, sh = 1 - jh * .6;
       if (p.sl || p.gr) { downPlayer(p, tm, info, x, gy); if (p.inj) injuryMark(x, gy, r); return; }
       castShadow(p.x, p.y, x, gy, r * 1.05 * sh, r * .95 * sh, .5 * sh);
-      playerFeet(x, y, r * g, p.f);
+      playerFeet(x, y, r * g, p.f, p.kp, p.kl);
       playerDisc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary);
       ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * g * 1.05) + "px Barlow, system-ui, sans-serif";
       fillC(String(info.number), x, y);
@@ -845,7 +835,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var bsr = .42 * s * Math.max(.45, 1 - h * .05); castShadow(S.bx, S.by, bx, by, bsr, bsr, Math.max(.18, .6 - h * .04));
     yellowBall = SET.weather === "Snow";
     spinBall(S, h, dt, S.phase !== 0 || (S.owner >= 0 && (S.ps[S.owner].gk || S.bz > .4))); // none while held or while play is stopped
-    drawBall(bx, by - Math.min(20, h) * .55 * s, .38 * s * (1 + Math.min(20, h) * .07), bx, by);
+    drawBall(bx, by - Math.min(20, h) * .55 * s, .38 * s * (1 + Math.min(20, h) * .07));
     drawNet(-1, S.bx, S.by, netFx(t, -1)); drawNet(1, S.bx, S.by, netFx(t, 1));
     goalFrame(-1); goalFrame(1);
     if (S.owner >= 0 && S.phase === 0) {
@@ -1167,17 +1157,26 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   // ---- Team tactic (you are the home team) -----------------------------------------------------------
   // Line and width 0-100; passing 0 short / 1 mixed / 2 balls in behind; tempo and style 0 / 1 / 2. In a live match an
   // instruction goes to the players at once (the computer answers it); otherwise the match is replayed with it.
-  var TAC_DEFAULT = { line: 50, width: 50, passing: 1, tempo: 1, style: 1 };
+  var TAC_DEFAULT = { line: 50, width: 50, passing: 1, tempo: 1, style: 1, defence: 0, attack: 0, special: 0 };
   var TAC = (function () { var o = {}; for (var k in TAC_DEFAULT) o[k] = TAC_DEFAULT[k]; try { var st = JSON.parse(localStorage.getItem("sv-tactics") || "{}"); for (var k2 in st) if (k2 in TAC_DEFAULT) o[k2] = +st[k2]; } catch (e) {} return o; })();
-  function tacEngine() { return { line: TAC.line / 100, width: TAC.width / 100, passing: TAC.passing, tempo: [.15, .5, .85][TAC.tempo], aggression: [0, .5, 1][TAC.style] }; }
+  function tacEngine() { return { line: TAC.line / 100, width: TAC.width / 100, passing: TAC.passing, tempo: [.15, .5, .85][TAC.tempo], aggression: [0, .5, 1][TAC.style], defence: TAC.defence, attack: TAC.attack, special: TAC.special }; }
   function words(v, list) { return list[Math.min(list.length - 1, Math.floor(v / (100.01 / list.length)))]; }
   var LINE_WORDS = ["Deep block", "Low", "Middle", "High", "Very high"], WIDTH_WORDS = ["Very narrow", "Narrow", "Normal", "Wide", "Very wide"];
   var SHAPE = { d: [-.75, -.26, .26, .75], m: [-.8, -.26, .26, .8], a: [-.24, .24] };
+  // The line and width the players really play, with the chosen styles applied (as TeamTactics.Effective in the engine).
+  function effTac() {
+    var line = TAC.line, width = TAC.width;
+    if (TAC.defence === 1) line = Math.max(line, 80); else if (TAC.defence === 2) line = Math.max(line, 72); else if (TAC.defence === 3) { line = Math.min(line, 3); width = Math.min(width, 30); }
+    if (TAC.attack === 1) width = Math.max(width, 82);
+    if (TAC.special === 2) line = Math.min(line, 35); else if (TAC.special === 3) line = Math.min(line, 35); else if (TAC.special === 4) { line = Math.max(line, 92); width = Math.max(width, 72); }
+    return { line: line, width: width };
+  }
   function boardXY(row, i) {
     // the whole block moves with the line (a high line pushes the midfield and the forwards up too, about 30 m from
     // back to front), as the engine plays it
-    var lineX = 15 + TAC.line * .3, midX = lineX + 15, attX = lineX + 30;
-    var spread = .6 + .44 * TAC.width / 100, lat = SHAPE[row][i], y = 39 + lat * spread * (row === "a" ? 30 : 36);
+    var E = effTac(), lineX = 15 + E.line * .3, midX = lineX + 15, attX = lineX + 30;
+    if (TAC.defence === 3) { midX = lineX + 10; attX = lineX + 19; } // the bunker is compact
+    var spread = .6 + .44 * E.width / 100, lat = SHAPE[row][i], y = 39 + lat * spread * (row === "a" ? 30 : 36);
     return [row === "d" ? lineX : row === "m" ? midX : attX, Math.max(5, Math.min(73, y))];
   }
   function drawBoard() {
@@ -1200,9 +1199,19 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       var x1 = a[0] + ux * 3.4, y1 = a[1] + uy * 3.4, x2 = b[0] - ux * 3.4, y2 = b[1] - uy * 3.4, mx = (x1 + x2) / 2 - uy * L * .12, my = (y1 + y2) / 2 + ux * L * .12;
       html += '<path class="arrow" d="M' + x1.toFixed(1) + " " + y1.toFixed(1) + " Q" + mx.toFixed(1) + " " + my.toFixed(1) + " " + x2.toFixed(1) + " " + y2.toFixed(1) + '" stroke-dasharray="2.6 1.4" style="animation: tacflow ' + dur + 's linear infinite"/>';
     });
-    var presses = TAC.style === 2 ? ["a0", "a1", "m1", "m2"] : TAC.style === 1 ? ["a0"] : [];
+    // the chosen attack: crosses from the wide men into the box, runs in behind, shots from distance
+    if (TAC.attack === 1) segs = [[P("m0"), [104, 30]], [P("m3"), [104, 48]], [P("d0"), P("m0")], [P("d3"), P("m3")]];
+    else if (TAC.attack === 2) segs = [[P("m1"), [108, P("a0")[1] - 6]], [P("m2"), [108, P("a1")[1] + 6]], [P("d1"), P("m1")]];
+    else if (TAC.attack === 3) segs = [[P("m1"), [98, 34]], [P("m2"), [98, 44]], [P("a0"), P("m1")]];
+    if (TAC.special === 1) segs = [[P("d1"), P("d2")], [P("d2"), P("m1")], [P("m1"), P("m2")], [P("m2"), P("d2")]];
+    else if (TAC.special === 3) segs = [[P("m1"), [108, P("a0")[1]]], [P("m2"), [108, P("a1")[1]]], [P("d2"), P("m2")]];
+    var presses = TAC.style === 2 || TAC.defence === 1 ? ["a0", "a1", "m1", "m2"] : TAC.style === 1 ? ["a0"] : [];
+    if (TAC.special === 4) presses = ["a0", "a1", "m0", "m1", "m2", "m3"];
     presses.forEach(function (k) { var xy = boardXY(k[0], +k[1]); html += '<path class="press" d="M' + (xy[0] + 4).toFixed(1) + " " + (xy[1] - 4).toFixed(1) + " A5.5 5.5 0 0 1 " + (xy[0] + 4).toFixed(1) + " " + (xy[1] + 4).toFixed(1) + '"/>'; });
+    // the offside trap: the whole line steps up together
+    if (TAC.defence === 2) { var lxy = boardXY("d", 0)[0]; [["d0", 0], ["d1", 1], ["d2", 2], ["d3", 3]].forEach(function (d) { var xy = boardXY(d[0][0], +d[0][1]); html += '<path d="M' + (xy[0] + 4).toFixed(1) + " " + xy[1].toFixed(1) + " l4 0 m-2 -1.6 l2 1.6 l-2 1.6" + '" fill="none" stroke="#fff" stroke-width=".8" stroke-linecap="round"/>'; }); }
     arrows.innerHTML = html;
+    $("tacDefenceNote").textContent = TAC.defence === 1 ? "tires the legs fast" : TAC.defence === 3 ? "wastes time" : TAC.defence === 2 ? "catches forwards offside" : "";
   }
   function syncTacUi() {
     $("tacLine").value = TAC.line; $("tacWidth").value = TAC.width;
@@ -1221,7 +1230,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       // a burst of changes goes to the players as one instruction
       clearTimeout(tacTimer);
       tacTimer = setTimeout(function () {
-        if (worker && R) { var c = tacEngine(); worker.postMessage({ cmd: "tactics", token: token, line: c.line, width: c.width, passing: c.passing, tempo: c.tempo, aggression: c.aggression }); }
+        if (worker && R) { var c = tacEngine(); worker.postMessage({ cmd: "tactics", token: token, line: c.line, width: c.width, passing: c.passing, tempo: c.tempo, aggression: c.aggression, defence: c.defence, attack: c.attack, special: c.special }); }
         toast("Instruction sent to the players");
       }, 600);
     } else {

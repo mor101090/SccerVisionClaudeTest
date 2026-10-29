@@ -20,7 +20,7 @@ public static partial class LiveEngine
     /// <param name="mode">staged (the scripted incidents) | random | live</param>
     [JSExport]
     public static string Start(int seed, string mode, string weather, double maintenance, double wind, double windAngle, bool night,
-        double line, double width, int passing, double tempo, double aggression)
+        double line, double width, int passing, double tempo, double aggression, int defence, int attack, int special)
     {
         var config = MatchConfig.CreateDefault();
         config.Conditions = new MatchConditions
@@ -33,7 +33,7 @@ public static partial class LiveEngine
         };
         if (mode == "staged") config.Script = MatchScript.Staged();
         var home = DemoTeams.Red();
-        home.Tactics = MakeTactics(home.Tactics, line, width, passing, tempo, aggression);
+        home.Tactics = MakeTactics(home.Tactics, line, width, passing, tempo, aggression, defence, attack, special);
         _engine = new MatchEngine(home, DemoTeams.Blue(), (ulong)seed, config);
         // live: you are the home team, the computer manages the away team and answers you
         _computer = mode == "live" ? new ComputerManager(_engine, 1) : null;
@@ -68,10 +68,10 @@ public static partial class LiveEngine
 
     /// <summary>The home team's new tactics, from the next step (live: the human manager's instructions).</summary>
     [JSExport]
-    public static void SetTactics(double line, double width, int passing, double tempo, double aggression)
+    public static void SetTactics(double line, double width, int passing, double tempo, double aggression, int defence, int attack, int special)
     {
         if (_engine == null) return;
-        _engine.Submit(new ChangeTacticsCommand(0, MakeTactics(_engine.Home.Tactics, line, width, passing, tempo, aggression)));
+        _engine.Submit(new ChangeTacticsCommand(0, MakeTactics(_engine.Home.Tactics, line, width, passing, tempo, aggression, defence, attack, special)));
     }
 
     /// <summary>The away team's tactics in words (what the computer is doing), for the page.</summary>
@@ -79,9 +79,12 @@ public static partial class LiveEngine
     public static string AwayTactics() => _engine == null ? "" : _engine.Away.Tactics.Describe();
 
     /// <summary>Line, width, tempo 0..1; passing 0 short, 1 mixed, 2 direct; aggression 0 gentle .. 1 aggressive.</summary>
-    private static TeamTactics MakeTactics(TeamTactics from, double line, double width, int passing, double tempo, double aggression)
+    private static TeamTactics MakeTactics(TeamTactics from, double line, double width, int passing, double tempo, double aggression, int defence, int attack, int special)
     {
         var t = from.Clone();
+        t.Defence = defence == 1 ? DefenceStyle.HighPress : defence == 2 ? DefenceStyle.OffsideTrap : defence == 3 ? DefenceStyle.ParkTheBus : DefenceStyle.Balanced;
+        t.Attack = attack == 1 ? AttackStyle.CrossesIntoBox : attack == 2 ? AttackStyle.RunsInBehind : attack == 3 ? AttackStyle.LongShots : AttackStyle.Mixed;
+        t.Special = special == 1 ? SpecialTactic.Possession : special == 2 ? SpecialTactic.TimeWasting : special == 3 ? SpecialTactic.CounterAttack : special == 4 ? SpecialTactic.Siege : SpecialTactic.None;
         t.DefensiveLine = (float)line;
         t.Width = (float)width;
         t.Passing = passing == 0 ? PassingStyle.Short : passing == 2 ? PassingStyle.Direct : PassingStyle.Mixed;
