@@ -1585,7 +1585,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       f.slots.forEach(function (sl, i) { if (i === 0) return; ys[i] -= sl.line === 1 ? dy : sl.line === 2 ? dy * .78 : dy * .35; });
       defY = 54;
     }
-    html += '<line class="dl" x1="2" x2="66" y1="' + defY.toFixed(1) + '" y2="' + defY.toFixed(1) + '"/><text class="dlt" x="64.5" y="' + (defY + 3.2).toFixed(1) + '" text-anchor="end">' + (TAC.defence === 4 ? "High line defence" : "Defensive line") + '</text>';
+    html += '<line class="dl" x1="2" x2="66" y1="' + defY.toFixed(1) + '" y2="' + defY.toFixed(1) + '"/><text class="dlt" x="3.5" y="' + (defY - 1.1).toFixed(1) + '">' + (TAC.defence === 4 ? "High line defence" : "Defensive line") + '</text>';
     f.slots.forEach(function (sl, i) {
       var p = byNum(on[i]) || { number: "?", shortName: "" };
       var x = 34 - sl.l * ws * .98, y = ys[i];
