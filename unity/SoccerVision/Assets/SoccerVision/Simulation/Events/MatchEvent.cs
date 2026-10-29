@@ -56,6 +56,8 @@ namespace SoccerVision.Simulation
         Slip,
         /// <summary>A team changes its tactics during the match: Text says how (e.g. "high line, wide, short passing").</summary>
         TacticsChanged,
+        /// <summary>One team clearly has the upper hand: the other is rattled (Value: how much, 0..1).</summary>
+        MomentumShift,
     }
 
     /// <summary>

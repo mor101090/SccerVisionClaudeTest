@@ -200,7 +200,7 @@ namespace SoccerVision.Replay
                 b.Append("{\"number\":").Append(q.ShirtNumber);
                 b.Append(",\"name\":"); Str(b, q.FullName);
                 b.Append(",\"shortName\":"); Str(b, q.ShortName);
-                b.Append(",\"role\":"); Str(b, q.NaturalPosition == PositionGroup.Goalkeeper ? "GK" : q.NaturalPosition == PositionGroup.Defender ? "D" : q.NaturalPosition == PositionGroup.Midfielder ? "M" : "ST");
+                b.Append(",\"role\":"); Str(b, q.PositionLabel);
                 b.Append(",\"passing\":").Append(q.Attributes.Passing).Append(",\"speed\":").Append(q.Attributes.Speed).Append(",\"stamina\":").Append(q.Attributes.Stamina);
                 Profile(b, q);
                 b.Append('}');

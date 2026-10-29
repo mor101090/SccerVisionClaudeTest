@@ -48,6 +48,21 @@ namespace SoccerVision.Simulation.Tests
         }
 
         [Fact]
+        public void TheLeftBackIsLeftFootedAndEveryoneHasARealPosition()
+        {
+            var positions = new[] { "GK", "CB", "RB", "LB", "DM", "CM", "AM", "RW", "LW", "ST" };
+            foreach (var t in new[] { DemoTeams.Red(), DemoTeams.Blue() })
+            {
+                // a left-back is a left-footer when the squad has one (it does)
+                Assert.Equal(3, t.Starters[4].Attributes.LeftFoot);
+                foreach (var p in t.Starters.Concat(t.Bench)) Assert.Contains(p.PositionLabel, positions);
+                // the bench's positions are the real ones, not a group
+                Assert.Contains(t.Bench, p => p.PositionLabel == "CB");
+                Assert.Contains(t.Bench, p => p.PositionLabel == "RB" || p.PositionLabel == "LB");
+            }
+        }
+
+        [Fact]
         public void FasterPlayersCoverMoreGround()
         {
             // (over three matches: one match is too noisy)

@@ -1508,7 +1508,7 @@ namespace SoccerVision.Simulation
             float intensity = speed / MathF.Max(1f, p.MaxSpeed);
             float staminaFactor = 1.35f - 0.7f * MathUtil.A(p.Attr.Stamina);
             float drain = (0.00005f + 0.00066f * intensity * intensity * intensity) * staminaFactor;
-            drain *= WorkRate(p) * p.Team.Tactics.EnergyDrain;
+            drain *= WorkRate(p) * p.Team.Tactics.EnergyDrain * (p.Team == Away ? 1f + 0.03f * Config.HomeAdvantage : 1f); // (the travel)
             float recover = speed < 2.2f ? 0.00004f : 0f;
             p.Energy = MathUtil.Clamp(p.Energy - (drain - recover) * clockDt, 0.25f, 1f);
             MaybeStrain(p, intensity, clockDt);

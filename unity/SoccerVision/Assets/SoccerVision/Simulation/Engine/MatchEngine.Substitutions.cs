@@ -136,6 +136,7 @@ namespace SoccerVision.Simulation
             team.SubbedOff.Add(p.Profile);
             team.SubstitutionsUsed++;
             team.Stats.Substitutions++;
+            DampMomentum(0.85f);
             string outLabel = p.Label;
             int outNumber = p.Number;
             p.Substitute(sub.Profile);

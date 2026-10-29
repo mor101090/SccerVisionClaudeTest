@@ -22,6 +22,7 @@ string replayPath = null;
 float? motion = null;
 int replayFps = 8;
 var conditions = new MatchConditions();
+float homeAdvantage = 1f, momentumStrength = 1f;
 MatchScript script = null;
 // --home "line=0.9,width=0.2,passing=short,tempo=0.8,aggression=0.8": the home team's tactics
 string homeTactics = null, awayTactics = null;
@@ -42,6 +43,9 @@ for (int i = 0; i < args.Length; i++)
         case "--windangle": conditions.WindAngle = float.Parse(args[++i]) * MathF.PI / 180f; break;
         case "--night": conditions.Night = true; break;
         // --script staged: the staged match (light injury, yellow, direct red, serious injury + substitution, second yellow and red)
+        // --homeadv 0..1 (default 1: as in the top leagues)  --momentum 0..1 (default 1)
+        case "--homeadv": homeAdvantage = float.Parse(args[++i]); break;
+        case "--momentum": momentumStrength = float.Parse(args[++i]); break;
         case "--home": homeTactics = args[++i]; break;
         case "--away": awayTactics = args[++i]; break;
         case "--script": if (args[++i] == "staged") script = MatchScript.Staged(); break;
@@ -51,6 +55,8 @@ for (int i = 0; i < args.Length; i++)
 MatchConfig MakeConfig()
 {
     var c = MatchConfig.CreateDefault();
+    c.HomeAdvantage = homeAdvantage;
+    c.MomentumStrength = momentumStrength;
     if (motion.HasValue) c.MotionSpeed = motion.Value;
     c.Conditions = conditions.Clone();
     c.Script = script;

@@ -86,6 +86,9 @@ namespace SoccerVision.Simulation
         public string LastName = "";
         public int ShirtNumber;
         public PositionGroup NaturalPosition;
+        /// <summary>The position as a team sheet shows it (GK, CB, RB, LB, DM, CM, AM, RW, LW, ST); empty: from the group.</summary>
+        public string Position = "";
+        public string PositionLabel => !string.IsNullOrEmpty(Position) ? Position : NaturalPosition == PositionGroup.Goalkeeper ? "GK" : NaturalPosition == PositionGroup.Defender ? "CB" : NaturalPosition == PositionGroup.Midfielder ? "CM" : "ST";
         public int HeightCm = 180;
         /// <summary>Age and nationality (from the team generator). Age shapes development between matches (16-21 improve
         /// most, 22-29 a little, 30+ decline); it does not change a single match.</summary>

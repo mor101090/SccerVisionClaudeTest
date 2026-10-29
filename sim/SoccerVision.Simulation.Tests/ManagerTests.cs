@@ -29,7 +29,7 @@ namespace SoccerVision.Simulation.Tests
         }
 
         [Theory]
-        [InlineData("4-4-2 narrow")] [InlineData("4-4-2 diamond")] [InlineData("4-3-3")] [InlineData("4-3-3 defensive")] [InlineData("3-5-2")]
+        [InlineData("4-4-2 narrow")] [InlineData("4-4-2 diamond")] [InlineData("4-4-2 diamond wide")] [InlineData("4-3-3")] [InlineData("4-3-3 defensive")] [InlineData("3-5-2")]
         [InlineData("3-4-3")] [InlineData("3-4-1-2")] [InlineData("4-2-3-1")] [InlineData("4-1-4-1")] [InlineData("4-5-1")]
         public void EveryFormationPlaysAFullMatch(string formation)
         {

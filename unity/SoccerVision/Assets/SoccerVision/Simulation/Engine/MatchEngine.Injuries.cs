@@ -37,6 +37,7 @@ namespace SoccerVision.Simulation
         {
             p.Injury = InjuryLevel.Light;
             p.Team.Stats.LightInjuries++;
+            DampMomentum(0.9f);
             if (CollectDiagnostics) Count("injury.light." + cause);
             // Down for a moment, then he gets up and plays on.
             p.GroundTimer = MathF.Max(p.GroundTimer, _rng.Range(1.2f, 2.4f));
@@ -54,6 +55,7 @@ namespace SoccerVision.Simulation
             }
             p.Injury = InjuryLevel.Serious;
             p.Team.Stats.SeriousInjuries++;
+            DampMomentum(0.8f);
             if (CollectDiagnostics) Count("injury.serious." + cause);
             p.TreatmentTimer = Config.InjuryTreatmentSeconds * _rng.Range(0.8f, 1.3f);
             p.StunTimer = 999f;
@@ -210,6 +212,7 @@ namespace SoccerVision.Simulation
             team.SubbedOff.Add(p.Profile);
             team.SubstitutionsUsed++;
             team.Stats.Substitutions++;
+            DampMomentum(0.85f);
             // (the change uses one of the three opportunities, unless one is already open at this stoppage)
             if (_restart != null && team.WindowRestart != _restart && !SecondHalfKickOff) { team.WindowRestart = _restart; team.WindowsUsed++; }
             string outLabel = p.Label;

@@ -182,6 +182,7 @@ namespace SoccerVision.Simulation
             Home.Opponent = Away;
             Away.Opponent = Home;
             Teams = new[] { Home, Away };
+            ApplyHomeAdvantage();
 
             int index = 0;
             foreach (var team in Teams)
@@ -309,6 +310,7 @@ namespace SoccerVision.Simulation
             {
                 float clockDt = dt * Config.ClockSecondsPerSimSecond;
                 Clock.Seconds += clockDt;
+                DecayMomentum(clockDt);
                 if (_restart != null && _restart.CountsAsLostTime) Clock.LostSeconds += clockDt;
                 if (Phase == MatchPhase.GoalCelebration) Clock.LostSeconds += clockDt;
             }
@@ -638,6 +640,7 @@ namespace SoccerVision.Simulation
             if (Phase == MatchPhase.Live)
             {
                 if (Ball.LastTouchTeam != null) Ball.LastTouchTeam.Stats.WoodworkHits++;
+                if (Ball.LastTouchTeam != null) AddMomentum(Ball.LastTouchTeam, 0.04f);
                 Emit(MatchEventType.HitWoodwork, Ball.LastTouchTeam, Ball.LastToucher, null, Ball.Pos, Ball.M.Speed, WhistleKind.Short, crossbar ? 2 : 1);
                 // A rebound off the woodwork is not a new play: the shooter must wait at penalties only.
                 if (_penaltyKickTime >= 0f) Ball.KickerMustWait = true;

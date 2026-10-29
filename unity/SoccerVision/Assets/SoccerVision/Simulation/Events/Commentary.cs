@@ -95,6 +95,8 @@ namespace SoccerVision.Simulation
                     return "Substitution for " + T(e.Team);
                 case MatchEventType.SubstitutionRequest:
                     return T(e.Team) + " get ready to make a change";
+                case MatchEventType.MomentumShift:
+                    return T(e.Team) + " have the momentum";
                 case MatchEventType.TacticsChanged:
                     return T(e.Team) + " change their tactics";
                 case MatchEventType.DroppedBall:
@@ -179,6 +181,7 @@ namespace SoccerVision.Simulation
                 case MatchEventType.Injury: return CommentaryTone.Foul;
                 case MatchEventType.Substitution:
                 case MatchEventType.SubstitutionRequest:
+                case MatchEventType.MomentumShift:
                 case MatchEventType.TacticsChanged: return CommentaryTone.Info;
                 case MatchEventType.RedCard: return CommentaryTone.Red;
                 case MatchEventType.YellowCard:

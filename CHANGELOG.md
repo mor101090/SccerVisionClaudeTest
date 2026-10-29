@@ -2,6 +2,55 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/momentum-home-advantage-ui-round`
+
+- **Home advantage** (the home team scores about a third of a goal more than the away team in the top leagues): the home
+  players play a little more confidently (+2% on the skills of the head and feet, not pace; the away team -0.8%), the
+  referee gives the home team a kinder whistle (8% fewer fouls given against it, 12% fewer cautions; the away team 5% /
+  8% more) and the away team tires 3% faster (the travel). Measured over 240 matches: the home team's goal margin
+  grows by +0.33 (0.86 v 0.53 without it; the Red squad is the stronger one). `HomeAdvantage` in the match config (0 =
+  neutral ground; SimRunner `--homeadv`).
+- **Momentum**, after reading the research (goals are what players say moves it most; goals cluster - a goal in the last
+  five minutes lifts the chance of another in the next five from about 15% to 18% - and perceived momentum is higher after
+  a team's own goal, most of all a late one or an equaliser; the evidence on stoppages is thin and some "goal before the
+  break" claims are myths, so here stoppages simply break the rhythm). One number from the home side to the away side:
+  - It moves with goals (+0.42; a second goal within 8 minutes +0.22 more; an equaliser x1.25; a goal after 75 minutes
+    x1.25; an answer within 4 minutes x1.15), shots (0.012 + 0.07 x chance quality), the woodwork, a penalty, a red card
+    against the other team.
+  - It fades with time (a time constant of 8 match minutes) and every stoppage takes some away: a foul 3.5%, an offside
+    1.5%, a card 7%, a substitution 15%, a light injury 10%, a serious one 20%.
+  - The team with the momentum is confident: +3.5% on its skills at the top, and it plays higher, faster and braver
+    (mentality, pressing and tempo up). The team under pressure is rattled (-3.5%) and **calms the game down**: slower
+    tempo, less attacking, and shorter passing when the swing is big.
+  - A line of commentary when one team clearly has the upper hand ("Red Rovers have the momentum - Blue Falcons are
+    rattled and slow the game down"). `MomentumStrength` in the config (0 = off; SimRunner `--momentum`).
+  - Calibration: goals 2.96 per match, pass completion 77%.
+- **Fix: a red card with no contact in the staged match.** The scripted foul picked a defender up to 6 m from the
+  player on the ball and skipped the contact rule. Now the nearest defender is sent at the carrier and the foul comes
+  only when he reaches him (within 1.6 m). Test: in the staged match every foul is between two players within 4 m.
+- **Squads**: the bench now shows each player's real position (GK, CB, RB, LB, DM, CM, AM, RW, LW, ST) instead of SUB
+  (positions from the generator's roles; full-backs and wingers by foot; midfielders by their skills). The full-back and
+  winger picks look for a left-footer on the left and a right-footer on the right when the squad has good ones of each:
+  both left-backs are now left-footed, and Red's left midfielder is left-footed.
+- **Demo page**:
+  - New formation **4-4-2 diamond wide**.
+  - Fitness on the hover card in colour: Peak green, Moderate yellow, Low red. The same for the bench rows.
+  - The stamina heart empties from the top with the energy (and goes green to red); everybody starts at 100%.
+  - **Substitutions are easier**: pick a player and a bench player (or the other way) and the two cards slide to each
+    other's place at once - the change is made at the next stoppage and you can go on with the next one (the waiting
+    players are marked and locked). **Drag and drop** works on the cards and on the formation board: a player onto a
+    bench player is a change, onto another player on the pitch a swap of positions.
+  - **The tactic arrows are back** on the formation board: passing and tempo (the flow speed), attack (crosses, runs in
+    behind, long shots), the extra style, pressing, the offside trap, the high line with the keeper sweeping behind it,
+    inverted full-backs, the bunker.
+  - **Names and order**: every row reads from the defensive / weaker choice on the left, through balanced in the middle,
+    to the attacking / aggressive one on the right. "Style" is now **Aggression**, "Extra tactic" is now **Style** and its
+    "None" is **Balanced** (the attack's "Mixed" too); the wing-back role is now **Attacking full-back** (and the full-back
+    roles read defensive - inverted - attacking); individual instructions read Less / Mixed / Often (long shots,
+    dribbling) and Gentle / Mixed / Aggressive.
+  - The scoreboard logo is another 3% smaller.
+- Tests: home advantage and momentum (6), left-backs and positions, the wide diamond.
+
 ## `fix/high-line-at-halfway`
 
 - **The high backline now follows the reference** (the high-line diagrams): the back four stand on the halfway line

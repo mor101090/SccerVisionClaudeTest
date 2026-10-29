@@ -15,7 +15,29 @@ namespace SoccerVision.Simulation
         public readonly List<PlayerAgent> Bench = new List<PlayerAgent>();
         public Formation Formation;
         /// <summary>The manager's tactics (the sliders and the chosen styles).</summary>
-        public TeamTactics Tactics { get => _tactics; set { _tactics = value; Eff = value.Effective(); } }
+        public TeamTactics Tactics { get => _tactics; set { _tactics = value; RefreshEff(); } }
+        /// <summary>Home advantage on the skills (1 + a little at home, a little less away) and the momentum on top: what the players play with.</summary>
+        public float HomeSkill = 1f, ConfidenceFactor = 1f;
+        /// <summary>The team's momentum in the match, -1 (rattled) .. +1 (confident), in steps.</summary>
+        public float MomentumLevel;
+
+        /// <summary>
+        /// The tactics as played: the chosen styles on the sliders, and the momentum on top. A team with the momentum plays a
+        /// little higher, faster and braver; a team under pressure calms the game down - slower, safer, shorter passing.
+        /// </summary>
+        public void RefreshEff()
+        {
+            var e = _tactics.Effective();
+            float m = MomentumLevel;
+            if (m > 0f) { e.Mentality += 0.10f * m; e.PressingIntensity += 0.10f * m; e.Tempo += 0.07f * m; }
+            else if (m < 0f)
+            {
+                e.Tempo += 0.2f * m; e.Mentality += 0.1f * m; e.PressingIntensity += 0.05f * m;
+                if (m <= -0.5f && e.Passing == PassingStyle.Mixed) e.Passing = PassingStyle.Short;
+            }
+            e.Sanitize();
+            Eff = e;
+        }
         private TeamTactics _tactics;
         /// <summary>The tactics as played (the styles applied to the sliders, see <see cref="TeamTactics.Effective"/>): what the AI reads.</summary>
         public TeamTactics Eff { get; private set; }

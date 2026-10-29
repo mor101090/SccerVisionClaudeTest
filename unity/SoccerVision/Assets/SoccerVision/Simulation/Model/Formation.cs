@@ -118,6 +118,12 @@ namespace SoccerVision.Simulation
             S(Role.AttackingMidfielder, Line.Midfield, -8f, 0f, 0.74f), S(Role.CentreMidLeft, Line.Midfield, -15f, 13f, 0.47f),
             S(Role.StrikerRight, Line.Attack, -1f, -7f, 1f), S(Role.StrikerLeft, Line.Attack, -1f, 7f, 1f));
 
+        /// <summary>4-4-2 wide diamond: the diamond with the two shuttlers pushed out wide, so the midfield covers the flanks too.</summary>
+        public static Formation F442DiamondWide() => Make("4-4-2 diamond wide", BackFour,
+            S(Role.RightMidfielder, Line.Midfield, -15f, -21f, 0.47f), S(Role.DefensiveMidfielder, Line.Midfield, -23f, 0f, 0.22f),
+            S(Role.AttackingMidfielder, Line.Midfield, -8f, 0f, 0.74f), S(Role.LeftMidfielder, Line.Midfield, -15f, 21f, 0.47f),
+            S(Role.StrikerRight, Line.Attack, -1f, -7f, 1f), S(Role.StrikerLeft, Line.Attack, -1f, 7f, 1f));
+
         /// <summary>4-3-3: a holding midfielder behind two central midfielders, two wingers high and wide, one striker.</summary>
         public static Formation F433() => Make("4-3-3", BackFour,
             S(Role.RightWinger, Line.Midfield, -5f, -25f, 0.82f), S(Role.CentreMidRight, Line.Midfield, -14f, -10f, 0.5f),
@@ -167,7 +173,7 @@ namespace SoccerVision.Simulation
             S(Role.StrikerRight, Line.Attack, -1f, -7f, 1f), S(Role.StrikerLeft, Line.Attack, -1f, 7f, 1f));
 
         /// <summary>The formations a manager can choose, by name.</summary>
-        public static readonly string[] Names = { "4-4-2", "4-4-2 narrow", "4-4-2 diamond", "4-3-3", "4-3-3 defensive", "3-5-2", "3-4-3", "3-4-1-2", "4-2-3-1", "4-1-4-1", "4-5-1" };
+        public static readonly string[] Names = { "4-4-2", "4-4-2 narrow", "4-4-2 diamond", "4-4-2 diamond wide", "4-3-3", "4-3-3 defensive", "3-5-2", "3-4-3", "3-4-1-2", "4-2-3-1", "4-1-4-1", "4-5-1" };
 
         public static Formation ByName(string name)
         {
@@ -175,6 +181,7 @@ namespace SoccerVision.Simulation
             {
                 case "4-4-2 narrow": return F442Narrow();
                 case "4-4-2 diamond": return F442Diamond();
+                case "4-4-2 diamond wide": return F442DiamondWide();
                 case "4-3-3": return F433();
                 case "4-3-3 defensive": return F433Defensive();
                 case "3-5-2": return F352();

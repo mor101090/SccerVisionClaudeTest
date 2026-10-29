@@ -58,6 +58,9 @@ namespace SoccerVision.Simulation
             }
         }
 
+        /// <summary>How close the offender must be to the victim for a scripted foul: real contact (the rules ask for 3.2 m at most).</summary>
+        private const float ContactReach = 1.6f;
+
         /// <summary>An outfield player near the ball who is fit.</summary>
         private PlayerAgent PickInjured(int team)
         {
@@ -80,6 +83,7 @@ namespace SoccerVision.Simulation
         /// </summary>
         private bool TryScriptedFoul(ScriptKind kind, int team)
         {
+            _scriptPresser = null;
             var victim = Ball.Owner;
             if (victim == null || victim.SentOff || Ball.InHands) return false;
             if (Pitch.InPenaltyArea(victim.Pos, 1) || Pitch.InPenaltyArea(victim.Pos, -1)) return false;
@@ -88,7 +92,7 @@ namespace SoccerVision.Simulation
             {
                 offender = _scriptCautioned;
                 if (offender == null || offender.SentOff || offender.Team == victim.Team) return false;
-                if (Vec2.Distance(offender.Pos, victim.Pos) > 3f)
+                if (Vec2.Distance(offender.Pos, victim.Pos) > ContactReach)
                 {
                     // not close enough yet: he is sent at the carrier (a defender "pressing hard"); the foul comes as he arrives
                     _scriptPresser = offender;
@@ -99,7 +103,7 @@ namespace SoccerVision.Simulation
             else
             {
                 if (team >= 0 && victim.Team.Opponent.Index != team) return false;
-                float bestD = 6f;
+                float bestD = 22f;
                 foreach (var o in victim.Team.Opponent.Players)
                 {
                     if (o.SentOff || o.IsGoalkeeper || o.IsDown || (kind == ScriptKind.Yellow && o.YellowCards > 0)) continue;
@@ -107,6 +111,13 @@ namespace SoccerVision.Simulation
                     if (d < bestD) { bestD = d; offender = o; }
                 }
                 if (offender == null) return false;
+                if (bestD > ContactReach)
+                {
+                    // not on him yet: the nearest defender is sent at the carrier, and the foul comes as he arrives (a card
+                    // is never shown for a foul with no contact between the two players)
+                    _scriptPresser = offender;
+                    return false;
+                }
             }
             if (kind == ScriptKind.Yellow) _scriptCautioned = offender;
             _forcedSanction = kind == ScriptKind.DirectRed ? ScriptKind.DirectRed : ScriptKind.Yellow;

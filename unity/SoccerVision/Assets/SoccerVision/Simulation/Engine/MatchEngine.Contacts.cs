@@ -626,8 +626,8 @@ namespace SoccerVision.Simulation
         }
 
         /// <summary>How clean a team's challenges are: a gentle team pulls out of the risky ones, an aggressive one goes through.</summary>
-        private static float FoulStyleFactor(TeamAgent t) =>
-            t.Tactics.Tackling == TacklingStyle.StayOnFeet ? 0.72f : t.Tactics.Tackling == TacklingStyle.GetStuckIn ? 1.2f : 1f;
+        private float FoulStyleFactor(TeamAgent t) =>
+            (t.Tactics.Tackling == TacklingStyle.StayOnFeet ? 0.72f : t.Tactics.Tackling == TacklingStyle.GetStuckIn ? 1.2f : 1f) * RefereeBias(t, 0.08f, 0.05f);
 
         /// <summary>How readily a team goes to ground (slide tackles).</summary>
         private static float SlideStyleFactor(TeamAgent t) =>

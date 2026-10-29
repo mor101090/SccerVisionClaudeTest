@@ -34,6 +34,12 @@ namespace SoccerVision.Simulation
         public int MaxAddedMinutes = 10;
         /// <summary>IFAB Law 3: up to five substitutes (competition rules).</summary>
         public int MaxSubstitutions = 5;
+        /// <summary>Home advantage: 0 none (neutral ground), 1 as in the top leagues (a third of a goal, kinder whistle, fresher legs at home).</summary>
+        public float HomeAdvantage = 1f;
+        /// <summary>How much goals and chances swing the momentum of the match (0: none).</summary>
+        public float MomentumStrength = 1f;
+        /// <summary>Time constant of momentum in match minutes (it fades with time).</summary>
+        public float MomentumMinutes = 8f;
         /// <summary>IFAB Law 3: the five changes in at most three opportunities during play (half-time does not count).</summary>
         public int MaxSubstitutionWindows = 3;
         /// <summary>Sim seconds a seriously injured player is treated on the pitch before he is helped off.</summary>

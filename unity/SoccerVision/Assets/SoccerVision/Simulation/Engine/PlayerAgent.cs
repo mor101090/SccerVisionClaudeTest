@@ -36,24 +36,31 @@ namespace SoccerVision.Simulation
         /// The player's skills as he plays them today: his fitness changes all of them (stats spec): low fitness -10%,
         /// moderate unchanged, peak +5% (at most 100).
         /// </summary>
-        public PlayerAttributes Attr => _attrOf == Profile ? _attr : (_attr = PlayedAttributes(_attrOf = Profile));
+        public PlayerAttributes Attr => _attrOf == Profile && _attrConf == Team.ConfidenceFactor ? _attr : (_attr = PlayedAttributes(_attrOf = Profile, _attrConf = Team.ConfidenceFactor));
         private PlayerAttributes _attr;
         private PlayerProfile _attrOf;
+        private float _attrConf = -1f;
 
-        private static PlayerAttributes PlayedAttributes(PlayerProfile profile)
+        /// <summary>
+        /// Fitness on every skill, and the team's confidence (home advantage and momentum) on the skills of the head and the
+        /// feet - not on pace, strength or stamina, which a crowd does not change.
+        /// </summary>
+        private static PlayerAttributes PlayedAttributes(PlayerProfile profile, float confidence)
         {
             var a = profile.Attributes.Clone();
             float k = a.Fitness == FitnessLevel.Low ? 0.9f : a.Fitness == FitnessLevel.High ? 1.05f : 1f;
-            if (k == 1f) return a;
+            float c = k * confidence;
+            if (k == 1f && confidence == 1f) return a;
             int S(int v) => MathUtil.Clamp((int)MathF.Round(v * k), 1, 100);
-            a.Aggression = S(a.Aggression); a.Teamwork = S(a.Teamwork); a.Composure = S(a.Composure); a.Decisions = S(a.Decisions);
-            a.Tackling = S(a.Tackling); a.Marking = S(a.Marking); a.Positioning = S(a.Positioning);
-            a.Creativity = S(a.Creativity); a.Passing = S(a.Passing); a.Crossing = S(a.Crossing);
-            a.Finishing = S(a.Finishing); a.LongShots = S(a.LongShots); a.OffTheBall = S(a.OffTheBall);
-            a.PhysicalPower = S(a.PhysicalPower); a.BallControl = S(a.BallControl); a.Dribbling = S(a.Dribbling);
-            a.Acceleration = S(a.Acceleration); a.Speed = S(a.Speed); a.Jumping = S(a.Jumping); a.Heading = S(a.Heading);
-            a.Stamina = S(a.Stamina); a.FreeKicks = S(a.FreeKicks); a.Penalty = S(a.Penalty);
-            a.AerialAbility = S(a.AerialAbility); a.Handling = S(a.Handling); a.Kicking = S(a.Kicking); a.OneOnOne = S(a.OneOnOne); a.Reflexes = S(a.Reflexes);
+            int C(int v) => MathUtil.Clamp((int)MathF.Round(v * c), 1, 100);
+            a.Aggression = S(a.Aggression); a.Teamwork = C(a.Teamwork); a.Composure = C(a.Composure); a.Decisions = C(a.Decisions);
+            a.Tackling = C(a.Tackling); a.Marking = C(a.Marking); a.Positioning = C(a.Positioning);
+            a.Creativity = C(a.Creativity); a.Passing = C(a.Passing); a.Crossing = C(a.Crossing);
+            a.Finishing = C(a.Finishing); a.LongShots = C(a.LongShots); a.OffTheBall = C(a.OffTheBall);
+            a.PhysicalPower = S(a.PhysicalPower); a.BallControl = C(a.BallControl); a.Dribbling = C(a.Dribbling);
+            a.Acceleration = S(a.Acceleration); a.Speed = S(a.Speed); a.Jumping = S(a.Jumping); a.Heading = C(a.Heading);
+            a.Stamina = S(a.Stamina); a.FreeKicks = C(a.FreeKicks); a.Penalty = C(a.Penalty);
+            a.AerialAbility = C(a.AerialAbility); a.Handling = C(a.Handling); a.Kicking = C(a.Kicking); a.OneOnOne = C(a.OneOnOne); a.Reflexes = C(a.Reflexes);
             return a;
         }
 

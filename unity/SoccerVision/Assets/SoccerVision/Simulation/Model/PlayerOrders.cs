@@ -48,7 +48,7 @@ namespace SoccerVision.Simulation
         {
             new[] { PlayerRole.Auto, PlayerRole.ShotStopper, PlayerRole.SweeperKeeper, PlayerRole.DominantKeeper },
             new[] { PlayerRole.Auto, PlayerRole.Stopper, PlayerRole.BallPlayingDefender, PlayerRole.CoverDefender },
-            new[] { PlayerRole.Auto, PlayerRole.WingBack, PlayerRole.InvertedFullBack, PlayerRole.DefensiveFullBack },
+            new[] { PlayerRole.Auto, PlayerRole.DefensiveFullBack, PlayerRole.InvertedFullBack, PlayerRole.WingBack },
             new[] { PlayerRole.Auto, PlayerRole.Destroyer, PlayerRole.DeepLyingPlaymaker, PlayerRole.BoxToBoxDefensive, PlayerRole.AnchorMan },
             new[] { PlayerRole.Auto, PlayerRole.AllRounder, PlayerRole.TempoSetter, PlayerRole.Carrier },
             new[] { PlayerRole.Auto, PlayerRole.ClassicPlaymaker, PlayerRole.ShadowStriker, PlayerRole.WidePlaymaker },
@@ -72,7 +72,7 @@ namespace SoccerVision.Simulation
                 case PlayerRole.Stopper: return "Stopper";
                 case PlayerRole.BallPlayingDefender: return "Ball-playing defender";
                 case PlayerRole.CoverDefender: return "Cover defender";
-                case PlayerRole.WingBack: return "Wing-back";
+                case PlayerRole.WingBack: return "Attacking full-back";
                 case PlayerRole.InvertedFullBack: return "Inverted full-back";
                 case PlayerRole.DefensiveFullBack: return "Defensive full-back";
                 case PlayerRole.Destroyer: return "Destroyer";

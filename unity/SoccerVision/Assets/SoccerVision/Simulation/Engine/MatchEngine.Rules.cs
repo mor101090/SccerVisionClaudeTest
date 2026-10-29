@@ -142,6 +142,7 @@ namespace SoccerVision.Simulation
             if (defending == _chargeDownTeam && SimTime - _chargeDownTime < 8f) KeeperChargeDownGoals++;
             scoringTeam.Score++;
             scoringTeam.Stats.Goals++;
+            MomentumGoal(scoringTeam);
             bool recentShot = Ball.Shooter != null && Ball.Shooter.Team == scoringTeam && SimTime - _lastShotTime < 3f;
             if (recentShot && !_shotCountedOnTarget) scoringTeam.Stats.ShotsOnTarget++;
             if (_penaltyKickTime >= 0f && Ball.Shooter != null && Ball.Shooter.Team == scoringTeam) scoringTeam.Stats.PenaltiesScored++;
@@ -356,6 +357,10 @@ namespace SoccerVision.Simulation
         /// <summary>Set while a foul from a slide tackle is being judged (a higher card risk).</summary>
         private bool _slideFoul;
 
+        /// <summary>The crowd's effect on the referee: a multiplier below 1 for the home team, above 1 for the away team.</summary>
+        private float RefereeBias(TeamAgent team, float home, float away) =>
+            team == Home ? 1f - home * Config.HomeAdvantage : 1f + away * Config.HomeAdvantage;
+
         private void CommitFoul(PlayerAgent offender, PlayerAgent victim, bool fromBehind, bool playedForBall, Vec2 contact, bool noContactNeeded = false)
         {
             // A foul is physical contact: with the players not within reach of each other (a slide reaches about 3 m) there was
@@ -367,6 +372,7 @@ namespace SoccerVision.Simulation
             }
             offender.Team.Stats.Fouls++;
             offender.FoulsCommitted++;
+            DampMomentum(0.965f); // (every stoppage breaks the rhythm)
             bool penaltyArea = Pitch.InPenaltyArea(contact, offender.Team.OwnGoalSign);
             var sanction = DecideSanction(offender, victim, fromBehind, playedForBall, penaltyArea);
             Emit(MatchEventType.Foul, offender.Team, offender, victim, contact);
@@ -414,6 +420,7 @@ namespace SoccerVision.Simulation
                 BeginRestart(RestartType.PenaltyKick, victim.Team, Pitch.PenaltySpot(victim.Team.AttackGoalSign), null);
                 _restart.CountsAsLostTime = true;
                 Emit(MatchEventType.PenaltyAwarded, victim.Team, _restart.Taker, offender, _restart.Spot);
+                AddMomentum(victim.Team, 0.2f);
             }
             else
             {
@@ -479,6 +486,7 @@ namespace SoccerVision.Simulation
             if (!playedForBall) pYellow += 0.1f;
             if (_slideFoul) pYellow += fromBehind ? 0.15f : 0.05f; // a mistimed slide is usually reckless
             if (offender.YellowCards > 0) pYellow *= 0.45f; // referees give some leeway before a second caution
+            pYellow *= RefereeBias(offender.Team, 0.12f, 0.08f); // the crowd: the home team gets the benefit of the doubt
             if (_rng.Chance(MathUtil.Clamp(pYellow, 0f, 0.95f)))
             {
                 string reason = promising ? "stopping a promising attack" : (offender.FoulsCommitted >= 3 ? "persistent infringement" : "reckless challenge");
@@ -528,6 +536,8 @@ namespace SoccerVision.Simulation
             if (s.Red)
             {
                 p.Team.Stats.RedCards++;
+                AddMomentum(p.Team.Opponent, 0.3f);
+                DampMomentum(0.93f);
                 Emit(MatchEventType.RedCard, p.Team, p, null, p.Pos, 0f);
                 ShowCard(2);
                 SendOff(p);
@@ -569,6 +579,8 @@ namespace SoccerVision.Simulation
             _secondYellowRed = null;
             if (p.SentOff) return;
             p.Team.Stats.RedCards++;
+            AddMomentum(p.Team.Opponent, 0.3f);
+            DampMomentum(0.93f);
             Emit(MatchEventType.RedCard, p.Team, p, null, p.Pos, 1f);
             ShowCard(2);
             SendOff(p);
@@ -716,6 +728,7 @@ namespace SoccerVision.Simulation
         private void OffsideOffence(PlayerAgent q)
         {
             q.Team.Stats.Offsides++;
+            DampMomentum(0.985f);
             var assistant = Assistant1.CoverSign == MathF.Sign(q.Pos.X) ? Assistant1 : Assistant2;
             assistant.FlagTimer = Config.OffsideFlagRealSeconds * Config.MotionSpeed;
             assistant.FlagDir = q.Team.Opponent.AttackDir; // towards the goal the free-kick team attacks
