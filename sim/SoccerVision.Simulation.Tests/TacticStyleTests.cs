@@ -129,6 +129,19 @@ namespace SoccerVision.Simulation.Tests
         }
 
         [Fact]
+        public void TheLineAndWidthSlidersStillWorkWithAStyleChosen()
+        {
+            foreach (var style in new Action<TeamTactics>[] { t => t.Defence = DefenceStyle.ParkTheBus, t => t.Defence = DefenceStyle.HighPress, t => t.Special = SpecialTactic.Siege })
+            {
+                double low = Avg(t => { style(t); t.DefensiveLine = 0.05f; }, Depth), high = Avg(t => { style(t); t.DefensiveLine = 0.95f; }, Depth);
+                Assert.True(high > low + 4, $"the line slider moves the back line even with a style: {low:0} m -> {high:0} m");
+            }
+            double narrow = Avg(t => { t.Attack = AttackStyle.CrossesIntoBox; t.Width = 0.05f; }, e => e.HomeSpreadSum / e.HomeLineSamples);
+            double wide = Avg(t => { t.Attack = AttackStyle.CrossesIntoBox; t.Width = 0.95f; }, e => e.HomeSpreadSum / e.HomeLineSamples);
+            Assert.True(wide > narrow + 3, $"the width slider moves the team even with crosses chosen: {narrow:0} -> {wide:0} m");
+        }
+
+        [Fact]
         public void TheStylesAreAnnounced()
         {
             var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 5, MatchConfig.CreateDefault());

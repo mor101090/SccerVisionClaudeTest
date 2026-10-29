@@ -2,6 +2,16 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/tactic-sliders-stay-live`
+
+- **Bug: with some tactics chosen, the defensive-line and width sliders did nothing.** The defence, attack and extra
+  tactics pinned the line or width (a high press forced the line to at least 80%, parking the bus to at most 3%, crosses
+  forced the width up, ...). They now only SHIFT the sliders, so the sliders always work: a high press plays higher than
+  the same slider without it, a bus lower. Measured: the line slider moves the back line 22 -> 31 m with the bus, 34 -> 43 m with
+  relentless pressure. The tactics board follows. Passing and tempo buttons are only changed by a style when they are at
+  their default (mixed / normal).
+- Test: the sliders move the team with any style (1 test).
+
 ## `fix/referee-flag-cards-injuries`
 
 - **The assistant's flag**, checked against the rules: it points the way the team awarded the restart attacks (a team

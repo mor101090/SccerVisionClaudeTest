@@ -58,24 +58,27 @@ namespace SoccerVision.Simulation
         public TeamTactics Effective()
         {
             var e = Clone();
+            // The styles SHIFT the sliders, they do not pin them: whatever the manager sets, moving the line or width slider
+            // still moves the team (a high press just plays higher than the same slider without it).
+            void Shift(ref float v, float d) => v = MathUtil.Clamp01(v + d);
             switch (Defence)
             {
-                case DefenceStyle.HighPress: e.PressingIntensity = Math.Max(e.PressingIntensity, 0.88f); e.DefensiveLine = Math.Max(e.DefensiveLine, 0.8f); break;
-                case DefenceStyle.OffsideTrap: e.DefensiveLine = Math.Max(e.DefensiveLine, 0.72f); e.PressingIntensity = Math.Max(e.PressingIntensity, 0.5f); break;
-                case DefenceStyle.ParkTheBus: e.DefensiveLine = Math.Min(e.DefensiveLine, 0.03f); e.Width = Math.Min(e.Width, 0.3f); e.Mentality = Math.Min(e.Mentality, 0.12f); e.PressingIntensity = Math.Min(e.PressingIntensity, 0.2f); e.Tempo = Math.Min(e.Tempo, 0.3f); break;
+                case DefenceStyle.HighPress: Shift(ref e.PressingIntensity, 0.3f); Shift(ref e.DefensiveLine, 0.22f); break;
+                case DefenceStyle.OffsideTrap: Shift(ref e.DefensiveLine, 0.18f); Shift(ref e.PressingIntensity, 0.1f); break;
+                case DefenceStyle.ParkTheBus: Shift(ref e.DefensiveLine, -0.35f); Shift(ref e.Width, -0.25f); Shift(ref e.Mentality, -0.3f); Shift(ref e.PressingIntensity, -0.3f); Shift(ref e.Tempo, -0.2f); break;
             }
             switch (Attack)
             {
-                case AttackStyle.CrossesIntoBox: e.Width = Math.Max(e.Width, 0.82f); break;
-                case AttackStyle.RunsInBehind: e.Passing = PassingStyle.Direct; e.Tempo = Math.Max(e.Tempo, 0.62f); break;
-                case AttackStyle.LongShots: e.Mentality = Math.Max(e.Mentality, 0.6f); break;
+                case AttackStyle.CrossesIntoBox: Shift(ref e.Width, 0.25f); break;
+                case AttackStyle.RunsInBehind: if (e.Passing == PassingStyle.Mixed) e.Passing = PassingStyle.Direct; Shift(ref e.Tempo, 0.15f); break;
+                case AttackStyle.LongShots: Shift(ref e.Mentality, 0.12f); break;
             }
             switch (Special)
             {
-                case SpecialTactic.Possession: e.Passing = PassingStyle.Short; e.Tempo = Math.Min(e.Tempo, 0.35f); e.PressingIntensity = Math.Max(e.PressingIntensity, 0.55f); break;
-                case SpecialTactic.TimeWasting: e.Tempo = Math.Min(e.Tempo, 0.1f); e.Mentality = Math.Min(e.Mentality, 0.25f); e.DefensiveLine = Math.Min(e.DefensiveLine, 0.35f); e.PressingIntensity = Math.Min(e.PressingIntensity, 0.3f); break;
-                case SpecialTactic.CounterAttack: e.DefensiveLine = Math.Min(e.DefensiveLine, 0.35f); e.PressingIntensity = Math.Min(e.PressingIntensity, 0.45f); e.Tempo = Math.Max(e.Tempo, 0.8f); break;
-                case SpecialTactic.Siege: e.Mentality = 0.95f; e.DefensiveLine = Math.Max(e.DefensiveLine, 0.92f); e.Width = Math.Max(e.Width, 0.72f); e.Tempo = Math.Max(e.Tempo, 0.7f); e.PressingIntensity = Math.Max(e.PressingIntensity, 0.9f); break;
+                case SpecialTactic.Possession: if (e.Passing == PassingStyle.Mixed) e.Passing = PassingStyle.Short; Shift(ref e.Tempo, -0.2f); Shift(ref e.PressingIntensity, 0.1f); break;
+                case SpecialTactic.TimeWasting: Shift(ref e.Tempo, -0.3f); Shift(ref e.Mentality, -0.2f); Shift(ref e.DefensiveLine, -0.15f); Shift(ref e.PressingIntensity, -0.15f); break;
+                case SpecialTactic.CounterAttack: Shift(ref e.DefensiveLine, -0.15f); Shift(ref e.PressingIntensity, -0.1f); Shift(ref e.Tempo, 0.25f); break;
+                case SpecialTactic.Siege: Shift(ref e.Mentality, 0.4f); Shift(ref e.DefensiveLine, 0.3f); Shift(ref e.Width, 0.2f); Shift(ref e.Tempo, 0.2f); Shift(ref e.PressingIntensity, 0.3f); break;
             }
             e.Sanitize();
             return e;
