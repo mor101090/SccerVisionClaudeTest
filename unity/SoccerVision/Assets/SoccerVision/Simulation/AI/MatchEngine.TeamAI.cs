@@ -87,7 +87,7 @@ namespace SoccerVision.Simulation
                 if (p.SentOff || p.IsGoalkeeper) continue;
                 p.ShapeTarget = ComputeShapeTarget(p, team, inPossession, ballF, ballL, offsideLine);
             }
-            if (inPossession && ballF > -8f) ApplyRestDefence(team, ballF);
+            if (inPossession && ballF > 6f) ApplyRestDefence(team, ballF);
             bool overload = inPossession && IsWideOverload(team, ballF, ballL);
             if (overload && !team.OverloadOn) team.Stats.Overloads++;
             team.OverloadOn = overload;

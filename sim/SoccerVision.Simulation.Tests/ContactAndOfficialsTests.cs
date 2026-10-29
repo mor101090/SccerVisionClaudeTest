@@ -55,9 +55,12 @@ namespace SoccerVision.Simulation.Tests
         public void ARefereeShowsTheCardAndASecondYellowIsFollowedByTheRed()
         {
             int shown = 0, sequences = 0;
-            for (ulong seed = 8200; seed < 8260 && sequences == 0; seed++)
+            // (the staged match always has a second yellow; a random one only now and then)
+            for (ulong seed = 8200; seed < 8203 && sequences == 0; seed++)
             {
-                var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed);
+                var c = MatchConfig.CreateDefault();
+                c.Script = MatchScript.Staged();
+                var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed, c);
                 float secondYellowAt = -1f;
                 bool sawYellowAfter = false;
                 while (!e.IsFinished)

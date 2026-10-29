@@ -50,15 +50,17 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void FasterPlayersCoverMoreGround()
         {
-            double Run(int speed)
+            // (over three matches: one match is too noisy)
+            double Run(int speed) => new ulong[] { 5, 6, 7 }.AsParallel().Select(seed =>
             {
                 var home = DemoTeams.Red();
                 foreach (var p in home.Starters.Where(p => p.NaturalPosition != PositionGroup.Goalkeeper)) { p.Attributes.Speed = speed; p.Attributes.Acceleration = speed; }
-                var e = new MatchEngine(home, DemoTeams.Blue(), 5, MatchConfig.CreateDefault());
+                var e = new MatchEngine(home, DemoTeams.Blue(), seed, MatchConfig.CreateDefault());
                 e.RunToEnd();
-                return e.Home.Players.Where(p => !p.IsGoalkeeper).Average(p => p.DistanceCovered);
-            }
-            Assert.True(Run(90) > Run(35) * 1.05);
+                return e.Home.Players.Where(p => !p.IsGoalkeeper).Average(p => (double)p.DistanceCovered);
+            }).Average();
+            double fast = Run(90), slow = Run(35);
+            Assert.True(fast > slow * 1.05, $"distance per player: fast {fast:0} m v slow {slow:0} m");
         }
 
         [Fact]
