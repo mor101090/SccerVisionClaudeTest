@@ -1363,8 +1363,8 @@ namespace SoccerVision.Simulation
                 float off = Pitch.HalfLength - keeper.Pos.X * goalSign; // keeper's distance from his goal line
                 float toKeeper = Vec2.Distance(from, keeper.Pos);
                 float inLine = Vec2.DistanceToSegment(keeper.Pos, from, team.AttackGoal, out _);
-                if (off > 6f && inLine < 2.5f && toKeeper > 5f && toKeeper < 15f && dist > 11f && dist < 30f
-                    && _rng.Chance((0.08f + 0.42f * technique) * MathUtil.Clamp01((off - 6f) / 6f + 0.3f)))
+                if (off > 4.5f && inLine < 3f && toKeeper > 4f && toKeeper < 16f && dist > 9f && dist < 30f
+                    && _rng.Chance((0.08f + 0.42f * technique) * MathUtil.Clamp01((off - 4.5f) / 6f + 0.3f)))
                     return ShotTechnique.Chip;
             }
             Vec2 dir = (team.AttackGoal - from).Normalized;
