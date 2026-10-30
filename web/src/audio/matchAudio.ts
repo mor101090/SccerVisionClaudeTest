@@ -1,6 +1,6 @@
-// Match sounds for the web viewers: referee whistles, ball kicks, headers, saves, the woodwork, the net and a home crowd
-// that reacts to what happens. Procedural by default; recorded sounds (loadSamples) replace the crowd's anger, the
-// celebration, the booing, the applause, the net and the woodwork when they are there. Mirrors Unity's MatchAudio.
+// Match sounds for the web viewers: referee whistles, ball kicks, headers and saves and the steady murmur of the crowd are
+// made here; the crowd's reactions (anger, celebration, booing, applause), the net and the woodwork are recordings
+// (loadSamples) - without them those moments are silent.
 // Browsers only allow audio after a user gesture, so call enable() from a click handler.
 
 export interface SoundEvent {
@@ -16,15 +16,6 @@ export interface SoundEvent {
   /** Match minute (for the crowd's sense of time-wasting). */
   minute?: number;
 }
-
-/** Vowel formants (Hz) for the crowd's voices. */
-const VOWELS = {
-  oo: [330, 820],
-  aw: [570, 900],
-  ah: [760, 1220],
-  eh: [560, 1750],
-} as const;
-type Vowel = keyof typeof VOWELS;
 
 /**
  * Referee whistle signals: [blast seconds, gap after], loudness and air pressure (pitch). Which events get a whistle
@@ -53,7 +44,6 @@ export class MatchSound {
   private boost = 0;
   private hush = 0;
   private noiseBuf: AudioBuffer | null = null;
-  private clapBuf: AudioBuffer | null = null;
   private peaBuf: AudioBuffer | null = null;
   volume = 0.8;
 
@@ -71,7 +61,6 @@ export class MatchSound {
       const comp = this.ctx.createDynamicsCompressor();
       this.master.connect(comp).connect(this.ctx.destination);
       this.noiseBuf = this.makeNoise(2);
-      this.clapBuf = this.makeApplause(3);
       this.peaBuf = this.makePeaNoise(2);
       this.startCrowd();
       if (this.sampleBase) void this.fetchSamples(this.sampleBase);
@@ -107,12 +96,13 @@ export class MatchSound {
    * one place (pan -1..1) - a far-away section is quieter and duller. echo 0..1: the ring of a stadium (a harder hit
    * echoes more). maxSeconds cuts it short (with a fade).
    */
-  private sample(name: SampleName, gain: number, opts: { wide?: boolean; pan?: number; echo?: number; maxSeconds?: number; far?: boolean } = {}): boolean {
+  private sample(name: SampleName, gain: number, opts: { wide?: boolean; pan?: number; echo?: number; maxSeconds?: number; far?: boolean; offset?: number } = {}): boolean {
     const buf = this.samples[name];
     const ctx = this.ctx;
     if (!buf || !ctx) return false;
     const now = ctx.currentTime;
-    const len = Math.min(buf.duration, opts.maxSeconds ?? buf.duration);
+    const offset = Math.min(opts.offset ?? 0, Math.max(0, buf.duration - 0.5));
+    const len = Math.min(buf.duration - offset, opts.maxSeconds ?? buf.duration);
     const pans = opts.wide ? [-0.85, 0, 0.85] : [opts.pan ?? 0];
     const each = opts.wide ? gain * 0.62 : gain;
     pans.forEach((p, k) => {
@@ -120,7 +110,8 @@ export class MatchSound {
       src.buffer = buf;
       const g = ctx.createGain();
       const at = now + (opts.wide ? k * 0.035 : 0); // (a few ms apart: the sound arrives from all round)
-      g.gain.setValueAtTime(each, at);
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.linearRampToValueAtTime(each, at + 0.05);
       g.gain.setValueAtTime(each, at + Math.max(0, len - 0.4));
       g.gain.linearRampToValueAtTime(0.0001, at + len);
       let node: AudioNode = src;
@@ -147,31 +138,35 @@ export class MatchSound {
         d.connect(fb).connect(d);
         d.connect(wet).connect(pan);
       }
-      src.start(at, 0, len);
+      src.start(at, offset, len);
     });
     return true;
   }
 
   /** The home fans furious with the referee (or a goal against): from all round the ground. */
   private angry(gain = 0.9) {
-    if (!this.sample("fan_angry", gain, { wide: true })) this.boo(3.5, 1);
+    this.sample("fan_angry", gain, { wide: true });
   }
 
-  /** The home crowd booing (the recording is cut before its applause starts, at 14.5 s). */
+  /** The home crowd booing (the recording is cut before its applause starts, at 14.5 s; its boos start 0.6 s in). */
   private booing(gain = 0.85) {
-    if (!this.sample("booing", gain, { wide: true, maxSeconds: 14.5 })) this.boo(3.2, 1);
+    this.sample("booing", gain, { wide: true, offset: 0.6, maxSeconds: 13.9 }); // (the boos start 0.6 s in)
   }
 
   /** Applause for a home shot that did not go in. */
   private clapping(gain = 0.6) {
-    if (!this.sample("clapping", gain, { wide: true })) this.applause(2.2, 0.45);
+    this.sample("clapping", gain, { wide: true });
   }
 
   disable(): void {
     void this.ctx?.suspend();
   }
 
-  /** Plays the sound that belongs to a match event (no-op while disabled). */
+  /**
+   * Plays the sound that belongs to a match event (no-op while disabled). The ball, the whistles and the steady crowd are
+   * made here; every reaction of the crowd (anger, celebration, booing, applause) and the net and the woodwork are the
+   * recordings - nothing is played for them until those have loaded.
+   */
   play(e: SoundEvent): void {
     if (!this.enabled) return;
     const home = e.team === 0;
@@ -189,29 +184,21 @@ export class MatchSound {
       case "Shot":
         // side-footed finishes and chips are struck softly; volleys and free kicks are hit hardest
         this.thud(70, 0.16, e.detail === 1 || e.detail === 3 || e.detail === 15 ? 0.75 : e.detail === 6 || e.detail === 7 || e.detail === 9 || e.detail === 16 ? 0.38 : 0.6);
-        if (home) this.voices("oo", 210, 290, 1.4, 0.45); // the home end rises with the shot
-        else this.addBoost(0.05);
+        if (!home) this.addBoost(0.05);
         break;
       case "Header":
         this.thud(150, 0.07, 0.4);
         break;
       case "Save":
         this.thud(190, 0.08, 0.45);
-        // e.team is the keeper's side
-        if (home) this.applause(2.2, 0.5);
-        else {
-          this.voices("aw", 250, 160, 1.8, 0.5); // "ohhh" - so close
-          this.clapping(0.5);
-        }
+        // e.team is the keeper's side: a home shot saved
+        if (away) this.clapping(0.5);
         break;
       case "GoalkeeperClaim":
         this.thud(190, 0.08, 0.4);
         break;
       case "ShotOffTarget":
-        if (home) {
-          this.voices("aw", 240, 150, 1.6, 0.4);
-          this.clapping(0.45);
-        }
+        if (home) this.clapping(0.45);
         break;
       case "ShotBlocked":
         // e.team is the blocker's side: a home shot blocked by the visitors
@@ -219,63 +206,45 @@ export class MatchSound {
         break;
       case "HitWoodwork": {
         // how hard it hit decides how loud it rings and how long the stadium echoes it
-        const v = e.value ?? 12;
-        const hard = Math.max(0, Math.min(1, (v - 6) / 24));
-        if (!this.sample(e.detail === 2 ? "crossbar" : "goalpost", 0.35 + 0.65 * hard, { echo: hard })) this.woodwork(e.detail === 2, v);
+        const hard = Math.max(0, Math.min(1, ((e.value ?? 12) - 6) / 24));
+        this.sample(e.detail === 2 ? "crossbar" : "goalpost", 0.35 + 0.65 * hard, { echo: hard });
         if (home) this.clapping(0.5);
-        this.voices("oo", 240, 300, 1.0, home ? 0.7 : 0.45);
-        if (home) this.voices("aw", 260, 160, 1.6, 0.5, 0.9);
         break;
       }
       case "Goal":
         // the net's own sound comes with the NetHit event right after (it knows how hard the ball hit it)
         if (home) {
-          // the whole ground goes up
-          if (!this.sample("after_goal", 1, { wide: true })) {
-            this.voices("ah", 270, 340, 5.5, 1);
-            this.voices("eh", 300, 360, 4, 0.5, 0.4);
-            this.applause(6, 0.8, 1.5);
-          }
+          // the whole ground goes up (the recording's roar starts 2.1 s in: played from there, it comes with the goal)
+          this.sample("after_goal", 1, { wide: true, offset: 2.05 });
           this.boost = 0.3;
         } else {
           // The away section celebrates in one corner, far and quieter; the home fans are furious all round.
-          if (!this.sample("after_goal", 0.32, { pan: 0.8, far: true })) this.voices("ah", 280, 330, 4, 0.22, 0.2, 900);
-          if (this.samples.fan_angry) this.angry(0.7);
-          else this.voices("aw", 220, 140, 1.5, 0.45);
+          this.sample("after_goal", 0.32, { pan: 0.8, far: true, offset: 2.05 });
+          this.angry(0.7);
           this.hush = 1;
         }
         break;
       case "NetHit": {
-        const v = e.value ?? 10;
-        const hard = Math.max(0, Math.min(1, (v - 4) / 22));
-        if (!this.sample("net", 0.3 + 0.7 * hard, { echo: hard * 0.7 })) this.net(v);
+        const hard = Math.max(0, Math.min(1, ((e.value ?? 10) - 4) / 22));
+        this.sample("net", 0.3 + 0.7 * hard, { echo: hard * 0.7 });
         break;
       }
       case "Foul":
-        // e.team is the offender's side: a free kick against the home team angers the home end; the visitors' fouls are booed
-        if (away) this.boo(1.8, 0.65);
-        else if (this.samples.fan_angry) this.angry(0.75);
-        else this.voices("aw", 200, 170, 0.9, 0.15);
+        // e.team is the offender's side: a free kick against the home team angers the home end
+        if (home) this.angry(0.75);
         break;
       case "YellowCard":
-        if (away) this.applause(1.5, 0.35);
-        else this.angry(0.8);
+        if (home) this.angry(0.8);
         break;
       case "RedCard":
-        if (away) {
-          this.voices("ah", 260, 320, 2.5, 0.6);
-          this.applause(3, 0.6);
-        } else {
+        if (home) {
           this.angry(0.9);
           this.booing(0.8);
         }
         break;
       case "PenaltyAwarded":
-        // e.team is the side given the penalty: against the home team the ground erupts in anger, and the away taker is booed
-        if (home) {
-          this.voices("ah", 270, 330, 3, 0.85);
-          this.applause(3, 0.5);
-        } else {
+        // e.team is the side given the penalty: against the home team the ground erupts, and the away taker is booed
+        if (away) {
           this.angry(1);
           this.booing(0.7);
         }
@@ -286,34 +255,6 @@ export class MatchSound {
         break;
       case "GoalkeeperHoldViolation":
         if (away) this.booing(0.6);
-        break;
-      case "PenaltyMissed":
-        if (home) this.voices("aw", 260, 140, 2.2, 0.9);
-        else {
-          this.voices("ah", 260, 330, 3, 0.8);
-          this.applause(3, 0.6);
-        }
-        break;
-      case "Offside":
-        if (home) this.voices("aw", 210, 170, 0.9, 0.2);
-        else this.applause(1, 0.25);
-        break;
-      case "Corner":
-        if (home) this.applause(1.6, 0.3);
-        break;
-      case "FreeKick":
-        if (home && e.detail === 1) this.voices("oo", 180, 230, 2, 0.2);
-        break;
-      case "FullTime": {
-        const h = e.homeScore ?? 0;
-        const a = e.awayScore ?? 0;
-        if (h >= a) this.applause(6, h > a ? 0.9 : 0.5, 1);
-        if (h > a) this.voices("ah", 260, 320, 4, 0.6);
-        if (h < a) this.boo(4, 0.8);
-        break;
-      }
-      case "HalfTime":
-        this.applause(3, 0.4);
         break;
     }
   }
@@ -360,29 +301,6 @@ export class MatchSound {
     return buf;
   }
 
-  /** Many hands clapping: random short bursts of band-passed noise. */
-  private makeApplause(seconds: number): AudioBuffer {
-    const ctx = this.ctx!;
-    const sr = ctx.sampleRate;
-    const buf = ctx.createBuffer(1, Math.floor(sr * seconds), sr);
-    const d = buf.getChannelData(0);
-    const claps = Math.floor(seconds * 420);
-    for (let c = 0; c < claps; c++) {
-      const start = Math.floor(Math.random() * (d.length - sr * 0.02));
-      const len = Math.floor(sr * (0.004 + Math.random() * 0.008));
-      const amp = 0.25 + Math.random() * 0.75;
-      let lp = 0;
-      const k = 0.3 + Math.random() * 0.5;
-      for (let i = 0; i < len; i++) {
-        lp += (Math.random() * 2 - 1 - lp) * k;
-        d[start + i] += lp * amp * Math.exp(-i / (len * 0.35));
-      }
-    }
-    let peak = 0;
-    for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
-    for (let i = 0; i < d.length; i++) d[i] /= peak || 1;
-    return buf;
-  }
 
   private out(): AudioNode {
     return this.master!;
@@ -481,87 +399,8 @@ export class MatchSound {
    * A crowd shouting a vowel: many detuned voices (sawtooths with their own vibrato and onsets) through vowel
    * formants, plus breath. Pitch glides from f0 to f1 (rising "ooh", falling "aww", sustained roar).
    */
-  private voices(vowel: Vowel, f0: number, f1: number, len: number, vol: number, delay = 0, lowpass = 3200) {
-    const ctx = this.ctx!;
-    const t = ctx.currentTime + delay;
-    const [F1, F2] = VOWELS[vowel];
-    const bus = ctx.createGain();
-    const env = ctx.createGain();
-    const attack = Math.min(0.35, len * 0.25);
-    env.gain.setValueAtTime(0.0001, t);
-    env.gain.linearRampToValueAtTime(vol * 0.5, t + attack);
-    env.gain.linearRampToValueAtTime(vol * 0.42, t + len * 0.6);
-    env.gain.linearRampToValueAtTime(0.0001, t + len);
-    const form1 = ctx.createBiquadFilter();
-    form1.type = "bandpass";
-    form1.frequency.value = F1;
-    form1.Q.value = 3;
-    const form2 = ctx.createBiquadFilter();
-    form2.type = "bandpass";
-    form2.frequency.value = F2;
-    form2.Q.value = 4;
-    const g2 = ctx.createGain();
-    g2.gain.value = 0.55;
-    const lp = ctx.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = lowpass;
-    bus.connect(form1).connect(env);
-    bus.connect(form2).connect(g2).connect(env);
-    env.connect(lp).connect(this.out());
-    const n = 22;
-    for (let i = 0; i < n; i++) {
-      const spread = 0.72 + Math.random() * 0.62; // men and women, low and high
-      const o = ctx.createOscillator();
-      o.type = "sawtooth";
-      const start = t + Math.random() * Math.min(0.3, len * 0.2);
-      o.frequency.setValueAtTime(f0 * spread, start);
-      o.frequency.linearRampToValueAtTime(f1 * spread * (0.95 + Math.random() * 0.1), t + len);
-      const vib = ctx.createOscillator();
-      vib.frequency.value = 4 + Math.random() * 3;
-      const vibDepth = ctx.createGain();
-      vibDepth.gain.value = f0 * spread * 0.02;
-      vib.connect(vibDepth).connect(o.frequency);
-      const vg = ctx.createGain();
-      vg.gain.value = 0.2;
-      o.connect(vg).connect(bus);
-      o.start(start);
-      vib.start(start);
-      o.stop(t + len + 0.05);
-      vib.stop(t + len + 0.05);
-    }
-    const breath = ctx.createBufferSource();
-    breath.buffer = this.noiseBuf;
-    breath.loop = true;
-    const bg = ctx.createGain();
-    bg.gain.value = 0.5;
-    breath.connect(bg).connect(bus);
-    breath.start(t, Math.random());
-    breath.stop(t + len + 0.05);
-  }
 
-  private boo(len: number, vol: number) {
-    this.voices("oo", 135, 120, len, vol * 0.9);
-  }
 
-  private applause(len: number, vol: number, delay = 0) {
-    const ctx = this.ctx!;
-    const t = ctx.currentTime + delay;
-    const src = ctx.createBufferSource();
-    src.buffer = this.clapBuf;
-    src.loop = true;
-    const bp = ctx.createBiquadFilter();
-    bp.type = "bandpass";
-    bp.frequency.value = 1900;
-    bp.Q.value = 0.7;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(vol * 0.55, t + 0.25);
-    g.gain.linearRampToValueAtTime(vol * 0.4, t + len * 0.6);
-    g.gain.linearRampToValueAtTime(0.0001, t + len);
-    src.connect(bp).connect(g).connect(this.out());
-    src.start(t, Math.random() * 2);
-    src.stop(t + len + 0.05);
-  }
 
   // ---- Ball ------------------------------------------------------------------------------------------------
 
@@ -591,36 +430,7 @@ export class MatchSound {
     n.stop(t + 0.06);
   }
 
-  /** A short band-passed noise burst: contact clicks and rattles. */
-  private burst(at: number, len: number, freq: number, q: number, gain: number) {
-    const ctx = this.ctx!;
-    const n = ctx.createBufferSource();
-    n.buffer = this.noiseBuf;
-    const bp = ctx.createBiquadFilter();
-    bp.type = "bandpass";
-    bp.frequency.value = freq;
-    bp.Q.value = q;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(gain, at);
-    g.gain.exponentialRampToValueAtTime(0.0005, at + len);
-    n.connect(bp).connect(g).connect(this.out());
-    n.start(at, Math.random());
-    n.stop(at + len + 0.02);
-  }
 
-  /** One decaying sine partial of a struck object (decays to -60 dB over `dur` seconds). */
-  private partial(at: number, freq: number, gain: number, dur: number) {
-    const ctx = this.ctx!;
-    const o = ctx.createOscillator();
-    o.frequency.value = freq;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, at);
-    g.gain.linearRampToValueAtTime(gain, at + 0.002);
-    g.gain.exponentialRampToValueAtTime(0.0005, at + dur);
-    o.connect(g).connect(this.out());
-    o.start(at);
-    o.stop(at + dur + 0.02);
-  }
 
   /**
    * The ball hitting the post or the crossbar of a goal: a hollow steel/aluminium tube. Layers:
@@ -632,55 +442,10 @@ export class MatchSound {
    * 4. the rattle of net fixings and the frame settling, a few small clicks right after.
    * Louder for a harder strike.
    */
-  private woodwork(crossbar: boolean, speed: number) {
-    const ctx = this.ctx!;
-    const t = ctx.currentTime;
-    const vol = Math.min(1, Math.max(0.3, 0.25 + speed / 30));
-    this.burst(t, 0.008, 3200, 1.1, 0.8 * vol);
-    this.thud(130, 0.09, 0.5 * vol);
-    const f1 = crossbar ? 74 : 58;
-    const tail = crossbar ? 0.7 : 0.38;
-    // the lowest mode is felt more than heard on a normal speaker: the audible "tonk" comes from modes 2-4 (about 170-550 Hz)
-    [0.2, 0.5, 0.45, 0.32].forEach((w, i) => this.partial(t, f1 * [1, 2.76, 5.4, 8.93][i] * (1 + (Math.random() - 0.5) * 0.01), w * vol, tail / (1 + i * 0.5)));
-    const ping = crossbar ? [2200, 2800, 3650] : [1900, 2500, 3300];
-    ping.forEach((f, i) => this.partial(t, f * (1 + (Math.random() - 0.5) * 0.015), (0.42 * vol) / (1 + i * 0.4), (crossbar ? 0.34 : 0.2) / (1 + i * 0.3)));
-    for (let k = 0; k < 4; k++) this.burst(t + 0.03 + k * 0.045 + Math.random() * 0.03, 0.012, 1600 + Math.random() * 2200, 1.4, 0.18 * vol * (1 - k * 0.2));
-  }
 
   /**
    * The ball hitting the back of the net. Netting is slack nylon cord: there is no ring and no hiss. What you hear is a soft low
    * "whump" as the ball stretches the net, a short muffled swish of cords sliding against each other (broad, about 150 Hz to
    * 2 kHz, with a quick flutter) and a few tiny cord ticks as it settles. Louder for a harder strike.
    */
-  private net(speed: number) {
-    const ctx = this.ctx!;
-    const t = ctx.currentTime;
-    const vol = Math.min(1, Math.max(0.25, 0.2 + speed / 28));
-    this.thud(85, 0.14, 0.4 * vol);
-    const n = ctx.createBufferSource();
-    n.buffer = this.noiseBuf;
-    const hp = ctx.createBiquadFilter();
-    hp.type = "highpass";
-    hp.frequency.value = 150;
-    const lp = ctx.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = 2000;
-    const flutter = ctx.createGain();
-    flutter.gain.value = 0.75;
-    const lfo = ctx.createOscillator();
-    lfo.frequency.value = 26 + Math.random() * 8;
-    const lfoDepth = ctx.createGain();
-    lfoDepth.gain.value = 0.25;
-    lfo.connect(lfoDepth).connect(flutter.gain);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(1.3 * vol, t + 0.018);
-    g.gain.exponentialRampToValueAtTime(0.0005, t + 0.5);
-    n.connect(hp).connect(lp).connect(flutter).connect(g).connect(this.out());
-    n.start(t, Math.random());
-    lfo.start(t);
-    n.stop(t + 0.55);
-    lfo.stop(t + 0.55);
-    for (let k = 0; k < 4; k++) this.burst(t + 0.05 + k * 0.07 + Math.random() * 0.05, 0.015, 900 + Math.random() * 1400, 1.0, 0.16 * vol);
-  }
 }

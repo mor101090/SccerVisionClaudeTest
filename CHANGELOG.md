@@ -7,7 +7,7 @@ Each round of changes is developed on its own branch, named after what it change
 - **Player ratings 1-10**, live through the match and final at full time (everyone starts at 6.0: a goal +1.1, an assist
   +0.7, a save +0.3, a tackle won +0.12, an interception +0.1, take-ons, the woodwork, passing completion, the score and a
   clean sheet; fouls, cards, a penalty given away, an own goal and goals conceded cost). The cards and the team sheet show
-  each player's rating in colour, a ball per goal, an "A" per assist and a star for the man of the match; the hover card
+  each player's rating in colour, a ball per goal, a boot per assist and a star for the man of the match; the hover card
   shows any player's rating (the visitors' too). The replay's stats rows carry the 22 ratings and the final header each
   team's records.
 - **New moves**: the **bicycle kick** (a ball at chest-to-head height in the box, back to goal; only technical players,
@@ -19,14 +19,20 @@ Each round of changes is developed on its own branch, named after what it change
   the risk (up to +45% on a neglected pitch, more in the mud itself).
 - **Walk-out**: before the kick-off the teams and the officials come out of the tunnel, line up and go to their places
   (the clock does not run; the viewers only). The kick-off is a coin toss (it already was - either team can start).
-- **Random match**: both managers pick a random formation, eleven, roles, individual and team instructions.
+- **Random match**: both managers pick a random formation, eleven, roles, individual and team instructions - the manager
+  panel shows what the home manager picked (read-only; the header now carries each team's roles, instructions and team
+  tactics). Only in a live match do you pick the home team; the staged match plays the squads as they are. Your own plan is
+  kept for the live match.
 - **A smarter computer manager**: a booked player who keeps fouling comes off before a second yellow; a knock, a poor game
   (rating under 5.8) or tired legs; a tactical change (a forward on when chasing the game, a defender to hold a lead); and the
   shape changes with the score (4-3-3, 3-4-3 two goals down, 4-5-1 to protect a lead).
 - **Corner set-ups**: new tabs "Corner – attack" and "Corner – defence" with the automatic set-up drawn on the box; drag a
   player anywhere, click him to choose who stands there, "Back to automatic" to reset (plan keys `cpa`, `cpd`; mirrored for
   a corner on the other side).
-- **Sounds**: recorded sounds replace the synthesized ones where they exist (`docs/sounds/`): the home fans' anger at a
+- **Sounds**: the crowd's reactions, the net and the woodwork are recordings now (`docs/sounds/`, also in the React app);
+  every synthesized reaction is gone - only the steady crowd, the ball and the whistles are still made in code. The goal
+  roar is played from 2.05 s into its recording (where the roar starts), so it comes with the goal, and the booing from
+  0.6 s. the home fans' anger at a
   decision against them (a free kick, a penalty, a card) and at an away goal - from all round the ground; the celebration
   of a home goal, while an away goal is only celebrated in one far corner, quieter; the net, the crossbar and the post,
   louder and with more echo the harder the ball hits. Booing (a red card, the away penalty taker, the visitors

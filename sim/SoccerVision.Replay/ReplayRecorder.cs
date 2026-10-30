@@ -193,6 +193,20 @@ namespace SoccerVision.Replay
                 b.Append('}');
             }
             b.Append("],\"formation\":"); Str(b, t.Formation.Name);
+            // the manager's set-up as the page's panel shows it: per slot role.longShots.dribbling.aggression, and the team instructions
+            var tt = t.Tactics;
+            b.Append(",\"orders\":[");
+            for (int i = 0; i < 11; i++)
+            {
+                var o = tt.OrdersFor(i);
+                if (i > 0) b.Append(',');
+                b.Append('"').Append((int)o.Role).Append('.').Append((int)o.LongShots).Append('.').Append((int)o.Dribbling).Append('.').Append((int)o.Aggression).Append('"');
+            }
+            b.Append("],\"tactics\":{\"line\":").Append((int)MathF.Round(tt.DefensiveLine * 100f)).Append(",\"width\":").Append((int)MathF.Round(tt.Width * 100f));
+            b.Append(",\"passing\":").Append(tt.Passing == PassingStyle.Short ? 0 : tt.Passing == PassingStyle.Direct ? 2 : 1);
+            b.Append(",\"tempo\":").Append(tt.Tempo < 0.33f ? 0 : tt.Tempo > 0.67f ? 2 : 1);
+            b.Append(",\"style\":").Append(tt.Tackling == TacklingStyle.StayOnFeet ? 0 : tt.Tackling == TacklingStyle.GetStuckIn ? 2 : 1);
+            b.Append(",\"defence\":").Append((int)tt.Defence).Append(",\"attack\":").Append((int)tt.Attack).Append(",\"special\":").Append((int)tt.Special).Append('}');
             b.Append(",\"bench\":[");
             for (int i = 0; i < t.Setup.Bench.Count; i++)
             {

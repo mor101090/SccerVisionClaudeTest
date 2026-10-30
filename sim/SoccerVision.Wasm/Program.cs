@@ -18,7 +18,7 @@ public static partial class LiveEngine
 
     /// <summary>Starts a match; returns the replay header (teams, conditions, mud map...) as JSON object text.</summary>
     /// <param name="mode">staged (the scripted incidents) | random | live</param>
-    /// <param name="homePlan">The home manager's plan (see TeamPlan): formation, starting eleven, roles, instructions, takers, tactics.</param>
+    /// <param name="homePlan">Live only: your plan for the home team (see TeamPlan): formation, starting eleven, roles, instructions, takers, tactics. The staged match plays the squads as they are; in a random match both managers pick their own.</param>
     [JSExport]
     public static string Start(int seed, string mode, string weather, double maintenance, double wind, double windAngle, bool night, string homePlan)
     {
@@ -41,7 +41,7 @@ public static partial class LiveEngine
             TeamPlan.Random(home, seed * 7 + 1).ApplyBeforeKickOff(home);
             TeamPlan.Random(away, seed * 7 + 2).ApplyBeforeKickOff(away);
         }
-        else TeamPlan.Parse(homePlan).ApplyBeforeKickOff(home);
+        else if (mode == "live") TeamPlan.Parse(homePlan).ApplyBeforeKickOff(home); // (only in a live match is the home team yours)
         _engine = new MatchEngine(home, away, (ulong)seed, config);
         // live: you are the home team, the computer manages the away team and answers you
         _computer = mode == "live" || mode == "random" ? new ComputerManager(_engine, 1) : null;

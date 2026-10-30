@@ -123,7 +123,10 @@ function Player({ replay: recorded, settings, onSettings, note }: { replay: Repl
   // shadows step down, and at the lowest level the picture is drawn at an even 30 frames a second.
   const quality = useRef({ level: 0, avg: 16, slow: 0, skip: false });
   const sound = useRef<MatchSound | null>(null);
-  if (!sound.current) sound.current = new MatchSound();
+  if (!sound.current) {
+    sound.current = new MatchSound();
+    sound.current.loadSamples(import.meta.env.BASE_URL + "sounds/");
+  }
   const [soundOn, setSoundOn] = useState(false);
   const lastEvent = useRef(0);
   const end = frameTime(replay.frames[replay.frames.length - 1]);

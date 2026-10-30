@@ -233,7 +233,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .pcard2 .rt { position: absolute; top: 3px; left: 3px; min-width: 22px; padding: 0 3px; border-radius: 4px; font: 800 10px/14px var(--body); color: #111; text-align: center; }
 .pcard2 .hon { position: absolute; top: 22px; right: 2px; display: flex; flex-direction: column; gap: 1px; font-style: normal; }
 .pcard2 .hon i, .sheet .hon i { font-style: normal; font-size: 10px; line-height: 11px; }
-.pcard2 .hon i.ha, .sheet .hon i.ha { font: 800 9px/11px var(--body); background: #fff; color: #1b1f2b; border-radius: 2px; padding: 0 2px; }
+.pcard2 .hon i.ha, .sheet .hon i.ha { font-size: 10px; }
 .pcard2 .hon i.hm, .sheet .hon i.hm { color: #ffd21a; font-size: 13px; }
 .sheet .rt { display: inline-block; min-width: 2.4em; padding: 1px 4px; border-radius: 4px; color: #111; font-weight: 800; text-align: center; }
 .sheet .hon { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: middle; }
@@ -457,7 +457,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   <section class="panel tactics mgr" id="tactics" aria-labelledby="tacTitle">
     <div class="tac-head">
       <h2 id="tacTitle">Manager <span class="tac-team"><i></i><span id="tacTeam">Red Rovers</span> · you</span></h2>
-      <span class="tac-status"><b id="tacBadge">FROM KICK-OFF</b><span id="tacStatus">Changing a tactic replays this match with it.</span></span>
+      <span class="tac-status"><b id="tacBadge">THE MANAGER'S PICK</b><span id="tacStatus">The home manager's own team and instructions - pick yours in a live match.</span></span>
     </div>
     <div class="squad" aria-label="Your squad">
       <div class="squad-row"><span class="squad-tag" data-tip="The eleven on the pitch. Pick one, then a bench player to bring on - or another player on the pitch to swap their positions.">IN</span><div class="cards" id="cardsIn"></div></div>
@@ -1372,6 +1372,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   function startMatch(mode, seed, resumeRel) {
     MODE = mode; currentSeed = seed; token++; var mine = token;
     KICKED = mode !== "live"; PENDING = []; SEL = null;
+    if (mode === "live" && USER_PLAN) { PLAN = USER_PLAN; TAC = USER_TAC; } // (your own team - not the one a random match showed)
     $("prematch").hidden = mode !== "live";
     document.body.classList.toggle("live", mode === "live");
     document.querySelectorAll(".modes button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === mode)); });
@@ -1390,6 +1391,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   // Line and width 0-100; passing 0 short / 1 mixed / 2 balls in behind; tempo and style 0 / 1 / 2. In a live match an
   // instruction goes to the players at once (the computer answers it); otherwise the match is replayed with it.
   var TAC_DEFAULT = { line: 50, width: 50, passing: 1, tempo: 1, style: 1, defence: 0, attack: 0, special: 0 };
+  var USER_TAC = null;
   var TAC = (function () { var o = {}; for (var k in TAC_DEFAULT) o[k] = TAC_DEFAULT[k]; try { var st = JSON.parse(localStorage.getItem("sv-tactics") || "{}"); for (var k2 in st) if (k2 in TAC_DEFAULT) o[k2] = +st[k2]; } catch (e) {} return o; })();
   function tacEngine() { return { line: TAC.line / 100, width: TAC.width / 100, passing: TAC.passing, tempo: [.15, .5, .85][TAC.tempo], aggression: [0, .5, 1][TAC.style], defence: TAC.defence, attack: TAC.attack, special: TAC.special }; }
   function words(v, list) { return list[Math.min(list.length - 1, Math.floor(v / (100.01 / list.length)))]; }
@@ -1455,8 +1457,17 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     try { var st = JSON.parse(localStorage.getItem("sv-plan") || "{}"); if (st && typeof st.formation === "string") { p.formation = st.formation; p.slots = st.slots || null; p.orders = st.orders || null; p.sp = Object.assign(spDefault(), st.sp || {}); } } catch (e) {}
     return p;
   })();
+  // Only in a live match is the home team yours (USER_PLAN, USER_TAC: saved). In a staged or a random match the panel shows
+  // the team the home manager picked (from the match header) and cannot be changed.
+  var USER_PLAN = PLAN; USER_TAC = TAC;
+  function viewPlan() {
+    return { formation: R.home.formation || "4-4-2", slots: startLineup(), sp: spDefault(),
+             orders: (R.home.orders || []).map(function (o) { return String(o).split(".").map(Number); }) };
+  }
+  function viewTac() { var o = {}, h = R.home.tactics || {}; for (var k in TAC_DEFAULT) o[k] = k in h ? +h[k] : TAC_DEFAULT[k]; return o; }
+  function viewOnlyNote() { toast(MODE === "random" ? "Random match: both managers pick their own team - you pick yours in a live match" : "Staged match: the squads play as they are - you pick your team in a live match"); }
   var KICKED = false, PENDING = [], SEL = null, PI_SLOT = 1, planTimer = 0;
-  function savePlan() { try { localStorage.setItem("sv-plan", JSON.stringify(PLAN)); } catch (e) {} }
+  function savePlan() { if (PLAN !== USER_PLAN) return; try { localStorage.setItem("sv-plan", JSON.stringify(PLAN)); } catch (e) {} }
   function ord(i) { return (PLAN.orders && PLAN.orders[i]) || [0, 1, 1, 1]; }
   function planString() {
     var c = tacEngine(), o = [];
@@ -1531,7 +1542,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   function honoursHtml(n) {
     var r = ratingOf(n), T = tallies(), fr = finalRecord(n), h = "";
     for (var k = 0; k < (T.g[n] || 0); k++) h += '<i class="hg" title="Goal">⚽</i>';
-    for (k = 0; k < (T.a[n] || 0); k++) h += '<i class="ha" title="Assist">A</i>';
+    for (k = 0; k < (T.a[n] || 0); k++) h += '<i class="ha" title="Assist">👟</i>';
     if (fr && fr.motm) h += '<i class="hm" title="Man of the match">★</i>';
     return '<span class="rt"' + (r == null ? ' hidden' : ' style="background:' + ratingColour(r) + '"') + '>' + (r == null ? "" : r.toFixed(1)) + '</span><span class="hon">' + h + '</span>';
   }
@@ -1548,10 +1559,11 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   }
   function canChange() { return MODE === "live" && KICKED && !finished; }
   function prematch() { return MODE === "live" && !KICKED; }
-  function editableLineup() { return prematch() || MODE !== "live"; }
+  function editableLineup() { return prematch(); }
 
   // ---- what changing the plan does: live - to the players now; before kick-off - a new team sheet; otherwise replayed
   function planChanged(what) {
+    if (MODE !== "live") { viewOnlyNote(); if (R) { PLAN = viewPlan(); TAC = viewTac(); syncTacUi(); } drawManager(); return; }
     savePlan(); drawManager();
     clearTimeout(planTimer);
     if (MODE === "live" && KICKED) {
@@ -1983,6 +1995,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var onPitch = a.bench ? b : a, sub = a.bench ? a : b;
     if (canChange()) requestChange(onPitch.num, sub.num);
     else if (editableLineup()) benchSwap(onPitch.slot, sub.num);
+    else if (MODE !== "live") viewOnlyNote();
     else toast("The match is over");
   }
   var lastCard = { num: -1, at: 0 }, dragEndAt = 0;
@@ -2175,7 +2188,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   function toast(text) { var el = $("tacToast"); el.textContent = text; el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2600); }
   var tacTimer = 0;
   function tacChanged() {
-    try { localStorage.setItem("sv-tactics", JSON.stringify(TAC)); } catch (e) {}
+    if (TAC === USER_TAC) try { localStorage.setItem("sv-tactics", JSON.stringify(TAC)); } catch (e) {}
     syncTacUi();
     planChanged(MODE === "live" && KICKED ? "Instruction sent to the players" : null);
   }
@@ -2200,8 +2213,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     document.documentElement.style.setProperty("--home", teams[0].kit.primary); document.documentElement.style.setProperty("--away", teams[1].kit.primary);
     $("cpuNow").textContent = "Middle line, normal width, mixed passing, normal tempo, balanced"; $("cpuLog").textContent = "";
     var live = MODE === "live";
-    $("tacBadge").textContent = live ? (KICKED ? "LIVE" : "PRE-MATCH") : "FROM KICK-OFF";
-    $("tacStatus").textContent = live ? (KICKED ? "Your instructions reach the players straight away; changes wait for a stoppage." : "Pick your eleven and instructions, then kick off.") : "Changing a tactic replays this match with it.";
+    $("tacBadge").textContent = live ? (KICKED ? "LIVE" : "PRE-MATCH") : "THE MANAGER'S PICK";
+    $("tacStatus").textContent = live ? (KICKED ? "Your instructions reach the players straight away; changes wait for a stoppage." : "Pick your eleven and instructions, then kick off.") : "The home manager's own team and instructions - pick yours in a live match.";
     $("cpuNote").textContent = live ? "Reads your tactics and the score, and answers every few minutes." : "The computer manages only in a live match.";
   }
   syncTacUi();
@@ -2233,9 +2246,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     feed.textContent = ""; $("facts").textContent = ""; // (nothing has happened yet: before kick-off the old match is gone)
     $("cbarText").textContent = MODE === "live" ? "Pre-match: pick your team, then kick off" : "Kick-off"; $("cbar").style.background = "#3c4552"; $("cbar").dataset.bg = "";
     setText("sc", "0-0"); setText("mn", "00:00"); setText("rt", "0:00 / 0:00");
-    PLAN.slots = startLineup(); PLAN.formation = R.home.formation || PLAN.formation;
-    if (!formationOf(PLAN.formation)) PLAN.formation = "4-4-2";
-    resetTacticsPanel(); drawManager();
+    if (MODE === "live") {
+      PLAN = USER_PLAN; TAC = USER_TAC;
+      PLAN.slots = startLineup(); PLAN.formation = R.home.formation || PLAN.formation;
+      if (!formationOf(PLAN.formation)) PLAN.formation = "4-4-2";
+    } else { PLAN = viewPlan(); TAC = viewTac(); }
+    syncTacUi(); resetTacticsPanel(); drawManager();
     note(""); setPlaying(true);
   }
   function appendChunk(m) {
