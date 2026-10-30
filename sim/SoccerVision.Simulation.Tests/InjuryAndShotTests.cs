@@ -25,7 +25,7 @@ namespace SoccerVision.Simulation.Tests
             {
                 var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed);
                 PlayerAgent hurt = null;
-                string hurtName = null;
+                int hurtId = -1;
                 float hurtAt = 0f;
                 var hurtPeriod = MatchPeriod.NotStarted;
                 while (!e.IsFinished)
@@ -37,7 +37,7 @@ namespace SoccerVision.Simulation.Tests
                         {
                             serious++;
                             hurt = e.AllPlayers[ev.Player];
-                            hurtName = hurt.Profile.ShortName;
+                            hurtId = hurt.Profile.Id;
                             hurtAt = e.RealTimeElapsed;
                             hurtPeriod = e.Clock.Period;
                             Assert.True(hurt.IsDown, "a seriously injured player stays down");
@@ -47,7 +47,7 @@ namespace SoccerVision.Simulation.Tests
                             subs++;
                             var p = e.AllPlayers[ev.Player];
                             Assert.Same(hurt, p);
-                            Assert.NotEqual(hurtName, p.Profile.ShortName);
+                            Assert.NotEqual(hurtId, p.Profile.Id); // (a different man: the squads have namesakes)
                             Assert.Equal(InjuryLevel.None, p.Injury);
                             Assert.Contains("comes on for", ev.Text);
                             Assert.StartsWith(p.Number + "|" + p.Profile.ShortName + "|", ev.Info); // (then the number of the player who went off)
