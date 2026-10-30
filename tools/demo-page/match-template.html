@@ -1429,7 +1429,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   function planString() {
     var c = tacEngine(), o = [];
     for (var i = 0; i < 11; i++) o.push(ord(i).join("."));
-    var parts = ["formation=" + PLAN.formation, "orders=" + o.join(","), "ctr=" + PLAN.sp.ctr.join(","), "ctl=" + PLAN.sp.ctl.join(","), "fkr=" + PLAN.sp.fkr.join(","), "fkl=" + PLAN.sp.fkl.join(","), "pen=" + PLAN.sp.pen.join(","), "crr=" + PLAN.sp.crr, "crl=" + PLAN.sp.crl, "czr=" + PLAN.sp.czr.join(","), "czl=" + PLAN.sp.czl.join(","),
+    var parts = ["formation=" + PLAN.formation, "orders=" + o.join(","), "ctr=" + PLAN.sp.ctr.join("."), "ctl=" + PLAN.sp.ctl.join("."), "fkr=" + PLAN.sp.fkr.join("."), "fkl=" + PLAN.sp.fkl.join("."), "pen=" + PLAN.sp.pen.join("."), "crr=" + PLAN.sp.crr, "crl=" + PLAN.sp.crl, "czr=" + PLAN.sp.czr.join("."), "czl=" + PLAN.sp.czl.join("."),
                  "line=" + c.line, "width=" + c.width, "passing=" + c.passing, "tempo=" + c.tempo, "aggression=" + c.aggression,
                  "defence=" + c.defence, "attack=" + c.attack, "special=" + c.special];
     if (PLAN.slots) parts.push("slots=" + PLAN.slots.join(","));

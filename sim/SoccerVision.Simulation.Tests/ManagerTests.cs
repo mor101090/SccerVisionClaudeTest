@@ -118,6 +118,8 @@ namespace SoccerVision.Simulation.Tests
                 PlayUntil(e, () => Changes() > before, 900f);
                 Assert.Equal(before + 1, Changes());
                 PlayUntil(e, () => e.Phase == MatchPhase.Live, 120f);
+                float resume = e.Clock.Seconds + 45f; // (play on, so the next change waits for a different stoppage)
+                PlayUntil(e, () => e.Clock.Seconds > resume, 300f);
             }
             Assert.Equal(3, e.Home.WindowsUsed);
             // the sixth is refused
@@ -238,7 +240,7 @@ namespace SoccerVision.Simulation.Tests
         {
             var red = DemoTeams.Red();
             int first = red.Starters[3].ShirtNumber, second = red.Starters[6].ShirtNumber;
-            TeamPlan.Parse("ctr=" + first + "," + second + ";ctl=" + first + "," + second).ApplyBeforeKickOff(red);
+            TeamPlan.Parse("ctr=" + first + "." + second + ";ctl=" + first + "." + second).ApplyBeforeKickOff(red);
             var e = new MatchEngine(red, DemoTeams.Blue(), 9, MatchConfig.CreateDefault());
             // the first on the list is sent off at once: the second takes every corner
             e.Home.Players.First(p => p.Number == first).SentOff = true;
@@ -271,7 +273,7 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void TheCornerPlanParsesRoutineAndZones()
         {
-            var plan = TeamPlan.Parse("crr=2;crl=5;czr=11,0,0,0,0,0;czl=0,0,0,0,0,9");
+            var plan = TeamPlan.Parse("crr=2;crl=5;czr=11.0.0.0.0.0;czl=0.0.0.0.0.9");
             var t = plan.ToTactics(new TeamTactics());
             Assert.Equal(2, t.CornerRoutineRight);
             Assert.Equal(5, t.CornerRoutineLeft);

@@ -1312,7 +1312,7 @@ namespace SoccerVision.Simulation
             if (cutIn) team.Stats.CutInShots++;
             if (header) team.Stats.Headers++;
             p.CutInUntil = -1f;
-            _lastShotKind = header ? 5 : penalty ? 4 : volley ? 1 : (cutIn ? 2 : ShotDetail(tech));
+            _lastShotKind = header ? 5 : penalty ? 4 : volley ? (tech == ShotTechnique.HalfVolley ? 12 : 1) : (cutIn ? 2 : ShotDetail(tech));
             MomentumShot(p, xg);
             Emit(MatchEventType.Shot, team, p, null, from, xg, WhistleKind.Short, header ? 0 : _lastShotKind);
         }
