@@ -14,15 +14,15 @@ Each round of changes is developed on its own branch, named after what it change
   interception or a return pass hit too hard.
 - **Forward passing**: a player under no pressure who has a forward option now prefers it (forward pass x1.3, backward or
   holding x0.6); forward-pass misses fell from 19% to 7%.
-- **Wingers and midfielders shoot and cut in more**: the share of goals by wingers rose from about 5% to about 15%, the strikers'
-  from about 69% to about 64%, the centre-backs' from 19% to about 10%.
+- **Wingers and midfielders shoot and cut in more**: over 20 matches the wingers' share of goals rose from about 5% to 9-11%, the strikers' fell from about 69% to 64-68%, the
+  centre-backs' from 19% to 11-15%, the central midfielders' about 6%.
 - **Set-piece plans**: a list of takers (corners right and left, free kicks right and left, penalties) - the next on the list
   takes over if the first is substituted, injured or sent off; a corner routine for each side (varied, near post, far post,
   penalty spot, pulled back, short) and a place in the box for each of six zones. Plan keys: `ctr ctl fkr fkl pen crr crl czr czl`
   (`takers=` still works).
 - **Demo page**: the hover card shows only the five categories of the pentagon (athletic, defence, attack - goalkeeping for a
-  keeper -, mental, playmaking); new corner, free-kick and penalty tabs with ordered lists, routines and a placement of the
-  players in the box; drag a playing player's circle or row onto a substitute's row (and the other way) to make a change.
+  keeper -, mental, playmaking); corner, free-kick and penalty tabs: click a player to add him next in the queue (rating shown), separate right and left
+  lists for corners and free kicks, plus a corner routine and a placement of the players in the box; drag a playing player's circle or row onto a substitute's row (and the other way) to make a change.
 
 ## `feature/momentum-home-advantage-ui-round`
 

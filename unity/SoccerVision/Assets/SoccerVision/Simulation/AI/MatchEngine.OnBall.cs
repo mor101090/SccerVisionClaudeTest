@@ -145,10 +145,10 @@ namespace SoccerVision.Simulation
             if (distGoal < 34f && f > (longShots ? 12f : 18f))
             {
                 float xg = EstimateShotXG(p, pos);
-                float tendency = p.Slot.Line == Line.Attack ? 1.1f : (p.Slot.Line == Line.Midfield ? 1.35f : 0.7f);
+                float tendency = p.Slot.Line == Line.Attack ? 0.85f : (p.Slot.Line == Line.Midfield ? 1.0f : 0.6f);
                 if (p.Slot.IsFullBack && f > 30f) tendency *= 1.3f + 0.4f * MathUtil.A(p.Attr.LongShots); // an attacking full-back at the edge of the box has a go
                 tendency *= 0.9f + 0.4f * team.Eff.Mentality;
-                if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 2.5f; xg *= 1.1f; }
+                if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 1.7f; xg *= 1.1f; }
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
                 // long shots: the manager wants them from 20-30 m (the range where the shooter can still trouble the keeper)
                 if (longShots && distGoal > 16f && distGoal < 33f) tendency *= 1.9f;
