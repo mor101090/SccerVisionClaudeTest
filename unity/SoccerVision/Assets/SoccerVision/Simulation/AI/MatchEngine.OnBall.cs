@@ -154,7 +154,7 @@ namespace SoccerVision.Simulation
                 if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 1.7f; xg *= 1.1f; }
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
                 // long shots: the manager wants them from 20-30 m (the range where the shooter can still trouble the keeper)
-                if (longShots && distGoal > 16f && distGoal < 33f) tendency *= 1.9f;
+                if (longShots && distGoal > 16f && distGoal < 33f) tendency *= 2.2f;
                 if (team.Tactics.Special == SpecialTactic.Siege) tendency *= 1.2f;
                 // the individual instruction: shoot from distance more / less (inside the box he shoots as usual)
                 if (distGoal > 18f) tendency *= PlayerAgent.Scale(p.Orders.LongShots, 0.35f, 1.75f);
@@ -1364,8 +1364,8 @@ namespace SoccerVision.Simulation
                 float off = Pitch.HalfLength - keeper.Pos.X * goalSign; // keeper's distance from his goal line
                 float toKeeper = Vec2.Distance(from, keeper.Pos);
                 float inLine = Vec2.DistanceToSegment(keeper.Pos, from, team.AttackGoal, out _);
-                if (off > 4.5f && inLine < 3f && toKeeper > 4f && toKeeper < 16f && dist > 9f && dist < 30f
-                    && _rng.Chance((0.08f + 0.42f * technique) * MathUtil.Clamp01((off - 4.5f) / 6f + 0.3f)))
+                if (off > 3.5f && inLine < 3.5f && toKeeper > 4f && toKeeper < 18f && dist > 9f && dist < 30f
+                    && _rng.Chance((0.1f + 0.45f * technique) * MathUtil.Clamp01((off - 3.5f) / 6f + 0.35f)))
                     return ShotTechnique.Chip;
             }
             Vec2 dir = (team.AttackGoal - from).Normalized;

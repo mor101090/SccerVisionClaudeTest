@@ -804,7 +804,7 @@ namespace SoccerVision.Simulation
             float defend = (0.6f * da.Tackling + 0.2f * da.Decisions + 0.2f * da.Acceleration) * d.FatigueFactor;
             float pFoul = 0.14f + 0.14f * MathUtil.A(da.Aggression) + (fromBehind ? 0.3f : 0.05f) - 0.1f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
-            pFoul = MathUtil.Clamp(pFoul * FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.7f, 1.25f), 0.05f, 0.7f);
+            pFoul = MathUtil.Clamp(pFoul * FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.65f, 1.35f), 0.05f, 0.7f);
             float pWin = MathUtil.Clamp(0.62f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.12f : 0f), 0.2f, 0.9f);
             if (_rng.Chance(pFoul))
             {
@@ -946,7 +946,7 @@ namespace SoccerVision.Simulation
             float pFoul = 0.22f + 0.15f * MathUtil.A(da.Aggression) + (fromBehind ? 0.18f : 0f) - 0.06f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
             if (d == d.Team.Anchor) pFoul += 0.025f; // the holding midfielder's challenges are the most robust
-            pFoul *= FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.7f, 1.25f);
+            pFoul *= FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.65f, 1.35f);
             if (d.YellowCards > 0) pFoul *= 0.45f;
             if (IsDenyingObviousGoalScoringOpportunity(carrier, d)) pFoul *= 0.4f; // tries to stay clean
             if (Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign)) pFoul *= 0.25f; // careful in the box
