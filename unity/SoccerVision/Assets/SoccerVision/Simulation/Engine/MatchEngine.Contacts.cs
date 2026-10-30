@@ -181,7 +181,8 @@ namespace SoccerVision.Simulation
             float control = MathUtil.A(p.Attr.BallControl);
 
             // Volley: a ball in the air near goal is hit first time instead of controlled.
-            if (!p.IsGoalkeeper && Ball.Z > 0.3f && !(Ball.IsShot && opponentTouch) && TryVolley(p, opponentTouch)) return;
+            // (and a half-volley: the ball just bouncing up off the turf, Z low but rising)
+            if (!p.IsGoalkeeper && (Ball.Z > 0.3f || (Ball.Z > 0.12f && Ball.M.Vz > 1f)) && !(Ball.IsShot && opponentTouch) && TryVolley(p, opponentTouch)) return;
 
             if (Ball.IsShot && opponentTouch && !p.IsGoalkeeper)
             {
@@ -519,10 +520,13 @@ namespace SoccerVision.Simulation
             float closeRange = MathUtil.Clamp01((15f - shotDistance) / 10f); // little time to react
             float difficulty = 0.42f * MathUtil.Clamp((speed - 12f) / 20f, 0f, 1.2f) + 0.55f * reachNeeded + (Ball.Z > 1.8f ? 0.12f : 0f) + 0.35f * closeRange;
             if (Ball.LastKickKind == KickKind.Header) difficulty += 0.25f; // close-range headers give little time to react
+            if (Ball.ShotKnuckle) difficulty += 0.22f; // a ball with no spin moves late in the air
             float pSave = MathUtil.Clamp(0.98f - difficulty * 0.46f + (skill - 0.5f) * 0.35f, 0.08f, 0.93f);
             if (_penaltyKickTime >= 0f && shooter != null && SimTime - _penaltyKickTime < 1.5f)
             {
                 pSave = _penaltyGuessCorrect ? MathUtil.Clamp(0.36f + 0.3f * (skill - 0.5f) - reachNeeded * 0.15f, 0.15f, 0.7f) : 0.05f;
+                // (the home keeper has the crowd behind him; the away keeper does not)
+                pSave *= gk.Team == Home ? 1f + 0.08f * Config.HomeAdvantage : 1f - 0.06f * Config.HomeAdvantage;
             }
 
             if (!_rng.Chance(pSave))

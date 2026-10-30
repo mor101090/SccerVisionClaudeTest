@@ -43,7 +43,10 @@ namespace SoccerVision.Simulation
             var me = _engine.TeamOf(_team);
             var human = _engine.TeamOf(1 - _team).Tactics;
             var t = new TeamTactics { Marking = me.Tactics.Marking, FormationName = me.Tactics.FormationName,
-                                      CornerTaker = me.Tactics.CornerTaker, FreeKickTaker = me.Tactics.FreeKickTaker, PenaltyTaker = me.Tactics.PenaltyTaker };
+                                      CornerTakersRight = me.Tactics.CornerTakersRight, CornerTakersLeft = me.Tactics.CornerTakersLeft,
+                                      FreeKickTakersRight = me.Tactics.FreeKickTakersRight, FreeKickTakersLeft = me.Tactics.FreeKickTakersLeft, PenaltyTakers = me.Tactics.PenaltyTakers,
+                                      CornerRoutineRight = me.Tactics.CornerRoutineRight, CornerRoutineLeft = me.Tactics.CornerRoutineLeft,
+                                      CornerZonesRight = me.Tactics.CornerZonesRight, CornerZonesLeft = me.Tactics.CornerZonesLeft };
             for (int i = 0; i < 11; i++) t.Orders[i] = me.Tactics.OrdersFor(i).Clone(); // (the roles and instructions stay)
             float minute = clock.Seconds / 60f;
             int diff = me.Score - _engine.TeamOf(1 - _team).Score;

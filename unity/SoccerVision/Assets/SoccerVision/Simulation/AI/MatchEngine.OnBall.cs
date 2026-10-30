@@ -6,7 +6,7 @@ namespace SoccerVision.Simulation
     internal enum BallAction { Hold, Dribble, Pass, Shoot, Cross, Clear }
 
     /// <summary>How a shot is struck.</summary>
-    public enum ShotTechnique { Power, PlacedNear, PlacedFar, Curler, Volley, Chip, OutsideFoot, WeakFoot, Header, Penalty }
+    public enum ShotTechnique { Power, PlacedNear, PlacedFar, Curler, Volley, Chip, OutsideFoot, WeakFoot, Header, Penalty, HalfVolley, Knuckleball }
 
     /// <summary>A fully specified kick (direction, speed, loft, spin) plus what it is meant to achieve.</summary>
     internal struct KickPlan
@@ -145,10 +145,10 @@ namespace SoccerVision.Simulation
             if (distGoal < 34f && f > (longShots ? 12f : 18f))
             {
                 float xg = EstimateShotXG(p, pos);
-                float tendency = p.Slot.Line == Line.Attack ? 1.25f : (p.Slot.Line == Line.Midfield ? 1.05f : 0.8f);
+                float tendency = p.Slot.Line == Line.Attack ? 1.1f : (p.Slot.Line == Line.Midfield ? 1.35f : 0.7f);
                 if (p.Slot.IsFullBack && f > 30f) tendency *= 1.3f + 0.4f * MathUtil.A(p.Attr.LongShots); // an attacking full-back at the edge of the box has a go
                 tendency *= 0.9f + 0.4f * team.Eff.Mentality;
-                if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 2.3f; xg *= 1.1f; }
+                if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 2.5f; xg *= 1.1f; }
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
                 // long shots: the manager wants them from 20-30 m (the range where the shooter can still trouble the keeper)
                 if (longShots && distGoal > 16f && distGoal < 33f) tendency *= 1.9f;
@@ -176,6 +176,25 @@ namespace SoccerVision.Simulation
             if (f < -24f && pressure > 0.45f) EvaluateClearance(p, pos, pressure);
             if (MathF.Abs(l) > 27f && pressure > 0.55f) EvaluateKickOut(p, pos, pressure);
 
+            // Basic football sense: when a good forward pass is on (a team-mate free in front, a clear lane, a pass that
+            // really gets the attack going) and he is not under pressure, he plays it - he does not stall the attack with a
+            // back pass or by sitting on the ball. (Under pressure the safe ball is still the right one.)
+            if (pressure < 0.55f)
+            {
+                bool forwardOn = false;
+                foreach (var o in _options)
+                    if (o.Action == BallAction.Pass && o.Success >= 0.62f && o.Utility > 0f && team.Forward(o.Target) - f >= 12f && team.Forward(o.Target) > -5f) { forwardOn = true; break; }
+                if (forwardOn)
+                    for (int i = 0; i < _options.Count; i++)
+                    {
+                        var o = _options[i];
+                        if (o.Action == BallAction.Pass && o.Success >= 0.62f && o.Utility > 0f && team.Forward(o.Target) - f >= 12f) o.Utility *= 1.3f;
+                        else if (o.Action == BallAction.Hold || (o.Action == BallAction.Pass && team.Forward(o.Target) - f < 3f)) o.Utility = o.Utility > 0f ? o.Utility * 0.6f : o.Utility * 1.25f;
+                        else continue;
+                        _options[i] = o;
+                    }
+            }
+
             // Weighted randomness: perception noise grows with poor decisions and pressure on low composure.
             float decisions = MathUtil.A(p.Attr.Decisions);
             float composure = MathUtil.A(p.Attr.Composure);
@@ -193,6 +212,19 @@ namespace SoccerVision.Simulation
                 }
             }
             var chosen = _options[best];
+            if (CollectDiagnostics)
+            {
+                // is a good forward pass on, and did he play something else (a back or square pass, or sat on it)?
+                bool forwardOn = false;
+                foreach (var o in _options)
+                    if (o.Action == BallAction.Pass && o.Success >= 0.62f && o.Utility > 0f && team.Forward(o.Target) - f >= 12f && team.Forward(o.Target) > -5f) { forwardOn = true; break; }
+                if (forwardOn)
+                {
+                    Count("fwd.on");
+                    bool wasForward = chosen.Action == BallAction.Shoot || chosen.Action == BallAction.Cross || chosen.Action == BallAction.Dribble || (chosen.Action == BallAction.Pass && team.Forward(chosen.Target) - f >= 6f);
+                    if (!wasForward) Count(chosen.Action == BallAction.Pass ? "fwd.missed.passBack" : "fwd.missed." + chosen.Action);
+                }
+            }
             if (CollectDiagnostics) Count("decide." + chosen.Action + (chosen.Action == BallAction.Pass ? "." + chosen.Kind + (chosen.Lofted ? ".lofted" : "") : ""));
             if (chosen.Action != BallAction.Dribble && chosen.Action != BallAction.Hold) p.HoldTime = 0f;
             if (chosen.Action == BallAction.Dribble && IsCutInsidePlayer(p) && MathF.Abs(team.Lateral(chosen.DribbleTarget)) < MathF.Abs(l) - 2f && f > 14f && MathF.Abs(l) > 14f)
@@ -290,9 +322,10 @@ namespace SoccerVision.Simulation
                     {
                         var o = _options[i];
                         o.OneTwo = true;
-                        o.Success *= 0.7f; // (measured: the lane model is optimistic about balls played into a run)
-                        if (o.Success < 0.5f) { _options[i] = o; continue; } // a wall pass into a closed lane is not on: no bonus
-                        o.Utility = o.Utility * (o.Utility > 0f ? 1.6f : 0.6f) + pull;
+                        o.Success *= 0.9f; // (measured: the lane model is optimistic about balls played into a run)
+                        if (o.Success < 0.4f) { _options[i] = o; continue; } // a wall pass into a closed lane is not on: no bonus
+                        o.Utility = o.Utility * (o.Utility > 0f ? 2.6f : 0.5f) + pull * 1.8f;
+                        if (o.Success >= 0.55f) o.Utility = MathF.Max(o.Utility, 0.003f * StyleShort(team)); // (a wall pass that is on is worth playing)
                         _options[i] = o;
                     }
                 }
@@ -380,7 +413,8 @@ namespace SoccerVision.Simulation
             float v0;
             if (kind == KickKind.ThroughBall)
             {
-                v0 = Roll.KickSpeedForTime(d, tRecv * 0.92f, 2.5f);
+                // (a wall pass is weighted to arrive softly into the runner's stride - a hard ball would be a heavy touch)
+                v0 = Roll.KickSpeedForTime(d, tRecv * (_nextOneTwo ? 1.12f : 0.92f), _nextOneTwo ? 1.8f : 2.5f);
             }
             else
             {
@@ -393,6 +427,10 @@ namespace SoccerVision.Simulation
             if (kind == KickKind.Pass && tRecv > tArrive + 0.9f) return;
 
             float pIntercept = LaneInterceptionRisk(team, from, dir, d, v0, kind == KickKind.Pass ? 1.6f : 0.5f, MathF.Max(tRecv, 0f), out Vec2 riskPoint);
+            // A wall pass is played first time into a run both players expect, and the defender who followed the runner is
+            // now out of the lane: it is intercepted less often than a ball into space (when it fails it is an interception or
+            // a return that is too hard to control - the heavy touch is in pControl below).
+            if (_nextOneTwo) { pIntercept *= 0.55f; if (LaneClearance(team, from, target) < 2.2f) pIntercept = MathF.Max(pIntercept, 0.45f); } // (a wall pass into a crowded lane is not on)
             float oppAtTarget = float.PositiveInfinity;
             foreach (var o in team.Opponent.Players)
             {
@@ -674,7 +712,7 @@ namespace SoccerVision.Simulation
                 keep *= MathF.Pow(0.82f, crowd); // dribbling into a crowd rarely works
                 float value = ExpectedThreat.At(team, target);
                 bool inward = MathF.Abs(team.Lateral(target)) < MathF.Abs(team.Lateral(pos)) - 2f;
-                if (cutIn && inward && f > 14f && MathF.Abs(team.Lateral(pos)) > 14f) value += 0.03f * cutInSkill;
+                if (cutIn && inward && f > 14f && MathF.Abs(team.Lateral(pos)) > 14f) value += 0.05f * cutInSkill;
                 else if (inverted && team.Forward(pos) > 15f && inward) value += 0.003f;
                 // Wide players (wingers, attacking full-backs) love to take it down the line towards the by-line,
                 // where they can deliver; the ones who cut in (strong foot inside) prefer to come inside instead.
@@ -943,7 +981,7 @@ namespace SoccerVision.Simulation
             // past the man on the side away from the receiver's marker: drift a little towards the receiver's line
             Vec2 spot = Pitch.ClampToField(team.ToWorld(ahead, MathUtil.Clamp(lat + (qLat - lat) * 0.3f, -30f, 30f)), -2f);
             if (SpaceAround(team, spot) < 3f) return;
-            float chance = (0.75f + 0.5f * MathUtil.A(p.Attr.OffTheBall) + 0.3f * MathUtil.A(p.Attr.Teamwork)) * StyleShort(team) * (0.8f + 0.4f * team.Eff.Mentality);
+            float chance = 1.4f * (0.75f + 0.5f * MathUtil.A(p.Attr.OffTheBall) + 0.3f * MathUtil.A(p.Attr.Teamwork)) * StyleShort(team) * (0.8f + 0.4f * team.Eff.Mentality);
             if (!_rng.Chance(chance)) return;
             p.OneTwoWith = q;
             p.OneTwoUntil = SimTime + 3.6f;
@@ -1065,14 +1103,20 @@ namespace SoccerVision.Simulation
             var keeper = team.Opponent.Goalkeeper;
 
             float skill;
-            if (penalty) skill = MathUtil.A((p.Attr.Penalty * 2 + p.Attr.Composure) / 3);
+            if (penalty)
+            {
+                // The crowd on the penalty taker: the home team's takers are lifted, the away team's feel it (and miss more).
+                skill = MathUtil.A((p.Attr.Penalty * 2 + p.Attr.Composure) / 3);
+                skill = MathUtil.Clamp01(skill * (p.Team == Home ? 1f + 0.06f * Config.HomeAdvantage : 1f - 0.16f * Config.HomeAdvantage));
+            }
             else if (header) skill = MathUtil.A(p.Attr.Heading);
             else if (dist > 20f) skill = MathUtil.A(p.Attr.LongShots);
             else skill = MathUtil.A(p.Attr.Finishing);
 
             // How he strikes it: picked from the situation (distance, angle, where the keeper is, which foot the ball is
             // on) and the player (technique, composure, how good his weaker foot is).
-            var tech = header ? ShotTechnique.Header : penalty ? ShotTechnique.Penalty : volley ? ShotTechnique.Volley
+            // (a half-volley is struck just as the ball comes up off the turf; a volley is hit out of the air)
+            var tech = header ? ShotTechnique.Header : penalty ? ShotTechnique.Penalty : volley ? (startZ < 0.6f ? ShotTechnique.HalfVolley : ShotTechnique.Volley)
                      : ChooseShotTechnique(p, from, dist, keeper);
             float keeperY = keeper != null ? keeper.Pos.Y : 0f;
             float nearSide = MathF.Abs(from.Y) > 1f ? MathF.Sign(from.Y) : (_rng.Chance(0.5f) ? 1f : -1f);
@@ -1101,6 +1145,7 @@ namespace SoccerVision.Simulation
                                  : 20f + 6f * skill + 4f * MathUtil.A(p.Attr.PhysicalPower) + _rng.Range(-1.5f, 1.5f);
             if (penalty) power = _rng.Range(21f, 27f);
             float curlSign = 0f, curlMag = 0f, accuracy = 1f;
+            bool knuckle = false;
             switch (tech)
             {
                 case ShotTechnique.PlacedNear:
@@ -1109,6 +1154,26 @@ namespace SoccerVision.Simulation
                     power = 15f + 5f * skill + _rng.Range(-1f, 1f);
                     aimZ = _rng.Range(0.15f, 0.7f);
                     accuracy = 0.85f;
+                    break;
+                case ShotTechnique.Power:
+                    // The laces drive: the hard part of the boot straight through the ball - pace over finesse.
+                    power = 23f + 6f * skill + 3f * MathUtil.A(p.Attr.PhysicalPower) + _rng.Range(-1.5f, 1.5f);
+                    aimZ = _rng.Chance(0.6f) ? _rng.Range(0.2f, 0.9f) : _rng.Range(0.9f, 2.0f);
+                    accuracy = 1.18f;
+                    break;
+                case ShotTechnique.HalfVolley:
+                    // Hit the instant it comes up off the grass: low, driven and quick, hard to read for the keeper.
+                    power = 21f + 6f * skill + _rng.Range(-1f, 1f);
+                    aimZ = _rng.Range(0.2f, 0.9f);
+                    accuracy = 1.12f;
+                    break;
+                case ShotTechnique.Knuckleball:
+                    // Struck through the middle of the ball with no spin: it floats and dips unpredictably.
+                    power = 24f + 5f * skill + _rng.Range(-1f, 1f);
+                    aimZ = _rng.Range(0.8f, 1.9f);
+                    aimY = _rng.Range(-2.2f, 2.2f);
+                    accuracy = 1.35f;
+                    knuckle = true;
                     break;
                 case ShotTechnique.Curler:
                     power = 19f + 5f * skill + _rng.Range(-1f, 1f);
@@ -1160,7 +1225,7 @@ namespace SoccerVision.Simulation
 
             float pressure = penalty ? 0f : Pressure(p, out _);
             float composure = MathUtil.A(p.Attr.Composure);
-            float stake = penalty ? 0.25f : 0f;
+            float stake = penalty ? 0.25f * (p.Team == Away ? 1f + 0.8f * Config.HomeAdvantage : 1f - 0.2f * Config.HomeAdvantage) : 0f; // (the crowd: the away taker feels the pressure more)
             float sigmaA = (0.105f + 0.19f * (1f - skill)) * (1f + 0.75f * pressure * (1.2f - composure) + stake) * p.FatigueError;
             if (_slippery) sigmaA *= 1f + 0.6f * (1f - BallControlFactor(p.Pos));
             if (penalty) sigmaA *= 0.2f;
@@ -1180,12 +1245,13 @@ namespace SoccerVision.Simulation
             float angle = dir.Angle + _rng.Gaussian(0f, sigmaA) + _rng.Gaussian(0f, fixedLateral / MathF.Max(3f, distToAim));
             vz += _rng.Gaussian(0f, sigmaZ) + _rng.Gaussian(0f, fixedHeight / flight);
             Vec2 v = Vec2.FromAngle(angle) * power;
-            float curl = header ? 0f : (curlMag > 0f ? curlSign * curlMag + _rng.Gaussian(0f, 2.5f) : _rng.Gaussian(0f, tech == ShotTechnique.Chip ? 1f : 8f));
+            float curl = header ? 0f : (curlMag > 0f ? curlSign * curlMag + _rng.Gaussian(0f, 2.5f) : _rng.Gaussian(0f, tech == ShotTechnique.Chip ? 1f : tech == ShotTechnique.Knuckleball ? 0.4f : 8f));
             if (CollectDiagnostics) Count("shot.tech." + tech);
             _lastShotTechnique = tech;
 
             KickBall(p, from, v, vz, curl, 0f, header ? KickKind.Header : KickKind.Shot, null, aim, penalty, false, startZ);
             Ball.IsShot = true;
+            Ball.ShotKnuckle = knuckle;
             Ball.Shooter = p;
             Ball.ShotSpeed = power;
             _lastShotTime = SimTime;
@@ -1242,6 +1308,7 @@ namespace SoccerVision.Simulation
             bool cutIn = !header && !penalty && !volley && p.CutInUntil > SimTime;
             if (cutIn && tech == ShotTechnique.Curler && CollectDiagnostics) Count("shot.cutin.curl");
             if (volley) team.Stats.Volleys++;
+            if (tech == ShotTechnique.Knuckleball) team.Stats.Knuckleballs++;
             if (cutIn) team.Stats.CutInShots++;
             if (header) team.Stats.Headers++;
             p.CutInUntil = -1f;
@@ -1284,6 +1351,10 @@ namespace SoccerVision.Simulation
                 float trivela = !technical ? 0f : weak <= 1 ? 0.3f : weak == 2 ? 0.12f : 0f;
                 return _rng.Chance(trivela * (0.5f + technique)) ? ShotTechnique.OutsideFoot : ShotTechnique.WeakFoot;
             }
+            // The knuckleball: a long, central strike by someone who strikes a ball cleanly (free-kick and long-shot skill).
+            if (dist >= 22f && dist <= 33f && MathF.Abs(from.Y) < 11f && p.Attr.LongShots + p.Attr.FreeKicks >= 130
+                && _rng.Chance(0.05f + 0.35f * MathUtil.Clamp01((p.Attr.LongShots + p.Attr.FreeKicks - 130f) / 70f)))
+                return ShotTechnique.Knuckleball;
             bool wide = MathF.Abs(from.Y) > 3f;
             if (p.CutInUntil > SimTime && wide && dist > 12f && NeededCurl(from, goalSign, -MathF.Sign(from.Y)) == NaturalCurlSign(p))
                 return ShotTechnique.Curler;
@@ -1329,6 +1400,9 @@ namespace SoccerVision.Simulation
                 case ShotTechnique.Chip: return 9;
                 case ShotTechnique.OutsideFoot: return 10;
                 case ShotTechnique.WeakFoot: return 11;
+                case ShotTechnique.HalfVolley: return 12;
+                case ShotTechnique.Knuckleball: return 13;
+                case ShotTechnique.Power: return 14;
                 default: return 0;
             }
         }
@@ -1346,8 +1420,8 @@ namespace SoccerVision.Simulation
             bool inverted = (slot.BaseLateral > 0f) == (p.Attr.StrongFoot == Foot.Right);
             float skill = (p.Attr.Dribbling + p.Attr.LongShots + p.Attr.Finishing + p.Attr.BallControl) / 4f;
             if (role == PlayerRole.InvertedWinger) return skill >= 45f; // the manager asked him to come inside
-            if (!inverted) return false;
-            return skill >= 55f;
+            if (!inverted) return skill >= 62f && p.Attr.WeakFootRating >= 2; // a good two-footed winger cuts in too
+            return skill >= 50f;
         }
 
         /// <summary>Releases the ball from a player with the given velocity and updates all bookkeeping.</summary>
@@ -1426,6 +1500,8 @@ namespace SoccerVision.Simulation
             bool through = _pendingThrough, intoSpace = _pendingIntoSpace, wasSwitch = _pendingSwitch, oneTwo = _pendingOneTwo, thirdMan = _pendingThirdMan;
             _pendingThrough = _pendingIntoSpace = _pendingSwitch = _pendingOneTwo = _pendingThirdMan = false;
             string key = _lastPassKey;
+            if (oneTwo && CollectDiagnostics)
+                Count(controller == null ? "onetwo.fail.dead" : controller.Team != passer.Team ? "onetwo.fail.intercepted" : controller == passer ? "onetwo.fail.backToPasser" : controller.OneTwoWith == passer ? "onetwo.ok" : "onetwo.ok.other");
             if (controller == null)
             {
                 if (CollectDiagnostics) Count("pass.lost.dead");

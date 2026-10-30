@@ -18,13 +18,22 @@ namespace SoccerVision.Simulation
         public int[] Slots;
         /// <summary>Per slot: role and the three individual instructions; null keeps them.</summary>
         public PlayerOrders[] Orders;
-        public int CornerTaker, FreeKickTaker, PenaltyTaker;
+        public int[] CornerTakersRight, CornerTakersLeft, FreeKickTakersRight, FreeKickTakersLeft, PenaltyTakers;
+        public int CornerRoutineRight = -1, CornerRoutineLeft = -1;
+        public int[] CornerZonesRight, CornerZonesLeft;
         public bool HasTeamInstructions;
         public float Line = 0.5f, Width = 0.5f, Tempo = 0.5f, Aggression = 0.5f;
         public int Passing = 1, Defence, Attack, Special;
 
         private static float F(string v) => float.Parse(v, NumberStyles.Float, CultureInfo.InvariantCulture);
         private static int I(string v) => int.Parse(v, NumberStyles.Integer, CultureInfo.InvariantCulture);
+        /// <summary>A list "7.9.10" of shirt numbers (zeros dropped unless <paramref name="keepZeros"/>), at most <paramref name="max"/>.</summary>
+        private static int[] List(string v, bool keepZeros = false, int max = 11)
+        {
+            var l = new List<int>();
+            foreach (var x in v.Split('.')) { if (x.Length == 0) continue; int n = I(x); if ((n > 0 || keepZeros) && l.Count < max) l.Add(n); }
+            return l.ToArray();
+        }
 
         public static TeamPlan Parse(string text)
         {
@@ -60,12 +69,21 @@ namespace SoccerVision.Simulation
                             }
                         }
                         break;
-                    case "takers":
+                    case "takers": // (one taker each: corners, free kicks, penalties)
                         var t = v.Split(',');
-                        if (t.Length > 0) plan.CornerTaker = I(t[0]);
-                        if (t.Length > 1) plan.FreeKickTaker = I(t[1]);
-                        if (t.Length > 2) plan.PenaltyTaker = I(t[2]);
+                        if (t.Length > 0) plan.CornerTakersRight = plan.CornerTakersLeft = List(t[0]);
+                        if (t.Length > 1) plan.FreeKickTakersRight = plan.FreeKickTakersLeft = List(t[1]);
+                        if (t.Length > 2) plan.PenaltyTakers = List(t[2]);
                         break;
+                    case "ctr": plan.CornerTakersRight = List(v); break;
+                    case "ctl": plan.CornerTakersLeft = List(v); break;
+                    case "fkr": plan.FreeKickTakersRight = List(v); break;
+                    case "fkl": plan.FreeKickTakersLeft = List(v); break;
+                    case "pen": plan.PenaltyTakers = List(v); break;
+                    case "crr": plan.CornerRoutineRight = Math.Max(0, Math.Min(5, I(v))); break;
+                    case "crl": plan.CornerRoutineLeft = Math.Max(0, Math.Min(5, I(v))); break;
+                    case "czr": { var z = List(v, true, 6); plan.CornerZonesRight = new int[6]; z.CopyTo(plan.CornerZonesRight, 0); break; }
+                    case "czl": { var z = List(v, true, 6); plan.CornerZonesLeft = new int[6]; z.CopyTo(plan.CornerZonesLeft, 0); break; }
                     case "line": plan.Line = F(v); plan.HasTeamInstructions = true; break;
                     case "width": plan.Width = F(v); plan.HasTeamInstructions = true; break;
                     case "tempo": plan.Tempo = F(v); plan.HasTeamInstructions = true; break;
@@ -97,9 +115,15 @@ namespace SoccerVision.Simulation
             }
             if (!string.IsNullOrEmpty(Formation)) t.FormationName = Formation;
             if (Orders != null) for (int i = 0; i < 11; i++) t.Orders[i] = Orders[i].Clone();
-            t.CornerTaker = CornerTaker;
-            t.FreeKickTaker = FreeKickTaker;
-            t.PenaltyTaker = PenaltyTaker;
+            if (CornerTakersRight != null) t.CornerTakersRight = CornerTakersRight;
+            if (CornerTakersLeft != null) t.CornerTakersLeft = CornerTakersLeft;
+            if (FreeKickTakersRight != null) t.FreeKickTakersRight = FreeKickTakersRight;
+            if (FreeKickTakersLeft != null) t.FreeKickTakersLeft = FreeKickTakersLeft;
+            if (PenaltyTakers != null) t.PenaltyTakers = PenaltyTakers;
+            if (CornerRoutineRight >= 0) t.CornerRoutineRight = CornerRoutineRight;
+            if (CornerRoutineLeft >= 0) t.CornerRoutineLeft = CornerRoutineLeft;
+            if (CornerZonesRight != null) t.CornerZonesRight = CornerZonesRight;
+            if (CornerZonesLeft != null) t.CornerZonesLeft = CornerZonesLeft;
             t.Sanitize();
             return t;
         }

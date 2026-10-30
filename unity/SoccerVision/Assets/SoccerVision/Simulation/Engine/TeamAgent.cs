@@ -245,6 +245,8 @@ namespace SoccerVision.Simulation
         public int Sorties;
         /// <summary>Shots hit first time from the air.</summary>
         public int Volleys;
+        /// <summary>Shots struck as a knuckleball (no spin).</summary>
+        public int Knuckleballs;
         /// <summary>Shots by a wide player after cutting inside.</summary>
         public int CutInShots;
         public int Headers;

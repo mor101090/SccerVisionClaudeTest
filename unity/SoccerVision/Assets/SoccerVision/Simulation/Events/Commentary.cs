@@ -59,6 +59,9 @@ namespace SoccerVision.Simulation
                     if (e.Detail == 9) return P(e.Player) + " tries to chip the keeper!";
                     if (e.Detail == 10) return P(e.Player) + " tries the outside of the boot!";
                     if (e.Detail == 11) return P(e.Player) + " has a go with his weaker foot";
+                    if (e.Detail == 12) return P(e.Player) + " hits it on the half-volley!";
+                    if (e.Detail == 13) return P(e.Player) + " tries a knuckleball from distance!";
+                    if (e.Detail == 14) return P(e.Player) + " drives it with the laces!";
                     return P(e.Player) + " shoots!";
                 case MatchEventType.Goal:
                     if (e.Value > 0.5f) return "GOAL! Own goal by " + P(e.Player) + " - " + T(e.Team) + " lead the way";
@@ -166,6 +169,9 @@ namespace SoccerVision.Simulation
                 case 9: return " chips the keeper";
                 case 10: return " with the outside of the boot";
                 case 11: return " on his weaker foot";
+                case 12: return " on the half-volley";
+                case 13: return " with a knuckleball";
+                case 14: return " with a laces drive";
                 default: return " scores";
             }
         }

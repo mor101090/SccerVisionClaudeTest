@@ -44,6 +44,8 @@ namespace SoccerVision.Simulation
 
         public bool IsShot;
         public bool ShotOnTarget;
+        /// <summary>The shot in flight is a knuckleball (no spin): it moves late and unpredictably, harder for the keeper.</summary>
+        public bool ShotKnuckle;
         public PlayerAgent Shooter;
         public float ShotSpeed;
         public float ShotGoalkeeperDistance;
@@ -76,6 +78,7 @@ namespace SoccerVision.Simulation
             IntendedReceiver = null;
             IsShot = false;
             ShotOnTarget = false;
+            ShotKnuckle = false;
             Shooter = null;
         }
     }

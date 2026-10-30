@@ -129,6 +129,25 @@ namespace SoccerVision.Simulation
 
         // ---- Takers ---------------------------------------------------------------------------------------
 
+        /// <summary>The manager's priority list for this restart (corners and free kicks at goal by the side of the pitch), or empty.</summary>
+        private int[] TakerList(Restart r)
+        {
+            var t = r.Team.Tactics;
+            bool right = r.Team.Lateral(r.Spot) < 0f; // (a team's right flank is negative lateral)
+            if (r.Type == RestartType.CornerKick) return right ? t.CornerTakersRight : t.CornerTakersLeft;
+            if (r.Type == RestartType.PenaltyKick) return t.PenaltyTakers;
+            if (r.Type != RestartType.KickOff && r.Type != RestartType.ThrowIn && r.Type != RestartType.GoalKick && IsDangerousFreeKick(r)) return right ? t.FreeKickTakersRight : t.FreeKickTakersLeft;
+            return null;
+        }
+
+        /// <summary>Position of a player in the manager's list (0 first choice), -1 if he is not on it. A player who has been substituted, sent off or hurt is not on the pitch, so the next name on the list takes it.</summary>
+        private int TakerRank(Restart r, PlayerAgent p)
+        {
+            var list = TakerList(r);
+            if (list == null || p.IsGoalkeeper) return -1;
+            return Array.IndexOf(list, p.Number);
+        }
+
         private PlayerAgent ChooseTaker(Restart r)
         {
             var team = r.Team;
@@ -184,9 +203,8 @@ namespace SoccerVision.Simulation
                         break;
                 }
                 // the manager's set-piece takers come first (corners, free kicks at goal, penalties)
-                int wanted = r.Type == RestartType.CornerKick ? team.Tactics.CornerTaker : r.Type == RestartType.PenaltyKick ? team.Tactics.PenaltyTaker
-                             : r.Type != RestartType.KickOff && r.Type != RestartType.ThrowIn && r.Type != RestartType.GoalKick && IsDangerousFreeKick(r) ? team.Tactics.FreeKickTaker : 0;
-                if (wanted > 0 && p.Number == wanted && !p.IsGoalkeeper) score = 100000f;
+                int rank = TakerRank(r, p);
+                if (rank >= 0) score = 100000f - 1000f * rank; // (the first on the manager's list who is on the pitch and fit)
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -482,17 +500,41 @@ namespace SoccerVision.Simulation
             // The routine: near post, far post, penalty spot, pulled back to the edge, or short (varied, like a real team).
             float pr = _rng.NextFloat();
             r.CornerRoutine = pr < 0.3f ? 1 : pr < 0.56f ? 2 : pr < 0.72f ? 3 : pr < 0.86f ? 4 : 5;
+            // the manager's routine for this side (0: varied, as a real team)
+            bool rightSide = att.Lateral(r.Spot) < 0f;
+            int chosenRoutine = rightSide ? att.Tactics.CornerRoutineRight : att.Tactics.CornerRoutineLeft;
+            if (chosenRoutine >= 1 && chosenRoutine <= 5) r.CornerRoutine = chosenRoutine;
+            var zoneNumbers = rightSide ? att.Tactics.CornerZonesRight : att.Tactics.CornerZonesLeft;
 
             // Best headers attack the box (centre-backs go up), the rest guard against the counter.
             var candidates = new List<PlayerAgent>();
             foreach (var p in att.Players) if (!p.SentOff && !p.IsGoalkeeper && p != r.Taker) candidates.Add(p);
-            candidates.Sort((x, y) => (y.Attr.Heading + y.Attr.Jumping + (y.Profile.HeightCm - 180) * 1.2f).CompareTo(x.Attr.Heading + x.Attr.Jumping + (x.Profile.HeightCm - 180) * 1.2f));
+            // (the best header first - but only the best centre-back goes up with the strikers and the midfield, the other stays back)
+            PlayerAgent bestCb = null;
+            foreach (var c in candidates) if (c.Slot.IsCentreBack && (bestCb == null || c.Attr.Heading + c.Attr.Jumping > bestCb.Attr.Heading + bestCb.Attr.Jumping)) bestCb = c;
+            float Header(PlayerAgent y) => y.Attr.Heading + y.Attr.Jumping + (y.Profile.HeightCm - 180) * 1.2f - (y.Slot.IsCentreBack && y != bestCb ? 45f : 0f);
+            candidates.Sort((x, y) => Header(y).CompareTo(Header(x)));
             int zoneIndex = 0;
             var attackersInBox = new List<PlayerAgent>();
+            // The manager's placing first: each zone with a name goes to that player, if he is on the pitch (and not the taker).
+            var placed = new HashSet<PlayerAgent>();
+            if (zoneNumbers != null)
+                for (int zk = 0; zk < zoneNumbers.Length && zk < zones.Length; zk++)
+                {
+                    if (zoneNumbers[zk] <= 0) continue;
+                    var chosen = candidates.Find(c => c.Number == zoneNumbers[zk]);
+                    if (chosen == null) continue; // (substituted, injured, sent off or the taker: the zone is filled as usual)
+                    chosen.ShapeTarget = att.ToWorld(zones[zk].X, zones[zk].Y + _rng.Range(-0.4f, 0.4f));
+                    placed.Add(chosen);
+                    if (zk < 4) attackersInBox.Add(chosen);
+                }
             int stayBack = Math.Max(2, candidates.Count - zones.Length);
             for (int i = 0; i < candidates.Count; i++)
             {
                 var p = candidates[i];
+                if (placed.Contains(p)) continue;
+                // (zones the manager filled are skipped)
+                while (zoneIndex < zones.Length && zoneNumbers != null && zoneIndex < zoneNumbers.Length && zoneNumbers[zoneIndex] > 0 && candidates.Exists(c => c.Number == zoneNumbers[zoneIndex])) zoneIndex++;
                 bool guard = i >= candidates.Count - stayBack && (p.Slot.IsFullBack || p.Slot.Line == Line.Attack || zoneIndex >= zones.Length);
                 if (!guard && zoneIndex < zones.Length)
                 {
@@ -1341,17 +1383,23 @@ namespace SoccerVision.Simulation
             Vec2 dir = (aim - from).Normalized;
             float power = 22f + 5f * skill;
             float curl = -MathF.Sign(Vec2.Cross(dir, new Vec2(0f, targetSide))) * _rng.Range(15f, 28f);
+            // The knuckleball from long range: no spin and no curl, the ball floats and dips late (for the best strikers).
+            float fkDist = Vec2.Distance(from, aim);
+            bool knuckle = fkDist > 23f && fkDist < 34f && taker.Attr.FreeKicks >= 72 && _rng.Chance(0.22f);
+            if (knuckle) { aim = new Vec2(aim.X, _rng.Range(-2.4f, 2.4f)); dir = (aim - from).Normalized; curl = _rng.Gaussian(0f, 0.4f); power = 25f + 4f * skill; aimZ = _rng.Range(1.0f, 1.9f); }
             // Aim the start line away from the target so the curl brings it back.
-            Vec2 startDir = dir.Rotate(-MathF.Sign(curl) * 0.06f);
-            float topSpin = _rng.Range(8f, 16f);
+            Vec2 startDir = knuckle ? dir : dir.Rotate(-MathF.Sign(curl) * 0.06f);
+            float topSpin = knuckle ? 0f : _rng.Range(8f, 16f);
             float vz = KickSolver.VerticalSpeedFor(startDir * power, Pitch.BallRadius, Vec2.Distance(from, aim), aimZ, Config, curl, topSpin);
-            float sigma = 0.012f + 0.045f * (1f - skill);
+            float sigma = (0.012f + 0.045f * (1f - skill)) * (knuckle ? 1.5f : 1f);
             startDir = startDir.Rotate(_rng.Gaussian(0f, sigma));
             vz += _rng.Gaussian(0f, 0.25f + 0.9f * (1f - skill));
             foreach (var w in r.Wall) StartJump(w, 0.4f); // the wall jumps
             float xg = MathUtil.Clamp(0.09f - (Vec2.Distance(from, aim) - 18f) * 0.004f, 0.02f, 0.1f);
             KickBall(taker, from, startDir * power, vz, curl, topSpin, KickKind.Shot, null, aim, true, false);
             Ball.IsShot = true;
+            Ball.ShotKnuckle = knuckle;
+            if (knuckle) team.Stats.Knuckleballs++;
             Ball.Shooter = taker;
             Ball.ShotSpeed = power;
             var keeper = team.Opponent.Goalkeeper;

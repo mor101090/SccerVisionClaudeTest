@@ -1242,7 +1242,7 @@ namespace SoccerVision.Simulation
                 case PlayerRole.SecondStriker: return 0.8f;
                 case PlayerRole.ClassicWinger: return 1.2f;
             }
-            if (p.Slot.IsCentralMidfielder) return carrierF > 12f ? 0.35f : 0f;
+            if (p.Slot.IsCentralMidfielder) return carrierF > 8f ? 0.7f : 0f; // (late arrivals from midfield into the box: shots and goals from midfield)
             return 1f;
         }
 

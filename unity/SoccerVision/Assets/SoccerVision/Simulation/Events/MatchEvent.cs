@@ -101,7 +101,7 @@ namespace SoccerVision.Simulation
         /// <summary>
         /// Flavour of the event. Shots: 1 = volley, 2 = cut inside from the wing (a curler), 3 = direct free kick, 4 = penalty
         /// kick, 6 = side-footed into the near corner, 7 = side-footed into the far corner, 8 = curler to the far corner,
-        /// 9 = chip over the keeper, 10 = outside of the boot, 11 = weaker foot, 0 = driven shot.
+        /// 9 = chip over the keeper, 10 = outside of the boot, 11 = weaker foot, 12 = half-volley, 13 = knuckleball, 14 = laces (power), 0 = driven shot.
         /// Free kicks: 1 = dangerous position with a wall. Goals: shot kind (as for shots, 5 = header). Saves: 0 held, 1 tipped over, 2 round the post, 3 parried. Woodwork: 1 post, 2 crossbar.
         /// Tackles: 0 standing, 1 slide. Interceptions: 0 loose pass picked up, 1 read the pass and stepped in front of
         /// the receiver (OtherPlayer is then the receiver). Passes: Value 1 = through ball, 2 = pass into space.

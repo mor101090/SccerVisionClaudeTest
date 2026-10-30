@@ -266,6 +266,9 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .sheet tr:nth-child(odd) td { background: rgba(255,255,255,.025); }
 .sheet tr.bench td { color: var(--muted); }
 .sheet tr.bench td.fit-Peak { color: var(--good); } .sheet tr.bench td.fit-Moderate { color: var(--ok); } .sheet tr.bench td.fit-Low { color: var(--bad); }
+.sheet tr.drop td { background: rgba(60,200,75,.28); }
+.sheet tr.dragging td { opacity: .4; }
+.sheet tbody tr { user-select: none; }
 .sheet tr.sel td { background: rgba(111,128,170,.28); }
 .sheet td.pos { font-weight: 700; width: 3.2em; }
 .sheet tbody tr { cursor: pointer; }
@@ -287,6 +290,18 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .roles button { text-align: left; padding: 9px 10px; line-height: 1.25; }
 .roles button small { display: block; color: var(--muted); font-weight: 500; font-size: 11px; margin-top: 3px; }
 .roles button[aria-pressed="true"] small { color: #e3e8f5; }
+.sp { display: grid; gap: 14px; max-width: 760px; }
+.sp .sp-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.sp h4 { margin: 0 0 6px; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.sp ol { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 3px; }
+.sp li { display: grid; grid-template-columns: 1.6em minmax(0,1fr) auto auto auto; gap: 6px; align-items: center; padding: 5px 8px; background: #262b3b; border-radius: 6px; font-size: 13px; }
+.sp li .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+.sp li button, .sp .addrow button { padding: 2px 7px; font-size: 12px; }
+.sp select { background: #262b3b; color: var(--text); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 7px; font: inherit; font-size: 13px; max-width: 100%; }
+.sp .note { color: var(--muted); font-size: 13px; margin: 0; }
+.sp .zones { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; align-items: center; font-size: 13px; }
+.sp .zones label { display: grid; gap: 2px; }
+.sp .box { width: 100%; max-width: 300px; background: #1e5a2e; border-radius: 6px; }
 .takers { display: grid; gap: 4px; max-width: 560px; }
 .takers button { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) 3em 3.2em; gap: 8px; align-items: center; text-align: left; padding: 8px 10px; background: #262b3b; }
 .takers button[aria-pressed="true"] { background: var(--amber); color: #fff; }
@@ -503,9 +518,9 @@ body.live .tac-status b { background: #d50000; color: #fff; }
         <div class="pi-detail" id="piDetail"></div>
       </div>
     </div>
-    <div class="mtab" data-pane="corners" role="tabpanel" hidden><div class="takers" data-taker="0"></div></div>
-    <div class="mtab" data-pane="freekicks" role="tabpanel" hidden><div class="takers" data-taker="1"></div></div>
-    <div class="mtab" data-pane="penalties" role="tabpanel" hidden><div class="takers" data-taker="2"></div></div>
+    <div class="mtab" data-pane="corners" role="tabpanel" hidden><div class="sp" data-sp="corners"></div></div>
+    <div class="mtab" data-pane="freekicks" role="tabpanel" hidden><div class="sp" data-sp="fk"></div></div>
+    <div class="mtab" data-pane="penalties" role="tabpanel" hidden><div class="sp" data-sp="pen"></div></div>
   </section>
 
   <div class="cols">
@@ -1400,9 +1415,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     { key: 3, name: "Aggression", tip: "How he goes into tackles.", opts: [[0, "Gentle", "Stays on his feet and avoids risky tackles - fewer fouls."], [1, "Mixed", "Picks his moments."], [2, "Aggressive", "Goes into every challenge and to ground more - wins it back, but more fouls and cards."]] },
   ];
   var TAKERS = [["Corners", 9, "Crossing", "takes the corners"], ["Free kicks", 20, "Free Kicks", "takes the free kicks at goal"], ["Penalties", 21, "Penalty", "takes the penalties"]];
+  function spDefault() { return { ctr: [], ctl: [], fkr: [], fkl: [], pen: [], crr: 0, crl: 0, czr: [0, 0, 0, 0, 0, 0], czl: [0, 0, 0, 0, 0, 0] }; }
+  var ROUTINES = [[0, "Varied", "Changes from corner to corner, like a real team."], [1, "Near post", "Whipped low to the near post for a flick-on."], [2, "Far post", "Floated to the far post for the tall players."], [3, "Penalty spot", "Driven to the penalty spot - the central runners arrive."], [4, "Pulled back", "Cut back to the edge of the box for a shot."], [5, "Short", "Played short to start a move."]];
+  var ZONES = ["Near post", "Far post", "Penalty spot", "Six-yard centre", "Edge of the box", "Rebound / recycle"];
   var PLAN = (function () {
-    var p = { formation: "4-4-2", slots: null, orders: null, takers: [0, 0, 0] };
-    try { var st = JSON.parse(localStorage.getItem("sv-plan") || "{}"); if (st && typeof st.formation === "string") { p.formation = st.formation; p.slots = st.slots || null; p.orders = st.orders || null; p.takers = st.takers || [0, 0, 0]; } } catch (e) {}
+    var p = { formation: "4-4-2", slots: null, orders: null, sp: spDefault() };
+    try { var st = JSON.parse(localStorage.getItem("sv-plan") || "{}"); if (st && typeof st.formation === "string") { p.formation = st.formation; p.slots = st.slots || null; p.orders = st.orders || null; p.sp = Object.assign(spDefault(), st.sp || {}); } } catch (e) {}
     return p;
   })();
   var KICKED = false, PENDING = [], SEL = null, PI_SLOT = 1, planTimer = 0;
@@ -1411,7 +1429,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   function planString() {
     var c = tacEngine(), o = [];
     for (var i = 0; i < 11; i++) o.push(ord(i).join("."));
-    var parts = ["formation=" + PLAN.formation, "orders=" + o.join(","), "takers=" + PLAN.takers.join(","),
+    var parts = ["formation=" + PLAN.formation, "orders=" + o.join(","), "ctr=" + PLAN.sp.ctr.join(","), "ctl=" + PLAN.sp.ctl.join(","), "fkr=" + PLAN.sp.fkr.join(","), "fkl=" + PLAN.sp.fkl.join(","), "pen=" + PLAN.sp.pen.join(","), "crr=" + PLAN.sp.crr, "crl=" + PLAN.sp.crl, "czr=" + PLAN.sp.czr.join(","), "czl=" + PLAN.sp.czl.join(","),
                  "line=" + c.line, "width=" + c.width, "passing=" + c.passing, "tempo=" + c.tempo, "aggression=" + c.aggression,
                  "defence=" + c.defence, "attack=" + c.attack, "special=" + c.special];
     if (PLAN.slots) parts.push("slots=" + PLAN.slots.join(","));
@@ -1690,11 +1708,11 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     on.forEach(function (n, i) {
       var p = byNum(n); if (!p) return;
       var pend = isPendingIn(n), en = (KICKED || MODE !== "live") && !pend && indexOf(n) >= 0 ? energyOf(n) : 100;
-      html += '<tr data-num="' + n + '"' + (i === PI_SLOT ? ' class="sel"' : "") + '><td class="pos">' + esc(f ? f.slots[i].abbr : p.role) + '</td><td>' + esc(p.name) + (pend ? ' <small class="muted">(on at the next stoppage)</small>' : "") + '</td><td>' + esc(ROLES[ord(i)[0]][0]) +
+      html += '<tr data-num="' + n + '" data-slot="' + i + '"' + (pend ? ' data-locked="1"' : "") + (i === PI_SLOT ? ' class="sel"' : "") + '><td class="pos">' + esc(f ? f.slots[i].abbr : p.role) + '</td><td>' + esc(p.name) + (pend ? ' <small class="muted">(on at the next stoppage)</small>' : "") + '</td><td>' + esc(ROLES[ord(i)[0]][0]) +
         '</td><td data-tip="Energy left|' + Math.round(en) + '%">' + heartSvg(en) + '</td><td class="fit-' + esc(p.fitness) + '">' + esc(p.fitness) + '</td></tr>';
     });
     benchShown().forEach(function (b) {
-      html += '<tr class="bench' + (b.gone ? " gone" : "") + '" data-num="' + b.p.number + '"><td class="pos">' + esc(b.p.role) + '</td><td>' + esc(b.p.name) + (b.gone ? ' <small>(off)</small>' : b.leaving ? ' <small>(off at the next stoppage)</small>' : "") + '</td><td>' + esc(b.p.role) + '</td><td data-tip="Energy left|100%">' + heartSvg(100) + '</td><td class="fit-' + esc(b.p.fitness) + '">' + esc(b.p.fitness) + '</td></tr>';
+      html += '<tr class="bench' + (b.gone ? " gone" : "") + '" data-num="' + b.p.number + '" data-bench="1"' + (b.gone ? ' data-gone="1"' : "") + (b.leaving ? ' data-locked="1"' : "") + '><td class="pos">' + esc(b.p.role) + '</td><td>' + esc(b.p.name) + (b.gone ? ' <small>(off)</small>' : b.leaving ? ' <small>(off at the next stoppage)</small>' : "") + '</td><td>' + esc(b.p.role) + '</td><td data-tip="Energy left|100%">' + heartSvg(100) + '</td><td class="fit-' + esc(b.p.fitness) + '">' + esc(b.p.fitness) + '</td></tr>';
     });
     $("sheet").innerHTML = html;
   }
@@ -1718,19 +1736,51 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     });
     $("piDetail").innerHTML = html;
   }
+  function spPlayers() { var gk = startLineup()[0]; return squad().filter(function (p) { return p.number !== gk; }); }
+  function spList(key, title, attr, attrName) {
+    var L = PLAN.sp[key], html = '<div><h4>' + esc(title) + '</h4><ol>';
+    L.forEach(function (n, i) {
+      var p = byNum(n); if (!p) return;
+      var on = displayLineup().indexOf(n) >= 0;
+      html += '<li' + (on ? "" : ' style="opacity:.55"') + '><span>' + (i + 1) + '</span><span>' + esc(p.name) + (on ? "" : " (bench)") + '</span><span class="v" style="color:' + levelColour(p.attrs[attr]) + '">' + p.attrs[attr] + '</span>' +
+        '<span><button type="button" data-sp-mv="' + key + ':' + i + ':-1" aria-label="Up">▲</button><button type="button" data-sp-mv="' + key + ':' + i + ':1" aria-label="Down">▼</button></span>' +
+        '<button type="button" data-sp-rm="' + key + ':' + i + '" aria-label="Remove">✕</button></li>';
+    });
+    html += '</ol><div class="addrow"><select data-sp-add="' + key + '"><option value="">+ Add a taker…</option>' +
+      spPlayers().filter(function (p) { return L.indexOf(p.number) < 0; }).sort(function (a, b) { return b.attrs[attr] - a.attrs[attr]; })
+        .map(function (p) { return '<option value="' + p.number + '">' + esc(p.name) + ' · ' + attrName + ' ' + p.attrs[attr] + '</option>'; }).join("") + '</select></div></div>';
+    return html;
+  }
+  function spRoutine(key, title) {
+    return '<div><h4>' + esc(title) + '</h4><select data-sp-routine="' + key + '">' + ROUTINES.map(function (r) { return '<option value="' + r[0] + '"' + (PLAN.sp[key] === r[0] ? " selected" : "") + ' title="' + esc(r[2]) + '">' + esc(r[1]) + '</option>'; }).join("") + '</select></div>';
+  }
+  function spZones(key, title) {
+    var on = displayLineup().filter(function (n, i) { return i !== 0; });
+    var html = '<div><h4>' + esc(title) + '</h4><div class="zones">';
+    ZONES.forEach(function (z, i) {
+      html += '<label>' + (i + 1) + '. ' + esc(z) + '<select data-sp-zone="' + key + ':' + i + '"><option value="0">Auto</option>' + on.map(byNum).filter(Boolean).sort(function (a, b) { return (b.attrs["Heading"] || 0) - (a.attrs["Heading"] || 0); }).map(function (p) {
+        return '<option value="' + p.number + '"' + (PLAN.sp[key][i] === p.number ? " selected" : "") + '>' + esc(p.name) + (p.height ? " · " + p.height + "cm" : "") + '</option>'; }).join("") + '</select></label>';
+    });
+    return html + '</div></div>';
+  }
+  function boxSvg() {
+    var pts = [[62, 36], [20, 36], [42, 62], [34, 30], [42, 100], [90, 82]];
+    return '<svg class="box" viewBox="0 0 120 130" aria-label="Where each zone is in the box"><rect x="2" y="2" width="116" height="126" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="25" y="2" width="70" height="26" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="2" y="2" width="116" height="70" fill="none" stroke="#fff" stroke-opacity=".25"/>' +
+      pts.map(function (q, i) { return '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="7" fill="#f2c230"/><text x="' + q[0] + '" y="' + (q[1] + 4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#1b1f2b">' + (i + 1) + '</text>'; }).join("") + '</svg>';
+  }
   function drawTakers() {
     if (!R) return;
-    var on = displayLineup();
-    document.querySelectorAll(".takers").forEach(function (el) {
-      var k = +el.getAttribute("data-taker"), T = TAKERS[k], who = PLAN.takers[k] || 0;
-      var ps = on.map(byNum).filter(function (p, i) { return p && i !== 0; }).sort(function (a, b) { return b.attrs[T[1]] - a.attrs[T[1]]; });
-      var html = '<p class="note">Who ' + T[3] + '. Auto: the best ' + T[2].toLowerCase() + ' on the pitch.</p>';
-      html += '<button type="button" data-taker-num="0" aria-pressed="' + (who === 0) + '"><span></span><span>Auto</span><span></span><span class="v"></span></button>';
-      ps.forEach(function (p) {
-        html += '<button type="button" data-taker-num="' + p.number + '" aria-pressed="' + (who === p.number) + '" data-tip="' + esc(p.name) + '|' + esc(T[2] + " " + p.attrs[T[1]]) + '"><span>' + p.number + '</span><span>' + esc(p.name) + '</span><span>' + esc(p.role) + '</span><span class="v" style="color:' + levelColour(p.attrs[T[1]]) + '">' + p.attrs[T[1]] + '</span></button>';
-      });
-      el.innerHTML = html;
-    });
+    var c = document.querySelector('[data-sp="corners"]'), f = document.querySelector('[data-sp="fk"]'), p = document.querySelector('[data-sp="pen"]');
+    var keep = document.activeElement && document.activeElement.closest && document.activeElement.closest(".sp");
+    if (keep && document.activeElement.tagName === "SELECT") return;
+    c.innerHTML = '<p class="note">The first on each list takes it; if he is substituted, injured or sent off the next one steps up. Empty list = the best on the pitch.</p>' +
+      '<div class="sp-cols">' + spList("ctr", "Right-side corners (taken from the right corner flag)", "Crossing", "Crossing") + spList("ctl", "Left-side corners", "Crossing", "Crossing") + '</div>' +
+      '<div class="sp-cols">' + spRoutine("crr", "Right-side routine") + spRoutine("crl", "Left-side routine") + '</div>' +
+      '<div class="sp-cols">' + spZones("czr", "Who stands where - right corners") + spZones("czl", "Who stands where - left corners") + '</div>' + boxSvg() +
+      '<p class="note">Zones: 1 near post, 2 far post, 3 penalty spot, 4 six-yard centre, 5 edge of the box, 6 rebound. Put your tall high-jumper at the near post, a quick finisher at the far post. Left Auto = the best headers go first.</p>';
+    f.innerHTML = '<p class="note">Direct and crossed free kicks. The first on the list who is still on the pitch takes it.</p><div class="sp-cols">' +
+      spList("fkr", "Right-side free kicks", "Free Kicks", "Free kicks") + spList("fkl", "Left-side free kicks", "Free Kicks", "Free kicks") + '</div>';
+    p.innerHTML = '<p class="note">Penalties: the first on the list who is on the pitch takes it. At home the crowd helps the taker; away the pressure is on.</p>' + spList("pen", "Penalty takers", "Penalty", "Penalty");
   }
   function drawAll() {
     var sel = $("formation");
@@ -1740,7 +1790,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   }
   // Two players change places: the cards slide to their new spots (FLIP: draw, then animate from where each card was).
   function drawManager() {
-    if (!R) return;
+    if (!R || DRAGGING) return;
     var before = {}, cards = document.querySelectorAll("#cardsIn .pcard2, #cardsOut .pcard2");
     cards.forEach(function (c) { before[c.dataset.num] = c.getBoundingClientRect(); });
     drawAll();
@@ -1758,7 +1808,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   // ---- interaction: click two players, or drag one onto the other ---------------------------------------------------
   function descr(el) {
     if (!el) return null;
-    if (el.classList.contains("pcard2")) return { num: +el.dataset.num, slot: el.dataset.slot !== undefined ? +el.dataset.slot : -1, bench: el.dataset.bench === "1", gone: el.dataset.gone === "1", locked: el.dataset.locked === "1" };
+    if (el.classList.contains("pcard2") || el.tagName === "TR") return { num: +el.dataset.num, slot: el.dataset.slot !== undefined ? +el.dataset.slot : -1, bench: el.dataset.bench === "1", gone: el.dataset.gone === "1", locked: el.dataset.locked === "1" };
     if (el.classList.contains("fd")) { var s = +el.dataset.slot, n = displayLineup()[s]; return { num: n, slot: s, bench: false, gone: false, locked: isPendingIn(n) }; }
     return null;
   }
@@ -1776,6 +1826,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     else toast("The match is over");
   }
   var lastCard = { num: -1, at: 0 }, dragEndAt = 0;
+  var DRAGGING = false;
   function pickEl(el) {
     if (performance.now() - dragEndAt < 250) return; // (the click that ends a drag)
     var d = descr(el); if (!d) return;
@@ -1789,17 +1840,17 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var a = SEL; SEL = null; dropOn(a, d); drawManager();
   }
   ["cardsIn", "cardsOut", "fDots"].forEach(function (id) {
-    $(id).addEventListener("click", function (ev) { var el = ev.target.closest(".pcard2, .fd"); if (el) pickEl(el); });
+    $(id).addEventListener("click", function (ev) { var el = ev.target.closest(".pcard2, .fd, #sheet tr"); if (el) pickEl(el); });
   });
   // drag and drop (mouse and pen; on a touch screen the two clicks do the same)
   (function () {
     var drag = null, ghost = null, over = null;
     function clearOver() { if (over) { over.classList.remove("drop"); over = null; } }
-    function targetAt(x, y, except) { var els = document.elementsFromPoint(x, y); for (var i = 0; i < els.length; i++) { var t = els[i].closest && els[i].closest(".pcard2, .fd"); if (t && t !== except) return t; } return null; }
-    ["cardsIn", "cardsOut", "fDots"].forEach(function (id) {
+    function targetAt(x, y, except) { var els = document.elementsFromPoint(x, y); for (var i = 0; i < els.length; i++) { var t = els[i].closest && els[i].closest(".pcard2, .fd, #sheet tr"); if (t && t !== except) return t; } return null; }
+    ["cardsIn", "cardsOut", "fDots", "sheet"].forEach(function (id) {
       $(id).addEventListener("pointerdown", function (ev) {
         if (ev.pointerType === "touch" || (ev.pointerType === "mouse" && ev.button !== 0)) return;
-        var el = ev.target.closest(".pcard2, .fd"); if (!el) return;
+        var el = ev.target.closest(".pcard2, .fd, #sheet tr"); if (!el) return;
         var d = descr(el); if (!d || d.locked || d.gone) return;
         drag = { el: el, d: d, x0: ev.clientX, y0: ev.clientY, on: false };
       });
@@ -1808,7 +1859,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       if (!drag) return;
       if (!drag.on) {
         if (Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 7) return;
-        drag.on = true; SEL = null;
+        drag.on = true; DRAGGING = true; SEL = null;
         ghost = drag.el.cloneNode(true); ghost.classList.add("ghost"); ghost.removeAttribute("id");
         if (drag.el.classList.contains("fd")) { ghost = document.createElement("div"); ghost.className = "ghost fdghost"; ghost.textContent = (byNum(drag.d.num) || {}).shortName || ""; }
         else ghost.style.width = drag.el.offsetWidth + "px";
@@ -1822,6 +1873,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       if (!drag) return;
       var d = drag; drag = null;
       if (!d.on) return;
+      DRAGGING = false;
       dragEndAt = performance.now();
       var t = drop ? targetAt(ev.clientX, ev.clientY, d.el) : null;
       if (ghost) { ghost.remove(); ghost = null; }
@@ -1831,7 +1883,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     document.addEventListener("pointerup", function (ev) { end(ev, true); });
     document.addEventListener("pointercancel", function (ev) { end(ev, false); });
   })();
-  $("sheet").addEventListener("click", function (ev) { var tr = ev.target.closest("tr"); if (tr) openProfile(byNum(+tr.dataset.num), 0); });
+  $("sheet").addEventListener("click", function (ev) { if (performance.now() - dragEndAt < 250) return; var tr = ev.target.closest("tr"); if (tr) openProfile(byNum(+tr.dataset.num), 0); });
   $("formation").addEventListener("change", function () { setFormation(this.value); });
   $("piList").addEventListener("click", function (ev) { var b = ev.target.closest("button"); if (b) { PI_SLOT = +b.dataset.slot; drawManager(); } });
   $("piDetail").addEventListener("click", function (ev) {
@@ -1845,8 +1897,19 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     PLAN.orders[PI_SLOT] = o;
     planChanged("Instruction sent to " + ((byNum(lineupNow()[PI_SLOT]) || {}).shortName || "the player"));
   });
-  document.querySelectorAll(".takers").forEach(function (el) {
-    el.addEventListener("click", function (ev) { var b = ev.target.closest("button"); if (!b) return; var k = +el.getAttribute("data-taker"), n = +b.dataset.takerNum; if (PLAN.takers[k] === n) return; PLAN.takers[k] = n; planChanged(TAKERS[k][0] + ": " + (n ? (byNum(n) || {}).shortName : "Auto")); });
+  document.querySelectorAll(".sp").forEach(function (el) {
+    el.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      var mv = b.getAttribute("data-sp-mv"), rm = b.getAttribute("data-sp-rm");
+      if (mv) { var q = mv.split(":"), L = PLAN.sp[q[0]], i = +q[1], j = i + +q[2]; if (j < 0 || j >= L.length) return; var t = L[i]; L[i] = L[j]; L[j] = t; planChanged("Taker order"); }
+      else if (rm) { var r = rm.split(":"); PLAN.sp[r[0]].splice(+r[1], 1); planChanged("Taker removed"); }
+    });
+    el.addEventListener("change", function (ev) {
+      var t = ev.target, add = t.getAttribute("data-sp-add"), rt = t.getAttribute("data-sp-routine"), zn = t.getAttribute("data-sp-zone");
+      if (add) { if (t.value) { PLAN.sp[add].push(+t.value); planChanged("Taker added"); } }
+      else if (rt) { PLAN.sp[rt] = +t.value; planChanged("Corner routine"); }
+      else if (zn) { var z = zn.split(":"); PLAN.sp[z[0]][+z[1]] = +t.value; planChanged("Corner positions"); }
+    });
   });
   document.querySelectorAll(".mtabs button").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -1906,7 +1969,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     return '<svg viewBox="0 0 42 46" aria-label="Left foot ' + l + ', right foot ' + r + '">' + foot(0, l, "L") + foot(21, r, "R") + '</svg>';
   }
   function pentagonSvg(c) {
-    var axes = [["ATT", c[3]], ["ATH", c[4]], ["PLA", c[2]], ["DEF", c[1]], ["MEN", c[0]]], cx = 130, cy = 116, Rr = 82;
+    var axes = [[gk ? "GK" : "ATT", gk ? c[5] : c[3]], ["ATH", c[4]], ["PLA", c[2]], ["DEF", c[1]], ["MEN", c[0]]], cx = 130, cy = 116, Rr = 82;
     var pt = function (k, v) { var a = -Math.PI / 2 + k * 2 * Math.PI / 5; return [cx + Math.cos(a) * Rr * v, cy + Math.sin(a) * Rr * v]; };
     var poly = function (v) { return axes.map(function (_, k) { return pt(k, typeof v === "number" ? v : v[k]).map(function (n) { return n.toFixed(1); }).join(","); }).join(" "); };
     var bands = [[1, "#1e8a2a"], [.84, "#32b33d"], [.68, "#9bd23c"], [.52, "#e7cf2e"], [.36, "#f39a1e"], [.2, "#cf3a2c"]];
@@ -2163,7 +2226,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var tm = teams[i < 11 ? 0 : 1], cur = infoAt(i), base = tm.players[i % 11], p = base;
     if (cur !== base) { (tm.bench || []).forEach(function (b) { if (b.number === cur.number) p = b; }); if (p === base) p = { number: cur.number, name: cur.shortName, role: "SUB" }; }
     var gk = i % 11 === 0 && p === base, c = p.cats || [0, 0, 0, 0, 0, 0];
-    var axes = [["ATT", c[3]], ["ATH", c[4]], ["PLA", c[2]], ["DEF", c[1]], ["MEN", c[0]]], cx = 56, cy = 54, R = 34;
+    var axes = [[gk ? "GK" : "ATT", gk ? c[5] : c[3]], ["ATH", c[4]], ["PLA", c[2]], ["DEF", c[1]], ["MEN", c[0]]], cx = 56, cy = 54, R = 34;
     var pt = function (k, v) { var a = -Math.PI / 2 + k * 2 * Math.PI / 5; return [cx + Math.cos(a) * R * v, cy + Math.sin(a) * R * v]; };
     var poly = function (v) { return axes.map(function (_, k) { return pt(k, typeof v === "number" ? v : v[k]).map(function (n) { return n.toFixed(1); }).join(","); }).join(" "); };
     var svg = '<svg viewBox="0 0 112 104" aria-hidden="true">' + [1, .66, .33].map(function (f) { return '<polygon class="web" points="' + poly(f) + '"/>'; }).join("") +
@@ -2173,7 +2236,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var el = $("pcard");
     el.style.setProperty("--pc", gk ? tm.kit.gk : tm.kit.primary);
     el.innerHTML = '<div class="pc-top"><b></b><span></span></div><div class="pc-meta"></div><div class="pc-body">' + svg + '<div class="pc-kv">' +
-      (gk ? kv("Goalkeeping", c[5]) : kv("Attacking", c[3])) + kv("Speed", p.speed != null ? p.speed : "-") + kv("Passing", p.passing != null ? p.passing : "-") + kv("Stamina", p.stamina != null ? p.stamina : "-") + "</div></div>";
+      (gk ? kv("Goalkeeping", c[5]) : kv("Attack", c[3])) + kv("Athletic", c[4]) + kv("Defence", c[1]) + kv("Mental", c[0]) + kv("Playmaking", c[2]) + "</div></div>";
     el.querySelector(".pc-top b").textContent = p.number + " " + (p.name || p.shortName);
     el.querySelector(".pc-top span").textContent = p.role || "";
     var meta = el.querySelector(".pc-meta");

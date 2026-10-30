@@ -54,7 +54,7 @@ namespace SoccerVision.Simulation.Tests
             Assert.Equal(benchStriker, red.Starters[10]);
             Assert.Contains(red.Bench, p => p.ShirtNumber == dropped);
             Assert.Equal(9, red.Bench.Count);
-            Assert.Equal(numbers[6], red.Tactics.CornerTaker);
+            Assert.Equal(new[] { numbers[6] }, red.Tactics.CornerTakersRight);
         }
 
         [Fact]
@@ -231,6 +231,66 @@ namespace SoccerVision.Simulation.Tests
             Assert.Equal(6, e.Home.Players.First(p => p.Number == six).SlotIndex);
             e.RunToEnd();
             Assert.Equal(0, e.RecoveredErrors);
+        }
+
+        [Fact]
+        public void TheNextOnTheListTakesOverWhenTheFirstIsGone()
+        {
+            var red = DemoTeams.Red();
+            int first = red.Starters[3].ShirtNumber, second = red.Starters[6].ShirtNumber;
+            TeamPlan.Parse("ctr=" + first + "," + second + ";ctl=" + first + "," + second).ApplyBeforeKickOff(red);
+            var e = new MatchEngine(red, DemoTeams.Blue(), 9, MatchConfig.CreateDefault());
+            // the first on the list is sent off at once: the second takes every corner
+            e.Home.Players.First(p => p.Number == first).SentOff = true;
+            int corners = 0, bySecond = 0;
+            e.RestartExecuting += r => { if (r.Type == RestartType.CornerKick && r.Team == e.Home) { corners++; if (r.Taker != null && r.Taker.Number == second) bySecond++; } };
+            e.RunToEnd();
+            Assert.True(corners > 0, "no corners");
+            Assert.Equal(corners, bySecond);
+        }
+
+        [Fact]
+        public void EachSideOfTheCornersHasItsOwnTaker()
+        {
+            var red = DemoTeams.Red();
+            int right = red.Starters[3].ShirtNumber, left = red.Starters[6].ShirtNumber;
+            TeamPlan.Parse("ctr=" + right + ";ctl=" + left).ApplyBeforeKickOff(red);
+            var e = new MatchEngine(red, DemoTeams.Blue(), 13, MatchConfig.CreateDefault());
+            int r1 = 0, l1 = 0, wrong = 0;
+            e.RestartExecuting += r =>
+            {
+                if (r.Type != RestartType.CornerKick || r.Team != e.Home || r.Taker == null) return;
+                bool rightSide = e.Home.Lateral(r.Spot) < 0f;
+                if (rightSide) { r1++; if (r.Taker.Number != right) wrong++; } else { l1++; if (r.Taker.Number != left) wrong++; }
+            };
+            e.RunToEnd();
+            Assert.True(r1 + l1 > 0, "no corners");
+            Assert.Equal(0, wrong);
+        }
+
+        [Fact]
+        public void TheCornerPlanParsesRoutineAndZones()
+        {
+            var plan = TeamPlan.Parse("crr=2;crl=5;czr=11,0,0,0,0,0;czl=0,0,0,0,0,9");
+            var t = plan.ToTactics(new TeamTactics());
+            Assert.Equal(2, t.CornerRoutineRight);
+            Assert.Equal(5, t.CornerRoutineLeft);
+            Assert.Equal(11, t.CornerZonesRight[0]);
+            Assert.Equal(9, t.CornerZonesLeft[5]);
+        }
+
+        [Fact]
+        public void TheNewShotTechniquesAreHit()
+        {
+            var details = new HashSet<int>();
+            for (ulong seed = 1; seed <= 12; seed++)
+            {
+                var e = Engine(seed);
+                e.RunToEnd();
+                foreach (var x in e.EventLog) if (x.Type == MatchEventType.Shot) details.Add(x.Detail);
+            }
+            Assert.Contains(14, details); // laces, hit with power
+            Assert.Contains(12, details); // half-volley
         }
     }
 }

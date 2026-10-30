@@ -57,8 +57,18 @@ namespace SoccerVision.Simulation
         public string FormationName = "";
         /// <summary>Role and individual instructions per formation slot (slot 0 the keeper); the player in the slot plays them, a substitute too.</summary>
         public PlayerOrders[] Orders = NewOrders();
-        /// <summary>Set-piece takers by shirt number (0: the best one on the pitch is chosen).</summary>
-        public int CornerTaker, FreeKickTaker, PenaltyTaker;
+        /// <summary>
+        /// Set-piece takers, a priority list of shirt numbers each: the first one who is on the pitch and fit takes it (a
+        /// substituted, sent-off or injured player is skipped); an empty list picks the best one on the pitch. Corners and
+        /// free kicks at goal have a list for each side of the pitch (the team's right and left).
+        /// </summary>
+        public int[] CornerTakersRight = Empty, CornerTakersLeft = Empty, FreeKickTakersRight = Empty, FreeKickTakersLeft = Empty, PenaltyTakers = Empty;
+        public static readonly int[] Empty = new int[0];
+        /// <summary>Corner routine per side: 0 auto (varied), 1 near post, 2 far post, 3 penalty spot, 4 pulled back to the edge, 5 short.</summary>
+        public int CornerRoutineRight, CornerRoutineLeft;
+        /// <summary>Who stands where for a corner (shirt numbers for the six zones; 0 = whoever fits) - see <see cref="CornerZones"/>.</summary>
+        public int[] CornerZonesRight = new int[6], CornerZonesLeft = new int[6];
+        public const int CornerZoneCount = 6;
 
         public static PlayerOrders[] NewOrders()
         {
@@ -76,6 +86,10 @@ namespace SoccerVision.Simulation
             var c = (TeamTactics)MemberwiseClone();
             c.Orders = NewOrders();
             for (int i = 0; i < 11; i++) c.Orders[i] = OrdersFor(i).Clone();
+            c.CornerTakersRight = (int[])CornerTakersRight.Clone(); c.CornerTakersLeft = (int[])CornerTakersLeft.Clone();
+            c.FreeKickTakersRight = (int[])FreeKickTakersRight.Clone(); c.FreeKickTakersLeft = (int[])FreeKickTakersLeft.Clone();
+            c.PenaltyTakers = (int[])PenaltyTakers.Clone();
+            c.CornerZonesRight = (int[])CornerZonesRight.Clone(); c.CornerZonesLeft = (int[])CornerZonesLeft.Clone();
             return c;
         }
 

@@ -2,6 +2,28 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/set-piece-plans-shots-passing`
+
+- **Penalties and home advantage**: the home taker's skill is lifted (x1+0.06 x home advantage) and the away taker's lowered
+  (x1-0.16 x home advantage); the home keeper saves a little more (+8%), the away keeper less (-6%), and the stake of the kick
+  weighs on the away taker. Measured over 960 kicks: about 75-77% with a neutral ground, 80.4% for the home team and 71.9% for
+  the away team with home advantage.
+- **Shots**: new techniques - laces (power), half-volley, knuckleball (free kicks from range, harder for the keeper to read) -
+  next to placed near/far, curler, chip, volley, outside of the boot and the weaker foot.
+- **One-twos**: about 17-18 completed per team per match (was about 10) with a success rate near 74%; a failed one is now an
+  interception or a return pass hit too hard.
+- **Forward passing**: a player under no pressure who has a forward option now prefers it (forward pass x1.3, backward or
+  holding x0.6); forward-pass misses fell from 19% to 7%.
+- **Wingers and midfielders shoot and cut in more**: the share of goals by wingers rose from about 5% to about 15%, the strikers'
+  from about 69% to about 64%, the centre-backs' from 19% to about 10%.
+- **Set-piece plans**: a list of takers (corners right and left, free kicks right and left, penalties) - the next on the list
+  takes over if the first is substituted, injured or sent off; a corner routine for each side (varied, near post, far post,
+  penalty spot, pulled back, short) and a place in the box for each of six zones. Plan keys: `ctr ctl fkr fkl pen crr crl czr czl`
+  (`takers=` still works).
+- **Demo page**: the hover card shows only the five categories of the pentagon (athletic, defence, attack - goalkeeping for a
+  keeper -, mental, playmaking); new corner, free-kick and penalty tabs with ordered lists, routines and a placement of the
+  players in the box; drag a playing player's circle or row onto a substitute's row (and the other way) to make a change.
+
 ## `feature/momentum-home-advantage-ui-round`
 
 - **Home advantage** (the home team scores about a third of a goal more than the away team in the top leagues): the home
