@@ -44,6 +44,7 @@ namespace SoccerVision.Simulation
                 GoalkeeperPrimary = "#F9D71C",
                 GoalkeeperNumber = "#1A1A1A",
             }, GeneratedTeams.Red());
+            t.Manager = "Daniel Harper";
             t.Tactics.Marking = MarkingStyle.Zonal;
             t.Tactics.Tackling = TacklingStyle.Normal;
             return t;
@@ -60,6 +61,7 @@ namespace SoccerVision.Simulation
                 GoalkeeperPrimary = "#2E9E4F",
                 GoalkeeperNumber = "#FFFFFF",
             }, GeneratedTeams.Blue());
+            t.Manager = "Marco Lindqvist";
             t.Tactics.Marking = MarkingStyle.ManToMan;
             t.Tactics.Tackling = TacklingStyle.GetStuckIn;
             return t;

@@ -26,7 +26,7 @@ Each round of changes is developed on its own branch, named after what it change
 - **A smarter computer manager**: a booked player who keeps fouling comes off before a second yellow; a knock, a poor game
   (rating under 5.8) or tired legs; a tactical change (a forward on when chasing the game, a defender to hold a lead); and the
   shape changes with the score (4-3-3, 3-4-3 two goals down, 4-5-1 to protect a lead).
-- **Corner set-ups**: new tabs "Corner – attack" and "Corner – defence" with the automatic set-up drawn on the box; drag a
+- **Corner set-ups**: the Corners tab has three sub-tabs - Takers, Attack, Defence - with the automatic set-up drawn on the box; drag a
   player anywhere, click him to choose who stands there, "Back to automatic" to reset (plan keys `cpa`, `cpd`; mirrored for
   a corner on the other side).
 - **Sounds**: the crowd's reactions, the net and the woodwork are recordings now (`docs/sounds/`, also in the React app);
@@ -38,6 +38,13 @@ Each round of changes is developed on its own branch, named after what it change
   louder and with more echo the harder the ball hits. Booing (a red card, the away penalty taker, the visitors
   wasting time) uses `booing.mp3` (cut at 14.5 s, before its applause) and applause after a home shot that does not go
   in uses `clapping.mp3`.
+- **Sound balance**: the recordings play at about 40% of their level against the ball, the whistles and the steady crowd,
+  with a fade-in and a long fade-out; the long ones are shortened (the anger 7 s, the booing 8 s, the goal roar 8 s); the
+  same reaction never piles up on itself (a foul and its card); the post, the bar and the net are louder the harder the hit,
+  with an echo. A home shot turned behind for a corner gets its applause too.
+- **Line-ups before the walk-out**: both teams' starting eleven on a pitch in their formation, the list with numbers and
+  positions, the substitutes and the manager (new `Manager` in the team set-up and the header), in the page's palette - ten
+  seconds or "Skip"; in a live match after "Kick off".
 - **Snow**: blue lines next to yellow and orange, and a "Covered (white)" pitch next to the cleared one (looks only).
 - **Colour-blind mode** in the settings: blue against orange, keepers in pink and yellow.
 

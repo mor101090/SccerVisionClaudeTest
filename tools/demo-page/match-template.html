@@ -91,6 +91,30 @@ h1 { margin: 2px 0 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--display); lett
 .cbar { position: absolute; left: 50%; bottom: 1.6%; transform: translateX(-50%); width: 66%; min-height: 1.9em; display: flex; align-items: center; justify-content: center; padding: .25em 1.2em; border-radius: 999px; background: #444; color: #fff; font: 600 clamp(11px, 1.55cqi, 15px)/1.25 var(--body); text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
 .cbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 canvas { display: block; width: 100%; height: 100%; }
+/* ---- the line-ups before the walk-out (broadcast style, the page's palette) ---- */
+.lineups { position: absolute; inset: 0; z-index: 6; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: rgba(20, 23, 33, .94); color: var(--text); padding: 12px 14px 10px; gap: 10px; overflow: auto; }
+.lineups[hidden] { display: none; }
+.lu-head { display: flex; justify-content: space-between; align-items: center; }
+.lu-title { font: 800 20px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; }
+.lu-head button { padding: 6px 12px; }
+.lu-body { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; min-height: 0; align-items: start; }
+@media (max-width: 640px) { .lu-body { grid-template-columns: 1fr; } }
+.lu-team { background: #1f2331; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; display: grid; grid-template-rows: auto auto auto; align-content: start; min-height: 0; }
+.lu-band { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 12px; border-left: 6px solid var(--tc); background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 35%, #1f2331), #1f2331); }
+.lu-band b { font: 800 17px/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.lu-band span { color: var(--muted); font: 700 13px/1 var(--body); }
+.lu-main { display: grid; grid-template-columns: minmax(110px, 40%) 1fr; gap: 10px; padding: 10px 12px; min-height: 0; }
+.lu-main svg { width: 100%; height: auto; background: #2c7a3d; border-radius: 6px; }
+.lu-main svg .ln { fill: none; stroke: rgba(255,255,255,.65); stroke-width: .5; }
+.lu-main svg text { font: 800 4.2px/1 var(--body); text-anchor: middle; }
+.lu-list { font-size: 13px; display: grid; align-content: start; gap: 2px; }
+.lu-list h4 { margin: 6px 0 2px; font: 700 11px/1 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.lu-list .r { display: grid; grid-template-columns: 2em minmax(0, 1fr) 2.6em; gap: 6px; }
+.lu-list .r i { font-style: normal; font-weight: 800; text-align: right; }
+.lu-list .r em { font-style: normal; color: var(--muted); text-align: right; font-size: 12px; }
+.lu-list .r.sub { color: #c9cdd8; }
+.lu-mgr { padding: 0 12px 10px; color: var(--muted); font-size: 13px; } .lu-mgr b { color: var(--text); }
+.lu-bar { height: 3px; background: #2a2f40; border-radius: 2px; overflow: hidden; } .lu-bar b { display: block; height: 100%; width: 0; background: var(--amber); }
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .overlay[hidden] { display: none !important; }
 .overlay .box { pointer-events: auto; background: rgba(30, 34, 48, .92); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 20px; text-align: center; display: grid; gap: 8px; }
@@ -310,6 +334,9 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .sp .zones { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; align-items: center; font-size: 13px; }
 .sp .zones label { display: grid; gap: 2px; }
 .sp .box { width: 100%; max-width: 300px; background: #1e5a2e; border-radius: 6px; }
+.subtabs { display: flex; gap: 4px; margin: 0 0 12px; border-bottom: 1px solid var(--rule); }
+.subtabs button { background: transparent; border: 0; border-bottom: 3px solid transparent; color: var(--muted); padding: 7px 12px; font: 600 14px/1 var(--body); border-radius: 0; }
+.subtabs button[aria-selected="true"] { color: #fff; border-bottom-color: var(--amber); }
 .cset { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 700px) { .cset { grid-template-columns: 1fr; } }
 .cset svg { width: 100%; background: #2c7a3d; border-radius: 6px; touch-action: none; user-select: none; }
@@ -424,6 +451,11 @@ body.live .tac-status b { background: #d50000; color: #fff; }
         <button id="kickoff" type="button">Kick off</button>
       </div>
     </div>
+    <div class="lineups" id="lineups" hidden role="dialog" aria-label="Starting line-ups">
+      <div class="lu-head"><span class="lu-title">Starting line-ups</span><button id="luSkip" type="button">Skip</button></div>
+      <div class="lu-body"><div class="lu-team" id="luHome"></div><div class="lu-team" id="luAway"></div></div>
+      <div class="lu-bar"><b id="luBar"></b></div>
+    </div>
     <div class="overlay" id="ht" hidden>
       <div class="box">
         <div class="big">HALF TIME</div>
@@ -468,8 +500,6 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       <button type="button" role="tab" data-tab="team" aria-selected="true">Team Tactics</button>
       <button type="button" role="tab" data-tab="player" aria-selected="false">Player Instruction</button>
       <button type="button" role="tab" data-tab="corners" aria-selected="false">Corners</button>
-      <button type="button" role="tab" data-tab="cornerAtt" aria-selected="false">Corner – attack</button>
-      <button type="button" role="tab" data-tab="cornerDef" aria-selected="false">Corner – defence</button>
       <button type="button" role="tab" data-tab="freekicks" aria-selected="false">Free Kicks</button>
       <button type="button" role="tab" data-tab="penalties" aria-selected="false">Penalty Kickers</button>
     </div>
@@ -542,9 +572,16 @@ body.live .tac-status b { background: #d50000; color: #fff; }
         <div class="pi-detail" id="piDetail"></div>
       </div>
     </div>
-    <div class="mtab" data-pane="corners" role="tabpanel" hidden><div class="sp" data-sp="corners"></div></div>
-    <div class="mtab" data-pane="cornerAtt" role="tabpanel" hidden><div class="cset" data-cset="cpa"></div></div>
-    <div class="mtab" data-pane="cornerDef" role="tabpanel" hidden><div class="cset" data-cset="cpd"></div></div>
+    <div class="mtab" data-pane="corners" role="tabpanel" hidden>
+      <div class="subtabs" role="tablist" aria-label="Corners">
+        <button type="button" role="tab" data-sub="takers" aria-selected="true">Takers</button>
+        <button type="button" role="tab" data-sub="attack" aria-selected="false">Attack</button>
+        <button type="button" role="tab" data-sub="defence" aria-selected="false">Defence</button>
+      </div>
+      <div class="subpane" data-subpane="takers"><div class="sp" data-sp="corners"></div></div>
+      <div class="subpane" data-subpane="attack" hidden><div class="cset" data-cset="cpa"></div></div>
+      <div class="subpane" data-subpane="defence" hidden><div class="cset" data-cset="cpd"></div></div>
+    </div>
     <div class="mtab" data-pane="freekicks" role="tabpanel" hidden><div class="sp" data-sp="fk"></div></div>
     <div class="mtab" data-pane="penalties" role="tabpanel" hidden><div class="sp" data-sp="pen"></div></div>
   </section>
@@ -1877,7 +1914,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       var key = el.getAttribute("data-cset"), L = cornerLayout(key), kit = R.home.kit, gkNum = displayLineup()[0];
       var svg = '<svg viewBox="-1 -1 70 54" data-key="' + key + '">' +
         '<rect class="ln" x="0" y="0" width="68" height="52.5"/><rect class="ln" x="13.84" y="0" width="40.32" height="16.5"/><rect class="ln" x="24.84" y="0" width="18.32" height="5.5"/>' +
-        '<path class="ln" d="M26.7 16.5 A9.15 9.15 0 0 0 41.3 16.5"/><circle class="ln" cx="34" cy="11" r=".25"/><path class="ln" d="M0 52.5 A9.15 9.15 0 0 1 68 52.5" opacity=".6"/>' +
+        '<path class="ln" d="M26.7 16.5 A9.15 9.15 0 0 0 41.3 16.5"/><circle class="ln" cx="34" cy="11" r=".25"/>' +
         '<rect x="30.34" y="-1" width="7.32" height="1" fill="#fff" opacity=".85"/>' +
         '<path d="M68 0 l0 -1 l1.4 .5 z" fill="#ffd21a"/><text x="66.4" y="2.2" class="nm">corner</text>';
       L.forEach(function (q, i) {
@@ -1940,6 +1977,13 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       });
     });
   })();
+  document.querySelectorAll(".subtabs").forEach(function (bar) {
+    bar.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button[data-sub]"); if (!b) return;
+      bar.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-selected", String(x === b)); });
+      bar.parentNode.querySelectorAll(".subpane").forEach(function (p) { p.hidden = p.getAttribute("data-subpane") !== b.dataset.sub; });
+    });
+  });
   function drawTakers() {
     if (!R) return;
     var c = document.querySelector('[data-sp="corners"]'), f = document.querySelector('[data-sp="fk"]'), p = document.querySelector('[data-sp="pen"]');
@@ -2096,9 +2140,41 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   $("kickoff").addEventListener("click", function () {
     if (!R || KICKED) return;
     KICKED = true; $("prematch").hidden = true;
-    worker.postMessage({ cmd: "go", token: token });
     resetTacticsPanel(); drawManager();
+    var mine = token;
+    showLineups(function () { if (mine === token) worker.postMessage({ cmd: "go", token: token }); }); // (the line-ups, then the teams walk out)
   });
+  // ---- the line-ups: the managers' starting elevens, substitutes and the manager, before the teams walk out -----------
+  var luTimer = 0, luDone = null;
+  function lineupCard(tm) {
+    var f = formationOf(tm.formation) || formationOf("4-4-2"), kit = tm.kit, bySlot = [];
+    tm.players.forEach(function (p, i) { bySlot[p.slot != null ? p.slot : i] = p; });
+    var svg = '<svg viewBox="0 0 68 70" aria-hidden="true"><rect class="ln" x="1" y="1" width="66" height="68"/><rect class="ln" x="14" y="53" width="40" height="16"/><rect class="ln" x="25" y="63.5" width="18" height="5.5"/><path class="ln" d="M24.85 1 A9.15 9.15 0 0 0 43.15 1"/>';
+    var fMin = Math.min.apply(null, f.slots.map(function (q) { return q.f; })), fMax = Math.max.apply(null, f.slots.map(function (q) { return q.f; }));
+    f.slots.forEach(function (sl, i) {
+      var p = bySlot[i]; if (!p) return;
+      // own goal at the bottom, attacking upwards; the formation's depth squeezed onto the half-length drawing
+      var x = 34 - sl.l * .9, y = 64 - (sl.f - fMin) / Math.max(1, fMax - fMin) * 54, gk = i === 0;
+      svg += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3.2" fill="' + (gk ? kit.gk : kit.primary) + '" stroke="#fff" stroke-width=".4"/>' +
+        '<text x="' + x.toFixed(1) + '" y="' + (y + 1.5).toFixed(1) + '" fill="' + (gk ? kit.gkNumber : kit.number) + '">' + p.number + '</text>';
+    });
+    svg += '</svg>';
+    var xi = f.slots.map(function (sl, i) { var p = bySlot[i]; return p ? '<div class="r"><i>' + p.number + '</i><span>' + esc(p.name) + '</span><em>' + esc(sl.abbr) + '</em></div>' : ""; }).join("");
+    var subs = (tm.bench || []).map(function (p) { return '<div class="r sub"><i>' + p.number + '</i><span>' + esc(p.name) + '</span><em>' + esc(p.role) + '</em></div>'; }).join("");
+    return '<div class="lu-band" style="--tc:' + kit.primary + '"><b>' + esc(tm.name) + '</b><span>' + esc(f.name) + '</span></div>' +
+      '<div class="lu-main">' + svg + '<div class="lu-list"><h4>Starting XI</h4>' + xi + '<h4>Substitutes</h4>' + subs + '</div></div>' +
+      '<div class="lu-mgr">Manager: <b>' + esc(tm.manager || "-") + '</b></div>';
+  }
+  function showLineups(done) {
+    if (!R) { done(); return; }
+    $("luHome").innerHTML = lineupCard(R.home); $("luAway").innerHTML = lineupCard(R.away);
+    var el = $("lineups"), bar = $("luBar"), start = performance.now(), len = 10000;
+    el.hidden = false; setPlaying(false);
+    clearInterval(luTimer);
+    luDone = function () { clearInterval(luTimer); luDone = null; el.hidden = true; setPlaying(true); done(); };
+    luTimer = setInterval(function () { var k = (performance.now() - start) / len; bar.style.width = Math.min(100, k * 100) + "%"; if (k >= 1 && luDone) luDone(); }, 100);
+  }
+  $("luSkip").addEventListener("click", function () { if (luDone) luDone(); });
 
   // ---- tooltips: every team instruction, role and individual instruction explains itself ---------------------------
   var TEAM_TIPS = {
@@ -2253,6 +2329,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     } else { PLAN = viewPlan(); TAC = viewTac(); }
     syncTacUi(); resetTacticsPanel(); drawManager();
     note(""); setPlaying(true);
+    if (luDone) { clearInterval(luTimer); luDone = null; $("lineups").hidden = true; } // (a new match: the old line-ups go)
+    if (MODE !== "live") showLineups(function () {});
   }
   function appendChunk(m) {
     var L2 = m.len, n = m.frames.length / L2, i;

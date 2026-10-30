@@ -204,6 +204,8 @@ namespace SoccerVision.Simulation
     {
         public string Name = "Team";
         public string ShortName = "TEA";
+        /// <summary>The manager (head coach), as the line-ups show him.</summary>
+        public string Manager = "";
         public KitColors Kit = new KitColors();
         public Formation Formation = Formation.F442();
         public TeamTactics Tactics = new TeamTactics();

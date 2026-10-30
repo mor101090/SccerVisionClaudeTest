@@ -171,6 +171,7 @@ namespace SoccerVision.Replay
         {
             b.Append("{\"name\":"); Str(b, t.Name);
             b.Append(",\"shortName\":"); Str(b, t.ShortName);
+            b.Append(",\"manager\":"); Str(b, t.Setup.Manager ?? "");
             var k = t.Setup.Kit;
             b.Append(",\"kit\":{\"primary\":"); Str(b, k.Primary);
             b.Append(",\"secondary\":"); Str(b, k.Secondary);
