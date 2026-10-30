@@ -116,7 +116,7 @@ namespace SoccerVision.Simulation
                 foreach (var other in _contacts)
                 {
                     if (other.Player == c.Player || other.Player.Team == c.Player.Team) continue;
-                    float pFoul = 0.025f + 0.04f * MathUtil.A(other.Player.Attr.Aggression);
+                    float pFoul = (0.025f + 0.04f * MathUtil.A(other.Player.Attr.Aggression)) * PlayerAgent.Scale(other.Player.Orders.Aggression, 0.6f, 1.4f);
                     if (_rng.Chance(pFoul))
                     {
                         CommitFoul(other.Player, c.Player, false, true, c.Player.Pos);
@@ -619,7 +619,7 @@ namespace SoccerVision.Simulation
         /// <summary>How readily this player goes into a tackle: his aggression instruction and his role (a destroyer lives for it).</summary>
         private static float PlayerTackleFactor(PlayerAgent d)
         {
-            float f = PlayerAgent.Scale(d.Orders.Aggression, 0.7f, 1.3f);
+            float f = PlayerAgent.Scale(d.Orders.Aggression, 0.6f, 1.4f);
             switch (d.PlayRole)
             {
                 case PlayerRole.Destroyer: f *= 1.25f; break;

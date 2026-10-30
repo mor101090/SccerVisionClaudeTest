@@ -245,9 +245,19 @@ namespace SoccerVision.Simulation.Tests
             // the first on the list is sent off at once: the second takes every corner
             e.Home.Players.First(p => p.Number == first).SentOff = true;
             int corners = 0, bySecond = 0;
-            e.RestartExecuting += r => { if (r.Type == RestartType.CornerKick && r.Team == e.Home) { corners++; if (r.Taker != null && r.Taker.Number == second) bySecond++; } };
+            int byFirst = 0;
+            e.RestartExecuting += r =>
+            {
+                if (r.Type != RestartType.CornerKick || r.Team != e.Home) return;
+                if (r.Taker != null && r.Taker.Number == first) byFirst++;
+                // (while the second is on the pitch; an injury or a change could take him off too)
+                if (!e.Home.Players.Any(p => p.Number == second && !p.SentOff && !p.InjuredOff)) return;
+                corners++;
+                if (r.Taker != null && r.Taker.Number == second) bySecond++;
+            };
             e.RunToEnd();
             Assert.True(corners > 0, "no corners");
+            Assert.Equal(0, byFirst);
             Assert.Equal(corners, bySecond);
         }
 
