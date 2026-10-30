@@ -47,15 +47,15 @@ namespace SoccerVision.Simulation
                 if (q == p || q.SentOff || q.IsGoalkeeper) continue;
                 Vec2 rel = q.Pos - p.Pos;
                 float along = Vec2.Dot(rel, dir), off = MathF.Abs(Vec2.Cross(dir, rel));
-                if (along < 4f || along > 15f || off > 2.5f) continue;
-                if (NearestOpponentDistance(team, q.Pos) < 4f) continue;
+                if (along < 3f || along > 20f || off > 3.5f + 0.15f * along) continue;
+                if (NearestOpponentDistance(team, q.Pos) < 2.5f) continue;
                 if (team.Forward(q.Pos) > MathF.Max(MathF.Max(SecondLastDefenderForward(team), team.Forward(Ball.Pos)), 0f)) continue; // (offside)
                 mate = q;
                 break;
             }
             if (mate == null) return false;
             float clever = MathUtil.A((p.Attr.Decisions + p.Attr.Creativity) / 2);
-            if (clever < 0.5f || !_rng.Chance(0.5f * (clever - 0.5f) / 0.5f + 0.04f)) return false;
+            if (clever < 0.45f || !_rng.Chance(0.6f * (clever - 0.45f) / 0.55f + 0.08f)) return false;
             p.TouchCooldown = 0.7f;
             marker.StunTimer = MathF.Max(marker.StunTimer, 0.5f);
             Ball.IntendedReceiver = mate;
