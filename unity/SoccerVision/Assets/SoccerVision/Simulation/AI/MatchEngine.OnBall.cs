@@ -1360,7 +1360,8 @@ namespace SoccerVision.Simulation
             if (cutIn) team.Stats.CutInShots++;
             if (header) team.Stats.Headers++;
             p.CutInUntil = -1f;
-            _lastShotKind = bicycle ? 15 : header ? 5 : penalty ? 4 : volley ? (tech == ShotTechnique.HalfVolley ? 12 : 1) : (cutIn && tech != ShotTechnique.Backheel ? 2 : ShotDetail(tech));
+            // (a cut inside and a drive or a placed shot is its own kind; a curler, a chip, a knuckleball, a trivela or a backheel keeps its name)
+            _lastShotKind = bicycle ? 15 : header ? 5 : penalty ? 4 : volley ? (tech == ShotTechnique.HalfVolley ? 12 : 1) : (cutIn && (tech == ShotTechnique.PlacedFar || tech == ShotTechnique.PlacedNear || tech == ShotTechnique.Power) ? 2 : ShotDetail(tech));
             MomentumShot(p, xg);
             Emit(MatchEventType.Shot, team, p, null, from, xg, WhistleKind.Short, header ? 0 : _lastShotKind);
         }

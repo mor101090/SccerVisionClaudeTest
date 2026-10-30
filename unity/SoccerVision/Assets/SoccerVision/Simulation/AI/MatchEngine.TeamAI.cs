@@ -397,7 +397,7 @@ namespace SoccerVision.Simulation
                     if (inPossession) { f = MathUtil.Clamp(ballF - 11f, line + 7f, 14f); l = sideOf * (8f + 2.5f * tac.Width) + ballL * 0.15f; }
                     break;
                 case PlayerRole.WingBack:
-                    if (inPossession) { f += 6f; l = sideOf * (25f + 6f * tac.Width); }
+                    if (inPossession) { f += 8.5f; l = sideOf * (25f + 6f * tac.Width); } // (high and wide, the whole flank is his)
                     break;
                 case PlayerRole.AnchorMan:
                     f = MathF.Min(f, line + (inPossession ? 9f : 6f));
