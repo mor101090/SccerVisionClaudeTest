@@ -29,9 +29,9 @@ Each round of changes is developed on its own branch, named after what it change
 - **Sounds**: recorded sounds replace the synthesized ones where they exist (`docs/sounds/`): the home fans' anger at a
   decision against them (a free kick, a penalty, a card) and at an away goal - from all round the ground; the celebration
   of a home goal, while an away goal is only celebrated in one far corner, quieter; the net, the crossbar and the post,
-  louder and with more echo the harder the ball hits. Booing (a red card, the away penalty taker, time-wasting) and
-  applause after a home shot that does not go in use `booing.mp3` (cut at 14.5 s) and `clapping.mp3` when they are added,
-  the synthesized crowd until then.
+  louder and with more echo the harder the ball hits. Booing (a red card, the away penalty taker, the visitors
+  wasting time) uses `booing.mp3` (cut at 14.5 s, before its applause) and applause after a home shot that does not go
+  in uses `clapping.mp3`.
 - **Snow**: blue lines next to yellow and orange, and a "Covered (white)" pitch next to the cleared one (looks only).
 - **Colour-blind mode** in the settings: blue against orange, keepers in pink and yellow.
 

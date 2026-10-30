@@ -164,7 +164,7 @@ export class MatchSound {
 
   /** Applause for a home shot that did not go in. */
   private clapping(gain = 0.6) {
-    if (!this.sample("clapping", gain, { wide: true, maxSeconds: 4 })) this.applause(2.2, 0.45);
+    if (!this.sample("clapping", gain, { wide: true })) this.applause(2.2, 0.45);
   }
 
   disable(): void {
