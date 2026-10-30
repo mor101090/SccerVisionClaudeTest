@@ -107,7 +107,7 @@ namespace SoccerVision.Simulation.Tests
             PlayUntil(e, () => Changes() == 2, 200f);
             Assert.Equal(2, Changes());
             Assert.Equal(0, e.Home.WindowsUsed);
-            PlayUntil(e, () => e.Clock.Seconds > 50 * 60, 900f);
+            PlayUntil(e, () => e.Clock.Period == MatchPeriod.SecondHalf && e.Clock.Seconds > 50 * 60, 1500f);
             // then three opportunities in play, one change each
             for (int k = 0; k < 3; k++)
             {

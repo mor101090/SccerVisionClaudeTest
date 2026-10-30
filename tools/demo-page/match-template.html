@@ -303,7 +303,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .sp .zones label { display: grid; gap: 2px; }
 .sp .box { width: 100%; max-width: 300px; background: #1e5a2e; border-radius: 6px; }
 .takers { display: grid; gap: 4px; max-width: 560px; }
-.takers button { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) 3em 3.2em; gap: 8px; align-items: center; text-align: left; padding: 8px 10px; background: #262b3b; }
+.takers h4 { margin: 0 0 4px; }
+.takers button { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) 4.5em 3.2em; gap: 8px; align-items: center; text-align: left; padding: 8px 10px; background: #262b3b; }
 .takers button[aria-pressed="true"] { background: var(--amber); color: #fff; }
 .takers .v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
 .takers .note { color: var(--muted); font-size: 13px; margin: 0 0 6px; }
@@ -1737,19 +1738,18 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     $("piDetail").innerHTML = html;
   }
   function spPlayers() { var gk = startLineup()[0]; return squad().filter(function (p) { return p.number !== gk; }); }
+  // The old picker: every player with his rating; a click puts him next in the queue (numbered), a click on a numbered one takes him out.
   function spList(key, title, attr, attrName) {
-    var L = PLAN.sp[key], html = '<div><h4>' + esc(title) + '</h4><ol>';
-    L.forEach(function (n, i) {
-      var p = byNum(n); if (!p) return;
-      var on = displayLineup().indexOf(n) >= 0;
-      html += '<li' + (on ? "" : ' style="opacity:.55"') + '><span>' + (i + 1) + '</span><span>' + esc(p.name) + (on ? "" : " (bench)") + '</span><span class="v" style="color:' + levelColour(p.attrs[attr]) + '">' + p.attrs[attr] + '</span>' +
-        '<span><button type="button" data-sp-mv="' + key + ':' + i + ':-1" aria-label="Up">▲</button><button type="button" data-sp-mv="' + key + ':' + i + ':1" aria-label="Down">▼</button></span>' +
-        '<button type="button" data-sp-rm="' + key + ':' + i + '" aria-label="Remove">✕</button></li>';
+    var L = PLAN.sp[key], on = displayLineup();
+    var ps = spPlayers().sort(function (a, b) { return b.attrs[attr] - a.attrs[attr]; });
+    var html = '<div class="takers" data-sp-list="' + key + '"><h4>' + esc(title) + '</h4>' +
+      '<button type="button" data-sp-auto="1" aria-pressed="' + (L.length === 0) + '"><span></span><span>Auto</span><span></span><span class="v"></span></button>';
+    ps.forEach(function (p) {
+      var rank = L.indexOf(p.number) + 1, bench = on.indexOf(p.number) < 0;
+      html += '<button type="button" data-sp-pick="' + p.number + '" aria-pressed="' + (rank > 0) + '"' + (bench ? ' style="opacity:.6"' : "") + ' data-tip="' + esc(p.name) + '|' + esc(attrName + " " + p.attrs[attr] + (rank ? " - number " + rank + " in the queue (click to remove)" : " - click to add him next in the queue")) + '">' +
+        '<span>' + (rank || "") + '</span><span>' + esc(p.name) + (bench ? " (bench)" : "") + '</span><span>' + esc(p.role) + '</span><span class="v" style="color:' + levelColour(p.attrs[attr]) + '">' + p.attrs[attr] + '</span></button>';
     });
-    html += '</ol><div class="addrow"><select data-sp-add="' + key + '"><option value="">+ Add a taker…</option>' +
-      spPlayers().filter(function (p) { return L.indexOf(p.number) < 0; }).sort(function (a, b) { return b.attrs[attr] - a.attrs[attr]; })
-        .map(function (p) { return '<option value="' + p.number + '">' + esc(p.name) + ' · ' + attrName + ' ' + p.attrs[attr] + '</option>'; }).join("") + '</select></div></div>';
-    return html;
+    return html + '</div>';
   }
   function spRoutine(key, title) {
     return '<div><h4>' + esc(title) + '</h4><select data-sp-routine="' + key + '">' + ROUTINES.map(function (r) { return '<option value="' + r[0] + '"' + (PLAN.sp[key] === r[0] ? " selected" : "") + ' title="' + esc(r[2]) + '">' + esc(r[1]) + '</option>'; }).join("") + '</select></div>';
@@ -1773,14 +1773,14 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var c = document.querySelector('[data-sp="corners"]'), f = document.querySelector('[data-sp="fk"]'), p = document.querySelector('[data-sp="pen"]');
     var keep = document.activeElement && document.activeElement.closest && document.activeElement.closest(".sp");
     if (keep && document.activeElement.tagName === "SELECT") return;
-    c.innerHTML = '<p class="note">The first on each list takes it; if he is substituted, injured or sent off the next one steps up. Empty list = the best on the pitch.</p>' +
+    c.innerHTML = '<p class="note">Click a player to add him next in the queue; the first takes it, and if he is substituted, injured or sent off the next steps up. Auto = the best on the pitch.</p>' +
       '<div class="sp-cols">' + spList("ctr", "Right-side corners (taken from the right corner flag)", "Crossing", "Crossing") + spList("ctl", "Left-side corners", "Crossing", "Crossing") + '</div>' +
       '<div class="sp-cols">' + spRoutine("crr", "Right-side routine") + spRoutine("crl", "Left-side routine") + '</div>' +
       '<div class="sp-cols">' + spZones("czr", "Who stands where - right corners") + spZones("czl", "Who stands where - left corners") + '</div>' + boxSvg() +
       '<p class="note">Zones: 1 near post, 2 far post, 3 penalty spot, 4 six-yard centre, 5 edge of the box, 6 rebound. Put your tall high-jumper at the near post, a quick finisher at the far post. Left Auto = the best headers go first.</p>';
     f.innerHTML = '<p class="note">Direct and crossed free kicks. The first on the list who is still on the pitch takes it.</p><div class="sp-cols">' +
       spList("fkr", "Right-side free kicks", "Free Kicks", "Free kicks") + spList("fkl", "Left-side free kicks", "Free Kicks", "Free kicks") + '</div>';
-    p.innerHTML = '<p class="note">Penalties: the first on the list who is on the pitch takes it. At home the crowd helps the taker; away the pressure is on.</p>' + spList("pen", "Penalty takers", "Penalty", "Penalty");
+    p.innerHTML = '<p class="note">Click a player to add him next in the queue; the first on the pitch takes the penalty.</p>' + spList("pen", "Penalty takers", "Penalty", "Penalty");
   }
   function drawAll() {
     var sel = $("formation");
@@ -1900,9 +1900,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   document.querySelectorAll(".sp").forEach(function (el) {
     el.addEventListener("click", function (ev) {
       var b = ev.target.closest("button"); if (!b) return;
-      var mv = b.getAttribute("data-sp-mv"), rm = b.getAttribute("data-sp-rm");
-      if (mv) { var q = mv.split(":"), L = PLAN.sp[q[0]], i = +q[1], j = i + +q[2]; if (j < 0 || j >= L.length) return; var t = L[i]; L[i] = L[j]; L[j] = t; planChanged("Taker order"); }
-      else if (rm) { var r = rm.split(":"); PLAN.sp[r[0]].splice(+r[1], 1); planChanged("Taker removed"); }
+      var list = b.closest("[data-sp-list]"); if (!list) return;
+      var key = list.getAttribute("data-sp-list"), L = PLAN.sp[key];
+      if (b.hasAttribute("data-sp-auto")) { if (!L.length) return; PLAN.sp[key] = []; planChanged("Takers: Auto"); return; }
+      var n = +b.getAttribute("data-sp-pick"), i = L.indexOf(n);
+      if (i >= 0) L.splice(i, 1); else L.push(n);
+      planChanged("Taker queue: " + L.map(function (x) { return (byNum(x) || {}).shortName; }).join(", "));
     });
     el.addEventListener("change", function (ev) {
       var t = ev.target, add = t.getAttribute("data-sp-add"), rt = t.getAttribute("data-sp-routine"), zn = t.getAttribute("data-sp-zone");
