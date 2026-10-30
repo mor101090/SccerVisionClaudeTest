@@ -25,6 +25,8 @@ namespace SoccerVision.Simulation
         /// fast-forwarded broadcast and packs more football into the 10 real minutes.
         /// </summary>
         public float MotionSpeed = 2.025f; // 90% of the original 2.25: the "right" match pace (playtested)
+        /// <summary>The teams and the officials walk out of the tunnel and line up before the kick-off (the viewers; off in tests).</summary>
+        public bool WalkOut;
         /// <summary>Fixed physics step (sim seconds).</summary>
         public float FixedStep = 0.02f;
 

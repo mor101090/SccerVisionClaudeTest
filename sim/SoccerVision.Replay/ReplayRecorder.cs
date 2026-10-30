@@ -27,8 +27,8 @@ namespace SoccerVision.Replay
     /// </summary>
     public sealed class ReplayRecorder
     {
-        /// <summary>Stats row: the time, 14 team stats, then the energy left of each of the 22 players (0-100).</summary>
-        public const int StatsLength = 15 + 22;
+        /// <summary>Stats row: the time, 14 team stats, the energy left of each of the 22 players (0-100), then each one's rating x10 (10-100).</summary>
+        public const int StatsLength = 15 + 22 + 22;
         private const int PlayerBase = 9;
         private const int PlayerStride = 5;
         public static readonly int FrameLength = PlayerBase + 22 * PlayerStride + 3 * 3;
@@ -104,6 +104,7 @@ namespace SoccerVision.Replay
         public string Header(bool finalStats)
         {
             var e = _engine;
+            e.UpdateRatings();
             var b = new StringBuilder(8192);
             b.Append("\"version\":1,\"seed\":").Append(e.Seed.ToString(CultureInfo.InvariantCulture));
             b.Append(",\"fps\":").Append(_fps).Append(",\"scale\":10");
@@ -215,6 +216,19 @@ namespace SoccerVision.Replay
                 b.Append(",\"Dribbles\":").Append(s.Dribbles).Append(",\"DribblesWon\":").Append(s.DribblesWon);
                 b.Append(",\"ExpectedGoals\":").Append(N(s.ExpectedGoals)).Append(",\"Corners\":").Append(s.Corners).Append(",\"Fouls\":").Append(s.Fouls);
                 b.Append(",\"Passes\":").Append(s.Passes).Append(",\"PassesCompleted\":").Append(s.PassesCompleted).Append('}');
+                // everyone who played: rating, goals, assists, man of the match (the ratings are brought up to date by Header)
+                b.Append(",\"records\":[");
+                for (int i = 0; i < t.Records.Count; i++)
+                {
+                    var r = t.Records[i];
+                    if (i > 0) b.Append(',');
+                    b.Append("{\"number\":").Append(r.Profile.ShirtNumber).Append(",\"name\":"); Str(b, r.Profile.ShortName);
+                    b.Append(",\"rating\":").Append(N(r.Rating)).Append(",\"goals\":").Append(r.Goals).Append(",\"assists\":").Append(r.Assists);
+                    b.Append(",\"on\":").Append((int)(r.OnClock / 60f)).Append(",\"off\":").Append(r.OffClock < 0f ? -1 : (int)(r.OffClock / 60f));
+                    if (r.ManOfTheMatch) b.Append(",\"motm\":true");
+                    b.Append('}');
+                }
+                b.Append(']');
             }
             b.Append('}');
         }
@@ -253,6 +267,8 @@ namespace SoccerVision.Replay
                     _stats.Add(hs.Tackles); _stats.Add(aw.Tackles); _stats.Add(hs.TacklesWon); _stats.Add(aw.TacklesWon);
                     _stats.Add(hs.Dribbles); _stats.Add(aw.Dribbles); _stats.Add(hs.DribblesWon); _stats.Add(aw.DribblesWon);
                     foreach (var p in _engine.AllPlayers) _stats.Add((int)MathF.Round(p.Energy * 100f));
+                    _engine.UpdateRatings();
+                    foreach (var p in _engine.AllPlayers) _stats.Add(p.Record != null ? (int)MathF.Round(p.Record.Rating * 10f) : 0);
                 }
                 if (_engine.Phase == MatchPhase.HalfTimeBreak) continue;
                 AppendFrame();

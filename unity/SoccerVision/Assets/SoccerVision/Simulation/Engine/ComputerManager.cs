@@ -11,8 +11,11 @@ namespace SoccerVision.Simulation
     ///    ball; against a narrow team it goes wide; against an aggressive one it moves the ball quickly.
     ///  - Losing after the hour it attacks (higher, faster, more aggressive late on); winning late it sits deep and slows
     ///    the game down.
-    ///  - It makes its changes like a real manager: two around the hour, two more after 70 minutes, the last after 80 - the
-    ///    tired and the knocked go off first for a fresh player of the same kind (three opportunities, five changes).
+    ///  - It changes the shape with the game: chasing it after the hour it goes to three up front (4-3-3, then 3-4-3 two
+    ///    goals down); protecting a lead late it packs the midfield (4-5-1); otherwise it keeps its own formation.
+    ///  - It makes its changes like a real manager reads the game (three opportunities, five changes): a booked player who
+    ///    keeps diving in comes off before he sees a second yellow; a knock, a poor game (a low rating) or tired legs; and a
+    ///    tactical change - a forward for a defender when chasing the game, a defender for a forward when holding a lead.
     /// </summary>
     public sealed class ComputerManager
     {
@@ -20,7 +23,8 @@ namespace SoccerVision.Simulation
         private readonly int _team;
         private float _nextCheck;
         private string _last;
-        private float _nextSubCheck = 56f * 60f;
+        private float _nextSubCheck = 46f * 60f;
+        private bool _tacticalChange;
         private readonly HashSet<int> _askedOut = new HashSet<int>(), _askedIn = new HashSet<int>();
 
         public ComputerManager(MatchEngine engine, int team)
@@ -89,6 +93,13 @@ namespace SoccerVision.Simulation
                 t.Special = SpecialTactic.TimeWasting;
             }
 
+            // The shape.
+            string own = me.Setup.Formation.Name;
+            int sentOff = me.Players.Count(p => p.SentOff);
+            if (diff < 0 && minute >= 60f && sentOff == 0) t.FormationName = diff <= -2 && minute >= 70f ? "3-4-3" : "4-3-3";
+            else if (diff > 0 && minute >= 75f) t.FormationName = "4-5-1";
+            else t.FormationName = own;
+
             string now = t.Describe();
             if (now == _last) return;
             _last = now;
@@ -103,25 +114,57 @@ namespace SoccerVision.Simulation
             int left = _engine.SubstitutionsLeft(me);
             if (left <= 0 || me.WindowsUsed >= _engine.Config.MaxSubstitutionWindows) return;
             float minute = clock.Seconds / 60f;
-            int want = minute >= 82f ? 5 : minute >= 72f ? 4 : minute >= 60f ? 2 : 0;
-            int done = _engine.Config.MaxSubstitutions - left;
-            int now = Math.Min(want - done, 2);
-            if (now <= 0) return;
-            // the tired and the knocked first; nobody fresh goes off
-            var tired = me.Players.Where(p => !p.SentOff && !p.IsGoalkeeper && !_askedOut.Contains(p.Number) && (p.Energy < 0.72f || p.Injury == InjuryLevel.Light))
-                                  .OrderBy(p => p.Energy - (p.Injury == InjuryLevel.Light ? 1f : 0f)).ToList();
-            foreach (var p in tired)
+            int diff = me.Score - me.Opponent.Score;
+            _engine.UpdateRatings();
+
+            // Why each one might come off (higher = sooner).
+            var reasons = new List<(PlayerAgent p, float urgency, PositionGroup want)>();
+            foreach (var p in me.Players)
+            {
+                if (p.SentOff || p.IsGoalkeeper || _askedOut.Contains(p.Number) || p.Injury == InjuryLevel.Serious) continue;
+                var group = GroupOf(p);
+                float u = 0f;
+                // booked and still diving in: off before the second yellow
+                if (p.YellowCards >= 1 && (p.FoulsCommitted >= 3 || (p.Slot.Line == Line.Defence && p.FoulsCommitted >= 2))) u = MathF.Max(u, 3f);
+                if (p.Injury == InjuryLevel.Light) u = MathF.Max(u, 2.6f);
+                float rating = p.Record != null ? p.Record.Rating : 6f;
+                if (minute >= 55f && rating < 5.8f) u = MathF.Max(u, 2f + (5.8f - rating));
+                if (minute >= 58f && p.Energy < 0.64f) u = MathF.Max(u, 1.5f + (0.64f - p.Energy) * 5f);
+                if (u > 0f) reasons.Add((p, u, group));
+            }
+            // A tactical change: a forward on when chasing the game, a defender on to hold a lead.
+            if (!_tacticalChange && minute >= 62f && diff < 0)
+            {
+                var off = me.Players.Where(p => !p.SentOff && !p.IsGoalkeeper && !_askedOut.Contains(p.Number) && (p.Slot.Line == Line.Defence || p.Slot.IsCentralMidfielder))
+                                    .OrderBy(p => p.Slot.Line == Line.Defence ? 0 : 1).ThenBy(p => p.Record != null ? p.Record.Rating : 6f).FirstOrDefault();
+                if (off != null) { reasons.Add((off, 1.8f, PositionGroup.Forward)); _tacticalChange = true; }
+            }
+            else if (!_tacticalChange && minute >= 76f && diff > 0)
+            {
+                var off = me.Players.Where(p => !p.SentOff && !p.IsGoalkeeper && !_askedOut.Contains(p.Number) && p.Slot.Line == Line.Attack)
+                                    .OrderBy(p => p.Record != null ? p.Record.Rating : 6f).FirstOrDefault();
+                if (off != null) { reasons.Add((off, 1.8f, PositionGroup.Defender)); _tacticalChange = true; }
+            }
+            if (reasons.Count == 0) return;
+            reasons.Sort((a, b) => b.urgency.CompareTo(a.urgency));
+            // (one change is kept for the last ten minutes, unless it cannot wait)
+            int now = Math.Min(2, left);
+            foreach (var (p, urgency, want) in reasons)
             {
                 if (now <= 0) break;
-                var group = p.Slot.Line == Line.Defence ? PositionGroup.Defender : p.Slot.Line == Line.Midfield ? PositionGroup.Midfielder : PositionGroup.Forward;
+                if (left <= 1 && minute < 80f && urgency < 2.5f) break;
                 var sub = me.Bench.Where(b => !_askedIn.Contains(b.Number) && b.Profile.NaturalPosition != PositionGroup.Goalkeeper)
-                                  .OrderByDescending(b => (b.Profile.NaturalPosition == group ? 1000 : 0) + b.Profile.Attributes.Mental + b.Profile.Attributes.Athletic).FirstOrDefault();
+                                  .OrderByDescending(b => (b.Profile.NaturalPosition == want ? 1000 : 0) + b.Profile.Attributes.Mental + b.Profile.Attributes.Athletic).FirstOrDefault();
                 if (sub == null) break;
                 _askedOut.Add(p.Number);
                 _askedIn.Add(sub.Number);
                 _engine.Submit(new SubstituteCommand(_team, p.Number, sub.Number));
                 now--;
+                left--;
             }
         }
+
+        private static PositionGroup GroupOf(PlayerAgent p) =>
+            p.Slot.Line == Line.Defence ? PositionGroup.Defender : p.Slot.Line == Line.Midfield ? PositionGroup.Midfielder : PositionGroup.Forward;
     }
 }

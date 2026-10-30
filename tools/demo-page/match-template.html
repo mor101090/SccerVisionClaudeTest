@@ -2089,7 +2089,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       if (e.type === "SecondHalfStart" && secondHalfT === Infinity) secondHalfT = e.t;
       if (e.type === "AddedTime") { var am = parseInt(String(e.text).replace(/[^0-9]/g, ""), 10) || 0; if (e.t < secondHalfT) addedMinutes[0] = am; else addedMinutes[1] = am; }
     });
-    var SL = 15 + 22; // the time, 14 team stats, the energy left of the 22 players
+    var SL = 15 + 22 + 22; // the time, 14 team stats, the energy left of the 22 players, their ratings x10
     for (i = 0; i < m.stats.length; i += SL) R.stats.push(Array.prototype.slice.call(m.stats, i, i + SL));
     if (F.length) { if (F.length === n) { t0 = F[0][0] / 100; t = t0; lastT = t0; seek.min = t0; } tEnd = F[F.length - 1][0] / 100; seek.max = tEnd; }
     if (m.finished) finished = true;

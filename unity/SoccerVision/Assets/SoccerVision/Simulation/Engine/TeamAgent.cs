@@ -93,6 +93,8 @@ namespace SoccerVision.Simulation
         public Restart WindowRestart;
         /// <summary>The players who have been substituted (they cannot come back on).</summary>
         public readonly List<PlayerProfile> SubbedOff = new List<PlayerProfile>();
+        /// <summary>Everyone who has played for the team in this match (starters and substitutes), with their ratings.</summary>
+        public readonly List<PlayerRecord> Records = new List<PlayerRecord>();
         /// <summary>Covering defender: diagonally behind the presser, inside him (pressure - cover - balance).</summary>
         public PlayerAgent Cover;
         public Vec2 CoverSpot;

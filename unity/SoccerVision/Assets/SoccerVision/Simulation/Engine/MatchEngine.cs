@@ -217,6 +217,8 @@ namespace SoccerVision.Simulation
 
             TeleportForKickOff(_firstHalfKickOffTeam);
             BeginRestart(RestartType.KickOff, _firstHalfKickOffTeam, Vec2.Zero, null);
+            foreach (var p in AllPlayers) OpenRecord(p);
+            if (Config.WalkOut) BeginWalkOut();
             SavePrevious();
         }
 
@@ -316,6 +318,11 @@ namespace SoccerVision.Simulation
             }
 
             UpdateTimers(dt);
+            if (WalkingOut)
+            {
+                StepWalkOut(dt);
+                return;
+            }
 
             switch (Phase)
             {
@@ -779,6 +786,7 @@ namespace SoccerVision.Simulation
                 Detail = detail,
             };
             e.Text = Commentary.Describe(e, this);
+            RateEvent(e, player, other);
             EventLog.Add(e);
             _outbox.Add(e);
             return e;

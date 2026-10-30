@@ -174,6 +174,8 @@ namespace SoccerVision.Simulation
         // Per-match stats
         public int Touches, PassesAttempted, PassesCompleted, Shots, Goals, Tackles, SlideTackles, Saves, Interceptions;
         public float DistanceCovered;
+        /// <summary>This player's match record (rating, goals, assists) while he is on the pitch.</summary>
+        public PlayerRecord Record;
 
         public PlayerAgent(int index, PlayerProfile profile, TeamAgent team, int slotIndex)
         {

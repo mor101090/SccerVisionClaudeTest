@@ -28,6 +28,9 @@ namespace SoccerVision.Simulation
             if (ScriptExclusive && cause != "script") return; // a staged match has only its own injuries
             // Fitter, stronger players get hurt a little less; tired ones more.
             float resilience = 1.15f - 0.3f * MathUtil.A(p.Attr.PhysicalPower) + 0.3f * (1f - MathUtil.Clamp01(p.Energy));
+            resilience *= GroundInjuryFactor(p.Pos);
+            // (a player already carrying a knock is more fragile: the next one is more often serious)
+            if (p.Injury == InjuryLevel.Light) pSerious *= 2.2f;
             float r = _rng.NextFloat();
             if (r < pSerious * resilience) InjureSeriously(p, cause);
             else if (r < (pSerious + pLight) * resilience && p.Injury == InjuryLevel.None) InjureLightly(p, cause);
@@ -75,6 +78,17 @@ namespace SoccerVision.Simulation
             if (Phase == MatchPhase.Live && _injuryStopAt < 0f) _injuryStopAt = SimTime + _rng.Range(0.6f, 1.6f);
         }
 
+        /// <summary>
+        /// The ground: a heavy, muddy, badly kept pitch twists ankles and knees (up to about +45% on a neglected pitch, more in
+        /// the mud itself).
+        /// </summary>
+        private float GroundInjuryFactor(Vec2 pos)
+        {
+            float f = 1f + 0.45f * (1f - MathUtil.Clamp01(Conditions.Maintenance));
+            if (Surface != null) f += 0.5f * Surface.MudAt(pos.X, pos.Y);
+            return f;
+        }
+
         /// <summary>Muscle strains: sprinting flat out on tired legs now and then pulls a hamstring.</summary>
         private void MaybeStrain(PlayerAgent p, float intensity, float clockDt)
         {
@@ -85,8 +99,9 @@ namespace SoccerVision.Simulation
             if (p.Energy > 0.5f && !(poorShape > 1f && p.Energy > 0.4f && p.Attr.Stamina < 55)) return;
             float tired = 1.25f - MathUtil.Clamp01(p.Energy);
             float rate = 0.00003f * tired * tired * poorShape * (1.3f - 0.6f * MathUtil.A(p.Attr.Stamina));
+            rate *= GroundInjuryFactor(p.Pos) * (p.Injury == InjuryLevel.Light ? 2f : 1f);
             if (!_rng.Chance(rate * clockDt)) return;
-            if (_rng.Chance(0.35f)) InjureSeriously(p, "strain");
+            if (_rng.Chance(p.Injury == InjuryLevel.Light ? 0.6f : 0.35f)) InjureSeriously(p, "strain");
             else if (p.Injury == InjuryLevel.None) InjureLightly(p, "strain");
         }
 
@@ -217,7 +232,9 @@ namespace SoccerVision.Simulation
             if (_restart != null && team.WindowRestart != _restart && !SecondHalfKickOff) { team.WindowRestart = _restart; team.WindowsUsed++; }
             string outLabel = p.Label;
             int outNumber = p.Number;
+            CloseRecord(p);
             p.Substitute(sub.Profile);
+            OpenRecord(p);
             // Law 3: the substitute enters at the halfway line, by his bench - where the injured player went off.
             p.Pos = p.PrevPos = walkOn ? BenchSpot(team) : p.ShapeTarget;
             p.Vel = Vec2.Zero;

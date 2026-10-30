@@ -32,9 +32,17 @@ public static partial class LiveEngine
             Night = night,
         };
         if (mode == "staged") config.Script = MatchScript.Staged();
+        config.WalkOut = true; // (the teams and the officials come out of the tunnel first)
         var home = DemoTeams.Red();
-        TeamPlan.Parse(homePlan).ApplyBeforeKickOff(home);
-        _engine = new MatchEngine(home, DemoTeams.Blue(), (ulong)seed, config);
+        var away = DemoTeams.Blue();
+        if (mode == "random")
+        {
+            // a random match: both managers pick a random formation, eleven, roles and instructions
+            TeamPlan.Random(home, seed * 7 + 1).ApplyBeforeKickOff(home);
+            TeamPlan.Random(away, seed * 7 + 2).ApplyBeforeKickOff(away);
+        }
+        else TeamPlan.Parse(homePlan).ApplyBeforeKickOff(home);
+        _engine = new MatchEngine(home, away, (ulong)seed, config);
         // live: you are the home team, the computer manages the away team and answers you
         _computer = mode == "live" || mode == "random" ? new ComputerManager(_engine, 1) : null;
         // random: both teams have a manager who changes the tactics during the match (live: the home team is yours)

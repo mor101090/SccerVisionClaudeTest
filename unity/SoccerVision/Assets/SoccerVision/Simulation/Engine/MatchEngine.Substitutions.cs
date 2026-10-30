@@ -139,7 +139,9 @@ namespace SoccerVision.Simulation
             DampMomentum(0.85f);
             string outLabel = p.Label;
             int outNumber = p.Number;
+            CloseRecord(p);
             p.Substitute(sub.Profile);
+            OpenRecord(p);
             p.Pos = p.PrevPos = walkOn ? BenchSpot(team) : p.ShapeTarget;
             p.Vel = Vec2.Zero;
             p.Target = p.ShapeTarget;

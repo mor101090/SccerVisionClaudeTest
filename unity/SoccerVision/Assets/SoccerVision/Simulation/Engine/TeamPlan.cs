@@ -171,6 +171,63 @@ namespace SoccerVision.Simulation
             setup.Tactics.FormationName = setup.Formation.Name;
         }
 
+        /// <summary>
+        /// A random manager (the random match): a random formation, an eleven picked for it (the right kind of player for
+        /// each position, with a little rotation), random roles and individual instructions, and random team instructions.
+        /// </summary>
+        public static TeamPlan Random(TeamSetup setup, int seed)
+        {
+            var rng = new System.Random(seed);
+            var plan = new TeamPlan { Formation = SoccerVision.Simulation.Formation.Names[rng.Next(SoccerVision.Simulation.Formation.Names.Length)] };
+            var f = SoccerVision.Simulation.Formation.ByName(plan.Formation);
+            var pool = new List<PlayerProfile>(setup.Starters);
+            pool.AddRange(setup.Bench);
+            plan.Slots = new int[11];
+            plan.Orders = new PlayerOrders[11];
+            for (int i = 0; i < 11; i++)
+            {
+                var kind = f.KindAt(i);
+                string abbr = SoccerVision.Simulation.Formation.RoleAbbreviation(f.Slots[i].Role);
+                PlayerProfile best = null;
+                float bestScore = float.NegativeInfinity;
+                foreach (var p in pool)
+                {
+                    bool fits = kind == PositionKind.Goalkeeper ? p.NaturalPosition == PositionGroup.Goalkeeper
+                              : kind == PositionKind.CentreBack || kind == PositionKind.FullBack ? p.NaturalPosition == PositionGroup.Defender
+                              : kind == PositionKind.Striker ? p.NaturalPosition == PositionGroup.Forward
+                              : kind == PositionKind.Winger ? p.NaturalPosition == PositionGroup.Midfielder || p.NaturalPosition == PositionGroup.Forward
+                              : p.NaturalPosition == PositionGroup.Midfielder;
+                    if (kind != PositionKind.Goalkeeper && p.NaturalPosition == PositionGroup.Goalkeeper) continue;
+                    if (kind == PositionKind.Goalkeeper && !fits) continue;
+                    float score = (fits ? 40f : 0f) + (p.PositionLabel == abbr ? 25f : 0f)
+                                + (p.Attributes.Mental + p.Attributes.Athletic) / 20f + (float)rng.NextDouble() * 14f;
+                    if (score > bestScore) { bestScore = score; best = p; }
+                }
+                if (best == null) return new TeamPlan { Formation = plan.Formation };
+                pool.Remove(best);
+                plan.Slots[i] = best.ShirtNumber;
+                var roles = PlayerOrders.RolesFor(kind);
+                plan.Orders[i] = new PlayerOrders
+                {
+                    Role = roles[rng.Next(roles.Length)],
+                    LongShots = RandomAmount(rng), Dribbling = RandomAmount(rng), Aggression = RandomAmount(rng),
+                };
+            }
+            plan.HasTeamInstructions = true;
+            plan.Line = 0.2f + 0.6f * (float)rng.NextDouble();
+            plan.Width = 0.2f + 0.6f * (float)rng.NextDouble();
+            plan.Tempo = 0.2f + 0.6f * (float)rng.NextDouble();
+            plan.Aggression = 0.2f + 0.6f * (float)rng.NextDouble();
+            plan.Passing = rng.Next(3);
+            plan.Defence = rng.NextDouble() < 0.4 ? 0 : rng.Next(1, 6);
+            plan.Attack = rng.Next(4);
+            plan.Special = rng.NextDouble() < 0.5 ? 0 : rng.Next(1, 5);
+            return plan;
+        }
+
+        // (mostly the player's own judgement)
+        private static Amount RandomAmount(System.Random rng) { double r = rng.NextDouble(); return r < 0.2 ? Amount.Less : r < 0.8 ? Amount.Mixed : Amount.More; }
+
         /// <summary>During the match: the new tactics (and formation), then the players placed in their positions.</summary>
         public void Submit(MatchEngine engine, int team)
         {
