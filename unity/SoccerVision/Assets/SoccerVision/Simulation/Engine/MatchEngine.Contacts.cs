@@ -19,6 +19,51 @@ namespace SoccerVision.Simulation
 
         private readonly List<Contact> _contacts = new List<Contact>(8);
 
+        private float _dummyRolledFor = -1f;
+
+        /// <summary>
+        /// A clever receiver with a marker on him and a team-mate free further along the line of the pass lets the ball run
+        /// between his legs: the marker is fooled, the pass reaches the man behind. Decisions and creativity decide.
+        /// </summary>
+        private bool TryDummy(PlayerAgent p)
+        {
+            var team = p.Team;
+            Vec2 v = Ball.Velocity;
+            float speed = v.Length;
+            if (speed < 7f || p.IsGoalkeeper) return false;
+            Vec2 dir = v / speed;
+            PlayerAgent marker = null;
+            float md = 3f;
+            foreach (var o in team.Opponent.Players)
+            {
+                if (o.SentOff || o.IsGoalkeeper) continue;
+                float d = Vec2.Distance(o.Pos, p.Pos);
+                if (d < md) { md = d; marker = o; }
+            }
+            if (marker == null) return false;
+            PlayerAgent mate = null;
+            foreach (var q in team.Players)
+            {
+                if (q == p || q.SentOff || q.IsGoalkeeper) continue;
+                Vec2 rel = q.Pos - p.Pos;
+                float along = Vec2.Dot(rel, dir), off = MathF.Abs(Vec2.Cross(dir, rel));
+                if (along < 4f || along > 15f || off > 2.5f) continue;
+                if (NearestOpponentDistance(team, q.Pos) < 4f) continue;
+                if (team.Forward(q.Pos) > MathF.Max(MathF.Max(SecondLastDefenderForward(team), team.Forward(Ball.Pos)), 0f)) continue; // (offside)
+                mate = q;
+                break;
+            }
+            if (mate == null) return false;
+            float clever = MathUtil.A((p.Attr.Decisions + p.Attr.Creativity) / 2);
+            if (clever < 0.5f || !_rng.Chance(0.5f * (clever - 0.5f) / 0.5f + 0.04f)) return false;
+            p.TouchCooldown = 0.7f;
+            marker.StunTimer = MathF.Max(marker.StunTimer, 0.5f);
+            Ball.IntendedReceiver = mate;
+            Emit(MatchEventType.Skill, team, p, mate, p.Pos, 0f, WhistleKind.Short, 3);
+            if (CollectDiagnostics) Count("skill.dummy");
+            return true;
+        }
+
         private void ResolveTouches()
         {
             if (Ball.Owner != null || Ball.InGoal) return;
@@ -38,6 +83,12 @@ namespace SoccerVision.Simulation
                 float d = Vec2.DistanceToSegment(p.Pos, a, b, out _);
                 if (d > 2.6f) continue;
 
+                // The dummy: the receiver opens his legs and lets the pass run on to a team-mate behind him.
+                if (Ball.IntendedReceiver == p && !Ball.IsShot && z < 0.4f && _dummyRolledFor != Ball.LastKickTime)
+                {
+                    _dummyRolledFor = Ball.LastKickTime;
+                    if (TryDummy(p)) continue;
+                }
                 // A player surprised by a new ball path (within his reaction time) can only block with his body.
                 bool surprised = _ballChangeExpectedBy != p.Team && Ball.IntendedReceiver != p && SimTime - _ballChangedAt < p.ReactionTime;
                 float footReach = surprised ? 0.45f : p.FootReach;
@@ -379,6 +430,22 @@ namespace SoccerVision.Simulation
 
         // ---- Headers ---------------------------------------------------------------------------------
 
+        /// <summary>
+        /// The last man: no outfield defender is between him and the goal (only the keeper to beat). Such a player never
+        /// heads or passes the ball backwards - he goes at goal.
+        /// </summary>
+        private bool IsLastMan(PlayerAgent p)
+        {
+            var team = p.Team;
+            float f = team.Forward(p.Pos);
+            foreach (var o in team.Opponent.Players)
+            {
+                if (o.SentOff || o.IsGoalkeeper) continue;
+                if (team.Forward(o.Pos) > f - 0.5f && MathF.Abs(team.Lateral(o.Pos) - team.Lateral(p.Pos)) < 16f) return false;
+            }
+            return true;
+        }
+
         private void HeaderTouch(PlayerAgent p, bool contested, bool opponentTouch)
         {
             if (CollectDiagnostics && Ball.Z > 1.9f) Count(p.JumpZ > 0.1f ? (p.JumpVz > -0.6f && p.JumpVz < 0.6f ? "header.jump.apex" : "header.jump.airborne") : "header.jump.ground");
@@ -392,6 +459,38 @@ namespace SoccerVision.Simulation
             Ball.LastTouchTeam = team;
             ResolvePendingPass(p);
 
+            // The bicycle kick: a ball dropping at chest-to-head height in the box, his back to goal - only a technical
+            // player tries it, and rarely. He goes over backwards and lands on his back.
+            if (distGoal < 16f && f > 34f && Ball.Z > 1.2f && Ball.Z < 2.2f && !p.IsGoalkeeper)
+            {
+                float tech = MathUtil.A((p.Attr.BallControl + p.Attr.Finishing + p.Attr.Acceleration + p.Attr.Jumping) / 4);
+                Vec2 toGoal = (team.AttackGoal - Ball.Pos).Normalized;
+                if (tech > 0.6f && Vec2.Dot(p.FacingDir, toGoal) < 0.1f && _rng.Chance(0.3f * (tech - 0.6f) / 0.4f))
+                {
+                    float bxg = EstimateShotXG(p, Ball.Pos) * 0.7f;
+                    if (CollectDiagnostics) Count("shot.bicycle");
+                    ExecuteShot(p, false, false, bxg, bicycle: true);
+                    p.GroundTimer = MathF.Max(p.GroundTimer, 1.1f);
+                    p.StunTimer = MathF.Max(p.StunTimer, 1.1f);
+                    return;
+                }
+            }
+            // The last man with only the keeper to beat never heads it back: at goal when close, otherwise down into his own path.
+            if (!(distGoal < 15f && f > 36f) && f > 10f && distGoal < 32f && IsLastMan(p))
+            {
+                if (distGoal < 20f)
+                {
+                    Emit(MatchEventType.Header, team, p, null, Ball.Pos);
+                    ExecuteShot(p, true, false, EstimateShotXG(p, Ball.Pos, header: true));
+                    return;
+                }
+                Vec2 path = (team.AttackGoal - Ball.Pos).Normalized;
+                Emit(MatchEventType.Header, team, p, null, Ball.Pos);
+                if (CollectDiagnostics) Count("header.lastman.ownpath");
+                KickBall(p, Ball.Pos, path * 5.5f, 0.8f, 0f, 0f, KickKind.Header, null, Ball.Pos + path * 6f, false, false, Ball.Z);
+                Ball.HandlingForbiddenFor = null;
+                return;
+            }
             if (distGoal < 15f && f > 36f)
             {
                 float xg = EstimateShotXG(p, Ball.Pos, header: true);

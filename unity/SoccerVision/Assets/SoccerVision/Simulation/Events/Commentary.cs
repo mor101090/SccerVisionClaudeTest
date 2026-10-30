@@ -62,6 +62,8 @@ namespace SoccerVision.Simulation
                     if (e.Detail == 12) return P(e.Player) + " hits it on the half-volley!";
                     if (e.Detail == 13) return P(e.Player) + " tries a knuckleball from distance!";
                     if (e.Detail == 14) return P(e.Player) + " drives it with the laces!";
+                    if (e.Detail == 15) return P(e.Player) + " goes for the bicycle kick!";
+                    if (e.Detail == 16) return P(e.Player) + " tries a cheeky backheel!";
                     return P(e.Player) + " shoots!";
                 case MatchEventType.Goal:
                     if (e.Value > 0.5f) return "GOAL! Own goal by " + P(e.Player) + " - " + T(e.Team) + " lead the way";
@@ -100,6 +102,11 @@ namespace SoccerVision.Simulation
                     return T(e.Team) + " get ready to make a change";
                 case MatchEventType.MomentumShift:
                     return T(e.Team) + " have the momentum";
+                case MatchEventType.Skill:
+                    if (e.Detail == 1) return P(e.Player) + " shapes to shoot... and fakes it" + (e.OtherPlayer >= 0 ? " - " + P(e.OtherPlayer) + " is sold" : "") + "!";
+                    if (e.Detail == 2) return P(e.Player) + " backheels it on";
+                    if (e.Detail == 3) return P(e.Player) + " lets it run through his legs" + (e.OtherPlayer >= 0 ? " for " + P(e.OtherPlayer) : "") + " - lovely dummy!";
+                    return P(e.Player) + " shows a bit of skill";
                 case MatchEventType.TacticsChanged:
                     return T(e.Team) + " change their tactics";
                 case MatchEventType.DroppedBall:
@@ -172,6 +179,8 @@ namespace SoccerVision.Simulation
                 case 12: return " on the half-volley";
                 case 13: return " with a knuckleball";
                 case 14: return " with a laces drive";
+                case 15: return " with a stunning bicycle kick";
+                case 16: return " with a backheel";
                 default: return " scores";
             }
         }

@@ -6,7 +6,7 @@ namespace SoccerVision.Simulation
     internal enum BallAction { Hold, Dribble, Pass, Shoot, Cross, Clear }
 
     /// <summary>How a shot is struck.</summary>
-    public enum ShotTechnique { Power, PlacedNear, PlacedFar, Curler, Volley, Chip, OutsideFoot, WeakFoot, Header, Penalty, HalfVolley, Knuckleball }
+    public enum ShotTechnique { Power, PlacedNear, PlacedFar, Curler, Volley, Chip, OutsideFoot, WeakFoot, Header, Penalty, HalfVolley, Knuckleball, Bicycle, Backheel }
 
     /// <summary>A fully specified kick (direction, speed, loft, spin) plus what it is meant to achieve.</summary>
     internal struct KickPlan
@@ -203,9 +203,17 @@ namespace SoccerVision.Simulation
             {
                 float teamwork = MathUtil.A(p.Attr.Teamwork), creativity = MathUtil.A(p.Attr.Creativity);
                 float ownXg = f > 24f ? EstimateShotXG(p, pos) : 0f;
+                // the last man with only the keeper to beat: no back pass, no sitting on it - he goes at goal
+                bool lastMan = f > 12f && IsLastMan(p);
                 for (int i = 0; i < _options.Count; i++)
                 {
                     var o = _options[i];
+                    if (lastMan && ((o.Action == BallAction.Pass && team.Forward(o.Target) < f - 1f) || o.Action == BallAction.Hold))
+                    {
+                        o.Utility = MathF.Min(o.Utility, 0f) - 0.05f;
+                        _options[i] = o;
+                        continue;
+                    }
                     if (o.Action != BallAction.Pass || o.Utility <= 0f) continue;
                     if (o.Kind == KickKind.ThroughBall || o.IntoSpace) o.Utility *= 0.85f + 0.35f * creativity;
                     // the midfielder arriving late into the box is the man nobody picks up: find him
@@ -237,6 +245,7 @@ namespace SoccerVision.Simulation
                 }
             }
             var chosen = _options[best];
+            chosen = MaybeSkill(p, chosen, pos, pressure);
             if (CollectDiagnostics)
             {
                 // is a good forward pass on, and did he play something else (a back or square pass, or sat on it)?
@@ -1119,7 +1128,7 @@ namespace SoccerVision.Simulation
         }
 
         /// <summary>Shot at goal: aims at a corner away from the keeper, then applies skill-based error.</summary>
-        private void ExecuteShot(PlayerAgent p, bool header, bool penalty, float xg, bool volley = false)
+        private void ExecuteShot(PlayerAgent p, bool header, bool penalty, float xg, bool volley = false, bool bicycle = false)
         {
             var team = p.Team;
             int goalSign = team.AttackGoalSign;
@@ -1142,7 +1151,7 @@ namespace SoccerVision.Simulation
             // How he strikes it: picked from the situation (distance, angle, where the keeper is, which foot the ball is
             // on) and the player (technique, composure, how good his weaker foot is).
             // (a half-volley is struck just as the ball comes up off the turf; a volley is hit out of the air)
-            var tech = header ? ShotTechnique.Header : penalty ? ShotTechnique.Penalty : volley ? (startZ < 0.6f ? ShotTechnique.HalfVolley : ShotTechnique.Volley)
+            var tech = bicycle ? ShotTechnique.Bicycle : header ? ShotTechnique.Header : penalty ? ShotTechnique.Penalty : volley ? (startZ < 0.6f ? ShotTechnique.HalfVolley : ShotTechnique.Volley)
                      : ChooseShotTechnique(p, from, dist, keeper);
             float keeperY = keeper != null ? keeper.Pos.Y : 0f;
             float nearSide = MathF.Abs(from.Y) > 1f ? MathF.Sign(from.Y) : (_rng.Chance(0.5f) ? 1f : -1f);
@@ -1214,6 +1223,18 @@ namespace SoccerVision.Simulation
                     curlSign = -naturalCurl;
                     curlMag = _rng.Range(7f, 13f) * (0.7f + 0.5f * skill);
                     accuracy = 1.7f; // hard to get right
+                    break;
+                case ShotTechnique.Bicycle:
+                    // Overhead, the body flat in the air: a wild, spectacular strike - hard to place, harder for the keeper to read.
+                    power = 19f + 6f * skill;
+                    aimZ = _rng.Range(0.4f, 2f);
+                    accuracy = 1.55f;
+                    break;
+                case ShotTechnique.Backheel:
+                    // A flick with the heel, back to goal: soft, but the keeper rarely sees it coming.
+                    power = 11f + 4f * skill;
+                    aimZ = _rng.Range(0.15f, 0.6f);
+                    accuracy = 1.35f;
                     break;
                 case ShotTechnique.Chip:
                     // Scooped up over the keeper who has come off his line, dropping under the bar.
@@ -1339,7 +1360,7 @@ namespace SoccerVision.Simulation
             if (cutIn) team.Stats.CutInShots++;
             if (header) team.Stats.Headers++;
             p.CutInUntil = -1f;
-            _lastShotKind = header ? 5 : penalty ? 4 : volley ? (tech == ShotTechnique.HalfVolley ? 12 : 1) : (cutIn ? 2 : ShotDetail(tech));
+            _lastShotKind = bicycle ? 15 : header ? 5 : penalty ? 4 : volley ? (tech == ShotTechnique.HalfVolley ? 12 : 1) : (cutIn && tech != ShotTechnique.Backheel ? 2 : ShotDetail(tech));
             MomentumShot(p, xg);
             Emit(MatchEventType.Shot, team, p, null, from, xg, WhistleKind.Short, header ? 0 : _lastShotKind);
         }
@@ -1359,6 +1380,10 @@ namespace SoccerVision.Simulation
             var team = p.Team;
             int goalSign = team.AttackGoalSign;
             float technique = MathUtil.Clamp01((p.Attr.BallControl + p.Attr.Dribbling + p.Attr.Finishing + p.Attr.Composure) / 400f);
+            // Back to goal right in front of it: the flick with the heel (rare, only for the technical ones).
+            Vec2 toGoal = (team.AttackGoal - from).Normalized;
+            if (dist < 9f && Vec2.Dot(p.FacingDir, toGoal) < -0.3f && technique > 0.62f && _rng.Chance(0.35f * (technique - 0.62f) / 0.38f + 0.04f))
+                return ShotTechnique.Backheel;
             if (keeper != null && !keeper.SentOff)
             {
                 float off = Pitch.HalfLength - keeper.Pos.X * goalSign; // keeper's distance from his goal line
@@ -1430,8 +1455,57 @@ namespace SoccerVision.Simulation
                 case ShotTechnique.HalfVolley: return 12;
                 case ShotTechnique.Knuckleball: return 13;
                 case ShotTechnique.Power: return 14;
+                case ShotTechnique.Bicycle: return 15;
+                case ShotTechnique.Backheel: return 16;
                 default: return 0;
             }
+        }
+
+        /// <summary>
+        /// A piece of skill instead of the plain action: the fake shot (shapes to shoot, the defender throws himself in the
+        /// way, he cuts past him) and the backheel pass to a team-mate behind him when he has no time to turn. Only the
+        /// creative, technical players do it, and not often.
+        /// </summary>
+        private KickPlan MaybeSkill(PlayerAgent p, KickPlan chosen, Vec2 pos, float pressure)
+        {
+            var team = p.Team;
+            float flair = MathUtil.A((p.Attr.Creativity + p.Attr.Dribbling + p.Attr.Composure) / 3);
+            if (chosen.Action == BallAction.Shoot && flair > 0.55f)
+            {
+                Vec2 toGoal = (team.AttackGoal - pos).Normalized;
+                PlayerAgent blocker = null;
+                foreach (var o in team.Opponent.Players)
+                {
+                    if (o.SentOff || o.IsGoalkeeper || o.StunTimer > 0f) continue;
+                    Vec2 d = o.Pos - pos;
+                    float len = d.Length;
+                    if (len < 3.6f && len > 0.3f && Vec2.Dot(d / len, toGoal) > 0.4f) { blocker = o; break; }
+                }
+                if (blocker != null && _rng.Chance(0.7f * (flair - 0.55f) / 0.45f + 0.1f))
+                {
+                    // the cut: away from the side the defender committed to, still towards goal
+                    float side = Vec2.Cross(toGoal, blocker.Pos - pos) > 0f ? -1f : 1f;
+                    Vec2 across = new Vec2(-toGoal.Y, toGoal.X) * side;
+                    blocker.StunTimer = MathF.Max(blocker.StunTimer, 0.75f); // sold: committed to the block
+                    p.KickTimer = PlayerAgent.KickSwing * 0.6f;              // (the shooting motion)
+                    Emit(MatchEventType.Skill, team, p, blocker, pos, 0f, WhistleKind.Short, 1);
+                    if (CollectDiagnostics) Count("skill.fakeShot");
+                    return new KickPlan { Action = BallAction.Dribble, DribbleTarget = Pitch.ClampToField(pos + across * 3.2f + toGoal * 1.2f, -1f), Utility = chosen.Utility };
+                }
+            }
+            if (chosen.Action == BallAction.Pass && !chosen.Lofted && chosen.Receiver != null && pressure > 0.25f)
+            {
+                Vec2 to = chosen.Target - pos;
+                float len = to.Length;
+                float technique = MathUtil.A((p.Attr.BallControl + p.Attr.Creativity) / 2);
+                if (len > 3f && len < 14f && Vec2.Dot(to / len, p.FacingDir) < -0.55f && technique > 0.55f
+                    && _rng.Chance(0.4f * (technique - 0.55f) / 0.45f + 0.03f))
+                {
+                    Emit(MatchEventType.Skill, team, p, chosen.Receiver, pos, 0f, WhistleKind.Short, 2);
+                    if (CollectDiagnostics) Count("skill.backheel");
+                }
+            }
+            return chosen;
         }
 
         /// <summary>
