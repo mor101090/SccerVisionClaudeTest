@@ -1,5 +1,6 @@
-// Procedural match sounds for the web viewers (no asset files): referee whistles, ball kicks, headers, saves,
-// the clang of the woodwork, net rustle and a home crowd that reacts to what happens. Mirrors Unity's MatchAudio.
+// Match sounds for the web viewers: referee whistles, ball kicks, headers, saves, the woodwork, the net and a home crowd
+// that reacts to what happens. Procedural by default; recorded sounds (loadSamples) replace the crowd's anger, the
+// celebration, the booing, the applause, the net and the woodwork when they are there. Mirrors Unity's MatchAudio.
 // Browsers only allow audio after a user gesture, so call enable() from a click handler.
 
 export interface SoundEvent {
@@ -12,6 +13,8 @@ export interface SoundEvent {
   team?: number;
   homeScore?: number;
   awayScore?: number;
+  /** Match minute (for the crowd's sense of time-wasting). */
+  minute?: number;
 }
 
 /** Vowel formants (Hz) for the crowd's voices. */
@@ -36,8 +39,14 @@ const WHISTLES: Record<string, { blasts: [number, number][]; gain: number; press
   FullTime: { blasts: [[0.3, 0.22], [0.3, 0.22], [1.4, 0]], gain: 0.85, pressure: 1.04 },
 };
 
+/** The recorded sounds the viewer can use (file names under the sample folder, without ".mp3"). */
+export const SAMPLE_NAMES = ["fan_angry", "after_goal", "booing", "clapping", "net", "crossbar", "goalpost"] as const;
+export type SampleName = (typeof SAMPLE_NAMES)[number];
+
 export class MatchSound {
   private ctx: AudioContext | null = null;
+  private samples: Partial<Record<SampleName, AudioBuffer>> = {};
+  private sampleBase: string | null = null;
   private master: GainNode | null = null;
   private crowd: GainNode | null = null;
   private crowdLevel = 0.14;
@@ -65,8 +74,97 @@ export class MatchSound {
       this.clapBuf = this.makeApplause(3);
       this.peaBuf = this.makePeaNoise(2);
       this.startCrowd();
+      if (this.sampleBase) void this.fetchSamples(this.sampleBase);
     }
     void this.ctx.resume();
+  }
+
+  /** Uses the recorded sounds in <base> (e.g. "sounds/"); a missing file keeps the procedural sound. */
+  loadSamples(base: string): void {
+    this.sampleBase = base;
+    if (this.ctx) void this.fetchSamples(base);
+  }
+
+  private async fetchSamples(base: string) {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    await Promise.all(
+      SAMPLE_NAMES.map(async (n) => {
+        if (this.samples[n]) return;
+        try {
+          const r = await fetch(base + n + ".mp3");
+          if (!r.ok) return;
+          this.samples[n] = await ctx.decodeAudioData(await r.arrayBuffer());
+        } catch {
+          // (no such file: the procedural sound stays)
+        }
+      }),
+    );
+  }
+
+  /**
+   * Plays a recorded sound. wide: from every side of the stadium (copies spread left, centre and right); otherwise from
+   * one place (pan -1..1) - a far-away section is quieter and duller. echo 0..1: the ring of a stadium (a harder hit
+   * echoes more). maxSeconds cuts it short (with a fade).
+   */
+  private sample(name: SampleName, gain: number, opts: { wide?: boolean; pan?: number; echo?: number; maxSeconds?: number; far?: boolean } = {}): boolean {
+    const buf = this.samples[name];
+    const ctx = this.ctx;
+    if (!buf || !ctx) return false;
+    const now = ctx.currentTime;
+    const len = Math.min(buf.duration, opts.maxSeconds ?? buf.duration);
+    const pans = opts.wide ? [-0.85, 0, 0.85] : [opts.pan ?? 0];
+    const each = opts.wide ? gain * 0.62 : gain;
+    pans.forEach((p, k) => {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain();
+      const at = now + (opts.wide ? k * 0.035 : 0); // (a few ms apart: the sound arrives from all round)
+      g.gain.setValueAtTime(each, at);
+      g.gain.setValueAtTime(each, at + Math.max(0, len - 0.4));
+      g.gain.linearRampToValueAtTime(0.0001, at + len);
+      let node: AudioNode = src;
+      if (opts.far) {
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 1400;
+        node.connect(lp);
+        node = lp;
+      }
+      node.connect(g);
+      const pan = ctx.createStereoPanner();
+      pan.pan.value = p;
+      g.connect(pan).connect(this.out());
+      if (opts.echo && opts.echo > 0.02) {
+        // a short feedback delay: the stadium answers the hit
+        const d = ctx.createDelay(1);
+        d.delayTime.value = 0.11 + 0.1 * opts.echo;
+        const fb = ctx.createGain();
+        fb.gain.value = 0.2 + 0.35 * opts.echo;
+        const wet = ctx.createGain();
+        wet.gain.value = 0.25 + 0.45 * opts.echo;
+        g.connect(d);
+        d.connect(fb).connect(d);
+        d.connect(wet).connect(pan);
+      }
+      src.start(at, 0, len);
+    });
+    return true;
+  }
+
+  /** The home fans furious with the referee (or a goal against): from all round the ground. */
+  private angry(gain = 0.9) {
+    if (!this.sample("fan_angry", gain, { wide: true })) this.boo(3.5, 1);
+  }
+
+  /** The home crowd booing (the recording is cut before its applause starts, at 14.5 s). */
+  private booing(gain = 0.85) {
+    if (!this.sample("booing", gain, { wide: true, maxSeconds: 14.5 })) this.boo(3.2, 1);
+  }
+
+  /** Applause for a home shot that did not go in. */
+  private clapping(gain = 0.6) {
+    if (!this.sample("clapping", gain, { wide: true, maxSeconds: 4 })) this.applause(2.2, 0.45);
   }
 
   disable(): void {
@@ -90,7 +188,7 @@ export class MatchSound {
         break;
       case "Shot":
         // side-footed finishes and chips are struck softly; volleys and free kicks are hit hardest
-        this.thud(70, 0.16, e.detail === 1 || e.detail === 3 ? 0.75 : e.detail === 6 || e.detail === 7 || e.detail === 9 ? 0.38 : 0.6);
+        this.thud(70, 0.16, e.detail === 1 || e.detail === 3 || e.detail === 15 ? 0.75 : e.detail === 6 || e.detail === 7 || e.detail === 9 || e.detail === 16 ? 0.38 : 0.6);
         if (home) this.voices("oo", 210, 290, 1.4, 0.45); // the home end rises with the shot
         else this.addBoost(0.05);
         break;
@@ -101,59 +199,93 @@ export class MatchSound {
         this.thud(190, 0.08, 0.45);
         // e.team is the keeper's side
         if (home) this.applause(2.2, 0.5);
-        else this.voices("aw", 250, 160, 1.8, 0.5); // "ohhh" - so close
+        else {
+          this.voices("aw", 250, 160, 1.8, 0.5); // "ohhh" - so close
+          this.clapping(0.5);
+        }
         break;
       case "GoalkeeperClaim":
         this.thud(190, 0.08, 0.4);
         break;
       case "ShotOffTarget":
-        if (home) this.voices("aw", 240, 150, 1.6, 0.4);
+        if (home) {
+          this.voices("aw", 240, 150, 1.6, 0.4);
+          this.clapping(0.45);
+        }
         break;
       case "ShotBlocked":
-        if (home) this.applause(1.2, 0.3);
+        // e.team is the blocker's side: a home shot blocked by the visitors
+        if (away) this.clapping(0.4);
         break;
-      case "HitWoodwork":
-        this.woodwork(e.detail === 2, e.value ?? 12);
+      case "HitWoodwork": {
+        // how hard it hit decides how loud it rings and how long the stadium echoes it
+        const v = e.value ?? 12;
+        const hard = Math.max(0, Math.min(1, (v - 6) / 24));
+        if (!this.sample(e.detail === 2 ? "crossbar" : "goalpost", 0.35 + 0.65 * hard, { echo: hard })) this.woodwork(e.detail === 2, v);
+        if (home) this.clapping(0.5);
         this.voices("oo", 240, 300, 1.0, home ? 0.7 : 0.45);
         if (home) this.voices("aw", 260, 160, 1.6, 0.5, 0.9);
         break;
+      }
       case "Goal":
         // the net's own sound comes with the NetHit event right after (it knows how hard the ball hit it)
         if (home) {
-          this.voices("ah", 270, 340, 5.5, 1);
-          this.voices("eh", 300, 360, 4, 0.5, 0.4);
-          this.applause(6, 0.8, 1.5);
+          // the whole ground goes up
+          if (!this.sample("after_goal", 1, { wide: true })) {
+            this.voices("ah", 270, 340, 5.5, 1);
+            this.voices("eh", 300, 360, 4, 0.5, 0.4);
+            this.applause(6, 0.8, 1.5);
+          }
           this.boost = 0.3;
         } else {
-          // Home fans fall silent; the away section celebrates in the distance.
-          this.voices("aw", 220, 140, 1.5, 0.45);
-          this.voices("ah", 280, 330, 4, 0.22, 0.2, 900);
+          // The away section celebrates in one corner, far and quieter; the home fans are furious all round.
+          if (!this.sample("after_goal", 0.32, { pan: 0.8, far: true })) this.voices("ah", 280, 330, 4, 0.22, 0.2, 900);
+          if (this.samples.fan_angry) this.angry(0.7);
+          else this.voices("aw", 220, 140, 1.5, 0.45);
           this.hush = 1;
         }
         break;
-      case "NetHit":
-        this.net(e.value ?? 10);
+      case "NetHit": {
+        const v = e.value ?? 10;
+        const hard = Math.max(0, Math.min(1, (v - 4) / 22));
+        if (!this.sample("net", 0.3 + 0.7 * hard, { echo: hard * 0.7 })) this.net(v);
         break;
+      }
       case "Foul":
-        // e.team is the offender's side: the home crowd boos the visitors' fouls.
+        // e.team is the offender's side: a free kick against the home team angers the home end; the visitors' fouls are booed
         if (away) this.boo(1.8, 0.65);
+        else if (this.samples.fan_angry) this.angry(0.75);
         else this.voices("aw", 200, 170, 0.9, 0.15);
         break;
       case "YellowCard":
         if (away) this.applause(1.5, 0.35);
-        else this.boo(2.2, 0.8);
+        else this.angry(0.8);
         break;
       case "RedCard":
         if (away) {
           this.voices("ah", 260, 320, 2.5, 0.6);
           this.applause(3, 0.6);
-        } else this.boo(3.2, 1);
+        } else {
+          this.angry(0.9);
+          this.booing(0.8);
+        }
         break;
       case "PenaltyAwarded":
+        // e.team is the side given the penalty: against the home team the ground erupts in anger, and the away taker is booed
         if (home) {
           this.voices("ah", 270, 330, 3, 0.85);
           this.applause(3, 0.5);
-        } else this.boo(3.5, 1);
+        } else {
+          this.angry(1);
+          this.booing(0.7);
+        }
+        break;
+      case "Substitution":
+        // a late change by the visitors when they are ahead: wasting time - booed
+        if (away && (e.awayScore ?? 0) > (e.homeScore ?? 0) && (e.minute ?? 0) >= 70) this.booing(0.6);
+        break;
+      case "GoalkeeperHoldViolation":
+        if (away) this.booing(0.6);
         break;
       case "PenaltyMissed":
         if (home) this.voices("aw", 260, 140, 2.2, 0.9);

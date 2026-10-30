@@ -558,6 +558,21 @@ namespace SoccerVision.Simulation
                     pick.ShapeTarget = r.CornerRoutine == 5 ? att.ToWorld(43.5f, side * 25.5f) : att.ToWorld(36.5f, -side * 1.5f + _rng.Range(-1f, 1f));
             }
 
+            // The manager's own set-up (the taker stays at the flag): his spots, mirrored for a corner on the other side.
+            float aSide = MathF.Sign(att.Lateral(r.Spot));
+            if (att.Tactics.CornerSetupAttack.Length > 0)
+            {
+                foreach (var s in att.Tactics.CornerSetupAttack)
+                {
+                    var p = att.Players.Find(q => q.Number == s.Number && !q.SentOff && !q.IsGoalkeeper && q != r.Taker);
+                    if (p == null) continue;
+                    p.ShapeTarget = att.ToWorld(s.Forward, s.Lateral * aSide);
+                }
+                attackersInBox.Clear();
+                foreach (var p in att.Players)
+                    if (!p.SentOff && p != r.Taker && !p.IsGoalkeeper && Pitch.InPenaltyArea(p.ShapeTarget, att.AttackGoalSign)) attackersInBox.Add(p);
+            }
+
             // Defenders: keeper, zonal near post and six-yard line, man-marking the main threats.
             float dSide = MathF.Sign(def.Lateral(r.Spot));
             var defenders = new List<PlayerAgent>();
@@ -595,6 +610,11 @@ namespace SoccerVision.Simulation
                     d.ShapeTarget = def.ToWorld(-36f, -dSide * 4f + _rng.Range(-4f, 4f));
                 }
                 defUsed.Add(d);
+            }
+            foreach (var s in def.Tactics.CornerSetupDefence)
+            {
+                var d = def.Players.Find(q => q.Number == s.Number && !q.SentOff);
+                if (d != null) d.ShapeTarget = def.ToWorld(s.Forward, s.Lateral * dSide);
             }
             foreach (var d in def.Players)
             {

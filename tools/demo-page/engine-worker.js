@@ -58,7 +58,7 @@ async function pump() {
         const frames = new Int32Array(L.Step(lead === 0 ? 30 : 5)); // a copy: the engine's buffer is reused
         const stats = new Int32Array(L.Stats());
         generated += frames.length / frameLength;
-        postMessage({ type: "chunk", token: mine, len: frameLength, frames, events: L.Events(), stats, finished: L.Finished() }, [frames.buffer, stats.buffer]);
+        postMessage({ type: "chunk", token: mine, len: frameLength, frames, events: L.Events(), stats, finished: L.Finished(), final: L.Finished() ? L.FinalHeader() : null }, [frames.buffer, stats.buffer]);
         await new Promise((r) => setTimeout(r, 0)); // let progress / stop messages in
       }
     } while (again);

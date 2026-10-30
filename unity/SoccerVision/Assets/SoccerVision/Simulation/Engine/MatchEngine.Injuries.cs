@@ -82,7 +82,7 @@ namespace SoccerVision.Simulation
         /// The ground: a heavy, muddy, badly kept pitch twists ankles and knees (up to about +45% on a neglected pitch, more in
         /// the mud itself).
         /// </summary>
-        private float GroundInjuryFactor(Vec2 pos)
+        internal float GroundInjuryFactor(Vec2 pos)
         {
             float f = 1f + 0.45f * (1f - MathUtil.Clamp01(Conditions.Maintenance));
             if (Surface != null) f += 0.5f * Surface.MudAt(pos.X, pos.Y);

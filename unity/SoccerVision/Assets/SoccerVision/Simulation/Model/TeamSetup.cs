@@ -35,6 +35,15 @@ namespace SoccerVision.Simulation
     /// <summary>One extra tactic: keep the ball, waste time, counter-attacks, or relentless pressure on the box.</summary>
     public enum SpecialTactic { None, Possession, TimeWasting, CounterAttack, Siege }
 
+    /// <summary>Where one player stands at a corner (see <see cref="TeamTactics.CornerSetupAttack"/>).</summary>
+    [Serializable]
+    public struct CornerSpot
+    {
+        public int Number;
+        public float Forward, Lateral;
+        public static readonly CornerSpot[] None = new CornerSpot[0];
+    }
+
     public sealed class TeamTactics
     {
         /// <summary>0 = defensive, 1 = ultra attacking.</summary>
@@ -69,6 +78,12 @@ namespace SoccerVision.Simulation
         /// <summary>Who stands where for a corner (shirt numbers for the six zones; 0 = whoever fits) - see <see cref="CornerZones"/>.</summary>
         public int[] CornerZonesRight = new int[6], CornerZonesLeft = new int[6];
         public const int CornerZoneCount = 6;
+        /// <summary>
+        /// The manager's own corner set-up, attacking and defending: where each player stands (shirt number and a spot in the
+        /// team's own frame - forward, lateral - for a corner taken on the side where lateral is positive; mirrored for the
+        /// other side). Players not listed (or substitutes) are placed automatically. Empty: all automatic.
+        /// </summary>
+        public CornerSpot[] CornerSetupAttack = CornerSpot.None, CornerSetupDefence = CornerSpot.None;
 
         public static PlayerOrders[] NewOrders()
         {
@@ -90,6 +105,7 @@ namespace SoccerVision.Simulation
             c.FreeKickTakersRight = (int[])FreeKickTakersRight.Clone(); c.FreeKickTakersLeft = (int[])FreeKickTakersLeft.Clone();
             c.PenaltyTakers = (int[])PenaltyTakers.Clone();
             c.CornerZonesRight = (int[])CornerZonesRight.Clone(); c.CornerZonesLeft = (int[])CornerZonesLeft.Clone();
+            c.CornerSetupAttack = (CornerSpot[])CornerSetupAttack.Clone(); c.CornerSetupDefence = (CornerSpot[])CornerSetupDefence.Clone();
             return c;
         }
 

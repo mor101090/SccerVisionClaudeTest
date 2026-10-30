@@ -253,7 +253,8 @@ export function surfaceCanvas(sf: SurfaceMap, wet: boolean, night: boolean, seed
  * Powdery snow over the whole ground: white frost thick in places and thin in others, the green showing through in
  * specks and streaks (as on a real pitch after a snowfall). The lines stay white and crisp on top.
  */
-export function snowCanvas(seed: number, ppm = 6): HTMLCanvasElement {
+/** covered: the pitch has not been cleared - white all over, the grass only where it is trodden (looks only). */
+export function snowCanvas(seed: number, ppm = 6, covered = false): HTMLCanvasElement {
   const A = SNOW_AREA;
   const w = Math.round(A.w * ppm);
   const h = Math.round(A.h * ppm);
@@ -275,7 +276,8 @@ export function snowCanvas(seed: number, ppm = 6): HTMLCanvasElement {
       const offPitch = smooth(0.6, 2.6, out);
       const bank = Math.exp(-(((out - 2.2) / 1.1) ** 2));
       const drift = n.warped(x * 0.07, y * 0.07, 4);
-      const cover = (0.3 + 0.22 * drift) * (1 - offPitch) + (0.93 + 0.07 * drift) * offPitch + 0.1 * bank;
+      const onPitch = covered ? 0.84 + 0.1 * drift : 0.3 + 0.22 * drift;
+      const cover = onPitch * (1 - offPitch) + (0.93 + 0.07 * drift) * offPitch + (covered ? 0 : 0.1) * bank;
       const streak = n.perlin(x * 0.35, y * 2.2) * 0.5 + 0.5; // drifts along the mowing direction
       const fine = n.perlin(x * 2.4, y * 2.4) * 0.5 + 0.5;
       const grain = Noise.hash(px, py);

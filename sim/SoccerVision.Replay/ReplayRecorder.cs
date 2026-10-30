@@ -330,6 +330,7 @@ namespace SoccerVision.Replay
             b.Append(",\"detail\":").Append(e.Detail);
             b.Append(",\"x\":").Append(N(Math.Round(e.X, 1))).Append(",\"y\":").Append(N(Math.Round(e.Y, 1))).Append(",\"v\":").Append(N(Math.Round(e.Value, 1)));
             b.Append(",\"p\":").Append(e.Player);
+            if (e.OtherPlayer >= 0) b.Append(",\"o\":").Append(e.OtherPlayer);
             if (!string.IsNullOrEmpty(e.Info)) { b.Append(",\"s\":"); Str(b, e.Info); }
             b.Append('}');
         }

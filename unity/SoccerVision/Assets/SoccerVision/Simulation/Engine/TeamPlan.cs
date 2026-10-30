@@ -21,6 +21,7 @@ namespace SoccerVision.Simulation
         public int[] CornerTakersRight, CornerTakersLeft, FreeKickTakersRight, FreeKickTakersLeft, PenaltyTakers;
         public int CornerRoutineRight = -1, CornerRoutineLeft = -1;
         public int[] CornerZonesRight, CornerZonesLeft;
+        public CornerSpot[] CornerSetupAttack, CornerSetupDefence;
         public bool HasTeamInstructions;
         public float Line = 0.5f, Width = 0.5f, Tempo = 0.5f, Aggression = 0.5f;
         public int Passing = 1, Defence, Attack, Special;
@@ -32,6 +33,22 @@ namespace SoccerVision.Simulation
         {
             var l = new List<int>();
             foreach (var x in v.Split('.')) { if (x.Length == 0) continue; int n = I(x); if ((n > 0 || keepZeros) && l.Count < max) l.Add(n); }
+            return l.ToArray();
+        }
+
+        /// <summary>"7:46.8:2.6/9:42:0.5": shirt number, forward, lateral per player (a corner on the positive-lateral side).</summary>
+        private static CornerSpot[] Spots(string v)
+        {
+            var l = new List<CornerSpot>();
+            foreach (var e in v.Split('/'))
+            {
+                var x = e.Split(':');
+                if (x.Length != 3) continue;
+                float fw = F(x[1]), lat = F(x[2]);
+                if (float.IsNaN(fw) || float.IsNaN(lat)) continue;
+                l.Add(new CornerSpot { Number = I(x[0]), Forward = Math.Max(-52f, Math.Min(52f, fw)), Lateral = Math.Max(-33.5f, Math.Min(33.5f, lat)) });
+                if (l.Count >= 11) break;
+            }
             return l.ToArray();
         }
 
@@ -82,6 +99,8 @@ namespace SoccerVision.Simulation
                     case "pen": plan.PenaltyTakers = List(v); break;
                     case "crr": plan.CornerRoutineRight = Math.Max(0, Math.Min(5, I(v))); break;
                     case "crl": plan.CornerRoutineLeft = Math.Max(0, Math.Min(5, I(v))); break;
+                    case "cpa": plan.CornerSetupAttack = Spots(v); break;
+                    case "cpd": plan.CornerSetupDefence = Spots(v); break;
                     case "czr": { var z = List(v, true, 6); plan.CornerZonesRight = new int[6]; z.CopyTo(plan.CornerZonesRight, 0); break; }
                     case "czl": { var z = List(v, true, 6); plan.CornerZonesLeft = new int[6]; z.CopyTo(plan.CornerZonesLeft, 0); break; }
                     case "line": plan.Line = F(v); plan.HasTeamInstructions = true; break;
@@ -123,6 +142,8 @@ namespace SoccerVision.Simulation
             if (CornerRoutineRight >= 0) t.CornerRoutineRight = CornerRoutineRight;
             if (CornerRoutineLeft >= 0) t.CornerRoutineLeft = CornerRoutineLeft;
             if (CornerZonesRight != null) t.CornerZonesRight = CornerZonesRight;
+            if (CornerSetupAttack != null) t.CornerSetupAttack = CornerSetupAttack;
+            if (CornerSetupDefence != null) t.CornerSetupDefence = CornerSetupDefence;
             if (CornerZonesLeft != null) t.CornerZonesLeft = CornerZonesLeft;
             t.Sanitize();
             return t;
