@@ -210,7 +210,7 @@ namespace SoccerVision.Simulation
                     if (o.Kind == KickKind.ThroughBall || o.IntoSpace) o.Utility *= 0.85f + 0.35f * creativity;
                     // the midfielder arriving late into the box is the man nobody picks up: find him
                     if (o.Receiver != null && (o.Receiver.Slot.IsCentralMidfielder || o.Receiver.Kind == PositionKind.AttackingMidfielder) && team.Forward(o.Receiver.Pos) > 28f)
-                        o.Utility *= 1.25f + 0.25f * teamwork + (o.Receiver.RunTimer > 0f ? 0.3f : 0f);
+                        o.Utility *= (o.Receiver.RunTimer > 0f ? 1.35f : 1.05f) + 0.2f * teamwork;
                     if (o.Receiver != null && f > 24f && team.Forward(o.Receiver.Pos) > 30f && !o.OneTwo)
                     {
                         float theirXg = EstimateShotXG(o.Receiver, o.Receiver.Pos);
@@ -839,6 +839,7 @@ namespace SoccerVision.Simulation
                 else if (team.Tactics.Special == SpecialTactic.Siege) utility = utility > 0f ? utility * 1.25f : utility;
                 // the classic winger lives to cross, the inverted one would rather come inside
                 float crosser = p.PlayRole == PlayerRole.ClassicWinger ? 1.3f : p.PlayRole == PlayerRole.WingBack ? 1.15f : p.PlayRole == PlayerRole.InvertedWinger ? 0.8f : 1f;
+                if (p.PlayRole == PlayerRole.Auto && p.Slot.IsWideMidfielder && !IsCutInsidePlayer(p)) crosser *= 1.3f; // (a winger on his strong side goes to the by-line and crosses)
                 if (utility > 0f) utility *= crosser;
                 _options.Add(new KickPlan
                 {

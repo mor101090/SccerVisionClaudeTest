@@ -16,8 +16,9 @@ Each round of changes is developed on its own branch, named after what it change
   holding x0.6); forward-pass misses fell from 19% to 7%.
 - **Goals spread by position like real football** (published breakdowns put forwards at about 47-60% of goals, midfielders
   30-37%, defenders about 11%): strikers shoot less greedily in the box, central midfielders arrive late and are found by
-  the passer, wingers cut in and shoot. Over 60 matches: strikers 54%, wingers 20.5%, central midfielders 13.7%,
-  centre-backs 7.9%, full-backs 3.2%; 3.17 goals and 30.7 shots a match. SimRunner shows shots and conversion per position.
+  the passer, wingers cut in and shoot. Over 60 matches: strikers 51%, wingers 21%, central midfielders 16%,
+  centre-backs 10%, full-backs 2%; 3.3 goals and 30 shots a match. A winger on his strong side still goes to the by-line
+  and crosses. SimRunner shows shots and conversion per position.
 - **Attributes act as described**: Teamwork - a team player passes up a shot when a mate is clearly better placed and is
   less selfish in front of goal; Decisions - picks the right option more often (less perception noise); Composure - calmer
   in front of the keeper (less error within 14 m of him); Creativity - sees and values the through ball and the pass into
