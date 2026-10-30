@@ -145,7 +145,9 @@ namespace SoccerVision.Simulation
             if (distGoal < 34f && f > (longShots ? 12f : 18f))
             {
                 float xg = EstimateShotXG(p, pos);
-                float tendency = p.Slot.Line == Line.Attack ? 0.85f : (p.Slot.Line == Line.Midfield ? 1.0f : 0.6f);
+                float tendency = p.Slot.Line == Line.Attack ? (distGoal > 13f ? 0.45f : 0.55f)
+                                : p.Slot.IsCentralMidfielder ? (distGoal < 22f ? 1.7f : 0.9f)
+                                : (p.Slot.Line == Line.Midfield ? 0.95f : 0.6f);
                 if (p.Slot.IsFullBack && f > 30f) tendency *= 1.3f + 0.4f * MathUtil.A(p.Attr.LongShots); // an attacking full-back at the edge of the box has a go
                 tendency *= 0.9f + 0.4f * team.Eff.Mentality;
                 tendency *= 1.15f - 0.3f * MathUtil.A(p.Attr.Teamwork); // (a team player looks for the better-placed man; a selfish one has a go)
@@ -206,10 +208,13 @@ namespace SoccerVision.Simulation
                     var o = _options[i];
                     if (o.Action != BallAction.Pass || o.Utility <= 0f) continue;
                     if (o.Kind == KickKind.ThroughBall || o.IntoSpace) o.Utility *= 0.85f + 0.35f * creativity;
+                    // the midfielder arriving late into the box is the man nobody picks up: find him
+                    if (o.Receiver != null && (o.Receiver.Slot.IsCentralMidfielder || o.Receiver.Kind == PositionKind.AttackingMidfielder) && team.Forward(o.Receiver.Pos) > 28f)
+                        o.Utility *= 1.25f + 0.25f * teamwork + (o.Receiver.RunTimer > 0f ? 0.3f : 0f);
                     if (o.Receiver != null && f > 24f && team.Forward(o.Receiver.Pos) > 30f && !o.OneTwo)
                     {
                         float theirXg = EstimateShotXG(o.Receiver, o.Receiver.Pos);
-                        if (theirXg > ownXg * 1.4f + 0.03f) o.Utility += (0.3f + 0.9f * teamwork) * 0.5f * (theirXg - ownXg) * o.Success;
+                        if (theirXg > ownXg * 1.6f + 0.05f) o.Utility += (0.2f + 0.6f * teamwork) * 0.15f * (theirXg - ownXg) * o.Success;
                     }
                     _options[i] = o;
                 }

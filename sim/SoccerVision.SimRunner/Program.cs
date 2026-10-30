@@ -247,7 +247,7 @@ static void Report(MatchResult[] r, double wallSeconds)
         string[] names = { "Goalkeeper", "Centre-back", "Full-back", "Defensive mid", "Central mid", "Attacking mid", "Winger / wide", "Striker" };
         double tot = Math.Max(1, r.Sum(x => x.GoalsByKind.Sum()));
         Console.WriteLine("  Goals by position (share of goals, per match):");
-        for (int i = 0; i < 8; i++) { int sum = r.Sum(x => x.GoalsByKind[i]); Console.WriteLine($"    {names[i],-16}{100.0 * sum / tot,6:0.0}%   {(double)sum / r.Length,5:0.00}"); }
+        for (int i = 0; i < 8; i++) { int sum = r.Sum(x => x.GoalsByKind[i]); int shots = r.Sum(x => x.ShotsByKind[i]); Console.WriteLine($"    {names[i],-16}{100.0 * sum / tot,6:0.0}%   {(double)sum / r.Length,5:0.00}   shots {(double)shots / r.Length,5:0.00}   conv {(shots > 0 ? 100.0 * sum / shots : 0),5:0.0}%"); }
     }
     Row("Penalties: home / away conv %", 100.0 * r.Sum(x => x.HomePensScored) / Math.Max(1, r.Sum(x => x.HomePens)), (100.0 * r.Sum(x => x.AwayPensScored) / Math.Max(1, r.Sum(x => x.AwayPens))).ToString("0.0") + "  (n " + r.Sum(x => x.HomePens) + " / " + r.Sum(x => x.AwayPens) + ")");
     Row("Fouls: home / away", Avg(x => x.HomeFouls), Avg(x => x.AwayFouls).ToString("0.00"));
@@ -339,6 +339,14 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
 sealed class MatchResult
 {
     /// <summary>Goals by the position kind of the scorer (own goals left out): GK, CB, FB, DM, CM, AM, W, ST.</summary>
+    static int[] ShotKinds(MatchEngine e)
+    {
+        var k = new int[8];
+        foreach (var ev in e.EventLog)
+            if (ev.Type == MatchEventType.Shot && ev.Player >= 0) k[(int)e.AllPlayers[ev.Player].Kind]++;
+        return k;
+    }
+
     static int[] GoalKinds(MatchEngine e)
     {
         var k = new int[8];
@@ -355,7 +363,7 @@ sealed class MatchResult
     public int RecoveredErrors;
     public double WallMs;
     public int Headers, Volleys, CutIns, FreeKickShots, HeaderGoals, VolleyGoals, FreeKickGoals, Woodwork, Catches, Parries, Punches, Sorties, Goals, Shots, ShotsOnTarget, ShotsBlocked, Corners, Fouls, Yellows, Reds, Offsides, ThrowIns, GoalKicks, FreeKicks, Penalties, PenaltiesScored, Saves, Passes, Tackles, StandingTackles, SlideTackles, SlideTacklesWon, TacklesWon, HomeSwitches, AwaySwitches, HomeGoals, AwayGoals, HomeShots, AwayShots, LightInjuries, SeriousInjuries, Substitutions, Switches, SwitchesCompleted, FullBackCrosses, WingerCrosses, FullBackShots, WingerShots, CutBacks, CrossesAll, Interceptions, AnticipatedInterceptions, ThroughBalls, ThroughBallsCompleted, PassesIntoSpace, ShieldedOut, ShoulderDuelsWon, OneTwos, OneTwosCompleted, ThirdManRuns, ThirdManPasses, ThirdManCompleted, CounterMovements, CounterPresses, CounterPressWins, Overloads, LongThrows, HomePasses, HomeLongBalls, HomeFouls, HomeYellows, AwayFouls, AwayYellows, HomePens, HomePensScored, AwayPens, AwayPensScored, Knuckles;
-    public int[] GoalsByKind = new int[8];
+    public int[] GoalsByKind = new int[8], ShotsByKind = new int[8];
     public double HomeLineDepth, HomeSpread, RealMinutes, HomeMidDepth, HomeAttackDepth, HomeCrosses, HomeLongShots, HomeEnergy, AwayOffsides, HomeThrough;
     public double Xg, PassPct, HomePossession, Added1, Added2, Real1, Real2, RealHt, FinalClock, DistanceKm, AvgEnergy, FoulsAnchor, FoulsCm, FoulsCb, FoulsFb, FoulsWide, FoulsSt, TacklesAnchor, TacklesCm, TacklesCb, TacklesFb, TacklesWide, TacklesSt, IntAnchor, IntCm, IntCb, IntFb, IntWide, IntSt, PassAnchor, PassCm, PassCb, PassFb, PassWide, PassSt, EnergyFullBack, EnergyCentreBack, EnergyWide, EnergyCentral, EnergyStriker, EnergyKeeper;
     public string Score;
@@ -426,6 +434,7 @@ sealed class MatchResult
             HomePens = h.Penalties, HomePensScored = h.PenaltiesScored, AwayPens = a.Penalties, AwayPensScored = a.PenaltiesScored,
             Knuckles = h.Knuckleballs + a.Knuckleballs,
             GoalsByKind = GoalKinds(e),
+            ShotsByKind = ShotKinds(e),
             HomeLongBalls = e.EventLog.Count(x => x.Type == MatchEventType.LongBall && x.Team == 0),
             HomeFouls = h.Fouls,
             HomeYellows = h.YellowCards,
