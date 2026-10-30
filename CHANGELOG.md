@@ -14,8 +14,15 @@ Each round of changes is developed on its own branch, named after what it change
   interception or a return pass hit too hard.
 - **Forward passing**: a player under no pressure who has a forward option now prefers it (forward pass x1.3, backward or
   holding x0.6); forward-pass misses fell from 19% to 7%.
-- **Wingers and midfielders shoot and cut in more**: over 20 matches the wingers' share of goals rose from about 5% to 9-11%, the strikers' fell from about 69% to 64-68%, the
-  centre-backs' from 19% to 11-15%, the central midfielders' about 6%.
+- **Goals spread by position like real football** (published breakdowns put forwards at about 47-60% of goals, midfielders
+  30-37%, defenders about 11%): strikers shoot less greedily in the box, central midfielders arrive late and are found by
+  the passer, wingers cut in and shoot. Over 60 matches: strikers 54%, wingers 20.5%, central midfielders 13.7%,
+  centre-backs 7.9%, full-backs 3.2%; 3.17 goals and 30.7 shots a match. SimRunner shows shots and conversion per position.
+- **Attributes act as described**: Teamwork - a team player passes up a shot when a mate is clearly better placed and is
+  less selfish in front of goal; Decisions - picks the right option more often (less perception noise); Composure - calmer
+  in front of the keeper (less error within 14 m of him); Creativity - sees and values the through ball and the pass into
+  space others do not; Physical power - the build of the body (duels, shielding, aerial battles), no longer the power of a
+  pass; the keeper's Kicking - how accurate his kicks and clearances are.
 - **Set-piece plans**: a list of takers (corners right and left, free kicks right and left, penalties) - the next on the list
   takes over if the first is substituted, injured or sent off; a corner routine for each side (varied, near post, far post,
   penalty spot, pulled back, short) and a place in the box for each of six zones. Plan keys: `ctr ctl fkr fkl pen crr crl czr czl`
