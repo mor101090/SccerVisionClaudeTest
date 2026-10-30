@@ -1325,8 +1325,7 @@ namespace SoccerVision.Simulation
                 vmax *= 1.3f + 0.15f * MathUtil.A(p.Attr.Reflexes);
                 accelBoost = 2.6f;
             }
-            const float walk = 1.5f;
-            float jog = 3.6f + 0.6f * MathUtil.A(p.Attr.Speed); // (a quick player's natural jog is a little quicker)
+            const float walk = 1.5f, jog = 3.9f;
             float cap = u < 0.5f ? MathUtil.Lerp(walk, jog, u / 0.5f) : MathUtil.Lerp(jog, vmax, (u - 0.5f) / 0.5f);
             if (Ball.Owner == p && !Ball.InHands)
             {
