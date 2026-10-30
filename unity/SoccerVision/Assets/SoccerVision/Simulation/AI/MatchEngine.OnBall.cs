@@ -148,6 +148,7 @@ namespace SoccerVision.Simulation
                 float tendency = p.Slot.Line == Line.Attack ? 0.85f : (p.Slot.Line == Line.Midfield ? 1.0f : 0.6f);
                 if (p.Slot.IsFullBack && f > 30f) tendency *= 1.3f + 0.4f * MathUtil.A(p.Attr.LongShots); // an attacking full-back at the edge of the box has a go
                 tendency *= 0.9f + 0.4f * team.Eff.Mentality;
+                tendency *= 1.15f - 0.3f * MathUtil.A(p.Attr.Teamwork); // (a team player looks for the better-placed man; a selfish one has a go)
                 if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 1.7f; xg *= 1.1f; }
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
                 // long shots: the manager wants them from 20-30 m (the range where the shooter can still trouble the keeper)
@@ -195,6 +196,25 @@ namespace SoccerVision.Simulation
                     }
             }
 
+            // Team play and flair: a team player passes up a shot when a mate is in a clearly better spot; a creative one
+            // sees (and values) the through ball and the pass into space that others do not think of.
+            {
+                float teamwork = MathUtil.A(p.Attr.Teamwork), creativity = MathUtil.A(p.Attr.Creativity);
+                float ownXg = f > 24f ? EstimateShotXG(p, pos) : 0f;
+                for (int i = 0; i < _options.Count; i++)
+                {
+                    var o = _options[i];
+                    if (o.Action != BallAction.Pass || o.Utility <= 0f) continue;
+                    if (o.Kind == KickKind.ThroughBall || o.IntoSpace) o.Utility *= 0.85f + 0.35f * creativity;
+                    if (o.Receiver != null && f > 24f && team.Forward(o.Receiver.Pos) > 30f && !o.OneTwo)
+                    {
+                        float theirXg = EstimateShotXG(o.Receiver, o.Receiver.Pos);
+                        if (theirXg > ownXg * 1.4f + 0.03f) o.Utility += (0.3f + 0.9f * teamwork) * 0.5f * (theirXg - ownXg) * o.Success;
+                    }
+                    _options[i] = o;
+                }
+            }
+
             // Weighted randomness: perception noise grows with poor decisions and pressure on low composure.
             float decisions = MathUtil.A(p.Attr.Decisions);
             float composure = MathUtil.A(p.Attr.Composure);
@@ -204,7 +224,7 @@ namespace SoccerVision.Simulation
             for (int i = 0; i < _options.Count; i++)
             {
                 var o = _options[i];
-                float perceived = o.Utility * (1f + _rng.Gaussian(0f, 0.12f * (1.2f - decisions))) + _rng.Gaussian(0f, sigma);
+                float perceived = o.Utility * (1f + _rng.Gaussian(0f, 0.16f * (1.15f - decisions))) + _rng.Gaussian(0f, sigma);
                 if (perceived > bestScore)
                 {
                     bestScore = perceived;
@@ -409,7 +429,7 @@ namespace SoccerVision.Simulation
             Vec2 dir = delta / d;
 
             float tRecv = q.TimeToReach(target, -0.08f);
-            float maxPower = 22f + 9f * MathUtil.A(p.Attr.Passing) + 4f * MathUtil.A(p.Attr.PhysicalPower);
+            float maxPower = 22f + 9f * MathUtil.A(p.Attr.Passing) + 4f * MathUtil.A(p.Attr.Passing); // (his foot, not his build)
             float v0;
             if (kind == KickKind.ThroughBall)
             {
@@ -579,7 +599,7 @@ namespace SoccerVision.Simulation
             float angle = kind == KickKind.ThroughBall ? 0.62f : (d > 35f ? 0.52f : 0.46f);
             // Drag-corrected ballistic estimate (exact solve happens only when the pass is executed).
             float v = MathF.Sqrt(d * Config.Gravity / MathF.Sin(2f * angle)) * (1f + 0.0032f * d);
-            float maxPower = 25f + 8f * MathUtil.A(p.Attr.Passing) + 5f * MathUtil.A(p.Attr.PhysicalPower);
+            float maxPower = 25f + 8f * MathUtil.A(p.Attr.Passing) + 5f * MathUtil.A(p.Attr.Passing);
             if (v > maxPower) return;
             float flight = 2f * v * MathF.Sin(angle) / Config.Gravity * 0.93f;
 
@@ -1233,6 +1253,7 @@ namespace SoccerVision.Simulation
             if (tech == ShotTechnique.Power || tech == ShotTechnique.PlacedNear || tech == ShotTechnique.PlacedFar) sigmaA *= WeakFootFactor(p, dir);
             if (volley) sigmaA *= 1.35f;
             sigmaA *= accuracy;
+            if (keeper != null && !penalty && Vec2.Distance(keeper.Pos, from) < 14f) sigmaA *= 1f + 0.5f * (1f - composure); // (cool in front of the keeper)
             float sigmaZ = (0.6f + 1.8f * (1f - skill)) * (1f + 0.5f * pressure) * p.FatigueError;
             if (penalty) sigmaZ *= 0.35f;
             if (tech == ShotTechnique.PlacedNear || tech == ShotTechnique.PlacedFar) sigmaZ *= 0.6f;

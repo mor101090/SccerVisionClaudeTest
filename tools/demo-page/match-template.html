@@ -1758,7 +1758,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var on = displayLineup().filter(function (n, i) { return i !== 0; });
     var html = '<div><h4>' + esc(title) + '</h4><div class="zones">';
     ZONES.forEach(function (z, i) {
-      html += '<label>' + (i + 1) + '. ' + esc(z) + '<select data-sp-zone="' + key + ':' + i + '"><option value="0">Auto</option>' + on.map(byNum).filter(Boolean).sort(function (a, b) { return (b.attrs["Heading"] || 0) - (a.attrs["Heading"] || 0); }).map(function (p) {
+      html += '<label>' + (i + 1) + '. ' + esc(z) + '<select data-sp-zone="' + key + ':' + i + '"><option value="0">Auto</option>' + on.map(byNum).filter(Boolean).sort(function (a, b) { return (b.attrs[19] || 0) - (a.attrs[19] || 0); }).map(function (p) {
         return '<option value="' + p.number + '"' + (PLAN.sp[key][i] === p.number ? " selected" : "") + '>' + esc(p.name) + (p.height ? " · " + p.height + "cm" : "") + '</option>'; }).join("") + '</select></label>';
     });
     return html + '</div></div>';
@@ -1774,13 +1774,13 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var keep = document.activeElement && document.activeElement.closest && document.activeElement.closest(".sp");
     if (keep && document.activeElement.tagName === "SELECT") return;
     c.innerHTML = '<p class="note">Click a player to add him next in the queue; the first takes it, and if he is substituted, injured or sent off the next steps up. Auto = the best on the pitch.</p>' +
-      '<div class="sp-cols">' + spList("ctr", "Right-side corners (taken from the right corner flag)", "Crossing", "Crossing") + spList("ctl", "Left-side corners", "Crossing", "Crossing") + '</div>' +
+      '<div class="sp-cols">' + spList("ctr", "Right-side corners (taken from the right corner flag)", 9, "Crossing") + spList("ctl", "Left-side corners", 9, "Crossing") + '</div>' +
       '<div class="sp-cols">' + spRoutine("crr", "Right-side routine") + spRoutine("crl", "Left-side routine") + '</div>' +
       '<div class="sp-cols">' + spZones("czr", "Who stands where - right corners") + spZones("czl", "Who stands where - left corners") + '</div>' + boxSvg() +
       '<p class="note">Zones: 1 near post, 2 far post, 3 penalty spot, 4 six-yard centre, 5 edge of the box, 6 rebound. Put your tall high-jumper at the near post, a quick finisher at the far post. Left Auto = the best headers go first.</p>';
     f.innerHTML = '<p class="note">Direct and crossed free kicks. The first on the list who is still on the pitch takes it.</p><div class="sp-cols">' +
-      spList("fkr", "Right-side free kicks", "Free Kicks", "Free kicks") + spList("fkl", "Left-side free kicks", "Free Kicks", "Free kicks") + '</div>';
-    p.innerHTML = '<p class="note">Click a player to add him next in the queue; the first on the pitch takes the penalty.</p>' + spList("pen", "Penalty takers", "Penalty", "Penalty");
+      spList("fkr", "Right-side free kicks", 20, "Free kicks") + spList("fkl", "Left-side free kicks", 20, "Free kicks") + '</div>';
+    p.innerHTML = '<p class="note">Click a player to add him next in the queue; the first on the pitch takes the penalty.</p>' + spList("pen", "Penalty takers", 21, "Penalty");
   }
   function drawAll() {
     var sel = $("formation");
