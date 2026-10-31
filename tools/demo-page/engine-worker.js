@@ -28,7 +28,7 @@ self.onmessage = async (e) => {
       postMessage({ type: "ready" });
     } else if (m.cmd === "start") {
       token = m.token; lead = m.lead; generated = 0; played = 0; held = !!m.hold;
-      const header = L.Start(m.seed, m.mode, m.weather, m.maintenance, m.wind, m.windAngle, m.night, m.plan || "");
+      const header = L.Start(m.seed, m.mode, m.weather, m.maintenance, m.wind, m.windAngle, m.night, m.plan || "", m.competition || "League");
       postMessage({ type: "header", token, header });
       if (!held) pump();
     } else if (m.cmd === "go") {

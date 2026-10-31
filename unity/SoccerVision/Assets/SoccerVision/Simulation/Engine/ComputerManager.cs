@@ -39,7 +39,7 @@ namespace SoccerVision.Simulation
         public void Update()
         {
             var clock = _engine.Clock;
-            if (clock.Period != MatchPeriod.FirstHalf && clock.Period != MatchPeriod.SecondHalf) return;
+            if (clock.Period != MatchPeriod.FirstHalf && clock.Period != MatchPeriod.SecondHalf && !clock.InExtraTime) return;
             ConsiderSubstitutions(clock);
             if (clock.Seconds < _nextCheck) return;
             _nextCheck = clock.Seconds + 4f * 60f;
@@ -109,11 +109,11 @@ namespace SoccerVision.Simulation
 
         private void ConsiderSubstitutions(MatchClock clock)
         {
-            if (clock.Period != MatchPeriod.SecondHalf || clock.Seconds < _nextSubCheck) return;
+            if ((clock.Period != MatchPeriod.SecondHalf && !clock.InExtraTime) || clock.Seconds < _nextSubCheck) return;
             _nextSubCheck = clock.Seconds + 60f;
             var me = _engine.TeamOf(_team);
             int left = _engine.SubstitutionsLeft(me);
-            if (left <= 0 || me.WindowsUsed >= _engine.Config.MaxSubstitutionWindows) return;
+            if (left <= 0 || me.WindowsUsed >= _engine.MaxWindowsNow) return;
             float minute = clock.Seconds / 60f;
             int diff = me.Score - me.Opponent.Score;
             _engine.UpdateRatings();

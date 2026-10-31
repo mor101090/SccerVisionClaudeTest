@@ -2,6 +2,9 @@ using System;
 
 namespace SoccerVision.Simulation
 {
+    /// <summary>What kind of match: a league match, a cup tie (level: penalties) or a league cup tie (level: extra time, then penalties).</summary>
+    public enum Competition { League, Cup, LeagueCup }
+
     /// <summary>
     /// All tunable numbers of a match. Defaults follow the design document (10 real minutes per half,
     /// 2 minute break) and the research notes in docs/RESEARCH.md.
@@ -25,6 +28,11 @@ namespace SoccerVision.Simulation
         /// fast-forwarded broadcast and packs more football into the 10 real minutes.
         /// </summary>
         public float MotionSpeed = 2.025f; // 90% of the original 2.25: the "right" match pace (playtested)
+        /// <summary>The competition: a league match ends after 90 minutes; a cup tie that is level goes to penalties; a league
+        /// cup tie that is level plays extra time (with one more substitution and opportunity) and then penalties.</summary>
+        public Competition Competition = Competition.League;
+        /// <summary>Real seconds of the break before extra time, and between its two periods.</summary>
+        public float ExtraTimeBreakRealSeconds = 30f, ExtraTimeHalfTimeRealSeconds = 6f;
         /// <summary>The teams and the officials walk out of the tunnel and line up before the kick-off (the viewers; off in tests).</summary>
         public bool WalkOut;
         /// <summary>Fixed physics step (sim seconds).</summary>

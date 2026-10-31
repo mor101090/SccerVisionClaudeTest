@@ -77,9 +77,11 @@ namespace SoccerVision.Simulation
             {
                 Emit(MatchEventType.ShotOffTarget, Ball.Shooter.Team, Ball.Shooter, null, Ball.Pos);
             }
+            ReleaseDeadBall(); // (it rolls on beyond the line; the restart is taken with a new ball)
             Ball.Owner = null;
             Ball.InHands = false;
             Ball.ClearFlight();
+            Ball.Place(spot); // (the new ball, already at the restart)
             ResolvePendingPass(null);
             ClearOffside();
             _penaltyKickTime = -1f;

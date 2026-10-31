@@ -244,6 +244,57 @@ namespace SoccerVision.Simulation
         }
 
         /// <summary>The kind of a slot in this formation; the two holding men of a 4-2-3-1 count as defensive midfielders.</summary>
+        /// <summary>True when the manager has moved positions by hand (built by <see cref="WithPositions"/>).</summary>
+        public bool IsCustom;
+
+        /// <summary>
+        /// The role a spot on the pitch means (team frame, metres): the back line below -27 (full-backs out wide), a holding
+        /// midfielder up to -19.5, central or wide midfield up to -11, attacking midfield or a winger up to -3.5, and up front
+        /// a striker (or a winger out wide). Dragging a holding midfielder up the board makes him an attacking midfielder.
+        /// </summary>
+        public static FormationSlot SlotAt(float forward, float lateral)
+        {
+            float al = MathF.Abs(lateral);
+            bool right = lateral < 0f;
+            if (forward < -27f)
+            {
+                if (al > 16f) return new FormationSlot(right ? Role.RightBack : Role.LeftBack, Line.Defence, forward, lateral, 0f);
+                return new FormationSlot(al < 3f ? Role.CentreBack : right ? Role.CentreBackRight : Role.CentreBackLeft, Line.Defence, forward, lateral, 0f);
+            }
+            if (forward < -19.5f)
+            {
+                if (al > 16f) return new FormationSlot(right ? Role.RightBack : Role.LeftBack, Line.Defence, forward, lateral, 0.1f); // (a wing-back)
+                return new FormationSlot(Role.DefensiveMidfielder, Line.Midfield, forward, lateral, 0.22f);
+            }
+            if (forward < -11f)
+            {
+                if (al > 16f) return new FormationSlot(right ? Role.RightMidfielder : Role.LeftMidfielder, Line.Midfield, forward, lateral, 0.5f);
+                return new FormationSlot(al < 3f ? Role.CentreMid : right ? Role.CentreMidRight : Role.CentreMidLeft, Line.Midfield, forward, lateral, 0.47f);
+            }
+            if (forward < -3.5f)
+            {
+                if (al > 14f) return new FormationSlot(right ? Role.RightWinger : Role.LeftWinger, Line.Midfield, forward, lateral, 0.8f);
+                return new FormationSlot(Role.AttackingMidfielder, Line.Midfield, forward, lateral, 0.74f);
+            }
+            if (al > 12f) return new FormationSlot(right ? Role.RightWinger : Role.LeftWinger, Line.Midfield, forward, lateral, 0.85f);
+            return new FormationSlot(al < 3f ? Role.Striker : right ? Role.StrikerRight : Role.StrikerLeft, Line.Attack, forward, lateral, 1f);
+        }
+
+        /// <summary>This formation with some positions moved by hand (forward, lateral per slot; NaN keeps a slot; the keeper stays).</summary>
+        public Formation WithPositions(float[] forward, float[] lateral)
+        {
+            var slots = (FormationSlot[])Slots.Clone();
+            bool any = false;
+            for (int i = 1; i < 11 && i < forward.Length; i++)
+            {
+                if (float.IsNaN(forward[i]) || float.IsNaN(lateral[i])) continue;
+                float f = Math.Max(-48f, Math.Min(8f, forward[i])), l = Math.Max(-32f, Math.Min(32f, lateral[i]));
+                slots[i] = SlotAt(f, l);
+                any = true;
+            }
+            return new Formation(Name, slots) { IsCustom = any };
+        }
+
         public PositionKind KindAt(int slot)
         {
             var s = Slots[slot];

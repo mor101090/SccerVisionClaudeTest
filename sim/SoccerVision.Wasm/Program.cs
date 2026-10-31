@@ -20,9 +20,11 @@ public static partial class LiveEngine
     /// <param name="mode">staged (the scripted incidents) | random | live</param>
     /// <param name="homePlan">Live only: your plan for the home team (see TeamPlan): formation, starting eleven, roles, instructions, takers, tactics. The staged match plays the squads as they are; in a random match both managers pick their own.</param>
     [JSExport]
-    public static string Start(int seed, string mode, string weather, double maintenance, double wind, double windAngle, bool night, string homePlan)
+    public static string Start(int seed, string mode, string weather, double maintenance, double wind, double windAngle, bool night, string homePlan, string competition)
     {
         var config = MatchConfig.CreateDefault();
+        // league match, cup tie (level: penalties) or league cup tie (level: extra time, then penalties)
+        if (!string.IsNullOrEmpty(competition) && Enum.TryParse<Competition>(competition, true, out var comp)) config.Competition = comp;
         config.Conditions = new MatchConditions
         {
             Weather = (Weather)Enum.Parse(typeof(Weather), weather, true),

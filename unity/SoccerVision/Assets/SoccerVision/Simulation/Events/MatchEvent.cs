@@ -2,7 +2,7 @@ using System;
 
 namespace SoccerVision.Simulation
 {
-    public enum MatchPeriod { NotStarted, FirstHalf, HalfTime, SecondHalf, FullTime }
+    public enum MatchPeriod { NotStarted, FirstHalf, HalfTime, SecondHalf, FullTime, ExtraTimeBreak, ExtraTimeFirstHalf, ExtraTimeSecondHalf, PenaltyShootout }
 
     public enum MatchEventType
     {
@@ -60,6 +60,12 @@ namespace SoccerVision.Simulation
         MomentumShift,
         /// <summary>A piece of skill (Detail): 1 fake shot (OtherPlayer: the defender sold), 2 backheel pass, 3 dummy - the ball let through the legs to a team-mate behind (OtherPlayer).</summary>
         Skill,
+        /// <summary>Extra time begins (Detail 1: the first period, 2: the second).</summary>
+        ExtraTime,
+        /// <summary>A level cup tie goes to penalties.</summary>
+        PenaltyShootout,
+        /// <summary>A kick of the shoot-out (Value 1 scored, 0 missed; Info "home-away" after it; OtherPlayer the keeper).</summary>
+        ShootoutKick,
     }
 
     /// <summary>

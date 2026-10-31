@@ -1,3 +1,4 @@
+using System;
 namespace SoccerVision.Simulation
 {
     public enum CommentaryTone { Normal, Goal, Foul, Card, Chance, Info, Red }
@@ -102,6 +103,12 @@ namespace SoccerVision.Simulation
                     return T(e.Team) + " get ready to make a change";
                 case MatchEventType.MomentumShift:
                     return T(e.Team) + " have the momentum";
+                case MatchEventType.ExtraTime:
+                    return e.Detail == 2 ? "The second period of extra time is under way" : "Extra time! 30 more minutes to settle it";
+                case MatchEventType.PenaltyShootout:
+                    return "It goes to penalties! " + T(e.Team) + " will kick first";
+                case MatchEventType.ShootoutKick:
+                    return (e.Value > 0.5f ? P(e.Player) + " scores his penalty" : P(e.Player) + (e.OtherPlayer >= 0 ? " is denied by " + P(e.OtherPlayer) : " misses")) + " (" + e.Info + ")";
                 case MatchEventType.Skill:
                     if (e.Detail == 1) return P(e.Player) + " shapes to shoot... and fakes it" + (e.OtherPlayer >= 0 ? " - " + P(e.OtherPlayer) + " is sold" : "") + "!";
                     if (e.Detail == 2) return P(e.Player) + " backheels it on";
@@ -148,7 +155,9 @@ namespace SoccerVision.Simulation
                 case MatchEventType.HalfTime:
                     return "Half time: " + m.Home.Name + " " + m.Home.Score + " - " + m.Away.Score + " " + m.Away.Name;
                 case MatchEventType.FullTime:
-                    return "Full time: " + m.Home.Name + " " + m.Home.Score + " - " + m.Away.Score + " " + m.Away.Name;
+                    return "Full time: " + m.Home.Name + " " + m.Home.Score + " - " + m.Away.Score + " " + m.Away.Name
+                           + (m.ShootoutWinner != null ? " - " + m.ShootoutWinner.Name + " win " + Math.Max(m.ShootoutScore[0], m.ShootoutScore[1]) + "-" + Math.Min(m.ShootoutScore[0], m.ShootoutScore[1]) + " on penalties"
+                              : m.ExtraTimeReached ? " after extra time" : "");
                 default:
                     return "";
             }

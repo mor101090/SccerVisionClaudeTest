@@ -12,6 +12,8 @@ namespace SoccerVision.Simulation
         GoalCelebration,
         HalfTimeBreak,
         FullTime,
+        /// <summary>The penalty shoot-out of a level cup tie.</summary>
+        PenaltyShootout,
     }
 
     public enum CelebrationKind
@@ -243,7 +245,7 @@ namespace SoccerVision.Simulation
                     HalftimeRealSeconds += used;
                     RealTimeElapsed += used;
                     realDt -= used;
-                    if (HalftimeRemaining <= 1e-6f) StartSecondHalf();
+                    if (HalftimeRemaining <= 1e-6f) EndBreak();
                     continue;
                 }
 
@@ -318,6 +320,7 @@ namespace SoccerVision.Simulation
             }
 
             UpdateTimers(dt);
+            UpdateDeadBall(dt);
             if (WalkingOut)
             {
                 StepWalkOut(dt);
@@ -334,6 +337,9 @@ namespace SoccerVision.Simulation
                     break;
                 case MatchPhase.GoalCelebration:
                     StepCelebration(dt);
+                    break;
+                case MatchPhase.PenaltyShootout:
+                    StepShootout(dt);
                     break;
             }
 
@@ -662,9 +668,9 @@ namespace SoccerVision.Simulation
         {
             if (Clock.AddedMinutes >= 0 || !Clock.Running) return;
             if (Clock.Seconds < Clock.PeriodRegulationEnd) return;
-            int min = Clock.Period == MatchPeriod.FirstHalf ? Config.MinAddedMinutesFirstHalf : Config.MinAddedMinutesSecondHalf;
+            int min = Clock.Period == MatchPeriod.FirstHalf ? Config.MinAddedMinutesFirstHalf : Clock.InExtraTime ? 0 : Config.MinAddedMinutesSecondHalf;
             // Goals, cards and penalties are measured; other stoppages (treatment, time-wasting) are estimated.
-            float other = Clock.Period == MatchPeriod.SecondHalf ? _rng.Range(30f, 110f) : _rng.Range(0f, 50f);
+            float other = Clock.Period == MatchPeriod.SecondHalf ? _rng.Range(30f, 110f) : Clock.InExtraTime ? _rng.Range(0f, 30f) : _rng.Range(0f, 50f);
             int fromLost = (int)MathF.Ceiling((Clock.LostSeconds + other) / 60f - 0.15f);
             Clock.AddedMinutes = MathUtil.Clamp(Math.Max(min, fromLost), 0, Config.MaxAddedMinutes);
             Emit(MatchEventType.AddedTime, null, null, null, Vec2.Zero, Clock.AddedMinutes);
@@ -709,9 +715,23 @@ namespace SoccerVision.Simulation
                 HalftimeRemaining = Config.HalftimeRealSeconds;
                 if (HalftimeRemaining <= 0f) StartSecondHalf();
             }
+            else if (Clock.Period == MatchPeriod.ExtraTimeFirstHalf)
+            {
+                // a quick change of ends between the two periods of extra time (Law 7: a short drinks break at most)
+                Emit(MatchEventType.Whistle, null, null, null, Ball.Pos, 0f, WhistleKind.HalfTime);
+                BeginBreak(Config.ExtraTimeHalfTimeRealSeconds, () => StartExtraTime(2));
+            }
+            else if (Home.Score == Away.Score && Config.Competition != Competition.League && Clock.Period != MatchPeriod.PenaltyShootout)
+            {
+                if (Clock.Period == MatchPeriod.SecondHalf) SecondHalfRealSeconds = RealTimeElapsed - _periodRealStart;
+                Emit(MatchEventType.Whistle, null, null, null, Ball.Pos, 0f, WhistleKind.FullTime);
+                // level after 90 minutes: the league cup plays extra time, the cup goes straight to penalties; after extra time, penalties
+                if (Clock.Period == MatchPeriod.SecondHalf && Config.Competition == Competition.LeagueCup) BeginBreak(Config.ExtraTimeBreakRealSeconds, () => StartExtraTime(1));
+                else BeginShootout();
+            }
             else
             {
-                SecondHalfRealSeconds = RealTimeElapsed - _periodRealStart;
+                if (Clock.Period == MatchPeriod.SecondHalf) SecondHalfRealSeconds = RealTimeElapsed - _periodRealStart;
                 Emit(MatchEventType.Whistle, null, null, null, Ball.Pos, 0f, WhistleKind.FullTime);
                 Clock.Period = MatchPeriod.FullTime;
                 Phase = MatchPhase.FullTime;
@@ -819,6 +839,9 @@ namespace SoccerVision.Simulation
                 foreach (var p in team.Players) p.SlotIndex = map[p.SlotIndex];
                 team.Formation = next;
             }
+            // positions moved by hand (or put back): the same slots, in their new places and roles
+            if (copy.SlotForward != null) team.Formation = Formation.ByName(team.Formation.Name).WithPositions(copy.SlotForward, copy.SlotLateral);
+            else if (team.Formation.IsCustom && copy.FormationName == team.Formation.Name) team.Formation = Formation.ByName(team.Formation.Name);
             team.Tactics = copy;
             var e = Emit(MatchEventType.TacticsChanged, team, null, null, Ball.Pos);
             e.Info = copy.Describe();

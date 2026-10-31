@@ -17,9 +17,14 @@ namespace SoccerVision.Simulation
         /// <summary>Clock seconds lost this half (goals, cards, penalties...) used for the added time.</summary>
         public float LostSeconds;
         public float RegulationHalfSeconds = 2700f;
+        /// <summary>A period of extra time (15 minutes).</summary>
+        public float ExtraHalfSeconds = 900f;
 
-        public float PeriodStartSeconds => Period == MatchPeriod.SecondHalf ? RegulationHalfSeconds : 0f;
-        public float PeriodRegulationEnd => PeriodStartSeconds + RegulationHalfSeconds;
+        public bool InExtraTime => Period == MatchPeriod.ExtraTimeFirstHalf || Period == MatchPeriod.ExtraTimeSecondHalf;
+        public float PeriodStartSeconds => Period == MatchPeriod.SecondHalf ? RegulationHalfSeconds
+                                         : Period == MatchPeriod.ExtraTimeFirstHalf ? 2f * RegulationHalfSeconds
+                                         : Period == MatchPeriod.ExtraTimeSecondHalf ? 2f * RegulationHalfSeconds + ExtraHalfSeconds : 0f;
+        public float PeriodRegulationEnd => PeriodStartSeconds + (InExtraTime ? ExtraHalfSeconds : RegulationHalfSeconds);
         public float PeriodElapsed => Seconds - PeriodStartSeconds;
         public bool InAddedTime => Seconds >= PeriodRegulationEnd;
         public float AddedTimeEnd => AddedMinutes < 0 ? float.PositiveInfinity : PeriodRegulationEnd + AddedMinutes * 60f;
@@ -32,6 +37,8 @@ namespace SoccerVision.Simulation
                 if (Period == MatchPeriod.NotStarted) return "0'";
                 if (Period == MatchPeriod.HalfTime) return "HT";
                 if (Period == MatchPeriod.FullTime) return "FT";
+                if (Period == MatchPeriod.ExtraTimeBreak) return "ET";
+                if (Period == MatchPeriod.PenaltyShootout) return "PENS";
                 float end = PeriodRegulationEnd;
                 if (Seconds < end)
                 {

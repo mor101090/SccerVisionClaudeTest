@@ -22,6 +22,8 @@ namespace SoccerVision.Simulation
         public int CornerRoutineRight = -1, CornerRoutineLeft = -1;
         public int[] CornerZonesRight, CornerZonesLeft;
         public CornerSpot[] CornerSetupAttack, CornerSetupDefence;
+        /// <summary>Positions moved by hand: forward/lateral per slot (NaN: not moved); null: none given.</summary>
+        public float[] SlotForward, SlotLateral;
         public bool HasTeamInstructions;
         public float Line = 0.5f, Width = 0.5f, Tempo = 0.5f, Aggression = 0.5f;
         public int Passing = 1, Defence, Attack, Special;
@@ -99,6 +101,21 @@ namespace SoccerVision.Simulation
                     case "pen": plan.PenaltyTakers = List(v); break;
                     case "crr": plan.CornerRoutineRight = Math.Max(0, Math.Min(5, I(v))); break;
                     case "crl": plan.CornerRoutineLeft = Math.Max(0, Math.Min(5, I(v))); break;
+                    case "pos":
+                        {
+                            // "1:-20.5:-18/6:-8:0": slot, forward, lateral; an empty value clears them
+                            plan.SlotForward = new float[11]; plan.SlotLateral = new float[11];
+                            for (int i = 0; i < 11; i++) { plan.SlotForward[i] = float.NaN; plan.SlotLateral[i] = float.NaN; }
+                            foreach (var e in v.Split('/'))
+                            {
+                                var x = e.Split(':');
+                                if (x.Length != 3) continue;
+                                int slot = I(x[0]);
+                                if (slot < 1 || slot > 10) continue;
+                                plan.SlotForward[slot] = F(x[1]); plan.SlotLateral[slot] = F(x[2]);
+                            }
+                            break;
+                        }
                     case "cpa": plan.CornerSetupAttack = Spots(v); break;
                     case "cpd": plan.CornerSetupDefence = Spots(v); break;
                     case "czr": { var z = List(v, true, 6); plan.CornerZonesRight = new int[6]; z.CopyTo(plan.CornerZonesRight, 0); break; }
@@ -143,6 +160,7 @@ namespace SoccerVision.Simulation
             if (CornerRoutineLeft >= 0) t.CornerRoutineLeft = CornerRoutineLeft;
             if (CornerZonesRight != null) t.CornerZonesRight = CornerZonesRight;
             if (CornerSetupAttack != null) t.CornerSetupAttack = CornerSetupAttack;
+            if (SlotForward != null) { t.SlotForward = SlotForward; t.SlotLateral = SlotLateral; }
             if (CornerSetupDefence != null) t.CornerSetupDefence = CornerSetupDefence;
             if (CornerZonesLeft != null) t.CornerZonesLeft = CornerZonesLeft;
             t.Sanitize();
@@ -190,6 +208,9 @@ namespace SoccerVision.Simulation
             }
             setup.Tactics = ToTactics(setup.Tactics);
             setup.Tactics.FormationName = setup.Formation.Name;
+            // positions moved by hand on the board
+            if (setup.Tactics.SlotForward != null)
+                setup.Formation = SoccerVision.Simulation.Formation.ByName(setup.Formation.Name).WithPositions(setup.Tactics.SlotForward, setup.Tactics.SlotLateral);
         }
 
         /// <summary>

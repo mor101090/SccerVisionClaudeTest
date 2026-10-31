@@ -31,7 +31,8 @@ namespace SoccerVision.Replay
         public const int StatsLength = 15 + 22 + 22;
         private const int PlayerBase = 9;
         private const int PlayerStride = 5;
-        public static readonly int FrameLength = PlayerBase + 22 * PlayerStride + 3 * 3;
+        /// <summary>... then the ball that went out and rolls on beyond the lines: x, y (decimetres), height (cm; -1: none).</summary>
+        public static readonly int FrameLength = PlayerBase + 22 * PlayerStride + 3 * 3 + 3;
 
         private readonly MatchEngine _engine;
         private readonly int _fps;
@@ -128,7 +129,10 @@ namespace SoccerVision.Replay
                 b.Append('}');
             }
             b.Append(",\"attrNames\":[\"Aggression\",\"Teamwork\",\"Composure\",\"Decisions\",\"Tackling\",\"Marking\",\"Positioning\",\"Creative\",\"Passing\",\"Crossing\",\"Finishing\",\"Long Shots\",\"Off The Ball\",\"Physical Power\",\"Ball Control\",\"Dribbling\",\"Acceleration\",\"Speed\",\"Jumping\",\"Heading\",\"Free Kicks\",\"Penalty\",\"Aerial Ability\",\"Handling\",\"Kicking\",\"One on One\",\"Reflexes\"]");
-            b.Append(",\"rules\":{\"maxSubs\":").Append(e.Config.MaxSubstitutions).Append(",\"windows\":").Append(e.Config.MaxSubstitutionWindows).Append('}');
+            b.Append(",\"rules\":{\"maxSubs\":").Append(e.MaxSubstitutionsNow).Append(",\"windows\":").Append(e.MaxWindowsNow).Append('}');
+            b.Append(",\"competition\":"); Str(b, e.Config.Competition.ToString());
+            if (e.ExtraTimeReached) b.Append(",\"aet\":true");
+            if (e.ShootoutScore[0] >= 0) b.Append(",\"shootout\":[").Append(e.ShootoutScore[0]).Append(',').Append(e.ShootoutScore[1]).Append(']');
             b.Append(",\"formations\":[");
             for (int i = 0; i < Formation.Names.Length; i++)
             {
@@ -329,6 +333,8 @@ namespace SoccerVision.Replay
                 f.Add(Q(o.Pos.Y));
                 f.Add(o.FlagRaised ? (o.FlagDir < 0 ? 4 : 1) : o.CardShown == 1 ? 2 : o.CardShown == 2 ? 3 : 0); // flag up, or the referee showing a yellow (2) or red (3) card
             }
+            if (e.DeadBallActive) { f.Add(Q(e.DeadBall.X)); f.Add(Q(e.DeadBall.Y)); f.Add((int)MathF.Round(e.DeadBall.Z * 100f)); }
+            else { f.Add(0); f.Add(0); f.Add(-1); }
         }
 
         private void AppendEvent(MatchEvent e)

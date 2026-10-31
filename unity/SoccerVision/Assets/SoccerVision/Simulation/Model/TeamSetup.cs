@@ -29,7 +29,7 @@ namespace SoccerVision.Simulation
     /// </summary>
     public enum DefenceStyle { Balanced, HighPress, OffsideTrap, ParkTheBus, HighBackline, InvertedFullBacks }
 
-    /// <summary>How the team attacks: mixed, crosses into the box, runs in behind, or shots from distance (20-30 m).</summary>
+    /// <summary>How the team attacks: mixed, crosses into the box, runs in behind, or shooting on sight (from the edge of the box and from distance).</summary>
     public enum AttackStyle { Mixed, CrossesIntoBox, RunsInBehind, LongShots }
 
     /// <summary>One extra tactic: keep the ball, waste time, counter-attacks, or relentless pressure on the box.</summary>
@@ -84,6 +84,8 @@ namespace SoccerVision.Simulation
         /// other side). Players not listed (or substitutes) are placed automatically. Empty: all automatic.
         /// </summary>
         public CornerSpot[] CornerSetupAttack = CornerSpot.None, CornerSetupDefence = CornerSpot.None;
+        /// <summary>Positions moved by hand on the formation board: forward and lateral per slot (NaN: the formation's own); null: none.</summary>
+        public float[] SlotForward, SlotLateral;
 
         public static PlayerOrders[] NewOrders()
         {
@@ -106,6 +108,7 @@ namespace SoccerVision.Simulation
             c.PenaltyTakers = (int[])PenaltyTakers.Clone();
             c.CornerZonesRight = (int[])CornerZonesRight.Clone(); c.CornerZonesLeft = (int[])CornerZonesLeft.Clone();
             c.CornerSetupAttack = (CornerSpot[])CornerSetupAttack.Clone(); c.CornerSetupDefence = (CornerSpot[])CornerSetupDefence.Clone();
+            if (SlotForward != null) { c.SlotForward = (float[])SlotForward.Clone(); c.SlotLateral = (float[])SlotLateral.Clone(); }
             return c;
         }
 

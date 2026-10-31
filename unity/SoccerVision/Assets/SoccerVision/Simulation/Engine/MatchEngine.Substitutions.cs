@@ -26,12 +26,19 @@ namespace SoccerVision.Simulation
         {
             int waiting = 0;
             foreach (var s in _pendingSubs) if (s.Out.Team == team) waiting++;
-            return Config.MaxSubstitutions - team.SubstitutionsUsed - waiting;
+            return MaxSubstitutionsNow - team.SubstitutionsUsed - waiting;
         }
 
         /// <summary>True if the team may still use a substitution opportunity: at half-time, during an opportunity already open, or with one left.</summary>
         private bool WindowAvailable(TeamAgent team) =>
-            Phase == MatchPhase.HalfTimeBreak || SecondHalfKickOff || (_restart != null && team.WindowRestart == _restart) || team.WindowsUsed < Config.MaxSubstitutionWindows;
+            Phase == MatchPhase.HalfTimeBreak || SecondHalfKickOff || ExtraTimeKickOff || (_restart != null && team.WindowRestart == _restart) || team.WindowsUsed < MaxWindowsNow;
+
+        /// <summary>Law 3: in extra time one more substitution and one more opportunity (the league cup).</summary>
+        public int MaxSubstitutionsNow => Config.MaxSubstitutions + (ExtraTimeReached ? 1 : 0);
+        public int MaxWindowsNow => Config.MaxSubstitutionWindows + (ExtraTimeReached ? 1 : 0);
+
+        /// <summary>The kick-off of a period of extra time is still being set up: changes now count as made in the break.</summary>
+        private bool ExtraTimeKickOff => _restart != null && _restart.Type == RestartType.KickOff && Clock.InExtraTime && Clock.Seconds <= Clock.PeriodStartSeconds + 1f;
 
         /// <summary>The kick-off of the second half is still being set up: changes now count as made at half-time (Law 3).</summary>
         private bool SecondHalfKickOff => _restart != null && _restart.Type == RestartType.KickOff && Clock.Period == MatchPeriod.SecondHalf && Clock.Seconds <= Config.RegulationHalfClockSeconds + 1f;
@@ -51,8 +58,9 @@ namespace SoccerVision.Simulation
             else if (off == null) why = "#" + outNumber + " is not on the pitch";
             else if (off.SentOff) why = off.Profile.ShortName + " has been sent off and cannot be replaced";
             else if (on == null) why = "#" + inNumber + " is not on the bench (a player who has come off cannot return)";
-            else if (SubstitutionsLeft(team) <= 0) why = "all " + Config.MaxSubstitutions + " substitutions are used";
-            else if (!WindowAvailable(team)) why = "all " + Config.MaxSubstitutionWindows + " substitution opportunities are used";
+            else if (Phase == MatchPhase.PenaltyShootout) why = "no changes during the penalty shoot-out";
+            else if (SubstitutionsLeft(team) <= 0) why = "all " + MaxSubstitutionsNow + " substitutions are used";
+            else if (!WindowAvailable(team)) why = "all " + MaxWindowsNow + " substitution opportunities are used";
             else
                 foreach (var s in _pendingSubs)
                     if (s.Out == off || s.In == on) why = "that change is already waiting";
@@ -88,7 +96,7 @@ namespace SoccerVision.Simulation
                 var p = s.Out;
                 if (p.SentOff || p.Injury == InjuryLevel.Serious) { _pendingSubs.RemoveAt(i); continue; } // (sent off meanwhile, or the injury change takes over)
                 var team = p.Team;
-                if (team.WindowRestart != _restart && !SecondHalfKickOff)
+                if (team.WindowRestart != _restart && !SecondHalfKickOff && !ExtraTimeKickOff)
                 {
                     team.WindowRestart = _restart;
                     team.WindowsUsed++;

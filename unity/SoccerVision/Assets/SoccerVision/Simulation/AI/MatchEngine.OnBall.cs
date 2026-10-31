@@ -142,9 +142,27 @@ namespace SoccerVision.Simulation
             // SHOOT
             float distGoal = Vec2.Distance(pos, team.AttackGoal);
             bool longShots = team.Tactics.Attack == AttackStyle.LongShots || p.Orders.LongShots == Amount.More;
-            if (distGoal < 34f && f > (longShots ? 12f : 18f))
+            // An open goal: the keeper is out of the way (off his line and not between the ball and the goal) and nobody
+            // blocks the lane - he shoots, he does not dribble on until the chance is gone.
+            bool openGoal = false;
+            if (distGoal < 26f && f > 22f)
+            {
+                var gk = team.Opponent.Goalkeeper;
+                bool keeperBeaten = gk == null || gk.SentOff || Vec2.DistanceToSegment(gk.Pos, pos, team.AttackGoal, out _) > 2.4f || gk.IsDown;
+                if (keeperBeaten)
+                {
+                    openGoal = true;
+                    foreach (var o in team.Opponent.Players)
+                    {
+                        if (o.SentOff || o == gk) continue;
+                        if (Vec2.DistanceToSegment(o.Pos, pos, team.AttackGoal, out _) < 1.2f) { openGoal = false; break; }
+                    }
+                }
+            }
+            if (distGoal < 34f && f > (longShots ? 12f : 18f) || openGoal)
             {
                 float xg = EstimateShotXG(p, pos);
+                if (openGoal) xg = MathF.Max(xg, MathUtil.Clamp(0.95f - distGoal * 0.018f, 0.5f, 0.92f));
                 float tendency = p.Slot.Line == Line.Attack ? (distGoal > 13f ? 0.45f : 0.55f)
                                 : p.Slot.IsCentralMidfielder ? (distGoal < 22f ? 1.7f : 0.9f)
                                 : (p.Slot.Line == Line.Midfield ? 0.95f : 0.6f);
@@ -153,12 +171,13 @@ namespace SoccerVision.Simulation
                 tendency *= 1.15f - 0.3f * MathUtil.A(p.Attr.Teamwork); // (a team player looks for the better-placed man; a selfish one has a go)
                 if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 1.7f; xg *= 1.1f; }
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
-                // long shots: the manager wants them from 20-30 m (the range where the shooter can still trouble the keeper)
-                if (longShots && distGoal > 16f && distGoal < 33f) tendency *= 2.2f;
+                // long shots: the manager wants a shot on sight - from the edge of the box out to about 30 m
+                if (longShots && distGoal > 12f && distGoal < 33f) tendency *= 2.2f;
                 if (team.Tactics.Special == SpecialTactic.Siege) tendency *= 1.2f;
                 // the individual instruction: shoot from distance more / less (inside the box he shoots as usual)
                 if (distGoal > 18f) tendency *= PlayerAgent.Scale(p.Orders.LongShots, 0.35f, 1.75f);
                 if (p.PlayRole == PlayerRole.ShadowStriker && distGoal < 18f) tendency *= 1.15f;
+                if (openGoal) { tendency = MathF.Max(tendency, 3f); if (CollectDiagnostics) Count("shot.openGoal.considered"); }
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
                 float afterShotLoss = 0.006f + 0.25f * _riskPremium;
                 _options.Add(new KickPlan

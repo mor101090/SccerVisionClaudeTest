@@ -15,6 +15,8 @@ export interface SoundEvent {
   awayScore?: number;
   /** Match minute (for the crowd's sense of time-wasting). */
   minute?: number;
+  /** The event's extra text (full time: "pens 4-3" after a shoot-out). */
+  info?: string;
 }
 
 /**
@@ -120,7 +122,7 @@ export class MatchSound {
     const len = Math.min(buf.duration - offset, opts.maxSeconds ?? buf.duration);
     const fadeIn = Math.min(opts.fadeIn ?? 0.4, len / 3);
     const fadeOut = Math.min(opts.fadeOut ?? 1.5, len / 2);
-    this.sampleBusy[name] = now + len * 0.6;
+    this.sampleBusy[name] = now + Math.min(1.8, len * 0.25); // (a card a few seconds after the foul is still heard)
     const pans = opts.wide ? [-0.85, 0, 0.85] : [opts.pan ?? 0];
     const each = opts.wide ? gain * 0.62 : gain;
     pans.forEach((p, k) => {
@@ -214,8 +216,8 @@ export class MatchSound {
         break;
       case "Save":
         this.thud(190, 0.08, 0.45);
-        // e.team is the keeper's side: a home shot saved
-        if (away) this.clapping(0.5);
+        // e.team is the keeper's side: a home shot saved - applause for the effort; the home keeper saves - applause for him
+        this.clapping(away ? 0.5 : 0.6);
         break;
       case "GoalkeeperClaim":
         this.thud(190, 0.08, 0.4);
@@ -231,7 +233,8 @@ export class MatchSound {
         // how hard it hit decides how loud it rings and how long the stadium echoes it
         const hard = Math.max(0, Math.min(1, ((e.value ?? 12) - 6) / 24));
         this.sample(e.detail === 2 ? "crossbar" : "goalpost", 1.4 + 0.9 * hard, { echo: hard, fadeIn: 0.005, fadeOut: 0.6 });
-        if (home) this.clapping(0.5);
+        // a home shot off the woodwork: applause for it; the visitors off the woodwork: relief, and applause
+        this.clapping(home ? 0.5 : 0.4);
         break;
       }
       case "Goal":
@@ -241,9 +244,9 @@ export class MatchSound {
           this.sample("after_goal", 1, { wide: true, offset: 2.05, maxSeconds: 8, fadeIn: 0.15, fadeOut: 3 });
           this.boost = 0.3;
         } else {
-          // The away section celebrates in one corner, far and quieter; the home fans are furious all round.
-          this.sample("after_goal", 0.3, { pan: 0.8, far: true, offset: 2.05, maxSeconds: 6, fadeIn: 0.3, fadeOut: 2.5 });
-          this.angry(0.7);
+          // The away section celebrates in one small corner, far and quiet; the rest of the ground boos.
+          this.sample("after_goal", 0.1, { pan: 0.85, far: true, offset: 2.05, maxSeconds: 5, fadeIn: 0.3, fadeOut: 2 });
+          this.booing(0.75);
           this.hush = 1;
         }
         break;
@@ -261,7 +264,8 @@ export class MatchSound {
         if (home) this.angry(0.75);
         break;
       case "YellowCard":
-        if (home) this.angry(0.8);
+        // a card for a home player: the home end is furious with the referee
+        if (home) this.angry(0.85);
         break;
       case "RedCard":
         if (home) {
@@ -276,6 +280,23 @@ export class MatchSound {
           this.booing(0.7);
         }
         break;
+      case "FullTime": {
+        // the home fans: a win is cheered, a defeat booed, a draw gets polite applause (a shoot-out decides it in a cup)
+        const pens = /pens (\d+)-(\d+)/.exec(e.info ?? "");
+        const h = pens ? +pens[1] : e.homeScore ?? 0;
+        const a = pens ? +pens[2] : e.awayScore ?? 0;
+        if (h > a) this.sample("after_goal", 0.85, { wide: true, offset: 2.05, maxSeconds: 8, fadeIn: 0.2, fadeOut: 3 });
+        else if (h < a) this.booing(0.85);
+        else this.clapping(0.5);
+        break;
+      }
+      case "ShootoutKick": {
+        const scored = (e.value ?? 0) > 0.5;
+        if (home === scored) this.sample("after_goal", scored ? 0.6 : 0.5, { wide: true, offset: 2.05, maxSeconds: 4, fadeIn: 0.1, fadeOut: 1.5 });
+        else if (!scored) this.angry(0.6);
+        else this.booing(0.5);
+        break;
+      }
       case "Substitution":
         // a late change by the visitors when they are ahead: wasting time - booed
         if (away && (e.awayScore ?? 0) > (e.homeScore ?? 0) && (e.minute ?? 0) >= 70) this.booing(0.6);

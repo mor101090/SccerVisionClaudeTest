@@ -59,6 +59,7 @@ namespace SoccerVision.Simulation
 
         private void RateEvent(MatchEvent e, PlayerAgent player, PlayerAgent other)
         {
+            if (Clock.Period == MatchPeriod.PenaltyShootout && e.Type != MatchEventType.FullTime) return; // (the shoot-out is not rated)
             switch (e.Type)
             {
                 case MatchEventType.Goal:
