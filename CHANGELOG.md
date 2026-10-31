@@ -2,6 +2,38 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/cup-modes-live-rewind-lineup-board`
+
+- **Cup modes** (settings - Competition): a league match ends after 90 minutes; a **cup** tie that is level goes straight to
+  penalties; a **league cup** tie that is level plays extra time (two periods of 15 minutes, ends changed in between) with
+  one more substitution and one more opportunity (IFAB Law 3), then penalties. The shoot-out (Law 10): five kicks each at
+  one goal, in turn, the keepers in goal for the other side; a team that can no longer be caught has won, then sudden death;
+  the manager's penalty takers kick first, then the best of the rest, the keeper last. Commentary for extra time and every
+  kick; the shoot-out is not rated. The scoreboard says "League match", "Cup match" or "League Cup match" and takes the look of
+  two of the Illustrator references (cup: yellow clock, black name boxes; league cup: yellow clock, light score box, the
+  logo strip above), with the SoccerVision logo; "ET", "PENS" and a penalties box during the shoot-out, "AET" at the end.
+- **The ball that goes out rolls on** beyond the line - off the advertising boards, off the outside of the net (it never
+  passes through it into the goal) - until it stops and is collected, while the restart is taken at once with a new ball.
+  The replay frames carry it (3 more numbers per frame).
+- **Open goal**: with the keeper out of the way and nobody in the lane, the player shoots instead of dribbling on.
+- **The formation board**: drag a player to an empty spot and his position moves there - the role follows the spot (a
+  holding midfielder dragged up becomes an attacking midfielder, out wide a winger); the engine builds the formation from
+  the moved positions (plan key `pos`).
+- **Tactics lock what contradicts them**: park the bus keeps the line deep (and no fast tempo or relentless pressure), a high
+  press, an offside trap or a high backline keep it up, counter-attacks are never slow and never short combinations,
+  possession is not played long or fast, time wasting is slow, crosses go wide, runs in behind need balls played behind;
+  locked options are greyed and say why.
+- **Long shots** shoot on sight - from the edge of the box too, not only from 20-30 m.
+- **Corners**: one player per zone (choosing him again swaps), and the routine's spot (near post, far post, penalty spot,
+  pulled back, short) is fixed on the Attack board - you can change who stands there, not where.
+- **Live match**: rewind to anything that has happened (the slider and the key moments), never past the live moment, which
+  carries on meanwhile; the Live button becomes "Back to live". The opponents' data (hover card, profile) is hidden.
+- **Sounds**: an away goal is a small cheer from one corner and booing from the rest of the ground; a card for a home player
+  angers the crowd every time; a home save, the visitors off the woodwork or a save turned behind for a corner get
+  applause; at full time the home crowd cheers a win, boos a defeat and applauds a draw; the shoot-out kicks get their
+  reactions.
+- **Fix**: the player profile opens again (a slip in the last round broke it).
+
 ## `feature/ratings-skills-audio-smart-manager`
 
 - **Player ratings 1-10**, live through the match and final at full time (everyone starts at 6.0: a goal +1.1, an assist

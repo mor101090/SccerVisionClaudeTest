@@ -1,0 +1,97 @@
+using System;
+using System.Linq;
+using SoccerVision.Simulation;
+using Xunit;
+
+namespace SoccerVision.Simulation.Tests
+{
+    /// <summary>Positions moved by hand on the board, the ball that rolls on beyond the line, and shooting at an open goal.</summary>
+    public class BoardAndDeadBallTests
+    {
+        [Theory]
+        [InlineData(-33f, 0f, PositionKind.CentreBack, "CB")]
+        [InlineData(-31f, -23f, PositionKind.FullBack, "RB")]
+        [InlineData(-23f, 0f, PositionKind.DefensiveMidfielder, "DM")]
+        [InlineData(-15f, 6f, PositionKind.CentralMidfielder, "CM")]
+        [InlineData(-8f, 0f, PositionKind.AttackingMidfielder, "AM")]
+        [InlineData(-6f, 24f, PositionKind.Winger, "LW")]
+        [InlineData(-1f, 0f, PositionKind.Striker, "ST")]
+        public void ASpotOnThePitchMeansARole(float forward, float lateral, PositionKind kind, string abbr)
+        {
+            var f = Formation.F442().WithPositions(Positions(5, forward, lateral), Positions(5, lateral, lateral));
+            Assert.True(f.IsCustom);
+            Assert.Equal(kind, f.KindAt(5));
+            Assert.Equal(abbr, Formation.RoleAbbreviation(f.Slots[5].Role));
+        }
+
+        private static float[] Positions(int slot, float v, float _)
+        {
+            var a = Enumerable.Repeat(float.NaN, 11).ToArray();
+            a[slot] = v;
+            return a;
+        }
+
+        [Fact]
+        public void APlanMovesAHoldingMidfielderUpAndHePlaysThere()
+        {
+            var red = DemoTeams.Red();
+            TeamPlan.Parse("formation=4-4-2;pos=6:-7:0").ApplyBeforeKickOff(red);
+            Assert.Equal(PositionKind.AttackingMidfielder, red.Formation.KindAt(6));
+            var e = new MatchEngine(red, DemoTeams.Blue(), 4, MatchConfig.CreateDefault());
+            double sum = 0; int n = 0;
+            while (!e.IsFinished && e.Clock.Seconds < 30 * 60)
+            {
+                e.Advance(0.5f);
+                var p = e.Home.Players.FirstOrDefault(q => q.SlotIndex == 6);
+                if (p != null && e.Phase == MatchPhase.Live) { sum += e.Home.Forward(p.Pos); n++; }
+            }
+            var plain = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 4, MatchConfig.CreateDefault());
+            double sum2 = 0; int n2 = 0;
+            while (!plain.IsFinished && plain.Clock.Seconds < 30 * 60)
+            {
+                plain.Advance(0.5f);
+                var p = plain.Home.Players.FirstOrDefault(q => q.SlotIndex == 6);
+                if (p != null && plain.Phase == MatchPhase.Live) { sum2 += plain.Home.Forward(p.Pos); n2++; }
+            }
+            Assert.True(sum / n > sum2 / n2 + 3, $"moved up: {sum / n:0.0} m v {sum2 / n2:0.0} m");
+        }
+
+        [Fact]
+        public void TheBallThatGoesOutRollsOnThenIsGone()
+        {
+            var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 8, MatchConfig.CreateDefault());
+            bool seen = false, outside = false, gone = false;
+            float seenAt = -1f;
+            while (!e.IsFinished && !(seen && gone))
+            {
+                e.Advance(0.1f);
+                if (e.DeadBallActive)
+                {
+                    if (!seen) seenAt = e.SimTime;
+                    seen = true;
+                    var b = e.DeadBall;
+                    if (MathF.Abs(b.X) > Pitch.HalfLength || MathF.Abs(b.Y) > Pitch.HalfWidth) outside = true;
+                    // never inside a goal from outside
+                    Assert.False(MathF.Abs(b.X) > Pitch.HalfLength + 0.2f && MathF.Abs(b.X) < Pitch.HalfLength + Pitch.GoalDepth - 0.2f
+                                 && MathF.Abs(b.Y) < Pitch.GoalHalfWidth - 0.3f && b.Z < Pitch.GoalHeight - 0.3f, "the dead ball went into the net");
+                }
+                else if (seen) gone = true;
+            }
+            Assert.True(seen && outside && gone, "the dead ball was seen beyond the line and then collected");
+            Assert.Equal(0, e.RecoveredErrors);
+        }
+
+        [Fact]
+        public void APlayerShootsAtAnOpenGoal()
+        {
+            int considered = 0;
+            for (ulong seed = 60; seed < 66; seed++)
+            {
+                var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed, MatchConfig.CreateDefault()) { CollectDiagnostics = true };
+                e.RunToEnd();
+                considered += e.Diagnostics.GetValueOrDefault("shot.openGoal.considered");
+            }
+            Assert.True(considered > 0, "no open goal ever seen in six matches");
+        }
+    }
+}
