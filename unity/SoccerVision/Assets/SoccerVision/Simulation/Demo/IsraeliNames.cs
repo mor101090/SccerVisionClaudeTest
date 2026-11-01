@@ -1,0 +1,84 @@
+using System;
+using System.Collections.Generic;
+
+namespace SoccerVision.Simulation
+{
+    /// <summary>
+    /// The demo squads' names, drawn from the Israeli name database (data/names/israel.txt; duplicates removed - a name may
+    /// still be both a first name and a surname). Every seed names the players anew: the two squads draw their surnames from
+    /// different halves of a shuffled list, so nobody shares a surname across the match, and the managers get names too.
+    /// </summary>
+    public static class IsraeliNames
+    {
+        public static readonly string[] First =
+        {
+            "Avi", "Avior", "Aviel", "Aviv", "Avigad", "Avidor", "Avidan", "Avihu", "Avichai", "Avihan", "Avimelech",
+            "Avinadav", "Avinoam", "Aviner", "Avinatan", "Aviad", "Aviezer", "Aviam", "Avikam", "Abir", "Aviraz",
+            "Aviram", "Aviran", "Avishor", "Avishai", "Eviatar", "Avner", "Avshalom", "Adam", "Adir", "Hadar", "Ohad",
+            "Ehud", "Eliav", "Aaron", "Ofir", "Ofek", "Or", "Orel", "Ori", "Oren", "Orian", "Osher", "Oshri", "Eyal",
+            "Eilon", "Ilai", "Ilan", "Itamar", "Eitan", "Elad", "Eliad", "Assa", "Elisha", "Almog", "Amir", "Amitai",
+            "Amit", "Elroi", "Arik", "Asaf", "Erez", "Afik", "Efraim", "Arie", "Ari", "Ariel", "Arnon", "Asher",
+            "Baari", "Ben", "Benjamin", "Benia", "Boaz", "Bezalel", "Baruch", "Bar", "Boris", "Barak", "Gabriel",
+            "Gavriel", "Gad", "Gideon", "Golan", "Goel", "Gershom", "Dov", "Dvir", "Dovev", "David", "Dolev", "Dor",
+            "Doron", "Doriel", "Dotan", "Din", "Dan", "Daniel", "Dekel", "Dror", "Hertzel", "Zeev", "Zoar", "Ziv",
+            "Haviv", "Hagai", "Tal", "Tal Or", "Talmor", "Dimitri", "Haim", "Hanoch", "Yair", "Igal", "Yagil", "Iahav",
+            "Yeuda", "Yonatan", "Yoni", "Yoel", "Yohai", "Yoav", "Yuval", "Yogev", "Yohanan", "Yona", "Adi", "Yosef",
+            "Yoram", "Yotam", "Izhar", "Yehezkel", "Yehiel", "Yam", "Yanai", "Inon", "Ianir", "Yaakov", "Itzhak",
+            "Yakir", "Yarden", "Yaron", "Yariv", "Yarin", "Ishai", "Kfir", "Carmi", "Liel", "Lior", "Lev", "Levi",
+            "Leon", "Lidor", "Liron", "Mor", "Maor", "Meir", "Meidan", "Menachem", "Mordechai", "Matan", "Hen", "Naor",
+            "Nitzan", "Nevo", "Nimrod", "Nissan", "Nir", "Nitai", "Noam", "Naftali", "Neria", "Natan", "Netanel",
+            "Stav", "Slav", "Slava", "Ido", "Ofer", "Omri", "Eran", "Peleg", "Paz", "Pinhas", "Tzvi", "Israel",
+            "Koren", "Reem", "Ravid", "Roi", "Roei", "Rom", "Roni", "Rotem", "Rafael", "Raz", "Ran", "Shaul",
+            "Shaanan", "Sagi", "Shoam", "Shimshon", "Shlomo", "Shaked", "Tomer", "Tom", "Tamir", "Guy", "Yedidia",
+            "Dudu", "Nissim", "Shahar", "Shimi", "Omer", "Shalom", "Shalev",
+        };
+
+        public static readonly string[] Last =
+        {
+            "Shaul", "Aviel", "Avivi", "Aviv", "Avigur", "Avidan", "Avinoam", "Aviad", "Avishai", "Even", "Avner",
+            "Egozi", "Admoni", "Uriel", "Zuriel", "Eyalon", "Ilan", "Eldad", "Elul", "Malul", "Efrat", "Argov",
+            "Argaman", "Arad", "Arazi", "Harazi", "Arieli", "Ashkenazi", "Etgar", "Ben Ari", "Ben Baruch", "Barak",
+            "Ben Gera", "Ben Dayan", "Ben Hur", "Ben Zaken", "Ben David", "Ben Haim", "Ben Yehuda", "Shem Tov",
+            "Ben Nun", "Ben Porat", "Ben Zur", "Bentov", "Ben Shushan", "Banai", "Bar Or", "Bar Natan", "Barel",
+            "Barzilai", "Bracha", "Barkat", "Gaon", "Gabai", "Geva", "Gad", "Gadot", "Gedalia", "Gonen", "Goren",
+            "Ziv", "Zcharia", "Gil", "Gazit", "Ginosar", "Gilboa", "Galil", "Gafni", "Gershon", "Dovrat", "Dagan",
+            "Dahan", "Vardi", "Zeev", "Zvulun", "Zahavi", "Zoar", "David", "Davidi", "Dolev", "Dor", "Dori", "Drori",
+            "Dayan", "Dar", "Golan", "Zamir", "Zakai", "Hermon", "Tuvia", "Tovim", "Tal", "Talmon", "Yavin", "Yagur",
+            "Tadin", "Yedidia", "Iaffa", "Ifrah", "Yefet", "Itzhak", "Itzhaki", "Yekutiel", "Yekutieli", "Yardeni",
+            "Yarden", "Yerushalmi", "Hetzroni", "Ishai", "Israel", "Israeli", "Cohen", "Cochav", "Caspi", "Lev Ari",
+            "Lotem", "Levi", "Levian", "Lish", "Lapid", "Leshem", "Meir", "Maor", "Megido", "Magel", "Moria", "Mazor",
+            "Matmon", "Madmon", "Meitar", "Malki", "Melamed", "Manor", "Solomon", "Menachem", "Marom", "Meshulam",
+            "Noi", "Noam", "Unger", "Nuriel", "Nachum", "Nehama", "Nahshon", "Nitzan", "Nitai", "Nimrod", "Netzer",
+            "Nativ", "Ovad", "Ovadia", "Oz", "Uziel", "Omer", "Atzili", "Projanski", "Dutov", "Davidov", "Savranski",
+            "Azuz", "Amir", "Amit", "Amrami", "Amrani", "Peer", "Porat", "Polek", "Gozlan", "Paz", "Zfadya", "Peled",
+            "Pereg", "Tzabar", "Zadok", "Tzur", "Kadmon", "Kehat", "Katan", "Kishon", "Katzav", "Kashti", "Raviv",
+            "Ravid", "Rahav", "Revah", "Sherf", "Raz", "Raziel", "Ramon", "Remez", "Ratzon", "Reshef", "Shauli",
+            "Shmuel", "Shavit", "Shabtai", "Shabat", "Segev", "Sagi", "Shor", "Shurk", "Shushan", "Schori", "Shilon",
+            "Shiri", "Tamir", "Tikva", "Tamuz", "Tel Zur", "Tirosh", "Tor", "Tadmor", "Tagar", "Tavori", "Tavor",
+            "Sharon", "Shkalim", "Shaked", "Sahar", "Shemesh", "Shivhon", "Shalem", "Shalom",
+        };
+
+        /// <summary>Names a squad (starters, bench and manager) from the match's <paramref name="seed"/> (the same for both
+        /// teams); <paramref name="half"/> 0 (home) or 1 (away) keeps the two teams' surnames apart.</summary>
+        public static void Name(TeamSetup team, ulong seed, int half)
+        {
+            // one shuffle of the surnames for the match (the same for both teams), then each team takes its own half
+            var rng = new Random((int)((seed * 7919UL + (ulong)half * 104729UL) % int.MaxValue));
+            var lasts = new List<string>(Last);
+            var order = new Random((int)(seed % int.MaxValue));
+            for (int i = lasts.Count - 1; i > 0; i--) { int j = order.Next(i + 1); (lasts[i], lasts[j]) = (lasts[j], lasts[i]); }
+            int per = lasts.Count / 2, k = half * per;
+            var used = new HashSet<string>();
+            var players = new List<PlayerProfile>(team.Starters);
+            players.AddRange(team.Bench);
+            foreach (var p in players)
+            {
+                string last;
+                do last = lasts[k++ % lasts.Count]; while (!used.Add(last) && k < 4 * lasts.Count);
+                p.FirstName = First[rng.Next(First.Length)];
+                p.LastName = last;
+            }
+            team.Manager = First[rng.Next(First.Length)] + " " + lasts[k++ % lasts.Count];
+        }
+    }
+}

@@ -35,8 +35,10 @@ public static partial class LiveEngine
         };
         if (mode == "staged") config.Script = MatchScript.Staged();
         config.WalkOut = true; // (the teams and the officials come out of the tunnel first)
-        var home = DemoTeams.Red();
-        var away = DemoTeams.Blue();
+        // the players' names are drawn anew for every match (from the Israeli name database)
+        ulong names = (ulong)seed * 2654435761UL + 17UL;
+        var home = DemoTeams.Red(names);
+        var away = DemoTeams.Blue(names);
         if (mode == "random")
         {
             // a random match: both managers pick a random formation, eleven, roles and instructions

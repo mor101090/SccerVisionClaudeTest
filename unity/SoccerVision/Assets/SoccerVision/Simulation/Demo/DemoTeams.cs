@@ -33,7 +33,8 @@ namespace SoccerVision.Simulation
             return t;
         }
 
-        /// <summary>Red Rovers defend zonally and tackle normally.</summary>
+        /// <summary>Red Rovers defend zonally and tackle normally. <paramref name="seed"/> names the players (the same seed for
+        /// both teams of a match keeps their surnames apart).</summary>
         public static TeamSetup Red(ulong seed = 1001)
         {
             var t = FromGenerated("Red Rovers", "RED", new KitColors
@@ -44,14 +45,14 @@ namespace SoccerVision.Simulation
                 GoalkeeperPrimary = "#F9D71C",
                 GoalkeeperNumber = "#1A1A1A",
             }, GeneratedTeams.Red());
-            t.Manager = "Daniel Harper";
+            IsraeliNames.Name(t, seed, 0);
             t.Tactics.Marking = MarkingStyle.Zonal;
             t.Tactics.Tackling = TacklingStyle.Normal;
             return t;
         }
 
         /// <summary>Blue Falcons mark man-to-man and get stuck in (more slide tackles).</summary>
-        public static TeamSetup Blue(ulong seed = 2002)
+        public static TeamSetup Blue(ulong seed = 1001)
         {
             var t = FromGenerated("Blue Falcons", "BLU", new KitColors
             {
@@ -61,7 +62,7 @@ namespace SoccerVision.Simulation
                 GoalkeeperPrimary = "#2E9E4F",
                 GoalkeeperNumber = "#FFFFFF",
             }, GeneratedTeams.Blue());
-            t.Manager = "Marco Lindqvist";
+            IsraeliNames.Name(t, seed, 1);
             t.Tactics.Marking = MarkingStyle.ManToMan;
             t.Tactics.Tackling = TacklingStyle.GetStuckIn;
             return t;
