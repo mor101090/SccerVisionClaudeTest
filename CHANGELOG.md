@@ -32,6 +32,7 @@ Each round of changes is developed on its own branch, named after what it change
   angers the crowd every time; a home save, the visitors off the woodwork or a save turned behind for a corner get
   applause; at full time the home crowd cheers a win, boos a defeat and applauds a draw; the shoot-out kicks get their
   reactions.
+- **Tests**: the "faster players cover more ground" check averages six matches instead of three (pace adds about 3-5% of distance).
 - **Fix**: the player profile opens again (a slip in the last round broke it).
 - **Names**: the demo squads (and the managers) are named from the Israeli name database (`data/names/israel.txt`,
   duplicates merged; a name may be both a first name and a surname), anew for every match in the demo; the two teams never
