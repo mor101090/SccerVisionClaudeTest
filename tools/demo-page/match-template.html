@@ -59,18 +59,21 @@ h1 { margin: 2px 0 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--display); lett
 .sb-sub { display: inline-flex; align-items: center; gap: .5em; height: 1.3em; padding: 0 .8em 0 .3em; background: #7b8bb0; color: #fff; font-size: .78em; }
 .sb-sub img { height: 1.081em; width: auto; display: block; filter: drop-shadow(0 0 1px rgba(0,0,0,.35)); }
 .sb-pens { background: #e2372f; padding: 0 .45em; font-size: .8em; font-weight: 700; }
-/* the cup (reference variant 2): yellow clock, black name boxes, a dark score, the strip below fading out */
-.sb.cup .sb-clock { background: #ffe500; color: #111; }
-.sb.cup .sb-team { background: #231f20; box-shadow: none; border-right: .25em solid var(--team, #888); }
-.sb.cup #ab { border-right: 0; border-left: .25em solid var(--team, #888); }
-.sb.cup .sb-score { background: #231f20; }
-.sb.cup .sb-sub { background: linear-gradient(90deg, #3c3c3c 55%, rgba(60,60,60,0)); padding-right: 3.5em; }
-/* the league cup (reference variant 4): yellow clock, light score box, the strip above */
-.sb.lcup { display: flex; flex-direction: column; }
-.sb.lcup .sb-sub { order: -1; align-self: flex-start; background: #c8c8c8; color: #fff; }
-.sb.lcup .sb-clock { background: #ffe500; color: #111; }
-.sb.lcup .sb-team { background: #231f20; }
-.sb.lcup .sb-score { background: #d9d9d9; color: #111; }
+/* the cup (reference variant 2): a slim bar - the clock in the page's steel blue, black name plates, a dark score, the strip below fading out */
+.sb.cup .sb-row { height: 1.42em; }
+.sb.cup .sb-clock { background: var(--amber); min-width: 3em; padding: 0 .45em; }
+.sb.cup .sb-team { background: #1d1f2a; box-shadow: none; min-width: 4.6em; padding: 0 .7em; border-right: .22em solid var(--team, #888); }
+.sb.cup #ab { border-right: 0; border-left: .22em solid var(--team, #888); }
+.sb.cup .sb-score { background: #3a4058; min-width: 2.7em; }
+.sb.cup .sb-sub { background: linear-gradient(90deg, #3a4058 55%, rgba(58,64,88,0)); padding-right: 3.5em; }
+/* the league cup (the broadcast bar): slanted ends, a light score box between two zigzags in the teams' colours */
+.sb.lcup .sb-row { height: 1.5em; filter: drop-shadow(0 .12em .2em rgba(0,0,0,.35)); }
+.sb.lcup .sb-clock { background: var(--amber); min-width: 3.3em; padding: 0 .75em 0 .5em; clip-path: polygon(0 0, 100% 0, 86% 50%, 100% 100%, 0 100%); }
+.sb.lcup .sb-team { background: #1d1f2a; box-shadow: none; min-width: 4.8em; padding: 0 .9em; margin-left: -.35em; }
+.sb.lcup #hb { clip-path: polygon(0 0, 100% 0, 92% 100%, 4% 100%); padding-left: 1.1em; }
+.sb.lcup #ab { clip-path: polygon(8% 0, 100% 0, 96% 100%, 0 100%); margin-left: -.35em; padding-right: 1.1em; }
+.sb.lcup .sb-score { background: #e9ecf3; color: #14161f; min-width: 3.1em; margin-left: -.5em; padding: 0 .85em; clip-path: polygon(7% 0, 100% 0, 93% 100%, 0 100%); box-shadow: inset .3em 0 var(--home, #d32f2f), inset -.3em 0 var(--away, #1e5bc6); font-weight: 600; }
+.sb.lcup .sb-sub { background: #3a4058; }
 .topctl { position: absolute; right: 2.2%; top: 2.4%; display: flex; align-items: center; gap: .5em; font-size: clamp(18px, 2.6cqi, 32px); }
 .topctl button.icon { background: none; border: 0; padding: .1em; color: #fff; line-height: 0; border-radius: 6px; }
 .topctl button.icon:hover { background: rgba(0,0,0,.15); }
@@ -104,9 +107,49 @@ h1 { margin: 2px 0 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--display); lett
 .cbar { position: absolute; left: 50%; bottom: 1.6%; transform: translateX(-50%); width: 66%; min-height: 1.9em; display: flex; align-items: center; justify-content: center; padding: .25em 1.2em; border-radius: 999px; background: #444; color: #fff; font: 600 clamp(11px, 1.55cqi, 15px)/1.25 var(--body); text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
 .cbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 canvas { display: block; width: 100%; height: 100%; }
-/* ---- the line-ups before the walk-out (broadcast style, the page's palette) ---- */
+/* ---- the line-ups before the walk-out: a broadcast "team sheet" per side, in the page's palette ---- */
+.lineups { position: absolute; inset: 0; z-index: 40; overflow: hidden; color: var(--text); background: radial-gradient(120% 90% at 50% 120%, #3a4466 0%, rgba(34,38,52,0) 60%), linear-gradient(180deg, #1b1e2b, #222634); }
+.lineups[hidden] { display: none; }
+.lineups::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(100deg, rgba(139,156,196,.05) 0 40px, transparent 40px 80px); animation: luPan 18s linear infinite; }
+@keyframes luPan { to { background-position: 160px 0; } }
+.lu-top { position: absolute; left: 3%; right: 3%; top: 3%; display: flex; align-items: center; justify-content: space-between; z-index: 2; }
+.lu-top img { height: 2.2em; width: auto; filter: drop-shadow(0 1px 3px rgba(0,0,0,.5)); animation: luFade .8s both; }
+.lu-comp { font: 700 clamp(10px, 1.3cqi, 15px)/1 var(--display); letter-spacing: .22em; text-transform: uppercase; color: var(--accent-hi); }
+.lu-top button { padding: 5px 12px; }
+.lu-stage { position: absolute; inset: 11% 3% 6%; display: grid; place-items: center; }
+.lu-team { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(150px, 30%) minmax(0, 1fr) minmax(110px, 22%); gap: 2.2%; align-items: stretch; opacity: 0; pointer-events: none; }
+.lu-team.on { opacity: 1; pointer-events: auto; }
+.lu-team.on .lu-col, .lu-team.on .lu-mid, .lu-team.on .lu-right { animation: luSlide .7s cubic-bezier(.2,.8,.2,1) both; }
+.lu-team.on .lu-mid { animation-name: luRise; animation-delay: .1s; }
+.lu-team.on .lu-right { animation-name: luSlideR; animation-delay: .25s; }
+.lu-team.out { opacity: 0; transition: opacity .5s; }
+@keyframes luSlide { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
+@keyframes luSlideR { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+@keyframes luRise { from { opacity: 0; transform: translateY(30px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes luFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes luDrop { from { opacity: 0; transform: translateY(-26px) scale(1.3); } to { opacity: 1; transform: none; } }
+@keyframes luRow { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+.lu-col { display: grid; align-content: start; gap: 2px; min-height: 0; padding-right: 2%; border-right: 2px solid var(--tc); font-size: clamp(11px, 1.45cqi, 16px); }
+.lu-name { font: 800 clamp(16px, 2.6cqi, 30px)/1.05 var(--display); letter-spacing: .06em; text-transform: uppercase; padding-bottom: .35em; margin-bottom: .2em; border-bottom: 2px solid var(--tc); }
+.lu-col h4 { margin: .7em 0 .15em; font: 700 .72em/1 var(--body); letter-spacing: .16em; text-transform: uppercase; color: var(--accent-hi); }
+.lu-col .r { display: grid; grid-template-columns: 1.9em minmax(0, 1fr); gap: .5em; opacity: 0; animation: luRow .45s ease-out both; }
+.lu-col .r i { font-style: normal; font-weight: 800; text-align: right; color: var(--tc-ink, #fff); }
+.lu-col .r.sub { color: #c9cdd8; font-size: .92em; }
+.lu-col .coach { color: var(--muted); } .lu-col .coach b { color: #fff; font-weight: 700; }
+.lu-mid { position: relative; min-height: 0; display: grid; place-items: center; }
+.lu-mid svg { height: 100%; max-height: 100%; width: auto; max-width: 100%; border-radius: 10px; background: linear-gradient(180deg, #236b34, #2c7a3d); box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.35); }
+.lu-mid svg .ln { fill: none; stroke: rgba(255,255,255,.7); stroke-width: .5; }
+.lu-mid svg .sh { opacity: 0; animation: luDrop .55s cubic-bezier(.2,.9,.3,1.2) both; }
+.lu-mid svg .nm { font: 700 3.3px/1 var(--body); text-anchor: middle; fill: #fff; paint-order: stroke; stroke: rgba(0,0,0,.65); stroke-width: .7px; text-transform: uppercase; }
+.lu-right { display: grid; align-content: center; justify-items: center; gap: .6em; text-align: center; }
+.lu-right .big { width: min(100%, 9em); }
+.lu-right .big svg { width: 100%; height: auto; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+.lu-right .fm { font: 800 clamp(20px, 3.6cqi, 44px)/1 var(--display); letter-spacing: .08em; color: var(--accent-hi); }
+.lu-right .cmp { font: 600 clamp(10px, 1.2cqi, 14px)/1.2 var(--body); color: var(--muted); letter-spacing: .12em; text-transform: uppercase; }
+.lu-bar { position: absolute; left: 3%; right: 3%; bottom: 3%; height: 3px; background: rgba(255,255,255,.12); border-radius: 2px; overflow: hidden; z-index: 2; } .lu-bar b { display: block; height: 100%; width: 0; background: var(--amber); }
+@media (max-width: 640px) { .lu-team { grid-template-columns: 1fr; grid-template-rows: auto 1fr; } .lu-right { display: none; } }
 .modes button.back { background: #e2372f; color: #fff; }
-.lineups { position: absolute; inset: 0; z-index: 6; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: rgba(20, 23, 33, .94); color: var(--text); padding: 12px 14px 10px; gap: 10px; overflow: auto; }
+.lineups { position: absolute; inset: 0; z-index: 40; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: rgba(20, 23, 33, .94); color: var(--text); padding: 12px 14px 10px; gap: 10px; overflow: auto; }
 .lineups[hidden] { display: none; }
 .lu-head { display: flex; justify-content: space-between; align-items: center; }
 .lu-title { font: 800 20px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; }
@@ -472,8 +515,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       </div>
     </div>
     <div class="lineups" id="lineups" hidden role="dialog" aria-label="Starting line-ups">
-      <div class="lu-head"><span class="lu-title">Starting line-ups</span><button id="luSkip" type="button">Skip</button></div>
-      <div class="lu-body"><div class="lu-team" id="luHome"></div><div class="lu-team" id="luAway"></div></div>
+      <div class="lu-top"><img alt="SoccerVision" src="data:image/png;base64,__LOGO__"><span class="lu-comp" id="luComp">Starting line-ups</span><button id="luSkip" type="button">Skip</button></div>
+      <div class="lu-stage"><div class="lu-team" id="luHome"></div><div class="lu-team" id="luAway"></div></div>
       <div class="lu-bar"><b id="luBar"></b></div>
     </div>
     <div class="overlay" id="ht" hidden>
@@ -2224,30 +2267,49 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   function lineupCard(tm) {
     var f = formationOf(tm.formation) || formationOf("4-4-2"), kit = tm.kit, bySlot = [];
     tm.players.forEach(function (p, i) { bySlot[p.slot != null ? p.slot : i] = p; });
-    var svg = '<svg viewBox="0 0 68 70" aria-hidden="true"><rect class="ln" x="1" y="1" width="66" height="68"/><rect class="ln" x="14" y="53" width="40" height="16"/><rect class="ln" x="25" y="63.5" width="18" height="5.5"/><path class="ln" d="M24.85 1 A9.15 9.15 0 0 0 43.15 1"/>';
+    var ink = textOn(kit.primary) === "#111" ? "#111111" : "#ffffff";
     var fMin = Math.min.apply(null, f.slots.map(function (q) { return q.f; })), fMax = Math.max.apply(null, f.slots.map(function (q) { return q.f; }));
-    f.slots.forEach(function (sl, i) {
-      var p = bySlot[i]; if (!p) return;
-      // own goal at the bottom, attacking upwards; the formation's depth squeezed onto the half-length drawing
-      var x = 34 - sl.l * .9, y = 64 - (sl.f - fMin) / Math.max(1, fMax - fMin) * 54, gk = i === 0;
-      svg += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3.2" fill="' + (gk ? kit.gk : kit.primary) + '" stroke="#fff" stroke-width=".4"/>' +
-        '<text x="' + x.toFixed(1) + '" y="' + (y + 1.5).toFixed(1) + '" fill="' + (gk ? kit.gkNumber : kit.number) + '">' + p.number + '</text>';
+    var svg = '<svg viewBox="0 0 100 130" aria-hidden="true"><rect class="ln" x="2" y="2" width="96" height="126"/><line class="ln" x1="2" x2="98" y1="65" y2="65"/><circle class="ln" cx="50" cy="65" r="12"/>' +
+      '<rect class="ln" x="22" y="2" width="56" height="22"/><rect class="ln" x="36" y="2" width="28" height="9"/><rect class="ln" x="22" y="106" width="56" height="22"/><rect class="ln" x="36" y="119" width="28" height="9"/>';
+    // the keeper first, then back to front: each shirt drops in on its spot
+    var order = f.slots.map(function (sl, i) { return i; }).sort(function (a, b) { return f.slots[a].f - f.slots[b].f; });
+    order.forEach(function (i, k) {
+      var sl = f.slots[i], p = bySlot[i]; if (!p) return;
+      var x = 50 - sl.l * 1.45, y = 118 - (sl.f - fMin) / Math.max(1, fMax - fMin) * 96, gk = i === 0;
+      x = Math.max(11, Math.min(89, x));
+      svg += '<g transform="translate(' + (x - 7.5).toFixed(1) + ' ' + (y - 11).toFixed(1) + ')"><g class="sh" style="animation-delay:' + (0.5 + k * 0.11).toFixed(2) + 's"><g transform="scale(.25)">' +
+        '<path d="M18 6 L24 3 Q30 8 36 3 L42 6 L52 13 L47 21 L42 18 L42 42 L18 42 L18 18 L13 21 L8 13 Z" transform="scale(1)" fill="' + (gk ? kit.gk : kit.primary) + '" stroke="rgba(0,0,0,.4)" stroke-width="1.2"/>' +
+        '<text x="30" y="33" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="800" font-size="17" fill="' + (gk ? kit.gkNumber : kit.number) + '">' + p.number + '</text></g></g></g>' +
+        '<text class="nm sh" style="animation-delay:' + (0.6 + k * 0.11).toFixed(2) + 's" x="' + x.toFixed(1) + '" y="' + (y + 7.2).toFixed(1) + '">' + esc(p.shortName) + '</text>';
     });
     svg += '</svg>';
-    var xi = f.slots.map(function (sl, i) { var p = bySlot[i]; return p ? '<div class="r"><i>' + p.number + '</i><span>' + esc(p.name) + '</span><em>' + esc(sl.abbr) + '</em></div>' : ""; }).join("");
-    var subs = (tm.bench || []).map(function (p) { return '<div class="r sub"><i>' + p.number + '</i><span>' + esc(p.name) + '</span><em>' + esc(p.role) + '</em></div>'; }).join("");
-    return '<div class="lu-band" style="--tc:' + kit.primary + '"><b>' + esc(tm.name) + '</b><span>' + esc(f.name) + '</span></div>' +
-      '<div class="lu-main">' + svg + '<div class="lu-list"><h4>Starting XI</h4>' + xi + '<h4>Substitutes</h4>' + subs + '</div></div>' +
-      '<div class="lu-mgr">Manager: <b>' + esc(tm.manager || "-") + '</b></div>';
+    var d = 0.2, row = function (cls, num, name, extra) { d += 0.07; return '<div class="r ' + cls + '" style="animation-delay:' + d.toFixed(2) + 's"><i>' + num + '</i><span>' + esc(name) + (extra || "") + '</span></div>'; };
+    var xi = order.map(function (i) { var p = bySlot[i]; return p ? row("", p.number, p.name, i === 0 ? " (GK)" : "") : ""; }).join("");
+    var subs = (tm.bench || []).map(function (p) { return row("sub", p.number, p.name); }).join("");
+    var bigShirt = '<svg viewBox="0 0 60 44" aria-hidden="true"><path d="M18 6 L24 3 Q30 8 36 3 L42 6 L52 13 L47 21 L42 18 L42 42 L18 42 L18 18 L13 21 L8 13 Z" fill="' + kit.primary + '" stroke="rgba(0,0,0,.35)" stroke-width=".8"/></svg>';
+    return '<div class="lu-col" style="--tc:' + kit.primary + '"><div class="lu-name">' + esc(tm.name) + '</div><h4>Starting XI</h4>' + xi +
+      '<h4>Coach</h4><div class="coach"><b>' + esc(tm.manager || "-") + '</b></div><h4>Substitutes</h4>' + subs + '</div>' +
+      '<div class="lu-mid">' + svg + '</div>' +
+      '<div class="lu-right"><div class="big">' + bigShirt + '</div><div class="fm">' + esc(f.name) + '</div><div class="cmp">' + esc(tm.shortName || "") + '</div></div>';
   }
   function showLineups(done) {
     if (!R) { done(); return; }
-    $("luHome").innerHTML = lineupCard(R.home); $("luAway").innerHTML = lineupCard(R.away);
-    var el = $("lineups"), bar = $("luBar"), start = performance.now(), len = 10000;
+    var comp = R.competition === "Cup" ? "Cup match" : R.competition === "LeagueCup" ? "League Cup match" : "League match";
+    $("luComp").textContent = comp + " - starting line-ups";
+    var homeEl = $("luHome"), awayEl = $("luAway");
+    homeEl.innerHTML = lineupCard(R.home); awayEl.innerHTML = lineupCard(R.away);
+    homeEl.className = "lu-team"; awayEl.className = "lu-team";
+    var el = $("lineups"), bar = $("luBar"), start = performance.now(), each = 7500, len = each * 2;
     el.hidden = false; setPlaying(false);
     clearInterval(luTimer);
-    luDone = function () { clearInterval(luTimer); luDone = null; el.hidden = true; setPlaying(true); done(); };
-    luTimer = setInterval(function () { var k = (performance.now() - start) / len; bar.style.width = Math.min(100, k * 100) + "%"; if (k >= 1 && luDone) luDone(); }, 100);
+    luDone = function () { clearInterval(luTimer); luDone = null; el.hidden = true; homeEl.className = awayEl.className = "lu-team"; setPlaying(true); done(); };
+    var shown = -1;
+    luTimer = setInterval(function () {
+      var k = (performance.now() - start) / len; bar.style.width = Math.min(100, k * 100) + "%";
+      var which = k < .5 ? 0 : 1;
+      if (which !== shown) { shown = which; (which ? homeEl : awayEl).className = "lu-team out"; var nx = which ? awayEl : homeEl; nx.className = "lu-team"; void nx.offsetWidth; nx.className = "lu-team on"; }
+      if (k >= 1 && luDone) luDone();
+    }, 100);
   }
   $("luSkip").addEventListener("click", function () { if (luDone) luDone(); });
 

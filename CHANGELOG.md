@@ -34,12 +34,17 @@ Each round of changes is developed on its own branch, named after what it change
   reactions.
 - **Tests**: the "faster players cover more ground" check averages six matches instead of three (pace adds about 3-5% of distance).
 - **Fix**: the player profile opens again (a slip in the last round broke it).
-- **Names**: the demo squads (and the managers) are named from the Israeli name database (`data/names/israel.txt`,
-  duplicates merged; a name may be both a first name and a surname), anew for every match in the demo; the two teams never
-  share a surname. The same seed gives the same names, so a replay stays the same.
-
-## `feature/ratings-skills-audio-smart-manager`
-
+- **Names**: the demo squads (and the managers) are named from the name databases (`data/names`: Israeli, Spanish,
+  American; duplicates merged; a name may be both a first and a surname), anew for every match. The squads are Israeli with
+  14 foreigners in the whole match - 7 Spanish and 7 American - spread over the two squads; the two teams never share a
+  surname; the same seed gives the same names, so a replay stays the same.
+- **The new ball**: when the ball goes out, a new one is rolled in from beyond the touchline to the restart spot (nobody is
+  seen bringing it), while the old one rolls on and stops.
+- **Line-ups, as a broadcast show**: each team in turn (7.5 s): the starting XI list on the left (numbers, the keeper), the
+  coach and the substitutes; the shirts drop onto their spots on a pitch in the middle, staggered keeper first; the shirt
+  and formation on the right; the SoccerVision logo, in the page's palette. Skip at any time.
+- **Scoreboards**: the cup bar is slimmer and in the page's colours (steel-blue clock, dark plates); the league cup bar has
+  slanted ends and a light score box between the two teams' colours, as in the reference.
 - **Player ratings 1-10**, live through the match and final at full time (everyone starts at 6.0: a goal +1.1, an assist
   +0.7, a save +0.3, a tackle won +0.12, an interception +0.1, take-ons, the woodwork, passing completion, the score and a
   clean sheet; fouls, cards, a penalty given away, an own goal and goals conceded cost). The cards and the team sheet show

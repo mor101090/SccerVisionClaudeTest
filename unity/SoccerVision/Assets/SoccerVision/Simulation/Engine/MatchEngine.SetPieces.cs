@@ -18,8 +18,12 @@ namespace SoccerVision.Simulation
         private Vec2 _penaltyDiveTarget;
         private Vec2 _lastShotCrossing;
 
+        private Vec2 _newBallFrom;
+        private bool _newBallRolls;
+
         private void BeginRestart(RestartType type, TeamAgent team, Vec2 spot, PlayerAgent taker)
         {
+            if (type != RestartType.CornerKick && type != RestartType.GoalKick && type != RestartType.ThrowIn) _newBallRolls = false;
             Phase = MatchPhase.Stoppage;
             Ball.Owner = null;
             Ball.InHands = false;
@@ -907,7 +911,24 @@ namespace SoccerVision.Simulation
 
             if (!r.BallPlaced)
             {
-                if (r.Timer > 0.6f)
+                if (_newBallRolls)
+                {
+                    // a ball boy's ball, rolled in from beyond the touchline (nobody is seen): it slows and stops on the spot
+                    const float roll = 1.5f;
+                    float k = MathUtil.Clamp01(r.Timer / roll), e = 1f - (1f - k) * (1f - k);
+                    Vec2 pos = Vec2.Lerp(_newBallFrom, r.Spot, e);
+                    float v = 2f * (1f - k) * (r.Spot - _newBallFrom).Length / roll;
+                    Vec2 dir = (r.Spot - _newBallFrom).Normalized;
+                    Ball.M = new BallMotion { X = pos.X, Y = pos.Y, Z = Pitch.BallRadius, Vx = dir.X * v, Vy = dir.Y * v };
+                    Ball.PrevPos = pos;
+                    if (r.Timer >= roll)
+                    {
+                        Ball.Place(r.Spot);
+                        r.BallPlaced = true;
+                        _newBallRolls = false;
+                    }
+                }
+                else if (r.Timer > 0.6f)
                 {
                     Ball.Place(r.Spot);
                     r.BallPlaced = true;

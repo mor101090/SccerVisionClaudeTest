@@ -81,7 +81,10 @@ namespace SoccerVision.Simulation
             Ball.Owner = null;
             Ball.InHands = false;
             Ball.ClearFlight();
-            Ball.Place(spot); // (the new ball, already at the restart)
+            // the new ball: brought in from beyond the touchline, it rolls to the restart (see StepRestartBall)
+            _newBallFrom = new Vec2(spot.X, (Pitch.HalfWidth + 9f) * (spot.Y >= 0f ? 1f : -1f));
+            _newBallRolls = true;
+            Ball.Place(_newBallFrom);
             ResolvePendingPass(null);
             ClearOffside();
             _penaltyKickTime = -1f;
