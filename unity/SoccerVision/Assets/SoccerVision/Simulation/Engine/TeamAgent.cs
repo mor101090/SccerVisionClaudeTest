@@ -50,6 +50,8 @@ namespace SoccerVision.Simulation
         public float LineForward = -33f;     // current back line (local forward)
         /// <summary>Counter-attack tactic: until this sim time the team has just won the ball in its own half and goes forward fast.</summary>
         public float CounterUntil;
+        /// <summary>The tempo of the moment on top of the manager's tempo (see MatchEngine.UpdateSituationalTempo).</summary>
+        public float TempoShift;
         /// <summary>Offside trap: the defender who misses the step up for a moment (the trap fails when someone does).</summary>
         public PlayerAgent TrapBreaker;
         public float TrapBrokenUntil;
@@ -235,6 +237,8 @@ namespace SoccerVision.Simulation
         public int ThirdManRuns, ThirdManPasses, ThirdManCompleted;
         /// <summary>Counter-movements: a runner comes short first to drag his marker, then goes in behind.</summary>
         public int CounterMovements;
+        /// <summary>Deep completions: ground passes received within ~20 m of the goal, in front of it or in a half-space.</summary>
+        public int DeepCompletions;
         /// <summary>Counter-press: the ball lost, the nearest players swarm it at once; won back inside the window.</summary>
         public int CounterPresses, CounterPressWins;
         /// <summary>Long throws into the six-yard box.</summary>

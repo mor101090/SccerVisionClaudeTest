@@ -323,7 +323,7 @@ namespace SoccerVision.Simulation
             }
             SnapshotOffside(p, false);
             _penaltyKickTime = -1f;
-            float tempo = p.Team.Eff.Tempo;
+            float tempo = TempoNow(p.Team);
             p.DecisionTimer = MathUtil.Clamp(0.1f + 0.3f * (1f - MathUtil.A(p.Attr.BallControl)) + relSpeed * 0.012f - 0.08f * (tempo - 0.5f), 0.08f, 0.6f);
             p.OneTwoUntil = -1f; // (the return ball has arrived, or the run is over)
             p.ThirdManUntil = -1f;

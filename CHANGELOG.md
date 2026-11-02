@@ -2,6 +2,24 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/player-intelligence`
+
+The players read the game better (from tactical analyses of top teams: splitting the press, tempo control, deep completions) -
+behaviours, not tactics to set (`AI/MatchEngine.TeamAI.Intelligence.cs`):
+
+- **Splitting the presser**: the two players nearest the ball offer it on both sides of the man closing it down (he cannot shut two
+  lanes), at a distance that makes him choose - not so close that he covers both, not so far that the pass is slow. When the man on the
+  ball faces his own goal or is squeezed, one of them drops off behind him for the way out. How well a player does it is his reading of the
+  game (off the ball, decisions). In a sample of matches the second man takes the other side of the presser in about three of four choices.
+- **The tempo of the moment**: the manager's tempo is the base; the team calms down against a press in its own half (draws it on, plays
+  short) and speeds up for a few seconds after winning the ball, while the opponents are out of shape; against a deep block it keeps the
+  ball moving. It eases over about a second. The passing (weight, the value of going forward or back) and the time on the ball follow it.
+- **Deep completions**: a ground ball into the space within ~20 m of the goal, in front of it or in a half-space, is worth more to a
+  creative passer than a hopeful cross; counted in the team statistics (`DeepCompletions`, about 6-7 per team a match).
+- Calibration (60 matches, before -> after): goals 3.72 -> 3.67, shots 35.8 -> 35.0, passes 403 -> 411, completion 77.9% -> 78.4%,
+  headed goals 11.7% -> 14.1% of goals; the rest within the noise.
+- Tests: `IntelligenceTests`.
+
 ## `feature/faces-and-logos`
 
 Groundwork for portraits that are made once for each player, and for club crests made from a sentence (tools/faces/README.md):

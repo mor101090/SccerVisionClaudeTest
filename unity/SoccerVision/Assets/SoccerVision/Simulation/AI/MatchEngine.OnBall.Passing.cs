@@ -7,7 +7,7 @@ namespace SoccerVision.Simulation
     /// <summary>In possession - passing: ground and lofted passes, through balls, switches, one-twos and third-man runs, the kick itself.</summary>
     public sealed partial class MatchEngine
     {
-        private bool _pendingThrough, _pendingIntoSpace, _pendingSwitch, _pendingOneTwo, _pendingThirdMan;
+        private bool _pendingThrough, _pendingIntoSpace, _pendingSwitch, _pendingOneTwo, _pendingThirdMan, _pendingGround;
 
         // A corner routine for the commentary (Cross event Detail: 1 near post, 2 far post, 3 middle, 4 edge of the box;
         // Value: 1 in-swinger, 2 out-swinger) and how much harder a corner taker bends it.
@@ -164,7 +164,7 @@ namespace SoccerVision.Simulation
             }
             else
             {
-                float arrival = MathUtil.Clamp(5f + 0.09f * d, 5f, 10.5f) * (0.9f + 0.25f * team.Eff.Tempo);
+                float arrival = MathUtil.Clamp(5f + 0.09f * d, 5f, 10.5f) * (0.9f + 0.25f * TempoNow(team));
                 v0 = Roll.KickSpeedFor(d, arrival);
             }
             if (v0 > maxPower) return;
@@ -218,13 +218,17 @@ namespace SoccerVision.Simulation
             if (team.Forward(from) > 38f && MathF.Abs(team.Lateral(from)) > 13f && team.Forward(target) > 34f && team.Forward(target) < team.Forward(from) - 2f
                 && MathF.Abs(team.Lateral(target)) < 11f && kind == KickKind.Pass)
                 value *= 1.5f;
+            // Deep completion: a ground ball into the space in front of the goal or a half-space, within ~20 m - the
+            // better his creativity, the more he looks for it (a controlled ball there is worth more than a hopeful cross).
+            if (kind != KickKind.LongPass && IsDeepZone(team, target) && !IsDeepZone(team, from))
+                value *= 1.06f + 0.12f * MathUtil.A(p.Attr.Creativity);
             float progress = team.Forward(target) - team.Forward(from);
             // Central midfielders are the ones who move the game on: they look for the forward pass.
             if (p.Slot.IsCentralMidfielder && progress > 5f) value *= 1.12f;
             // ...and the build-up goes through them: defenders look for the midfielder first.
             if (q.Slot.IsCentralMidfielder && p.Slot.Line == Line.Defence && kind == KickKind.Pass) value *= 1.15f;
-            value += MathF.Max(0f, progress) * 0.00022f * (0.6f + 0.8f * team.Eff.Tempo);
-            if (progress < -5f) value -= 0.0006f * (team.Eff.Tempo - 0.3f) * (-progress / 10f);
+            value += MathF.Max(0f, progress) * 0.00022f * (0.6f + 0.8f * TempoNow(team));
+            if (progress < -5f) value -= 0.0006f * (TempoNow(team) - 0.3f) * (-progress / 10f);
             float loss = LossCost(team, pIntercept > 0.3f ? riskPoint : target) + _riskPremium;
             float utility = success * value - (1f - success) * loss;
 
@@ -352,7 +356,7 @@ namespace SoccerVision.Simulation
             float relief = SwitchRelief(p, from, target, pressure) * (p.Has(PlayerTrait.SwitchesPlay) ? 1.6f : 1f) * LowBlockSwitch(team);
             value += relief;
             float progress = team.Forward(target) - team.Forward(from);
-            value += MathF.Max(0f, progress) * 0.0002f * (0.6f + 0.8f * team.Eff.Tempo);
+            value += MathF.Max(0f, progress) * 0.0002f * (0.6f + 0.8f * TempoNow(team));
             float utility = success * value - (1f - success) * (LossCost(team, target) * 0.85f + _riskPremium);
 
             _options.Add(new KickPlan
@@ -564,7 +568,7 @@ namespace SoccerVision.Simulation
             var passer = Ball.PendingPassFrom;
             if (passer == null) return;
             Ball.PendingPassFrom = null;
-            bool through = _pendingThrough, intoSpace = _pendingIntoSpace, wasSwitch = _pendingSwitch, oneTwo = _pendingOneTwo, thirdMan = _pendingThirdMan;
+            bool through = _pendingThrough, intoSpace = _pendingIntoSpace, wasSwitch = _pendingSwitch, oneTwo = _pendingOneTwo, thirdMan = _pendingThirdMan, ground = _pendingGround;
             _pendingThrough = _pendingIntoSpace = _pendingSwitch = _pendingOneTwo = _pendingThirdMan = false;
             string key = _lastPassKey;
             if (oneTwo && CollectDiagnostics)
@@ -589,6 +593,7 @@ namespace SoccerVision.Simulation
                     if (wasSwitch) passer.Team.Stats.SwitchesCompleted++;
                     if (oneTwo && controller.OneTwoWith == passer) passer.Team.Stats.OneTwosCompleted++;
                     if (thirdMan) passer.Team.Stats.ThirdManCompleted++;
+                    if (ground && IsDeepZone(passer.Team, controller.Pos)) passer.Team.Stats.DeepCompletions++;
                     if (CollectDiagnostics)
                     {
                         Count("pass.completed");

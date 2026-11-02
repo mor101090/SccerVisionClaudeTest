@@ -67,7 +67,7 @@ namespace SoccerVision.Simulation
                 case BallAction.Dribble:
                     p.Target = plan.DribbleTarget;
                     p.Urgency = plan.Action == BallAction.Dribble ? 0.85f : 0.3f;
-                    p.DecisionTimer = (plan.Action == BallAction.Dribble ? 0.42f : 0.32f) * (1.25f - 0.5f * p.Team.Eff.Tempo) * _rng.Range(0.8f, 1.2f);
+                    p.DecisionTimer = (plan.Action == BallAction.Dribble ? 0.42f : 0.32f) * (1.25f - 0.5f * TempoNow(p.Team)) * _rng.Range(0.8f, 1.2f);
                     break;
                 default:
                     float turn = MathF.Abs(MathUtil.AngleDiff(p.Facing, plan.Heading));
@@ -346,6 +346,7 @@ namespace SoccerVision.Simulation
                 _pendingThrough = plan.Kind == KickKind.ThroughBall && !plan.IntoSpace;
                 _pendingIntoSpace = plan.IntoSpace;
                 _pendingSwitch = plan.IsSwitch;
+                _pendingGround = !plan.Lofted;
                 if (_pendingSwitch)
                 {
                     p.Team.Stats.Switches++;

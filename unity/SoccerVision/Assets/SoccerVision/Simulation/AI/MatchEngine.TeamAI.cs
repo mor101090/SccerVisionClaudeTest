@@ -106,8 +106,8 @@ namespace SoccerVision.Simulation
             if (overload && !team.OverloadOn) team.Stats.Overloads++;
             team.OverloadOn = overload;
 
-            if (inPossession) AssignSupport(team);
-            else team.Supporters.Clear();
+            if (inPossession) { AssignSupport(team); UpdateSituationalTempo(team); }
+            else { team.Supporters.Clear(); team.TempoShift = 0f; }
             AssignMarking(team, inPossession, ballF);
         }
 
@@ -442,12 +442,16 @@ namespace SoccerVision.Simulation
             Vec2 best = supporter.ShapeTarget;
             float bestScore = float.NegativeInfinity;
             Vec2 shapeLocal = team.ToLocal(supporter.ShapeTarget);
-            for (int ring = 0; ring < 2; ring++)
+            var presser = Presser(carrier);
+            // (a carrier facing his own goal or squeezed: the second man offers the way out behind him too)
+            bool dropOff = avoid.X < 900f && NeedsDropOff(carrier);
+            for (int ring = 0; ring < 3; ring++)
             {
-                float radius = ring == 0 ? 11f : 18f;
+                if (ring == 2 && !dropOff) break;
+                float radius = ring == 0 ? 11f : ring == 1 ? 18f : 10f;
                 for (int k = 0; k < 8; k++)
                 {
-                    float ang = -1.35f + k * (2.7f / 7f); // forward-facing fan, local frame
+                    float ang = ring == 2 ? 1.9f + k * (2.5f / 7f) : -1.35f + k * (2.7f / 7f); // forward-facing fan (the drop-off: behind), local frame
                     Vec2 local = cLocal + new Vec2(MathF.Cos(ang), MathF.Sin(ang)) * radius;
                     // Bias the fan towards the supporter's own zone.
                     local = Vec2.Lerp(local, shapeLocal, 0.25f);
@@ -463,7 +467,8 @@ namespace SoccerVision.Simulation
                                   + MathUtil.Clamp(laneClear, 0f, 6f) * 0.35f
                                   + MathUtil.Clamp(nearestOpp, 0f, 10f) * 0.2f
                                   - MathF.Max(0f, distFromShape - 10f) * 0.12f
-                                  - (Vec2.Distance(world, avoid) < 6f ? 2f : 0f);
+                                  - (Vec2.Distance(world, avoid) < 6f ? 2f : 0f)
+                                  + SplitScore(supporter, carrier, presser, world, avoid);
                     if (score > bestScore)
                     {
                         bestScore = score;
@@ -471,6 +476,8 @@ namespace SoccerVision.Simulation
                     }
                 }
             }
+            if (CollectDiagnostics && presser != null && avoid.X < 900f)
+                Count(SideOf(carrier.Pos, presser.Pos, best) != SideOf(carrier.Pos, presser.Pos, avoid) ? "support.split" : "support.sameSide");
             return best;
         }
 
