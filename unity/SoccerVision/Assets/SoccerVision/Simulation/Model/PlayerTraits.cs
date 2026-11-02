@@ -128,9 +128,6 @@ namespace SoccerVision.Simulation
                     if (r <= 0) { set |= t; break; }
                 }
             }
-            // the hard tackler is an aggressive player by definition: 70 to 85
-            if ((set & PlayerTrait.HardTackler) != 0 && a.Aggression < HardTacklerAggression)
-                a.Aggression = HardTacklerAggression + rng.Next(16);
             return set;
         }
 
@@ -138,8 +135,19 @@ namespace SoccerVision.Simulation
         public static void Assign(TeamSetup t, int seed)
         {
             var rng = new Random(seed * 7919 + 131);
-            foreach (var p in t.Starters) p.Traits = Generate(p, rng);
-            foreach (var p in t.Bench) p.Traits = Generate(p, rng);
+            var all = new List<PlayerProfile>(t.Starters);
+            all.AddRange(t.Bench);
+            foreach (var p in all) p.Traits = Generate(p, rng);
+            // A squad has one or two hard men, not a team of them: the best tacklers keep the trait.
+            var hard = all.FindAll(p => (p.Traits & PlayerTrait.HardTackler) != 0);
+            hard.Sort((x, y) => y.Attributes.Tackling.CompareTo(x.Attributes.Tackling));
+            for (int i = 0; i < hard.Count; i++)
+            {
+                var p = hard[i];
+                if (i >= 2) { p.Traits &= ~PlayerTrait.HardTackler; continue; }
+                // the hard tackler is an aggressive player by definition: 70 to 80
+                if (p.Attributes.Aggression < HardTacklerAggression) p.Attributes.Aggression = HardTacklerAggression + rng.Next(11);
+            }
         }
     }
 }

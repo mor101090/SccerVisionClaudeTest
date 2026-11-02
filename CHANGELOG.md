@@ -29,6 +29,11 @@ guides), so the players move like a team rather than like robots:
   half); about 28% of goals, as in the top leagues (25-35%).
 - Traits: "cuts inside" goes mostly to wingers with the strong foot inside, and still crosses sometimes (winger crosses
   were down to a third).
+- **Calibration** (96 matches): the traits had added about six shots and half a goal a match, and the hard tacklers far
+  too many penalties (1.5 a match; real football about 0.3). Now: one or two hard men per squad (the best tacklers); in
+  the box defenders jockey and stay on their feet (fewer challenges, fewer fouls, a hard man too); the habits shift which
+  shots a player takes rather than how many a team takes; the keepers a touch stronger. Result: 3.35 goals, 34 shots,
+  11.4 saves and 0.63 penalties a match, 32% of the goals from set pieces.
 - Tests: `TacticsRealismTests` (each behaviour is seen, ball-watching stays rare, the set-piece share, the two roles'
   positions).
 

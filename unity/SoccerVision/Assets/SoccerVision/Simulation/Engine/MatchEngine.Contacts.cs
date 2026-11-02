@@ -623,7 +623,7 @@ namespace SoccerVision.Simulation
             float difficulty = 0.42f * MathUtil.Clamp((speed - 12f) / 20f, 0f, 1.2f) + 0.55f * reachNeeded + (Ball.Z > 1.8f ? 0.12f : 0f) + 0.35f * closeRange;
             if (Ball.LastKickKind == KickKind.Header) difficulty += 0.25f; // close-range headers give little time to react
             if (Ball.ShotKnuckle) difficulty += 0.22f; // a ball with no spin moves late in the air
-            float pSave = MathUtil.Clamp(1.03f - difficulty * 0.44f + (skill - 0.5f) * 0.35f, 0.1f, 0.94f); // (a little more for the keepers: more saves, a more watchable match)
+            float pSave = MathUtil.Clamp(1.13f - difficulty * 0.44f + (skill - 0.5f) * 0.35f, 0.1f, 0.94f); // (a little more for the keepers: more saves, a more watchable match)
             if (_penaltyKickTime >= 0f && shooter != null && SimTime - _penaltyKickTime < 1.5f)
             {
                 pSave = _penaltyGuessCorrect ? MathUtil.Clamp(0.36f + 0.3f * (skill - 0.5f) - reachNeeded * 0.15f, 0.15f, 0.7f) : 0.05f;
@@ -784,7 +784,9 @@ namespace SoccerVision.Simulation
                 if (carrierSpeed > 1.5f && MathF.Abs(MathUtil.AngleDiff(carrier.Facing, carrier.Vel.Angle)) > 0.9f) exposed += 0.5f; // turning
                 rate *= exposed;
                 if (d.YellowCards > 0) rate *= 0.5f;
-                if (inBox) rate *= toGoal < 13f ? 1.3f : 0.9f;          // last-ditch challenges close to goal
+                // In the box a defender jockeys and stays on his feet - a mistimed challenge there is a penalty (a hard man
+                // included: he picks his moment outside the box)
+                if (inBox) rate *= (toGoal < 13f ? 0.4f : 0.3f) / (d.Has(PlayerTrait.HardTackler) ? 1.3f : 1f);
                 else if (toGoal < 32f) rate *= 1.6f;                     // engage before the box
                 if (breakaway) rate *= 0.3f;
                 // Take-on duel: the carrier deliberately runs at a defender standing in his path.
@@ -835,7 +837,7 @@ namespace SoccerVision.Simulation
             float aggression = MathUtil.A(d.Attr.Aggression);
             float rate = 0.09f * (d.Has(PlayerTrait.HardTackler) ? 1.6f : 1f) * SlideStyleFactor(team) * PlayerAgent.Scale(d.Orders.Aggression, 0.35f, 1.6f) * (0.35f + 0.65f * aggression) * (0.6f + 0.4f * MathUtil.A(d.Attr.Tackling));
             if (team.Forward(carrier.Pos) < -10f) rate *= 1.5f; // danger: he must be stopped
-            if (inBox) rate *= 0.2f;
+            if (inBox) rate *= 0.1f;
             if (d.YellowCards > 0) rate *= 0.25f;
             if (breakaway) rate *= 2f;                          // last man: all or nothing
             if (!_rng.Chance(rate * dt)) return false;
@@ -910,7 +912,7 @@ namespace SoccerVision.Simulation
             float defend = (0.6f * da.Tackling + 0.2f * da.Decisions + 0.2f * da.Acceleration) * d.FatigueFactor;
             float pFoul = 0.14f + 0.14f * MathUtil.A(da.Aggression) + (fromBehind ? 0.3f : 0.05f) - 0.1f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
-            pFoul = MathUtil.Clamp(pFoul * (d.Has(PlayerTrait.HardTackler) ? 1.15f : 1f) * FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.65f, 1.35f), 0.05f, 0.7f);
+            pFoul = MathUtil.Clamp(pFoul * (d.Has(PlayerTrait.HardTackler) && !Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign) ? 1.15f : 1f) * FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.65f, 1.35f), 0.05f, 0.7f);
             float pWin = MathUtil.Clamp(0.62f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.12f : 0f), 0.2f, 0.9f);
             if (_rng.Chance(pFoul))
             {
@@ -1056,7 +1058,7 @@ namespace SoccerVision.Simulation
             pFoul *= FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.65f, 1.35f);
             if (d.YellowCards > 0) pFoul *= 0.45f;
             if (IsDenyingObviousGoalScoringOpportunity(carrier, d)) pFoul *= 0.4f; // tries to stay clean
-            if (Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign)) pFoul *= 0.25f; // careful in the box
+            if (Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign)) pFoul *= 0.12f; // careful in the box
             pFoul = MathUtil.Clamp(pFoul, 0.02f, 0.5f);
 
             if (_rng.Chance(pFoul))

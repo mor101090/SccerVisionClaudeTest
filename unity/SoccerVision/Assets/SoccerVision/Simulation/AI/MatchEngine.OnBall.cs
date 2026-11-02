@@ -182,9 +182,11 @@ namespace SoccerVision.Simulation
                 if (p.PlayRole == PlayerRole.ShadowStriker && distGoal < 18f) tendency *= 1.15f;
                 if (p.PlayRole == PlayerRole.Trequartista && distGoal > 15f && distGoal < 25f) tendency *= 1.25f; // the shot from the edge
                 // traits: a shot on sight from range; the cut inside and shoot; the unselfish one looks for a pass first
-                if (p.Has(PlayerTrait.ShootsFromDistance) && distGoal > 18f) tendency *= 1.6f;
+                if (p.Has(PlayerTrait.ShootsFromDistance) && distGoal > 18f) tendency *= 1.35f;
                 if (p.Has(PlayerTrait.CutsInsideToShoot) && p.CutInUntil > SimTime) tendency *= 1.15f;
                 if (p.Has(PlayerTrait.Unselfish) && !openGoal) tendency *= 0.8f;
+                // (the habits shift which shots a player takes, not how many a team takes: the balance for the squad's mix)
+                tendency *= 0.72f;
                 if (openGoal) { tendency = MathF.Max(tendency, 3f); if (CollectDiagnostics) Count("shot.openGoal.considered"); }
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
                 float afterShotLoss = 0.006f + 0.25f * _riskPremium;
@@ -1118,7 +1120,7 @@ namespace SoccerVision.Simulation
             else rating = p.Attr.StrongFootRating;
             // Weak foot (stats spec): 3 two strong feet, 2 he can use the other foot, 1 he cannot use it at all - he tries to
             // get the ball onto his strong foot (more often managing it), and when he cannot, the kick is a poor one.
-            if (p.Has(PlayerTrait.UsesWeakFoot)) rating = Math.Min(3, rating + 1); // he practises with it and is happy to use it
+            if (p.Has(PlayerTrait.UsesWeakFoot)) rating = Math.Max(rating, 2); // he practises with it and is happy to use it (never as good as the strong one)
             else if (_rng.Chance(rating == 1 ? 0.5f : 0.35f)) rating = p.Attr.StrongFootRating;
             return rating >= 3 ? 1f : rating == 2 ? 1.25f : 1.8f;
         }
