@@ -48,11 +48,11 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void ARealisticShareOfGoalsComesFromSetPieces()
         {
-            var es = Play(7100, 24);
+            var es = Play(7100, 48);
             int goals = es.Sum(e => e.Home.Stats.Goals + e.Away.Stats.Goals);
             int setPiece = es.Sum(e => e.Home.Stats.SetPieceGoals + e.Away.Stats.SetPieceGoals);
             double share = setPiece / (double)Math.Max(1, goals);
-            _out.WriteLine($"set-piece goals {setPiece} of {goals} ({share:P0}); goals per match {goals / 24.0:0.00}");
+            _out.WriteLine($"set-piece goals {setPiece} of {goals} ({share:P0}); goals per match {goals / 48.0:0.00}");
             // top leagues: roughly a quarter to a third of the goals
             Assert.InRange(share, 0.15, 0.45);
         }
