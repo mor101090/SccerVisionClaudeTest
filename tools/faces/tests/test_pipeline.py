@@ -2,7 +2,7 @@
 import io, json, os, sys, tempfile, threading, unittest, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-import prompts, comfy, imaging, generate_faces, server
+import prompts, comfy, imaging, generate_faces, server, age_chain
 from PIL import Image
 
 QUEUED = []
@@ -21,7 +21,10 @@ class FakeComfy(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.startswith("/history/"):
-            out = json.dumps({self.path.split("/")[-1]: {"outputs": {"60": {"images": [{"filename": "x.png", "subfolder": "", "type": "output"}]}}}}).encode(); ct = "application/json"
+            pid = self.path.split("/")[-1]; wf = QUEUED[int(pid[1:]) - 1]
+            saves = [k for k, v in wf.items() if v.get("class_type") == "SaveImage"] or ["60"]   # (a picture for every SaveImage of the queue)
+            outs = {k: {"images": [{"filename": k + ".png", "subfolder": "", "type": "output"}]} for k in saves}
+            out = json.dumps({pid: {"status": {"completed": True}, "outputs": outs}}).encode(); ct = "application/json"
         elif self.path.startswith("/view"):
             buf = io.BytesIO(); Image.new("RGB", (96, 128), (180, 150, 120)).save(buf, "PNG"); out = buf.getvalue(); ct = "image/png"
         else: self.send_response(404); self.end_headers(); return
@@ -71,7 +74,7 @@ class Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             roster = os.path.join(d, "r.json")
             with open(roster, "w") as f: json.dump([{"key": "4242", "age": 24, "look": LOOK}], f)
-            argv = ["x", "--roster", roster, "--out", os.path.join(d, "faces"), "--ages", "20,30", "--comfy", self.url, "--size", "64"]
+            argv = ["x", "--roster", roster, "--out", os.path.join(d, "faces"), "--ages", "20,30", "--comfy", self.url, "--size", "64", "--method", "regenerate"]
             before = len(QUEUED); sys.argv = argv; generate_faces.main()
             self.assertEqual(len(QUEUED) - before, 2)
             with open(os.path.join(d, "faces", "manifest.json")) as f: man = json.load(f)
@@ -80,6 +83,28 @@ class Tests(unittest.TestCase):
             generate_faces.main(); self.assertEqual(len(QUEUED) - before, 2)  # nothing made twice
             self.assertIn("about 20", QUEUED[before]["6"]["inputs"]["text"])
             self.assertIn("about 30", QUEUED[before + 1]["6"]["inputs"]["text"]); self.assertEqual(QUEUED[before]["3"]["inputs"]["seed"], 4242)
+
+    def test_the_age_chain_makes_every_age_in_one_queue_from_the_same_base(self):
+        g = age_chain.build(LOOK, list(range(19, 36)), 26, prefix="f")
+        saves = {v["inputs"]["filename_prefix"]: v for v in g.values() if v["class_type"] == "SaveImage"}
+        self.assertEqual(sorted(saves), sorted("f_%d" % a for a in range(19, 36)))                 # 17 ages, 19 to 35
+        edits = [v for v in g.values() if v["class_type"] == "TextEncodeQwenImageEdit" and v["inputs"]["prompt"]]
+        self.assertEqual(len(edits), 16)
+        self.assertTrue(all(e["inputs"]["image"] == ["e93", 0] for e in edits))                      # every age edits the base, not the one before
+        self.assertEqual(g["e93"]["inputs"]["image"], ["t8", 0])
+        self.assertEqual({v["inputs"]["seed"] for v in g.values() if v["class_type"] == "KSampler"}, {4242})
+        self.assertIn("about 34", " ".join(e["inputs"]["prompt"] for e in edits))
+        for v in g.values():                                                                          # every link points at a node of the graph
+            for x in v["inputs"].values():
+                if isinstance(x, list) and len(x) == 2 and isinstance(x[0], str): self.assertIn(x[0], g)
+        with tempfile.TemporaryDirectory() as d:
+            roster = os.path.join(d, "r.json")
+            with open(roster, "w") as f: json.dump([{"key": "77", "age": 24, "look": LOOK}], f)
+            before = len(QUEUED)
+            sys.argv = ["x", "--roster", roster, "--out", os.path.join(d, "faces"), "--ages", "19,20,26,35", "--comfy", self.url, "--size", "64"]
+            generate_faces.main()
+            self.assertEqual(len(QUEUED) - before, 1)                                                     # one queue for the whole player
+            with open(os.path.join(d, "faces", "manifest.json")) as f: self.assertEqual(json.load(f)["77"], [19, 20, 26, 35])
 
     def test_server_makes_a_logo_from_the_players_words(self):
         with tempfile.TemporaryDirectory() as d:

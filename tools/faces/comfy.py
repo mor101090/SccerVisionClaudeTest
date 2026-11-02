@@ -51,3 +51,22 @@ class Comfy:
                         return self._get("/view?" + q)
             time.sleep(1.0)
         raise TimeoutError("ComfyUI did not finish in %d s" % self.timeout)
+
+    def run_all(self, workflow):
+        """Queues the workflow and returns every picture it saves: {filename_prefix: PNG bytes} (for the age chain)."""
+        req = urllib.request.Request(self.url + "/prompt", data=json.dumps({"prompt": workflow, "client_id": self.client}).encode(),
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=60) as r: pid = json.loads(r.read())["prompt_id"]
+        t0 = time.time()
+        while time.time() - t0 < self.timeout:
+            hist = json.loads(self._get("/history/" + pid))
+            if pid in hist and hist[pid].get("status", {}).get("completed", hist[pid].get("outputs")):
+                got = {}
+                for node, out in hist[pid].get("outputs", {}).items():
+                    prefix = workflow.get(node, {}).get("inputs", {}).get("filename_prefix", node)
+                    for im in out.get("images", [])[:1]:
+                        q = urllib.parse.urlencode({"filename": im["filename"], "subfolder": im.get("subfolder", ""), "type": im.get("type", "output")})
+                        got[prefix] = self._get("/view?" + q)
+                return got
+            time.sleep(2.0)
+        raise TimeoutError("ComfyUI did not finish in %d s" % self.timeout)

@@ -11,6 +11,7 @@ Nothing is generated while a match is played. A club's crest is made from a sent
 | `prompts.py` | From the look and an age to the text of a portrait, in the style tested with Qwen-Image (ultra-realistic studio portrait, head and shoulders, 85mm): hair greys, lines and wrinkles come with age. The shirt is asked for in a plain **chroma green** with no logos. |
 | `imaging.split_shirt` | Lifts the green shirt out: the portrait keeps the shirt as grey shading (its real folds and light), and `<age>.shirt.png` is its mask. The page multiplies the shading by the kit colour inside the mask, so one picture serves every kit. |
 | `comfy.py`, `workflows/` | A client for ComfyUI's HTTP API and two workflows (text to image; image edit) in API format with `{{placeholders}}`. |
+| `age_chain.py`, `workflows/qwen_age_chain_example.json` | **One queue per player, 17 portraits (ages 19-35)**: a base portrait from the text (age 26), then a Qwen-Image-Edit branch per age that edits **the base** (not the previous age) with the same seed, so the man stays the same and does not drift. The example file loads in ComfyUI as is (an Ethiopian-looking player, `python3 age_chain.py --look <file> --out <file>` for another). |
 | `generate_faces.py` | A roster to portraits, one per age, and `manifest.json` for the page. Resumable. |
 | `generate_logo.py`, `server.py` | A crest from a prompt. `server.py` is a small local server the page calls (POST `/logo`, POST `/face`). |
 | the page (`tools/demo-page/js/19a-faces.js`) | Shows the portrait of the player's age over a **vector shirt in the team's colours** (so a colour change is instant), or - with no portrait yet - a vector face drawn from the same look data, aged by his years. The crest: "Club crest" in the user's kit screen. |
@@ -30,9 +31,10 @@ Nothing is generated while a match is played. A club's crest is made from a sent
 5. Portraits for the demo's squads:
    ```
    cd sim && dotnet run -c Release --project SoccerVision.SimRunner -- --export-roster 20 > roster.json
-   python3 tools/faces/generate_faces.py --roster roster.json --out docs/faces --ages 18,22,26,30,34,38
+   python3 tools/faces/generate_faces.py --roster roster.json --out docs/faces 
    ```
-   (`--method edit` ages the first portrait with Qwen-Image-Edit - the same man, older - instead of generating each age.)
+   The default (`--method chain`, ages 19-35) queues the age chain once per player. `--method regenerate` makes each age from the text
+   alone (the face only resembles), `--method edit` edits ages one queue at a time.
 6. Crests: `python3 tools/faces/server.py` (ComfyUI running), then open the page in user mode; the address of the server is
    `http://127.0.0.1:8765`, or `#faces=<address>` at the end of the page's address.
 

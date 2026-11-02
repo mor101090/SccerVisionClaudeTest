@@ -1,0 +1,1258 @@
+{
+ "t37": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "qwen_image_fp8_e4m3fn.safetensors",
+   "weight_dtype": "default"
+  }
+ },
+ "t38": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+   "type": "qwen_image",
+   "device": "default"
+  }
+ },
+ "t39": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "qwen_image_vae.safetensors"
+  }
+ },
+ "t58": {
+  "class_type": "EmptySD3LatentImage",
+  "inputs": {
+   "width": 1024,
+   "height": 1024,
+   "batch_size": 1
+  }
+ },
+ "t6": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "Ultra-realistic professional portrait of a male professional football (soccer) player: an East African man with dark brown skin, fine features, as in Ethiopia, a man of about 26. Dark brown skin. He has short curly hair in black, and is a short trimmed beard. Athletic build. Looking directly into the camera with a confident, focused expression. Medium close-up framed from the top of the head down to the upper chest, both shoulders visible, perfectly centered, eye-level camera, direct eye contact. Wearing a plain solid bright chroma-green (#00B140) crew-neck football shirt with short sleeves, completely plain: no logos, no badge, no sponsor, no text, no stripes, no collar trim. Highly detailed realistic facial features, natural skin texture, subtle imperfections, realistic hair, professional studio lighting, sharp focus on the eyes, 85mm portrait lens, shallow depth of field, clean dark neutral grey background, photorealistic. Head and shoulders only, no hands, no full body; the face fully visible and facing straight toward the camera.",
+   "clip": [
+    "t38",
+    0
+   ]
+  }
+ },
+ "t7": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "cartoon, illustration, painting, 3d render, text, letters, watermark, logo, badge, crest, sponsor, brand, number, stripes, glasses, hat, headband, hands, multiple people, deformed face, asymmetric eyes, blurry, low quality, celebrity, famous person",
+   "clip": [
+    "t38",
+    0
+   ]
+  }
+ },
+ "t66": {
+  "class_type": "ModelSamplingAuraFlow",
+  "inputs": {
+   "shift": 3.1,
+   "model": [
+    "t37",
+    0
+   ]
+  }
+ },
+ "t3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "t66",
+    0
+   ],
+   "positive": [
+    "t6",
+    0
+   ],
+   "negative": [
+    "t7",
+    0
+   ],
+   "latent_image": [
+    "t58",
+    0
+   ]
+  }
+ },
+ "t8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "t3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "t60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_26",
+   "images": [
+    "t8",
+    0
+   ]
+  }
+ },
+ "e37": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "qwen_image_edit_fp8_e4m3fn.safetensors",
+   "weight_dtype": "default"
+  }
+ },
+ "e66": {
+  "class_type": "ModelSamplingAuraFlow",
+  "inputs": {
+   "shift": 3.0,
+   "model": [
+    "e37",
+    0
+   ]
+  }
+ },
+ "e93": {
+  "class_type": "ImageScaleToTotalPixels",
+  "inputs": {
+   "upscale_method": "lanczos",
+   "megapixels": 1.0,
+   "image": [
+    "t8",
+    0
+   ]
+  }
+ },
+ "e88": {
+  "class_type": "VAEEncode",
+  "inputs": {
+   "pixels": [
+    "e93",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "e77": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a19_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a teenager of 19 years. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a19_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a19_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a19_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a19_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a19_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_19",
+   "images": [
+    "a19_8",
+    0
+   ]
+  }
+ },
+ "a20_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a young man of about 20. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a20_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a20_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a20_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a20_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a20_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_20",
+   "images": [
+    "a20_8",
+    0
+   ]
+  }
+ },
+ "a21_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a young man of about 21. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a21_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a21_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a21_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a21_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a21_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_21",
+   "images": [
+    "a21_8",
+    0
+   ]
+  }
+ },
+ "a22_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a young man of about 22. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a22_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a22_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a22_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a22_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a22_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_22",
+   "images": [
+    "a22_8",
+    0
+   ]
+  }
+ },
+ "a23_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a young man of about 23. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a23_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a23_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a23_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a23_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a23_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_23",
+   "images": [
+    "a23_8",
+    0
+   ]
+  }
+ },
+ "a24_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a young man of about 24. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a24_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a24_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a24_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a24_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a24_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_24",
+   "images": [
+    "a24_8",
+    0
+   ]
+  }
+ },
+ "a25_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a man of about 25. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a25_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a25_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a25_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a25_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a25_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_25",
+   "images": [
+    "a25_8",
+    0
+   ]
+  }
+ },
+ "a27_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a man of about 27. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a27_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a27_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a27_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a27_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a27_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_27",
+   "images": [
+    "a27_8",
+    0
+   ]
+  }
+ },
+ "a28_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a man of about 28. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a28_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a28_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a28_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a28_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a28_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_28",
+   "images": [
+    "a28_8",
+    0
+   ]
+  }
+ },
+ "a29_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a man of about 29. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a29_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a29_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a29_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a29_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a29_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_29",
+   "images": [
+    "a29_8",
+    0
+   ]
+  }
+ },
+ "a30_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a man of about 30. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a30_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a30_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a30_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a30_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a30_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_30",
+   "images": [
+    "a30_8",
+    0
+   ]
+  }
+ },
+ "a31_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a man of about 31. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black with a few grey hairs, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a31_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a31_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a31_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a31_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a31_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_31",
+   "images": [
+    "a31_8",
+    0
+   ]
+  }
+ },
+ "a32_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a man of about 32 with faint lines on his face. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black with a few grey hairs, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a32_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a32_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a32_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a32_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a32_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_32",
+   "images": [
+    "a32_8",
+    0
+   ]
+  }
+ },
+ "a33_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a man of about 33 with faint lines on his face. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black with a few grey hairs, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a33_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a33_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a33_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a33_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a33_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_33",
+   "images": [
+    "a33_8",
+    0
+   ]
+  }
+ },
+ "a34_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a man of about 34 with faint lines on his face. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black with a few grey hairs, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a34_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a34_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a34_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a34_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a34_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_34",
+   "images": [
+    "a34_8",
+    0
+   ]
+  }
+ },
+ "a35_76": {
+  "class_type": "TextEncodeQwenImageEdit",
+  "inputs": {
+   "prompt": "Make this exact same man a man of about 35 with faint lines on his face. Keep his identity, face shape, skin tone, expression, pose, framing and background unchanged; only change what age changes: hair colour black with a few grey hairs, skin, lines.",
+   "clip": [
+    "t38",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ],
+   "image": [
+    "e93",
+    0
+   ]
+  }
+ },
+ "a35_3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 7,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "e66",
+    0
+   ],
+   "positive": [
+    "a35_76",
+    0
+   ],
+   "negative": [
+    "e77",
+    0
+   ],
+   "latent_image": [
+    "e88",
+    0
+   ]
+  }
+ },
+ "a35_8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "a35_3",
+    0
+   ],
+   "vae": [
+    "t39",
+    0
+   ]
+  }
+ },
+ "a35_60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "face_35",
+   "images": [
+    "a35_8",
+    0
+   ]
+  }
+ }
+}

@@ -22,6 +22,8 @@ Groundwork for portraits that are made once for each player, and for club crests
 - **Realistic portraits** (after a test with Qwen-Image): the prompt follows the style that worked (ultra-realistic studio portrait, head and
   shoulders, 85mm, direct look), the shirt is asked for in plain chroma green and lifted out (`split_shirt`): the portrait keeps its folds
   and light in grey with a mask beside it, and the page colours it in the team's kit (checked in the browser with the Qwen test picture).
+- **The age chain** (`age_chain.py`): one ComfyUI queue per player makes all his ages, 19 to 35 - a base portrait, then an edit of
+  that base per age with the same seed (so the man stays the same and does not drift); the generator's default; an example graph ready to load.
 - Tests: `AppearanceTests` (origin and look fit, the spread of hair and beards, determinism, the match does not depend on the faces).
 
 ## `chore/cleanup`
