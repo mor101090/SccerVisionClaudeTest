@@ -2668,7 +2668,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   function beginMatch(hdr) {
     R = hdr; F = R.frames = []; E = R.events = []; R.stats = []; teams = [R.home, R.away];
     R.home._kit0 = R.home.kit; R.away._kit0 = R.away.kit;
-    SUBS = {}; t0 = 0; tEnd = 0; secondHalfT = Infinity; addedMinutes = [0, 0, 0, 0]; et1T = Infinity; et2T = Infinity; SO_KICKS = []; finished = false; pendingJump = null;
+    SUBS = {}; t0 = 0; tEnd = 0; secondHalfT = Infinity; addedMinutes = [0, 0, 0, 0]; et1T = Infinity; et2T = Infinity; SO_KICKS = []; finished = false;
     var comp = R.competition || "League", sbEl = document.querySelector(".sb");
     sbEl.classList.toggle("cup", comp === "Cup"); sbEl.classList.toggle("lcup", comp === "LeagueCup");
     $("sbComp").textContent = comp === "Cup" ? "Cup match" : comp === "LeagueCup" ? "League Cup match" : "League match";
@@ -2710,7 +2710,6 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     if (F.length) { if (F.length === n) { t0 = F[0][0] / 100; t = t0; lastT = t0; seek.min = t0; } tEnd = F[F.length - 1][0] / 100; seek.max = tEnd; }
     if (m.finished) finished = true;
     if (m.final) { try { R.final = JSON.parse(m.final); } catch (e) {} }
-    if (pendingJump !== null && tEnd >= pendingJump) { t = lastT = pendingJump; pendingJump = null; shown = -1; }
     if (resumeAt !== null && tEnd >= t0 + resumeAt) { t = lastT = t0 + resumeAt; resumeAt = null; }
     if (MODE === "live") worker.postMessage({ cmd: "progress", token: token, frames: Math.max(0, find(REWOUND ? LIVE_T : t)) });
   }
@@ -2746,11 +2745,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     // the red LIVE badge becomes the way back to the live moment
     var b = $("liveBadge"); b.textContent = MODE === "live" && on ? "BACK TO LIVE" : "LIVE"; b.classList.toggle("back", MODE === "live" && on);
   }
-  var pendingJump = null;
   function jump(to) {
-    // a moment the engine has not generated yet: go to the end of what there is and continue there when it arrives
-    pendingJump = null;
-    if (to > tEnd + 1 && !finished && MODE !== "live") { pendingJump = to; to = tEnd; toast("Loading that part of the match..."); }
     if (MODE === "live") { to = Math.min(to, LIVE_T); setRewound(to < LIVE_T - .5); }
     t = Math.max(t0, Math.min(tEnd, to)); lastT = t; shown = -1;
     if (trodCv) { var g = trodCv.getContext("2d"); g.globalCompositeOperation = "copy"; g.drawImage(snowCv, 0, 0); g.globalCompositeOperation = "source-over"; snowAt = -1; }

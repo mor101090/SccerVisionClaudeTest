@@ -36,7 +36,7 @@ The human side of the match - players that behave like people, not robots:
   - **League cup board**: the red cards sit above the name plates like on the other two boards.
   - **Finishing**: in a good position (xG 0.18 or more, in the box area) the shot is favoured over running on with it; a cool
     head waits a beat longer. Dribbles that end standing on the keeper were halved (50 -> 25 a match), goals 3.05 a match.
-  - **Key moments on a computer too** scroll to the pitch (centred, smoothly) and play; a moment the engine has not generated yet takes you to the end of what there is and continues there when it arrives ("Loading that part of the match...").
+  - **Key moments on a computer too** scroll to the pitch (centred, smoothly) and play. (The list still only shows moments the engine has generated.)
   - **Phone**: tapping a key moment moved the clock but left the pitch far above the screen, so nothing seemed to happen; now the page scrolls to the pitch and plays.
   - The staged match as the page runs it (page seed, names, traits, walk-out) is now tested: `TheStagedMatchAsThePageRunsItHasAllItsIncidents`.
 - Tests: `CharacterTests` (traits per kind of player, every gesture seen and encoded, the leader's effect, confidence, the
