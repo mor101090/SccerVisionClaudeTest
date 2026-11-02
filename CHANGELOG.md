@@ -13,6 +13,11 @@ Each round of changes is developed on its own branch, named after what it change
     Gestures and emotions, Colour-blind and Reset; everything else is the default - sunny, day, stripes across, league
     match, a perfect pitch, no wind. The user's choices are kept apart from the developer's. "Back to the start screen"
     in the settings (both modes).
+- **Kits in four parts** (user): shirt, trim (the ring round the circle), socks and number, for the home kit, the away kit
+  and the goalkeeper (the keeper's socks are drawn too). Clashes are not offered: the two shirts never look alike (a close
+  shade is out too, not only the same colour), the keeper's shirt never looks like either team's - pick his colour for a
+  team and the keeper changes - and the number is always readable on its shirt. The opponents' keeper and the referees
+  are dressed automatically in colours that clash with none of the shirts on the pitch.
 - **Line-ups**: the away team's card now animates like the home team's (the rows and shirts of both cards played their
   animation when the page opened, so the away team's had finished by the time it came on).
 - **Developer, live match: "Skip the break" works** (the live moment may now move to the second half, which is already
