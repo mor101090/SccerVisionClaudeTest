@@ -44,8 +44,22 @@ class Tests(unittest.TestCase):
         young, old = prompts.portrait_prompt(LOOK, 20), prompts.portrait_prompt(LOOK, 40)
         for word in ("East African", "dark brown skin", "curly hair", "short trimmed beard"): self.assertIn(word, young)
         self.assertIn("a few grey hairs", prompts.portrait_prompt(LOOK, 32)); self.assertIn("grey", old); self.assertIn("wrinkles", old); self.assertNotIn("wrinkles", young)
-        self.assertIn("plain neckline", young)  # no shirt: the page draws it in the team's colour
-        self.assertIn("bare", young)
+        self.assertIn("chroma-green", young); self.assertIn("no logos", young)  # the shirt is lifted out and coloured by the page
+
+    def test_the_green_shirt_is_lifted_out_as_grey_shading_and_a_mask(self):
+        from PIL import Image, ImageDraw
+        img = Image.new("RGBA", (100, 120), (40, 42, 46, 255))
+        d = ImageDraw.Draw(img)
+        d.ellipse((30, 10, 70, 60), fill=(205, 160, 130, 255))          # the face
+        d.rectangle((10, 70, 90, 119), fill=(0, 177, 64, 255))           # the green shirt
+        d.rectangle((10, 95, 90, 119), fill=(0, 120, 44, 255))           # a fold in shadow
+        out, mask = imaging.split_shirt(img)
+        self.assertIsNotNone(mask)
+        self.assertEqual(mask.getpixel((50, 80))[3], 255); self.assertEqual(mask.getpixel((50, 30))[3], 0)
+        r, g, b, _ = out.getpixel((50, 80)); self.assertTrue(abs(r - g) < 3 and abs(g - b) < 3 and g > 200)   # light grey
+        self.assertLess(out.getpixel((50, 110))[1], out.getpixel((50, 80))[1])                                 # the fold stays darker
+        self.assertEqual(out.getpixel((50, 30)), (205, 160, 130, 255))                                       # the face untouched
+        self.assertIsNone(imaging.split_shirt(Image.new("RGBA", (50, 50), (40, 40, 40, 255)))[1])
 
     def test_workflow_placeholders_are_filled_with_the_right_types(self):
         wf = comfy.load_workflow("qwen_text2img.json", {"prompt": "p", "negative": "n", "seed": 7, "width": 640, "height": 832, "prefix": "x"})

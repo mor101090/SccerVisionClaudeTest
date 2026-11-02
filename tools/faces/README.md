@@ -8,7 +8,8 @@ Nothing is generated while a match is played. A club's crest is made from a sent
 | | |
 |---|---|
 | `PlayerAppearance` (engine) | The data a face is made from: look (African, Mediterranean...), skin 1-6, hairstyle, hair colour, facial hair, build, a seed. Decided at creation by where the player comes from; plays no part in the match. In the replay header as `look`. |
-| `prompts.py` | From the look and an age to the text of a portrait: hair greys, lines and wrinkles come with age; no shirt in the picture. |
+| `prompts.py` | From the look and an age to the text of a portrait, in the style tested with Qwen-Image (ultra-realistic studio portrait, head and shoulders, 85mm): hair greys, lines and wrinkles come with age. The shirt is asked for in a plain **chroma green** with no logos. |
+| `imaging.split_shirt` | Lifts the green shirt out: the portrait keeps the shirt as grey shading (its real folds and light), and `<age>.shirt.png` is its mask. The page multiplies the shading by the kit colour inside the mask, so one picture serves every kit. |
 | `comfy.py`, `workflows/` | A client for ComfyUI's HTTP API and two workflows (text to image; image edit) in API format with `{{placeholders}}`. |
 | `generate_faces.py` | A roster to portraits, one per age, and `manifest.json` for the page. Resumable. |
 | `generate_logo.py`, `server.py` | A crest from a prompt. `server.py` is a small local server the page calls (POST `/logo`, POST `/face`). |

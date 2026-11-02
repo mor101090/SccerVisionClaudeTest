@@ -2,3 +2,4 @@
 .face-stack svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .face-stack .face-img { position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 76%; object-fit: cover; object-position: top; z-index: 1; }
 .pf-photo .face-stack, .pf-photo > svg { display: block; }
+.face-stack.whole .face-img { height: 100%; }

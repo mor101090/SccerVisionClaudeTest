@@ -36,20 +36,30 @@ def age_text(age):
     return "a man of about {} with visible wrinkles and ageing skin".format(age)
 
 
-NEGATIVE = ("cartoon, illustration, painting, text, watermark, logo, glasses, hat, helmet, jersey, multiple people, deformed face, "
-            "extra fingers, blurry, low quality, celebrity, famous person")
+# The shirt is drawn in a flat chroma green so that imaging.split_shirt can lift it out: the page then colours it in the team's kit
+# (the folds and the light stay real, the colour follows the kit - no picture per kit).
+SHIRT_TEXT = ("Wearing a plain solid bright chroma-green (#00B140) crew-neck football shirt with short sleeves, completely plain: "
+              "no logos, no badge, no sponsor, no text, no stripes, no collar trim.")
+
+NEGATIVE = ("cartoon, illustration, painting, 3d render, text, letters, watermark, logo, badge, crest, sponsor, brand, number, stripes, "
+            "glasses, hat, headband, hands, multiple people, deformed face, asymmetric eyes, blurry, low quality, celebrity, famous person")
 
 
 def portrait_prompt(look, age):
-    """A passport-style head-and-shoulders portrait on a plain background (the shirt is drawn over it by the page: no clothes here)."""
-    parts = [
-        "Realistic studio portrait photograph of {}, {}.".format(LOOK_TEXT.get(look.get("look"), "a man"), age_text(age)),
+    """Ultra-realistic head-and-shoulders portrait in the style the user tested with Qwen-Image, with the player's look and age."""
+    who = LOOK_TEXT.get(look.get("look"), "a man")
+    return " ".join([
+        "Ultra-realistic professional portrait of a male professional football (soccer) player: {}, {}.".format(who, age_text(age)),
         "{} skin.".format(SKIN_TEXT.get(look.get("skin", 3), "light olive")).capitalize(),
-        "He has {} in {} and is {}.".format(HAIR_TEXT.get(look.get("hair"), "short hair"), hair_colour_at(look, age), FACIAL_TEXT.get(look.get("facial"), "clean-shaven")),
-        "{} build, neutral relaxed expression, looking straight at the camera.".format(BUILD_TEXT.get(look.get("build"), "athletic").capitalize()),
-        "Head and shoulders, bare plain neckline, flat light-grey background, soft even lighting, sharp focus, 85mm lens, photorealistic skin texture.",
-    ]
-    return " ".join(parts)
+        "He has {} in {}, and is {}.".format(HAIR_TEXT.get(look.get("hair"), "short hair"), hair_colour_at(look, age), FACIAL_TEXT.get(look.get("facial"), "clean-shaven")),
+        "{} build.".format(BUILD_TEXT.get(look.get("build"), "athletic").capitalize()),
+        "Looking directly into the camera with a confident, focused expression.",
+        "Medium close-up framed from the top of the head down to the upper chest, both shoulders visible, perfectly centered, eye-level camera, direct eye contact.",
+        SHIRT_TEXT,
+        "Highly detailed realistic facial features, natural skin texture, subtle imperfections, realistic hair, professional studio lighting, "
+        "sharp focus on the eyes, 85mm portrait lens, shallow depth of field, clean dark neutral grey background, photorealistic.",
+        "Head and shoulders only, no hands, no full body; the face fully visible and facing straight toward the camera.",
+    ])
 
 
 def age_edit_prompt(look, age):

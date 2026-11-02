@@ -48,10 +48,12 @@ def main():
             png = c.run(wf)
             if base_png is None: base_png = png
             img = imaging.to_image(png)
+            img, shirt = imaging.split_shirt(img)
             if a.cutout: img = imaging.cutout(img)
             imaging.save(img, path, a.size)
+            if shirt is not None: imaging.save(shirt, path[:-5] + ".shirt.png", a.size, fmt="PNG")
             print("[%d/%d] %s age %d -> %s" % (n, len(roster), key, age, path), flush=True)
-        manifest[key] = sorted(int(f[:-5]) for f in os.listdir(d) if f.endswith(".webp"))
+        manifest[key] = sorted(int(f[:-5]) for f in os.listdir(d) if f.endswith(".webp"))  # (an age with <age>.shirt.png has its shirt coloured by the page)
         with open(mpath, "w") as f: json.dump(manifest, f, indent=1)
     print("done:", len(manifest), "players in", mpath)
 

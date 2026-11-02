@@ -54,11 +54,35 @@
     if (number != null && number !== "") s += '<text x="50" y="112" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="800" font-size="14" fill="' + (gk ? kit.gkNumber : kit.number) + '">' + esc(number) + '</text>';
     return s + "</svg>";
   }
+  function loadImg(src, ok, bad) { var i = new Image(); i.onload = function () { ok(i); }; i.onerror = bad || function () {}; i.src = src; }
+  function paintFaces() {
+    document.querySelectorAll("canvas[data-face]:not([data-done])").forEach(function (cv) {
+      cv.setAttribute("data-done", "1");
+      var src = cv.getAttribute("data-face"), col = cv.getAttribute("data-col");
+      loadImg(src, function (face) {
+        cv.width = face.naturalWidth; cv.height = face.naturalHeight;
+        var g = cv.getContext("2d"); g.drawImage(face, 0, 0);
+        loadImg(src.replace(/\.webp$/, ".shirt.png"), function (mask) {
+          var o = document.createElement("canvas"); o.width = cv.width; o.height = cv.height;
+          var c = o.getContext("2d");
+          c.drawImage(face, 0, 0);
+          c.globalCompositeOperation = "multiply"; c.fillStyle = col; c.fillRect(0, 0, o.width, o.height);
+          c.globalCompositeOperation = "destination-in"; c.drawImage(mask, 0, 0, o.width, o.height);
+          g.drawImage(o, 0, 0);
+          var svg = cv.parentNode && cv.parentNode.querySelector("svg"); if (svg) svg.remove(); cv.parentNode.classList.add("whole");
+        });
+      }, function () { cv.remove(); });
+    });
+  }
   // the portrait over the shirt of the team's colours, or the vector face
   function faceHtml(p, kit, gk) {
     var url = faceUrl(p.look, p.age);
     if (!url) return avatarSvg(p.look, p.age, kit, gk, p.number);
     var sh = '<svg viewBox="0 0 100 120" aria-hidden="true"><path d="M10 120 Q14 94 34 90 L66 90 Q86 94 90 120Z" fill="' + (gk ? kit.gk : kit.primary) + '" stroke="' + (gk ? kit.gkTrim || kit.secondary : kit.secondary) + '" stroke-width="2.2"/>' +
       '<text x="50" y="112" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="800" font-size="14" fill="' + (gk ? kit.gkNumber : kit.number) + '">' + esc(p.number) + '</text></svg>';
-    return '<div class="face-stack"><img class="face-img" alt="" src="' + url + '" onerror="this.remove()">' + sh + '</div>';
+    // the portrait; when it has its shirt mask (<age>.shirt.png: the shirt in grey shading) the shirt is coloured in the kit
+    // with its real folds and light, and the drawn shirt goes; otherwise the drawn shirt stays over the portrait
+    var col = gk ? kit.gk : kit.primary;
+    setTimeout(paintFaces, 0);
+    return '<div class="face-stack"><canvas class="face-img" data-face="' + url + '" data-col="' + esc(col) + '"></canvas>' + sh + '</div>';
   }

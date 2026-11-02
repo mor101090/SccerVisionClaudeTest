@@ -19,6 +19,9 @@ Groundwork for portraits that are made once for each player, and for club crests
 - **On the page**: the player's page shows his portrait (the one for his age: he ages with the years) over a **vector shirt in the team's colours**;
   until a portrait exists, a **vector face** drawn from the same look data (skin, hair, beard, build, greying and lines with age). "Club crest" in
   the user's kit screen: write what it should look like, the page asks the local server, the crest is kept and shown on the club's line-up.
+- **Realistic portraits** (after a test with Qwen-Image): the prompt follows the style that worked (ultra-realistic studio portrait, head and
+  shoulders, 85mm, direct look), the shirt is asked for in plain chroma green and lifted out (`split_shirt`): the portrait keeps its folds
+  and light in grey with a mask beside it, and the page colours it in the team's kit (checked in the browser with the Qwen test picture).
 - Tests: `AppearanceTests` (origin and look fit, the spread of hair and beards, determinism, the match does not depend on the faces).
 
 ## `chore/cleanup`

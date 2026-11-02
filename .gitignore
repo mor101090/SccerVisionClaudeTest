@@ -32,3 +32,5 @@ Thumbs.db
 docs/index.html
 docs/conditions/
 docs/engine/
+__pycache__/
+*.pyc
