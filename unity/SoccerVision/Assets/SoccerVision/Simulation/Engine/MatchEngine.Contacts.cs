@@ -729,7 +729,8 @@ namespace SoccerVision.Simulation
             {
                 case PlayerRole.Destroyer: f *= 1.25f; break;
                 case PlayerRole.Stopper: f *= 1.15f; break;
-                case PlayerRole.DeepLyingPlaymaker: case PlayerRole.TempoSetter: f *= 0.85f; break;
+                case PlayerRole.DeepLyingPlaymaker: case PlayerRole.TempoSetter: case PlayerRole.Regista: f *= 0.85f; break;
+                case PlayerRole.Trequartista: f *= 0.7f; break;
             }
             return f;
         }

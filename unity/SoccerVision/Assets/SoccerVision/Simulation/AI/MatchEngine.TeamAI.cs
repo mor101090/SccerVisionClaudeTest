@@ -83,6 +83,13 @@ namespace SoccerVision.Simulation
                     lineTarget = MathF.Min(lineTarget, ballF - 3f);
                 }
             }
+            // After a clearance the whole block pushes out together, 10-15 m (squeezes the space for the second ball and
+            // leaves anyone still in the box offside) - not while the ball is still dropping near our box.
+            if (team.PushUpUntil > SimTime && ballF > lineTarget + 16f)
+            {
+                lineTarget = MathF.Min(lineTarget + 12f, ballF - 8f);
+                if (CollectDiagnostics) Count("line.pushUp");
+            }
             lineTarget = MathF.Max(lineTarget, -47.5f);
             // The line moves like a unit: rate limited (steps up / drops at ~4.5 m/s).
             // A well-drilled line moves faster as one.
@@ -402,6 +409,16 @@ namespace SoccerVision.Simulation
                 case PlayerRole.AnchorMan:
                     f = MathF.Min(f, line + (inPossession ? 9f : 6f));
                     l = MathUtil.Clamp(l, -9f, 9f);
+                    break;
+                case PlayerRole.Regista:
+                    // the pocket just in front of the centre-backs (between them when they split), always a safe option
+                    if (inPossession) { f = MathF.Min(f, MathF.Max(ballF - 14f, line + 1.5f)); l = MathUtil.Clamp(ballL * 0.2f, -6f, 6f); }
+                    else { f = MathF.Min(f, line + 7f); l = MathUtil.Clamp(l, -10f, 10f); } // screens the space in front of the defence
+                    break;
+                case PlayerRole.Trequartista:
+                    // free between the lines, drifting to the half-space nearest the ball; out of possession he stays up
+                    if (inPossession) { f = MathF.Min(MathF.Max(f, ballF + 4f), offsideLine - 6f); l = MathUtil.Clamp(ballL * 0.45f, -15f, 15f); }
+                    else f += 7f;
                     break;
                 case PlayerRole.DeepLyingPlaymaker:
                     if (inPossession) { f = MathF.Min(f, MathF.Max(ballF - 9f, line + 4f)); l = MathUtil.Clamp(ballL * 0.3f, -8f, 8f); }
@@ -723,6 +740,8 @@ namespace SoccerVision.Simulation
                 case PlayerRole.Carrier: case PlayerRole.WideTargetMan: case PlayerRole.BoxToBoxDefensive: return 0.9f;
                 case PlayerRole.AnchorMan: case PlayerRole.CoverDefender: return 1.2f;
                 case PlayerRole.FalseNine: case PlayerRole.ClassicPlaymaker: case PlayerRole.TempoSetter: return 1.1f;
+                case PlayerRole.Regista: return 1.15f;       // defends by reading the lanes, not by chasing
+                case PlayerRole.Trequartista: return 1.35f;  // hardly defends
                 case PlayerRole.Stopper: return 0.9f;
                 default: return 1f;
             }
@@ -752,6 +771,10 @@ namespace SoccerVision.Simulation
             Vec2 inward = MathF.Abs(lat) < 4f ? Vec2.Zero : team.DirToWorld(new Vec2(0f, -MathF.Sign(lat)));
             Vec2 spot = Pitch.ClampToField(carrier.Pos + toGoal * 6f + inward * 4.5f, -1f);
             bool deep = carrierF < 0f;
+            // In shooting range the second man gets into the line of the shot instead (blocking it comes first near the box).
+            float toOwnGoal = Vec2.Distance(carrier.Pos, team.OwnGoal);
+            bool block = toOwnGoal < 27f && MathF.Abs(lat) < 20f;
+            if (block) spot = carrier.Pos + toGoal * MathF.Min(3.2f, toOwnGoal * 0.3f);
             PlayerAgent best = null;
             float bestD = 16f;
             foreach (var p in team.Players)
@@ -764,7 +787,7 @@ namespace SoccerVision.Simulation
             if (best == null) return;
             team.Cover = best;
             team.CoverSpot = spot;
-            if (CollectDiagnostics) Count("cover");
+            if (CollectDiagnostics) Count(block ? "cover.block" : "cover");
         }
 
         /// <summary>
@@ -785,6 +808,7 @@ namespace SoccerVision.Simulation
                 float d = Vec2.Distance(p.Pos, receiver.Pos);
                 if (p.MarkTarget == receiver) d -= 3f;
                 if (p.Slot.IsCentralMidfielder) d -= 2f;
+                if (p.PlayRole == PlayerRole.Regista) d -= 2f; // he reads the vertical pass into the forwards
                 if (d < bestD) { bestD = d; marker = p; }
             }
             if (marker == null) return;
@@ -795,6 +819,7 @@ namespace SoccerVision.Simulation
             UpdateIntercept(receiver);
             float read = 0.5f * MathUtil.A(marker.Attr.Positioning) + 0.3f * MathUtil.A(marker.Attr.Decisions) + 0.2f * MathUtil.A(marker.Attr.Marking);
             if (marker.Slot.IsCentralMidfielder) read += marker == team.Anchor ? 0.25f : 0.12f; // midfielders live off reading passes
+            if (marker.PlayRole == PlayerRole.Regista) read += 0.12f;
             // a creative passer is unpredictable: his passes are harder to read
             var passer = Ball.LastToucher;
             if (passer != null && passer.Team != team) read -= 0.3f * (MathUtil.A(passer.Attr.Creativity) - 0.5f);
@@ -1010,12 +1035,18 @@ namespace SoccerVision.Simulation
                     PlayerAgent option = null;
                     float best = 22f;
                     float carrierF = carrier.Team.Forward(carrier.Pos);
+                    // A forward pressing a centre-back curves his run to shut the square pass to the other centre-back and
+                    // steers the play down one side (he cannot chase both of them).
+                    bool steer = p.Slot.Line == Line.Attack && carrier.Slot.Line == Line.Defence && carrierF < -15f;
                     foreach (var q in carrier.Team.Players)
                     {
-                        if (q == carrier || q.SentOff || q.IsGoalkeeper || carrier.Team.Forward(q.Pos) < carrierF + 3f) continue;
-                        float d = Vec2.Distance(q.Pos, carrier.Pos);
+                        if (q == carrier || q.SentOff || q.IsGoalkeeper) continue;
+                        bool otherBack = steer && q.Slot.Line == Line.Defence && MathF.Abs(carrier.Team.Forward(q.Pos) - carrierF) < 10f;
+                        if (!otherBack && carrier.Team.Forward(q.Pos) < carrierF + 3f) continue;
+                        float d = Vec2.Distance(q.Pos, carrier.Pos) * (otherBack ? 0.6f : 1f);
                         if (d < best) { best = d; option = q; }
                     }
+                    if (steer && option != null && CollectDiagnostics) Count("press.steer");
                     if (option != null) approach = (toGoal * 0.65f + (option.Pos - carrier.Pos).Normalized * 0.35f).Normalized;
                 }
                 p.Target = carrier.Pos + carrier.Vel * 0.35f + approach * standOff + lateral;
@@ -1050,6 +1081,39 @@ namespace SoccerVision.Simulation
             bool wasSupporting = p.Task == PlayerTask.Support;
             p.Task = PlayerTask.Shape;
             float urgency = 0.5f;
+
+            // Rebounds: for a moment after a shot near goal, the attackers follow it in (a parry, a post, a block falls
+            // to the one who gambled) and the defenders turn and get between them and the goal.
+            if (Ball.Owner == null && _lastShotTeam != null && SimTime - _lastShotTime < 1.4f)
+            {
+                var st = _lastShotTeam;
+                Vec2 goal = st.AttackGoal;
+                if (Vec2.Distance(Ball.Pos, goal) < 24f && Vec2.Distance(p.Pos, goal) < 28f)
+                {
+                    float myF = st.Forward(p.Pos), myL = st.Lateral(p.Pos);
+                    float lat = MathUtil.Clamp(0.5f * st.Lateral(Ball.Pos) + 0.5f * myL, -9f, 9f);
+                    // (not everyone gambles on it: the ones who read it - the better off the ball, the more often)
+                    bool gambles = ((p.Number * 7 + (int)(_lastShotTime * 10f)) % 10) < 2 + (int)(4f * MathUtil.A(p.Attr.OffTheBall));
+                    if (team == st && p.Slot.Line != Line.Defence && gambles && Vec2.Distance(p.Pos, goal) < 22f)
+                    {
+                        // (not offside-blind: from where he is, on towards the six-yard box)
+                        p.Target = st.ToWorld(MathF.Max(myF + 2f, Pitch.HalfLength - 8f), lat);
+                        p.Task = PlayerTask.Run;
+                        p.Urgency = 0.95f;
+                        if (CollectDiagnostics && p.Number % 3 == 0) Count("box.followIn");
+                        return;
+                    }
+                    if (team != st)
+                    {
+                        // goal-side: between the nearest danger and the goal, a stride nearer the line
+                        p.Target = st.ToWorld(MathF.Max(myF + 1.5f, Pitch.HalfLength - 6f), lat * 0.8f);
+                        p.Task = PlayerTask.Mark;
+                        p.Urgency = 0.9f;
+                        if (CollectDiagnostics && p.Number % 3 == 0) Count("box.reboundDefend");
+                        return;
+                    }
+                }
+            }
 
             if (inPossession)
             {
@@ -1147,19 +1211,30 @@ namespace SoccerVision.Simulation
                 p.OneTwoUntil = -1f;
                 // Out of possession: goal-side of the man this player is marking (see AssignMarking).
                 float ballF = team.Forward(Ball.Pos);
+                float ballL = team.Lateral(Ball.Pos);
                 var mark = p.MarkTarget;
                 if (mark != null && !mark.SentOff)
                 {
                     bool inBox = Pitch.InPenaltyArea(mark.Pos, team.OwnGoalSign);
                     Vec2 lead = mark.Pos + mark.Vel * 0.3f;
                     float marking = 0.65f + 0.35f * MathUtil.A(p.Attr.Marking);
+                    // Distance marking: the closer his man is to the ball, the tighter; far from it he gives him room and,
+                    // on the far side, lets him go a little to tuck in towards the middle (the shape comes first there).
+                    float dBall = Vec2.Distance(mark.Pos, Ball.Pos);
+                    float loose = inBox ? 0f : MathUtil.Clamp01((dBall - 10f) / 30f);
+                    bool farSide = loose > 0.55f && MathF.Abs(ballL) > 8f && MathF.Sign(team.Lateral(mark.Pos)) != MathF.Sign(ballL);
                     if (team.Tactics.Marking == MarkingStyle.ManToMan)
                     {
                         // Tight, goal-side, and he goes wherever his man goes (looser when the ball is far away).
-                        bool ballFar = Vec2.Distance(mark.Pos, Ball.Pos) > 30f;
                         // (a poor marker gives his man more room)
-                        float gap = (inBox ? 0.9f : (ballFar ? 2.6f : 1.3f)) * (2f - marking);
+                        float gap = (inBox ? 0.9f : 1.1f + 3f * loose) * (2f - marking);
                         Vec2 goalSide = lead + (team.OwnGoal - lead).Normalized * gap;
+                        if (farSide)
+                        {
+                            Vec2 tucked = team.ToWorld(team.Forward(goalSide) - 2f, team.Lateral(goalSide) * 0.6f);
+                            goalSide = Vec2.Lerp(goalSide, tucked, MathUtil.Clamp01((loose - 0.55f) / 0.45f));
+                            if (CollectDiagnostics) Count("mark.tuckIn");
+                        }
                         // never followed deep into the opponents' half
                         if (team.Forward(goalSide) > 8f) goalSide = team.ToWorld(8f, team.Lateral(goalSide));
                         target = goalSide;
@@ -1174,11 +1249,24 @@ namespace SoccerVision.Simulation
                         float r = ZoneRadius(p) * 0.75f;
                         Vec2 fromZone = goalSide - p.ShapeTarget;
                         if (fromZone.Length > r) goalSide = p.ShapeTarget + fromZone.Normalized * r;
-                        float weight = (p.Slot.Line == Line.Defence ? 0.7f : 0.55f) + (inBox ? 0.25f : 0f);
+                        float weight = ((p.Slot.Line == Line.Defence ? 0.7f : 0.55f) + (inBox ? 0.25f : 0f)) * (1f - 0.45f * loose);
                         target = Vec2.Lerp(p.ShapeTarget, goalSide, MathUtil.Clamp01(weight * marking));
                         p.Task = PlayerTask.Mark;
                         if (inBox || Vec2.Distance(p.Pos, goalSide) > 4f) urgency = 0.85f;
                     }
+                }
+                // Ball-watching: now and then a defender near the ball loses his man for a moment and only watches the
+                // ball (more often a poor marker, a tired one, or in the chaos of the box) - the runner gets away from him.
+                if (mark != null && !mark.SentOff && p.BallWatchUntil < SimTime - 10f && Vec2.Distance(p.Pos, Ball.Pos) < 26f
+                    && _rng.Chance(dt * 0.008f * (1.3f - MathUtil.A(p.Attr.Marking)) * (1.4f - MathUtil.A(p.Attr.Positioning) * 0.6f) * (2f - p.FatigueFactor)))
+                {
+                    p.BallWatchUntil = SimTime + _rng.Range(0.7f, 1.3f);
+                    if (CollectDiagnostics) Count("mark.ballWatch");
+                }
+                if (p.BallWatchUntil > SimTime && mark != null)
+                {
+                    target = p.Pos + (Ball.Pos - p.Pos).Normalized * 0.4f;
+                    urgency = 0.3f;
                 }
                 // Hold the line: a defender does not drop off to follow a forward standing beyond the line while the
                 // ball is still in front of it and under pressure - he is left offside. How reliably the line holds depends on the
@@ -1236,7 +1324,8 @@ namespace SoccerVision.Simulation
                 case PlayerRole.ShadowStriker: return 1.3f;
                 case PlayerRole.BoxToBoxDefensive: return carrierF > 0f ? 0.9f : 0.3f;
                 case PlayerRole.Carrier: return carrierF > 5f ? 0.6f : 0f;
-                case PlayerRole.AnchorMan: case PlayerRole.DeepLyingPlaymaker: case PlayerRole.Destroyer: case PlayerRole.TempoSetter: return 0f;
+                case PlayerRole.AnchorMan: case PlayerRole.DeepLyingPlaymaker: case PlayerRole.Destroyer: case PlayerRole.TempoSetter: case PlayerRole.Regista: return 0f;
+                case PlayerRole.Trequartista: return carrierF > 10f ? 1.15f : 0.4f; // the late run into the box
                 case PlayerRole.TargetForward: return 0.6f;
                 case PlayerRole.FalseNine: return 0.4f;
                 case PlayerRole.SecondStriker: return 0.8f;

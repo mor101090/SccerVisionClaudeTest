@@ -2,6 +2,36 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/tactics-realism`
+
+Principles from tactical analysis (the-footballanalyst.com guides to box defending, man-marking distance, the low block,
+the 4-1-4-1, 5-3-2 and 5-4-1, the regista and the trequartista, set-piece coaching; Hansi Flick's high line; line-height
+guides), so the players move like a team rather than like robots:
+
+- **Marking by distance from the ball**: the closer a man is to the ball, the tighter he is marked; far from it he is
+  given room, and on the far side his marker lets him go a little and tucks in towards the middle.
+- **Ball-watching**: now and then (a few times a match) a defender near the ball loses his man for a second and only
+  watches the ball - more often a poor or tired marker - and the runner gets away from him.
+- **The line pushes out after a clearance** - the whole block steps up 10-15 m together (the second ball is played in a
+  shorter space, anyone left in the box is offside).
+- **Rebounds**: right after a shot near goal the attackers follow it in towards the six-yard box (a parry, a post, a
+  block) and the defenders turn and get between them and the goal.
+- **Blocking the shot comes first near the box**: in shooting range the covering defender gets into the line of the shot
+  instead of the diagonal cover position.
+- **The forward steers the press**: a striker pressing a centre-back curves his run to shut the square pass to the other
+  centre-back and shows him down one side (he cannot chase both).
+- **Against a low block** the switch of play to the far side is worth more (draw the block over, then switch to the
+  winger one against one).
+- **New roles**: the **regista** (drops in front of / between the centre-backs, switches and clips it over the press,
+  defends by reading the lanes) and the **trequartista** (free between the lines, hardly defends, the killer pass, the
+  shot from the edge, the late run into the box).
+- **Set-piece goals** are counted (goals within ten seconds of a corner, free kick, penalty or throw-in in the opponents'
+  half); about 28% of goals, as in the top leagues (25-35%).
+- Traits: "cuts inside" goes mostly to wingers with the strong foot inside, and still crosses sometimes (winger crosses
+  were down to a third).
+- Tests: `TacticsRealismTests` (each behaviour is seen, ball-watching stays rare, the set-piece share, the two roles'
+  positions).
+
 ## `feature/player-traits`
 
 - **Player traits** (player page - new **TRAITS** tab, next to ATTRIBUTES): every player has about three habits on the

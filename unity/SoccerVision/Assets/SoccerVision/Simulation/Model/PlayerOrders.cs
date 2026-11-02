@@ -25,6 +25,11 @@ namespace SoccerVision.Simulation
         InvertedWinger, ClassicWinger, WideTargetMan,
         // strikers
         CentreForward, TargetForward, SecondStriker, FalseNine,
+        // (added later, kept at the end so saved plans keep their numbers)
+        /// <summary>Defensive midfielder: drops in front of (or between) the centre-backs, sets the tempo, switches and clips it over the press.</summary>
+        Regista,
+        /// <summary>Attacking midfielder: free between the lines, hardly defends, the killer pass and the shot from the edge.</summary>
+        Trequartista,
     }
 
     /// <summary>An individual instruction: less, mixed (the player's own judgement) or more.</summary>
@@ -49,9 +54,9 @@ namespace SoccerVision.Simulation
             new[] { PlayerRole.Auto, PlayerRole.ShotStopper, PlayerRole.SweeperKeeper, PlayerRole.DominantKeeper },
             new[] { PlayerRole.Auto, PlayerRole.Stopper, PlayerRole.BallPlayingDefender, PlayerRole.CoverDefender },
             new[] { PlayerRole.Auto, PlayerRole.DefensiveFullBack, PlayerRole.InvertedFullBack, PlayerRole.WingBack },
-            new[] { PlayerRole.Auto, PlayerRole.Destroyer, PlayerRole.DeepLyingPlaymaker, PlayerRole.BoxToBoxDefensive, PlayerRole.AnchorMan },
+            new[] { PlayerRole.Auto, PlayerRole.Destroyer, PlayerRole.DeepLyingPlaymaker, PlayerRole.BoxToBoxDefensive, PlayerRole.AnchorMan, PlayerRole.Regista },
             new[] { PlayerRole.Auto, PlayerRole.AllRounder, PlayerRole.TempoSetter, PlayerRole.Carrier },
-            new[] { PlayerRole.Auto, PlayerRole.ClassicPlaymaker, PlayerRole.ShadowStriker, PlayerRole.WidePlaymaker },
+            new[] { PlayerRole.Auto, PlayerRole.ClassicPlaymaker, PlayerRole.ShadowStriker, PlayerRole.WidePlaymaker, PlayerRole.Trequartista },
             new[] { PlayerRole.Auto, PlayerRole.InvertedWinger, PlayerRole.ClassicWinger, PlayerRole.WideTargetMan },
             new[] { PlayerRole.Auto, PlayerRole.CentreForward, PlayerRole.TargetForward, PlayerRole.SecondStriker, PlayerRole.FalseNine },
         };

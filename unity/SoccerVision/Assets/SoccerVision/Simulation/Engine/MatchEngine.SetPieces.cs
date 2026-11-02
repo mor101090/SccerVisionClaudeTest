@@ -1131,6 +1131,8 @@ namespace SoccerVision.Simulation
             var taker = r.Taker;
             EnforceRestartPositions(r);
             RestartExecuting?.Invoke(r);
+            if (r.Team != null && r.Type != RestartType.KickOff && r.Type != RestartType.GoalKick && r.Type != RestartType.DroppedBall && r.Team.Forward(r.Spot) > 0f)
+                r.Team.SetPieceAt = SimTime;
             Phase = MatchPhase.Live;
             _restart = null;
             _goalkeeperHoldTimer = 0f;
@@ -1449,6 +1451,7 @@ namespace SoccerVision.Simulation
             team.Stats.Shots++;
             team.Stats.FreeKickShots++;
             _lastShotTime = SimTime;
+            _lastShotTeam = team;
             _shotCountedOnTarget = false;
             _lastShotKind = 3;
             team.Stats.ExpectedGoals += xg;

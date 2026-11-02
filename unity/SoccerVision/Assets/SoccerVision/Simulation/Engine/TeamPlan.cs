@@ -80,7 +80,7 @@ namespace SoccerVision.Simulation
                             {
                                 var x = o[i].Split('.');
                                 var po = new PlayerOrders();
-                                if (x.Length > 0) po.Role = (PlayerRole)Math.Max(0, Math.Min((int)PlayerRole.FalseNine, I(x[0])));
+                                if (x.Length > 0) po.Role = (PlayerRole)Math.Max(0, Math.Min((int)PlayerRole.Trequartista, I(x[0])));
                                 if (x.Length > 1) po.LongShots = (Amount)Math.Max(0, Math.Min(2, I(x[1])));
                                 if (x.Length > 2) po.Dribbling = (Amount)Math.Max(0, Math.Min(2, I(x[2])));
                                 if (x.Length > 3) po.Aggression = (Amount)Math.Max(0, Math.Min(2, I(x[3])));

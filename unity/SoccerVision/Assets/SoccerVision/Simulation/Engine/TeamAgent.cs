@@ -56,6 +56,10 @@ namespace SoccerVision.Simulation
         public float LastAttackSeconds;
         /// <summary>Sim time this team last lost the ball in open play (the counter-press window starts here) and where.</summary>
         public float LostBallAt = -100f;
+        /// <summary>After a clearance the whole block pushes up together (10-15 m) until then.</summary>
+        public float PushUpUntil = -100f;
+        /// <summary>When the team last took a set piece in the opponents' half.</summary>
+        public float SetPieceAt = -100f;
         public Vec2 LostBallSpot;
         /// <summary>The counter-press for the ball lost at LostBallAt has been counted.</summary>
         public float CounterPressCountedFor = -1f;
@@ -79,7 +83,7 @@ namespace SoccerVision.Simulation
                     // (a box-to-box man, a carrier or a number 10 is never the holding man; a holding role or slot comes first)
                     if (role == PlayerRole.BoxToBoxDefensive || role == PlayerRole.Carrier || p.Kind == PositionKind.AttackingMidfielder) continue;
                     int score = p.Attr.Tackling + p.Attr.Positioning + p.Attr.Marking + p.Attr.Aggression
-                                + (p.Kind == PositionKind.DefensiveMidfielder ? 400 : 0) + (role == PlayerRole.AnchorMan ? 300 : role == PlayerRole.Destroyer || role == PlayerRole.DeepLyingPlaymaker ? 200 : 0);
+                                + (p.Kind == PositionKind.DefensiveMidfielder ? 400 : 0) + (role == PlayerRole.AnchorMan ? 300 : role == PlayerRole.Destroyer || role == PlayerRole.DeepLyingPlaymaker || role == PlayerRole.Regista ? 200 : 0);
                     if (score > bestScore) { bestScore = score; best = p; }
                 }
                 return best;
@@ -255,6 +259,8 @@ namespace SoccerVision.Simulation
         /// <summary>Direct free kicks struck at goal.</summary>
         public int FreeKickShots;
         public int HeaderGoals;
+        /// <summary>Goals within ten seconds of one of the team's set pieces in the opponents' half (corner, free kick, penalty, throw-in).</summary>
+        public int SetPieceGoals;
         public int VolleyGoals;
         public int FreeKickGoals;
         /// <summary>Goalkeeper handling: shots and crosses held, shots parried (over, round the post or out), crosses punched.</summary>

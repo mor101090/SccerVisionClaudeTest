@@ -147,6 +147,8 @@ namespace SoccerVision.Simulation
         public Vec2 OneTwoSpot;
         /// <summary>The opponent this player marks right now (either system).</summary>
         public PlayerAgent MarkTarget;
+        /// <summary>Ball-watching: until then he has lost his man and looks at the ball (a marking lapse).</summary>
+        public float BallWatchUntil = -1f;
         /// <summary>Man-to-man: the opponent given to this player for the whole defensive phase (kept until possession changes).</summary>
         public PlayerAgent ManAssignment;
         internal PlayerAgent PrevMarkTarget;

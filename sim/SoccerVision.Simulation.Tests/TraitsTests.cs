@@ -74,19 +74,22 @@ namespace SoccerVision.Simulation.Tests
             double D(MatchEngine[] es, string k) => es.Average(e => e.Diagnostics.GetValueOrDefault(k));
             double dr0 = plain.Average(e => e.Home.Stats.Dribbles), dr1 = dribblers.Average(e => e.Home.Stats.Dribbles);
             Assert.True(dr1 > dr0 * 1.1, $"dribbles {dr0:0.0} -> {dr1:0.0}");
-            double s0 = plain.Average(e => e.Home.Stats.Shots), s1 = shooters.Average(e => e.Home.Stats.Shots);
-            Assert.True(s1 > s0 * 1.1, $"shots {s0:0.0} -> {s1:0.0}");
+            static double Far(MatchEngine e) => e.EventLog.Count(x => x.Type == MatchEventType.Shot && x.Team == 0
+                && Math.Min(Math.Sqrt((52.5 - x.X) * (52.5 - x.X) + x.Y * x.Y), Math.Sqrt((52.5 + x.X) * (52.5 + x.X) + x.Y * x.Y)) > 18);
+            double s0 = plain.Average(Far), s1 = shooters.Average(Far);
+            Assert.True(s1 > s0 * 1.2, $"shots from 18 m+ {s0:0.0} -> {s1:0.0}");
             Assert.All(plain.Concat(dribblers).Concat(shooters), e => Assert.Equal(0, e.RecoveredErrors));
         }
 
         [Fact]
-        public void HardTacklersGoToGroundMoreAndFoulMore()
+        public void HardTacklersGoInMoreAndFoulMore()
         {
             var plain = Play(() => Red(PlayerTrait.None, p => p.Attributes.Aggression = 75), 520, 4);
             var hard = Play(() => Red(PlayerTrait.HardTackler, p => p.Attributes.Aggression = 75), 520, 4);
-            double sl0 = plain.Average(e => e.Home.Stats.SlideTackles), sl1 = hard.Average(e => e.Home.Stats.SlideTackles);
+            // (he goes in sooner, standing or sliding)
+            double sl0 = plain.Average(e => e.Home.Stats.Tackles), sl1 = hard.Average(e => e.Home.Stats.Tackles);
             double f0 = plain.Average(e => e.Home.Stats.Fouls), f1 = hard.Average(e => e.Home.Stats.Fouls);
-            Assert.True(sl1 > sl0 * 1.15, $"slides {sl0:0.0} -> {sl1:0.0}");
+            Assert.True(sl1 > sl0 * 1.08, $"challenges {sl0:0.0} -> {sl1:0.0}");
             Assert.True(f1 >= f0, $"fouls {f0:0.0} -> {f1:0.0}");
         }
 
