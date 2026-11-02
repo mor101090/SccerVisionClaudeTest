@@ -336,18 +336,19 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .fboard { width: 100%; height: auto; display: block; border-radius: 6px; overflow: visible; }
 .fboard .fl { fill: none; stroke: rgba(255,255,255,.75); stroke-width: .35; }
 .fboard .fd { cursor: pointer; transition: transform .4s cubic-bezier(.3,.7,.2,1); }
-.fboard .fd circle { fill: #fff; stroke: #0b5a27; stroke-width: .5; }
-.fboard .fd.gk circle { fill: #f2d22e; }
+.fboard .fd circle { fill: var(--kit-home, #fff); stroke: rgba(0,0,0,.45); stroke-width: .5; } /* (the team's shirt colours) */
+.fboard .fd.gk circle { fill: var(--gk-home, #f2d22e); }
 .fboard .arrow { fill: none; stroke: #fff; stroke-width: .55; stroke-linecap: round; marker-end: url(#tacHead); opacity: .9; }
 .fboard .press { fill: none; stroke: #ff6a4a; stroke-width: .6; stroke-dasharray: 1 .8; opacity: .95; }
 .fboard .step { fill: none; stroke: #fff; stroke-width: .6; stroke-linecap: round; stroke-linejoin: round; }
 .fboard .sweep { fill: none; stroke: #f2d22e; stroke-width: .45; stroke-dasharray: 1.4 1.2; marker-end: url(#tacHead); }
 .fboard .fd.pend circle { stroke-dasharray: 1.2 .9; }
-.fboard .fd.sel circle { fill: #e9f6ea; }
+.fboard .fd.sel circle { filter: brightness(1.15); }
 .fboard .dl { stroke: #f2d22e; stroke-width: .45; stroke-dasharray: 2.2 1.4; }
 .fboard .dlt { font: 700 2.6px var(--body); fill: #f2d22e; }
 .fboard .fd.sel circle { stroke: #f2d22e; stroke-width: 1.1; }
-.fboard .fd text.n { font: 800 3.4px var(--body); fill: #0e3a1d; }
+.fboard .fd text.n { font: 800 3.4px var(--body); fill: var(--kitn-home, #0e3a1d); }
+.fboard .fd.gk text.n { fill: var(--gkn-home, #0e3a1d); }
 .fboard .fd rect { fill: rgba(42,47,64,.78); }
 .fboard .fd text.l { font: 700 2.5px var(--body); fill: #fff; }
 .hint { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
@@ -1459,7 +1460,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   }
   function applyColours() {
     var c = teamColours(); R.home.kit = c[0]; R.away.kit = c[1];
-    document.documentElement.style.setProperty("--home", c[0].primary); document.documentElement.style.setProperty("--away", c[1].primary);
+    document.documentElement.style.setProperty("--home", c[0].primary);
+    ["kit", c[0].primary, "kitn", c[0].number, "gk", c[0].gk, "gkn", c[0].gkNumber].forEach(function (v, i, a) { if (i % 2 === 0) document.documentElement.style.setProperty("--" + v + "-home", a[i + 1]); }); document.documentElement.style.setProperty("--away", c[1].primary);
     $("hb").style.setProperty("--team", c[0].primary); $("ab").style.setProperty("--team", c[1].primary);
     $("cbar").dataset.bg = "";
   }
