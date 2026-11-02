@@ -77,11 +77,11 @@ namespace SoccerVision.Simulation
             return t;
         }
 
-        /// <summary>Red Rovers defend zonally and tackle normally. <paramref name="seed"/> names the players (the same seed for
+        /// <summary>Team A defend zonally and tackle normally. <paramref name="seed"/> names the players (the same seed for
         /// both teams of a match keeps their surnames apart).</summary>
         public static TeamSetup Red(ulong seed = 1001)
         {
-            var t = FromGenerated("Red Rovers", "RED", new KitColors
+            var t = FromGenerated("Team A", "Team A", new KitColors
             {
                 Primary = "#D32F2F",
                 Secondary = "#1A1A1A", // the edge of the player marker (black, as in the design)
@@ -98,10 +98,10 @@ namespace SoccerVision.Simulation
             return t;
         }
 
-        /// <summary>Blue Falcons mark man-to-man and get stuck in (more slide tackles).</summary>
+        /// <summary>Team B mark man-to-man and get stuck in (more slide tackles).</summary>
         public static TeamSetup Blue(ulong seed = 1001)
         {
-            var t = FromGenerated("Blue Falcons", "BLU", new KitColors
+            var t = FromGenerated("Team B", "Team B", new KitColors
             {
                 Primary = "#1E5BC6",
                 Secondary = "#1A1A1A", // the edge of the player marker (black, as in the design)

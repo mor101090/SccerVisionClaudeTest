@@ -24,7 +24,7 @@ export function App() {
             Engine replay (dev)
           </button>
         </nav>
-        <div className="fixture">Red Rovers v Blue Falcons - 4-4-2 v 4-4-2</div>
+        <div className="fixture">Team A v Team B - 4-4-2 v 4-4-2</div>
       </header>
       <main>{tab === "unity" ? <UnityMatch /> : <ReplayViewer />}</main>
     </div>

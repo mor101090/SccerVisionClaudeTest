@@ -163,7 +163,7 @@ namespace SoccerVision.Simulation
             }
         }
 
-        /// <summary>"Substitution for Red Rovers: #14 Name comes on for #7 Name".</summary>
+        /// <summary>"Substitution for Team A: #14 Name comes on for #7 Name".</summary>
         public static string Substitution(TeamAgent team, PlayerAgent incoming, string outgoingLabel)
         {
             return "Substitution for " + team.Name + ": " + incoming.Label + " comes on for " + outgoingLabel;

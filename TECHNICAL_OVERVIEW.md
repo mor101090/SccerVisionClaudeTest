@@ -110,7 +110,7 @@ User clicks "Offside trap"  (.tac-seg button)
                                                                      (AI/MatchEngine.TeamAI.cs, AI/MatchEngine.OnBall.cs)
   → engine emits TacticsChanged event + moves players
   → ReplayRecorder.Step(): frames + events + stats           (sim/SoccerVision.Replay/ReplayRecorder.cs)
-  → worker posts a "chunk" → page appendChunk() → canvas drawing + commentary ("Red Rovers change their tactics: …")
+  → worker posts a "chunk" → page appendChunk() → canvas drawing + commentary ("Team A change their tactics: …")
 ```
 
 Also in the live loop: `ComputerManager.Update()` (called after every `Step`) lets the away team answer the human's

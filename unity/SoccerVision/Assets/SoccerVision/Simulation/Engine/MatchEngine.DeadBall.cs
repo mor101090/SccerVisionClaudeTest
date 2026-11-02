@@ -3,8 +3,8 @@ using System;
 namespace SoccerVision.Simulation
 {
     /// <summary>
-    /// The ball that went out of play rolls on (or bounces on) beyond the lines until it stops against the advertising
-    /// boards, off the outside of the net, or on the grass - and then it is gone. The game does not wait for it: the restart
+    /// The ball that went out of play rolls on (or bounces on) beyond the lines - off the outside of the net if it hits it -
+    /// until it leaves the picture or stops on the grass, and then it is gone (nothing out there sends it back in). The game does not wait for it: the restart
     /// is taken with a new ball (the ball boys' ball). Only the viewers see it; it touches nothing in the match.
     /// </summary>
     public sealed partial class MatchEngine
@@ -14,7 +14,8 @@ namespace SoccerVision.Simulation
         public bool DeadBallActive;
         private float _deadBallRest, _deadBallAge;
 
-        private const float BoardsX = Pitch.HalfLength + 5f, BoardsY = Pitch.HalfWidth + 4f;
+        /// <summary>The edge of the picture around the pitch: a ball beyond it has left the view and is gone.</summary>
+        private const float ViewX = Pitch.HalfLength + 4f, ViewY = Pitch.HalfWidth + 3f;
 
         /// <summary>The ball has just gone out: from here a copy of it carries on beyond the line.</summary>
         private void ReleaseDeadBall()
@@ -54,9 +55,8 @@ namespace SoccerVision.Simulation
                 else if (pz >= Pitch.GoalHeight + 0.1f) { b.Z = Pitch.GoalHeight + 0.12f; b.Vz = 0f; b.Vx = side * MathF.Max(MathF.Abs(b.Vx) * 0.5f, 1.2f); b.Vy *= 0.5f; }
                 else { b.X = line + side * (Pitch.GoalDepth + 0.05f); b.Vx = MathF.Abs(b.Vx) * 0.2f * side; } // (the back of the net, from behind)
             }
-            // the advertising boards
-            if (MathF.Abs(b.X) > BoardsX) { b.X = MathF.Sign(b.X) * BoardsX; b.Vx = -b.Vx * 0.3f; }
-            if (MathF.Abs(b.Y) > BoardsY) { b.Y = MathF.Sign(b.Y) * BoardsY; b.Vy = -b.Vy * 0.3f; }
+            // out of the picture: gone (it does not bounce back off anything into view)
+            if (MathF.Abs(b.X) > ViewX || MathF.Abs(b.Y) > ViewY) { DeadBallActive = false; return; }
             // lying still for a moment, then it is collected
             float speed = MathF.Sqrt(b.Vx * b.Vx + b.Vy * b.Vy + b.Vz * b.Vz);
             _deadBallRest = speed < 0.15f && b.Z <= Pitch.BallRadius + 0.01f ? _deadBallRest + dt : 0f;

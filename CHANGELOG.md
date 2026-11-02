@@ -26,6 +26,10 @@ behaviours, not tactics to set (`AI/MatchEngine.TeamAI.Intelligence.cs`):
 - **Fix: a ball on the roof of the net stayed there for the rest of the match** - the roof stopped it every frame and a ball was only
   collected lying on the grass. It now rolls off the back of the roof and drops behind the goal, and no ball that went out is shown for
   more than 9 s.
+- **The teams are Team A and Team B** (they were "Red Rovers" and "Blue Falcons" - odd once you change their colours): in the engine, the
+  page, the commentary and the React app.
+- **A ball that goes out is gone once it leaves the picture**: nothing beyond the lines (the advertising boards used to) sends it back
+  into view. It still bounces off the outside of the net.
 - Test fix: the half-length check allows the Law 7 extension when a penalty is given at the very end of a half.
 - Tests: `IntelligenceTests`.
 

@@ -79,7 +79,7 @@ namespace SoccerVision.Simulation.Tests
             e.Advance(2f);
             Assert.Equal(PassingStyle.Direct, e.Home.Tactics.Passing);
             var ev = Assert.Single(e.EventLog, x => x.Type == MatchEventType.TacticsChanged);
-            Assert.Equal("Red Rovers change their tactics: high line, wide, balls in behind, fast tempo, aggressive", ev.Text);
+            Assert.Equal("Team A change their tactics: high line, wide, balls in behind, fast tempo, aggressive", ev.Text);
         }
 
         [Fact]
