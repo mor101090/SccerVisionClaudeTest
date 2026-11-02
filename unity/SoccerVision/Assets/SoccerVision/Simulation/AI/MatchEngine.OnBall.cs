@@ -135,13 +135,14 @@ namespace SoccerVision.Simulation
                 {
                     Action = BallAction.Hold,
                     DribbleTarget = Pitch.ClampToField(p.Pos + away.ClampLength(2f), -1.5f),
-                    Utility = xtNow * 0.95f - pressure * lossNow * 0.8f - holdPenalty,
+                    Utility = xtNow * 0.95f - pressure * lossNow * 0.8f - holdPenalty
+                              + (BackToGoalNow(p) ? 0.004f + 0.004f * pressure : 0f), // the target man holds it up under pressure
                 });
             }
 
             // SHOOT
             float distGoal = Vec2.Distance(pos, team.AttackGoal);
-            bool longShots = team.Tactics.Attack == AttackStyle.LongShots || p.Orders.LongShots == Amount.More;
+            bool longShots = team.Tactics.Attack == AttackStyle.LongShots || p.Orders.LongShots == Amount.More || p.Has(PlayerTrait.ShootsFromDistance);
             // An open goal: the keeper is out of the way (off his line and not between the ball and the goal) and nobody
             // blocks the lane - he shoots, he does not dribble on until the chance is gone.
             bool openGoal = false;
@@ -177,6 +178,10 @@ namespace SoccerVision.Simulation
                 // the individual instruction: shoot from distance more / less (inside the box he shoots as usual)
                 if (distGoal > 18f) tendency *= PlayerAgent.Scale(p.Orders.LongShots, 0.35f, 1.75f);
                 if (p.PlayRole == PlayerRole.ShadowStriker && distGoal < 18f) tendency *= 1.15f;
+                // traits: a shot on sight from range; the cut inside and shoot; the unselfish one looks for a pass first
+                if (p.Has(PlayerTrait.ShootsFromDistance) && distGoal > 18f) tendency *= 1.6f;
+                if (p.Has(PlayerTrait.CutsInsideToShoot) && p.CutInUntil > SimTime) tendency *= 1.3f;
+                if (p.Has(PlayerTrait.Unselfish) && !openGoal) tendency *= 0.8f;
                 if (openGoal) { tendency = MathF.Max(tendency, 3f); if (CollectDiagnostics) Count("shot.openGoal.considered"); }
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
                 float afterShotLoss = 0.006f + 0.25f * _riskPremium;
@@ -221,6 +226,8 @@ namespace SoccerVision.Simulation
             // sees (and values) the through ball and the pass into space that others do not think of.
             {
                 float teamwork = MathUtil.A(p.Attr.Teamwork), creativity = MathUtil.A(p.Attr.Creativity);
+                bool unselfish = p.Has(PlayerTrait.Unselfish), layOff = BackToGoalNow(p);
+                if (unselfish) teamwork = MathF.Min(1f, teamwork + 0.35f);
                 float ownXg = f > 24f ? EstimateShotXG(p, pos) : 0f;
                 // the last man with only the keeper to beat: no back pass, no sitting on it - he goes at goal
                 bool lastMan = f > 12f && IsLastMan(p);
@@ -235,6 +242,10 @@ namespace SoccerVision.Simulation
                     }
                     if (o.Action != BallAction.Pass || o.Utility <= 0f) continue;
                     if (o.Kind == KickKind.ThroughBall || o.IntoSpace) o.Utility *= 0.85f + 0.35f * creativity;
+                    if (unselfish && o.Receiver != null && team.Forward(o.Receiver.Pos) > f - 4f) o.Utility *= 1.08f;
+                    // back to goal: the lay-off to a team-mate facing the play
+                    if (layOff && !o.Lofted && team.Forward(o.Target) < f && Vec2.Distance(o.Target, pos) < 14f) o.Utility *= 1.25f;
+                    if (o.IsSwitch && p.Has(PlayerTrait.SwitchesPlay)) o.Utility *= 1.3f;
                     // the midfielder arriving late into the box is the man nobody picks up: find him
                     if (o.Receiver != null && (o.Receiver.Slot.IsCentralMidfielder || o.Receiver.Kind == PositionKind.AttackingMidfielder) && team.Forward(o.Receiver.Pos) > 28f)
                         o.Utility *= (o.Receiver.RunTimer > 0f ? 1.35f : 1.05f) + 0.2f * teamwork;
@@ -519,7 +530,7 @@ namespace SoccerVision.Simulation
                                * (team.CounterUntil > SimTime && team.Forward(target) > team.Forward(from) + 8f ? 1.45f : 1f);
             float value = ExpectedThreat.At(team, target) * (1f - 0.3f * receiverPressure) * StyleFactor(team, kind, d, false) * styleBoost
                           * RolePassFactor(p, q, kind, d, false, team.Forward(target) - team.Forward(from));
-            float relief = SwitchRelief(p, from, target, pressure);
+            float relief = SwitchRelief(p, from, target, pressure) * (p.Has(PlayerTrait.SwitchesPlay) ? 1.6f : 1f);
             value += relief;
             // Cut-back: from the by-line, low and square to a team-mate arriving in the middle of the box.
             if (team.Forward(from) > 38f && MathF.Abs(team.Lateral(from)) > 13f && team.Forward(target) > 34f && team.Forward(target) < team.Forward(from) - 2f
@@ -656,7 +667,7 @@ namespace SoccerVision.Simulation
             float success = pWin * pControl * pAccuracy;
             if (kind == KickKind.ThroughBall) success *= 0.78f + 0.3f * SpaceBehindLine(team); // the keeper and the recovering defenders (see AddGroundPass)
             float value = ExpectedThreat.At(team, target) * StyleFactor(team, kind, d, true) * RolePassFactor(p, q, kind, d, true, team.Forward(target) - team.Forward(from));
-            float relief = SwitchRelief(p, from, target, pressure);
+            float relief = SwitchRelief(p, from, target, pressure) * (p.Has(PlayerTrait.SwitchesPlay) ? 1.6f : 1f);
             value += relief;
             float progress = team.Forward(target) - team.Forward(from);
             value += MathF.Max(0f, progress) * 0.0002f * (0.6f + 0.8f * team.Eff.Tempo);
@@ -765,7 +776,7 @@ namespace SoccerVision.Simulation
                 keep *= MathF.Pow(0.82f, crowd); // dribbling into a crowd rarely works
                 float value = ExpectedThreat.At(team, target);
                 bool inward = MathF.Abs(team.Lateral(target)) < MathF.Abs(team.Lateral(pos)) - 2f;
-                if (cutIn && inward && f > 14f && MathF.Abs(team.Lateral(pos)) > 14f) value += 0.05f * cutInSkill;
+                if (cutIn && inward && f > 14f && MathF.Abs(team.Lateral(pos)) > 14f) value += (p.Has(PlayerTrait.CutsInsideToShoot) ? 0.08f : 0.05f) * cutInSkill;
                 else if (inverted && team.Forward(pos) > 15f && inward) value += 0.003f;
                 // Wide players (wingers, attacking full-backs) love to take it down the line towards the by-line,
                 // where they can deliver; the ones who cut in (strong foot inside) prefer to come inside instead.
@@ -787,6 +798,8 @@ namespace SoccerVision.Simulation
         private static float DribbleFactor(PlayerAgent p, bool progressive)
         {
             float f = PlayerAgent.Scale(p.Orders.Dribbling, 0.55f, 1.4f);
+            if (p.Has(PlayerTrait.LovesToDribble)) f *= 1.35f;
+            if (p.Has(PlayerTrait.Unselfish)) f *= 0.9f;
             switch (p.PlayRole)
             {
                 case PlayerRole.Carrier: f *= 1.3f; break;
@@ -1096,7 +1109,8 @@ namespace SoccerVision.Simulation
             else rating = p.Attr.StrongFootRating;
             // Weak foot (stats spec): 3 two strong feet, 2 he can use the other foot, 1 he cannot use it at all - he tries to
             // get the ball onto his strong foot (more often managing it), and when he cannot, the kick is a poor one.
-            if (_rng.Chance(rating == 1 ? 0.5f : 0.35f)) rating = p.Attr.StrongFootRating;
+            if (p.Has(PlayerTrait.UsesWeakFoot)) rating = Math.Min(3, rating + 1); // he practises with it and is happy to use it
+            else if (_rng.Chance(rating == 1 ? 0.5f : 0.35f)) rating = p.Attr.StrongFootRating;
             return rating >= 3 ? 1f : rating == 2 ? 1.25f : 1.8f;
         }
 
@@ -1423,7 +1437,9 @@ namespace SoccerVision.Simulation
             float technique = MathUtil.Clamp01((p.Attr.BallControl + p.Attr.Dribbling + p.Attr.Finishing + p.Attr.Composure) / 400f);
             // Back to goal right in front of it: the flick with the heel (rare, only for the technical ones).
             Vec2 toGoal = (team.AttackGoal - from).Normalized;
-            if (dist < 9f && Vec2.Dot(p.FacingDir, toGoal) < -0.3f && technique > 0.62f && _rng.Chance(0.35f * (technique - 0.62f) / 0.38f + 0.04f))
+            bool showy = p.Has(PlayerTrait.Showboat);
+            if (dist < 9f && Vec2.Dot(p.FacingDir, toGoal) < -0.3f && (technique > 0.62f || showy && technique > 0.5f)
+                && _rng.Chance((0.35f * MathF.Max(0f, technique - 0.62f) / 0.38f + 0.04f) * (showy ? 2f : 1f)))
                 return ShotTechnique.Backheel;
             if (keeper != null && !keeper.SentOff)
             {
@@ -1442,6 +1458,8 @@ namespace SoccerVision.Simulation
                 bool technical = technique > 0.7f;
                 int weak = p.Attr.WeakFootRating;
                 float trivela = !technical ? 0f : weak <= 1 ? 0.3f : weak == 2 ? 0.12f : 0f;
+                if (p.Has(PlayerTrait.OutsideOfTheFoot)) trivela = 0.45f + 0.25f * technique; // his signature strike
+                if (p.Has(PlayerTrait.UsesWeakFoot)) trivela = 0f;                            // he trusts the other foot
                 return _rng.Chance(trivela * (0.5f + technique)) ? ShotTechnique.OutsideFoot : ShotTechnique.WeakFoot;
             }
             // The knuckleball: a long, central strike by someone who strikes a ball cleanly (free-kick and long-shot skill).
@@ -1511,6 +1529,8 @@ namespace SoccerVision.Simulation
         {
             var team = p.Team;
             float flair = MathUtil.A((p.Attr.Creativity + p.Attr.Dribbling + p.Attr.Composure) / 3);
+            bool showboat = p.Has(PlayerTrait.Showboat);
+            if (showboat) flair = MathF.Min(1f, flair + 0.2f);
             if (chosen.Action == BallAction.Shoot && flair > 0.55f)
             {
                 Vec2 toGoal = (team.AttackGoal - pos).Normalized;
@@ -1522,7 +1542,7 @@ namespace SoccerVision.Simulation
                     float len = d.Length;
                     if (len < 3.6f && len > 0.3f && Vec2.Dot(d / len, toGoal) > 0.4f) { blocker = o; break; }
                 }
-                if (blocker != null && _rng.Chance(0.7f * (flair - 0.55f) / 0.45f + 0.1f))
+                if (blocker != null && _rng.Chance((0.7f * (flair - 0.55f) / 0.45f + 0.1f) * (showboat ? 1.5f : 1f)))
                 {
                     // the cut: away from the side the defender committed to, still towards goal
                     float side = Vec2.Cross(toGoal, blocker.Pos - pos) > 0f ? -1f : 1f;
@@ -1538,9 +1558,9 @@ namespace SoccerVision.Simulation
             {
                 Vec2 to = chosen.Target - pos;
                 float len = to.Length;
-                float technique = MathUtil.A((p.Attr.BallControl + p.Attr.Creativity) / 2);
+                float technique = MathUtil.A((p.Attr.BallControl + p.Attr.Creativity) / 2) + (showboat ? 0.2f : 0f);
                 if (len > 3f && len < 14f && Vec2.Dot(to / len, p.FacingDir) < -0.55f && technique > 0.55f
-                    && _rng.Chance(0.4f * (technique - 0.55f) / 0.45f + 0.03f))
+                    && _rng.Chance((0.4f * (technique - 0.55f) / 0.45f + 0.03f) * (showboat ? 1.6f : 1f)))
                 {
                     Emit(MatchEventType.Skill, team, p, chosen.Receiver, pos, 0f, WhistleKind.Short, 2);
                     if (CollectDiagnostics) Count("skill.backheel");
@@ -1553,12 +1573,23 @@ namespace SoccerVision.Simulation
         /// A technical player on the wing whose strong foot is on the inside (right-footed left winger, or the
         /// mirror): he cuts inside and shoots rather than going for the by-line.
         /// </summary>
+        /// <summary>A target man with his back to goal in the final third: he holds it up and lays it off.</summary>
+        private static bool BackToGoalNow(PlayerAgent p)
+        {
+            if (!p.Has(PlayerTrait.BackToGoal)) return false;
+            var team = p.Team;
+            if (team.Forward(p.Pos) < 12f) return false;
+            Vec2 toGoal = (team.AttackGoal - p.Pos).Normalized;
+            return Vec2.Dot(p.FacingDir, toGoal) < -0.2f;
+        }
+
         private static bool IsCutInsidePlayer(PlayerAgent p)
         {
             var slot = p.Slot;
             if (!(slot.IsWideMidfielder || (slot.Line == Line.Attack && MathF.Abs(slot.BaseLateral) > 12f))) return false;
             var role = p.PlayRole;
             if (role == PlayerRole.ClassicWinger || role == PlayerRole.WideTargetMan) return false; // he stays wide
+            if (p.Has(PlayerTrait.CutsInsideToShoot)) return true; // it is his game
             bool inverted = (slot.BaseLateral > 0f) == (p.Attr.StrongFoot == Foot.Right);
             float skill = (p.Attr.Dribbling + p.Attr.LongShots + p.Attr.Finishing + p.Attr.BallControl) / 4f;
             if (role == PlayerRole.InvertedWinger) return skill >= 45f; // the manager asked him to come inside

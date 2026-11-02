@@ -2,6 +2,26 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/player-traits`
+
+- **Player traits** (player page - new **TRAITS** tab, next to ATTRIBUTES): every player has about three habits on the
+  ball (two for a keeper), weighted by his position and skills, regenerated with the squad each match, never two that
+  contradict each other (cuts inside v back to goal, outside of the foot v weaker foot, dribbler v unselfish, long shots
+  v unselfish). They tip his choices in the engine:
+  1. *Cuts inside and shoots* - from the flank he always comes inside, and shoots more after the cut.
+  2. *Loves to dribble* - runs with the ball far more often.
+  3. *Sets up his team-mates* - fewer shots, looks for the better-placed man.
+  4. *Outside of the foot* - the trivela instead of the weaker foot.
+  5. *Uses his weaker foot* - does not shift onto the strong foot, and his weaker one is a grade better.
+  6. *Likes tricks* - backheels, dummies, fake shots and backheel finishes more often.
+  7. *Goes in hard* - only for an aggressive player (70+; the trait gives him it): more tackles and slides, more fouls.
+  8. *Shoots from distance* - has a go from range.
+  9. *Switches the play* - values the long ball to the other flank.
+  10. *Back to goal* - holds it up, stronger in the body, lays it off to the runners.
+- The traits are in the replay header (`traits` per player). Tests: counts and conflicts, determinism, and that dribblers
+  dribble, long-range shooters shoot, hard tacklers slide and foul, unselfish players shoot less.
+- Commentary test updated for names-only commentary.
+
 ## `feature/cup-modes-live-rewind-lineup-board`
 
 - **Cup modes** (settings - Competition): a league match ends after 90 minutes; a **cup** tie that is level goes straight to

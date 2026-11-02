@@ -52,11 +52,12 @@ namespace SoccerVision.Simulation.Tests
         }
 
         [Fact]
-        public void CommentaryNamesPlayersByNumberWithoutAHash()
+        public void CommentaryNamesPlayersByNameOnly()
         {
             var e = Play(3400, 1)[0];
             Assert.DoesNotContain(e.EventLog, x => x.Text.Contains("#"));
-            Assert.Contains(e.EventLog, x => x.Type == MatchEventType.Pass && System.Text.RegularExpressions.Regex.IsMatch(x.Text, @"^\d+ \w"));
+            Assert.Contains(e.EventLog, x => x.Type == MatchEventType.Pass && System.Text.RegularExpressions.Regex.IsMatch(x.Text, @"^\p{L}"));
+            Assert.DoesNotContain(e.EventLog, x => x.Type == MatchEventType.Pass && System.Text.RegularExpressions.Regex.IsMatch(x.Text, @"^\d+ "));
         }
     }
 }

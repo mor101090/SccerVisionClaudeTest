@@ -55,7 +55,9 @@ namespace SoccerVision.Simulation
             }
             if (mate == null) return false;
             float clever = MathUtil.A((p.Attr.Decisions + p.Attr.Creativity) / 2);
-            if (clever < 0.45f || !_rng.Chance(0.6f * (clever - 0.45f) / 0.55f + 0.08f)) return false;
+            bool showboat = p.Has(PlayerTrait.Showboat);
+            if (showboat) clever = MathF.Min(1f, clever + 0.15f);
+            if (clever < 0.45f || !_rng.Chance((0.6f * (clever - 0.45f) / 0.55f + 0.08f) * (showboat ? 1.5f : 1f))) return false;
             p.TouchCooldown = 0.7f;
             marker.StunTimer = MathF.Max(marker.StunTimer, 0.5f);
             Ball.IntendedReceiver = mate;
@@ -722,6 +724,7 @@ namespace SoccerVision.Simulation
         private static float PlayerTackleFactor(PlayerAgent d)
         {
             float f = PlayerAgent.Scale(d.Orders.Aggression, 0.6f, 1.4f);
+            if (d.Has(PlayerTrait.HardTackler)) f *= 1.3f;
             switch (d.PlayRole)
             {
                 case PlayerRole.Destroyer: f *= 1.25f; break;
@@ -829,7 +832,7 @@ namespace SoccerVision.Simulation
             if (Vec2.Dot(run, team.DirToWorld(-Vec2.UnitX)) < -0.3f) return false; // running away from our goal: no need
             if (d.Vel.Length < 3f) return false;                                    // slides come out of a run
             float aggression = MathUtil.A(d.Attr.Aggression);
-            float rate = 0.09f * SlideStyleFactor(team) * PlayerAgent.Scale(d.Orders.Aggression, 0.35f, 1.6f) * (0.35f + 0.65f * aggression) * (0.6f + 0.4f * MathUtil.A(d.Attr.Tackling));
+            float rate = 0.09f * (d.Has(PlayerTrait.HardTackler) ? 1.6f : 1f) * SlideStyleFactor(team) * PlayerAgent.Scale(d.Orders.Aggression, 0.35f, 1.6f) * (0.35f + 0.65f * aggression) * (0.6f + 0.4f * MathUtil.A(d.Attr.Tackling));
             if (team.Forward(carrier.Pos) < -10f) rate *= 1.5f; // danger: he must be stopped
             if (inBox) rate *= 0.2f;
             if (d.YellowCards > 0) rate *= 0.25f;
@@ -906,7 +909,7 @@ namespace SoccerVision.Simulation
             float defend = (0.6f * da.Tackling + 0.2f * da.Decisions + 0.2f * da.Acceleration) * d.FatigueFactor;
             float pFoul = 0.14f + 0.14f * MathUtil.A(da.Aggression) + (fromBehind ? 0.3f : 0.05f) - 0.1f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
-            pFoul = MathUtil.Clamp(pFoul * FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.65f, 1.35f), 0.05f, 0.7f);
+            pFoul = MathUtil.Clamp(pFoul * (d.Has(PlayerTrait.HardTackler) ? 1.15f : 1f) * FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.65f, 1.35f), 0.05f, 0.7f);
             float pWin = MathUtil.Clamp(0.62f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.12f : 0f), 0.2f, 0.9f);
             if (_rng.Chance(pFoul))
             {
@@ -974,9 +977,10 @@ namespace SoccerVision.Simulation
             }
         }
 
-        private static float BodyStrength(PlayerAgent p) =>
+        private float BodyStrength(PlayerAgent p) =>
             0.5f * MathUtil.A(p.Attr.PhysicalPower) + 0.2f * MathUtil.A(p.Attr.Aggression) + 0.15f * MathUtil.A(p.Attr.Acceleration)
-            + MathUtil.Clamp((p.Profile.HeightCm - 165) / 35f, 0f, 1f) * 0.15f + (p.Task == PlayerTask.Shield ? 0.12f : 0f);
+            + MathUtil.Clamp((p.Profile.HeightCm - 165) / 35f, 0f, 1f) * 0.15f + (p.Task == PlayerTask.Shield ? 0.12f : 0f)
+            + (p.Has(PlayerTrait.BackToGoal) && Ball.Owner == p ? 0.08f : 0f); // the target man knows how to use his body
 
         private void ShoulderDuel(PlayerAgent a, PlayerAgent b)
         {

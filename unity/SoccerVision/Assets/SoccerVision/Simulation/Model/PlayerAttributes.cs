@@ -95,6 +95,8 @@ namespace SoccerVision.Simulation
         public int Age = 25;
         public string Nationality = "";
         public PlayerAttributes Attributes = new PlayerAttributes();
+        /// <summary>His character on the ball (about three habits, see <see cref="PlayerTraits"/>).</summary>
+        public PlayerTrait Traits;
 
         public string ShortName => string.IsNullOrEmpty(LastName) ? FirstName : LastName;
         public string FullName => string.IsNullOrEmpty(FirstName) ? LastName : FirstName + " " + LastName;

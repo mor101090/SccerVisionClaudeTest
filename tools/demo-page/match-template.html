@@ -447,6 +447,15 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .pf-row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; margin-top: 4px; background: #2f3547; border-radius: 3px; font: 600 14px/1.1 var(--body); }
 .pf-row b { font-variant-numeric: tabular-nums; }
 .pf-lower { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 14px; }
+.pf-tabs { display: flex; gap: 6px; margin-top: 16px; border-bottom: 2px solid #2f3547; }
+.pf-tabs button { background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 8px 16px; color: var(--muted); font: 700 15px/1 var(--body); letter-spacing: .05em; cursor: pointer; }
+.pf-tabs button[aria-selected="true"] { color: #fff; border-bottom-color: var(--amber, #f2b233); }
+.pf-traits { display: grid; gap: 10px; margin-top: 16px; }
+.pf-trait { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px 14px; background: #2f3547; border-radius: 4px; animation: pfTraitIn .35s ease-out both; }
+.pf-trait .ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: #1b1f2b; font-size: 22px; }
+.pf-trait b { display: block; font: 700 16px/1.2 var(--body); }
+.pf-trait small { display: block; color: var(--muted); font: 500 13px/1.35 var(--body); margin-top: 2px; }
+@keyframes pfTraitIn { from { opacity: 0; transform: translateY(6px); } }
 .pf-lower h4 { margin: 0 0 4px; text-align: center; font: 700 16px/1 var(--body); }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
@@ -2417,6 +2426,27 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       '<polygon points="' + poly(axes.map(function (a) { return Math.max(.04, Math.min(1, a[1] / 100)); })) + '" fill="rgba(255,255,255,.12)" stroke="#fff" stroke-width="2"/>' +
       axes.map(function (a, k) { var q = pt(k, 1.2); return '<text x="' + q[0].toFixed(1) + '" y="' + (q[1] + 5).toFixed(1) + '" text-anchor="middle">' + a[0] + '</text>'; }).join("") + '</svg>';
   }
+  // the player's character on the ball (from the engine): name, icon, what it does in a match
+  var TRAITS = {
+    CutsInsideToShoot: ["↪", "Cuts inside and shoots", "From the flank he comes inside onto his stronger foot and has a go at goal."],
+    LovesToDribble: ["⚡", "Loves to dribble", "Runs with the ball and takes his man on rather than giving it away early."],
+    Unselfish: ["🤝", "Sets up his team-mates", "Looks for the better-placed man and lays it on - fewer shots of his own, more assists."],
+    OutsideOfTheFoot: ["🌀", "Outside of the foot", "Strikes and bends it with the outside of his boot (the trivela) instead of the weaker foot."],
+    UsesWeakFoot: ["🦶", "Uses his weaker foot", "Happy on either side: he does not shift the ball onto his strong foot, and his weaker one is reliable."],
+    Showboat: ["✨", "Likes tricks", "Backheels, dummies and fake shots - the flair players' repertoire, more often than most."],
+    HardTackler: ["🛡", "Goes in hard", "Throws himself into tackles and slides - wins the ball back, but gives away more fouls."],
+    ShootsFromDistance: ["🎯", "Shoots from distance", "Has a go from outside the box whenever he sees the target."],
+    SwitchesPlay: ["↔", "Switches the play", "Looks for the long ball to the other flank to get out of a crowd."],
+    BackToGoal: ["🧱", "Plays with his back to goal", "Holds the ball up, uses his body against the defender and lays it off to the runners."]
+  };
+  function traitsHtml(p) {
+    var list = p.traits || [];
+    if (!list.length) return '<p class="muted">No particular habits.</p>';
+    return list.map(function (t, i) {
+      var d = TRAITS[t] || ["•", t, ""];
+      return '<div class="pf-trait" style="animation-delay:' + (i * 70) + 'ms"><span class="ic" aria-hidden="true">' + d[0] + '</span><span><b>' + esc(d[1]) + '</b><small>' + esc(d[2]) + '</small></span></div>';
+    }).join("");
+  }
   function openProfile(p, team) {
     if (MODE === "live" && team === 1) { toast("In a live match you cannot see the opponents' data"); return; }
     if (!p) return;
@@ -2430,11 +2460,24 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       '<span class="pf-feet">' + footSvg(p) + '<span>Preferred foot: ' + esc(p.foot) + '<br><small class="muted">weak foot ' + esc(p.weakFoot) + '/3</small></span></span>' +
       '<span class="team">' + esc(tm.name) + ' · Num. ' + esc(p.number) + (p.nation ? ' · ' + esc(p.nation) : "") + '</span></div>' +
       '<div class="pf-pent">' + pentagonSvg(c, gk) + '</div></div>' +
-      '<div class="pf-cats">' + cat("MENTAL", c[0], 0, 3) + cat("DEFENCE", c[1], 4, 6) + cat("PLAYMAKING", c[2], 7, 9) + cat("ATTACKING", c[3], 10, 12) + cat("ATHLETIC", c[4], 13, 19) + '</div>' +
+      '<div class="pf-tabs" role="tablist"><button type="button" role="tab" id="pfTabAttr" aria-selected="true" aria-controls="pfAttr">ATTRIBUTES</button>' +
+      '<button type="button" role="tab" id="pfTabTraits" aria-selected="false" aria-controls="pfTraits">TRAITS</button></div>' +
+      '<div class="pf-traits" id="pfTraits" role="tabpanel" hidden>' + traitsHtml(p) + '</div>' +
+      '<div id="pfAttr" role="tabpanel"><div class="pf-cats">' + cat("MENTAL", c[0], 0, 3) + cat("DEFENCE", c[1], 4, 6) + cat("PLAYMAKING", c[2], 7, 9) + cat("ATTACKING", c[3], 10, 12) + cat("ATHLETIC", c[4], 13, 19) + '</div>' +
       '<div class="pf-lower"><div><h4>FORM</h4><div class="pf-row"><span>Stamina</span><b>' + esc(p.stamina) + '</b></div><div class="pf-row"><span>Fitness</span><b class="fit-' + esc(p.fitness) + '">' + esc(p.fitness) + '</b></div>' +
       (en != null ? '<div class="pf-row"><span>Energy left now</span><b style="color:' + levelColour(en) + '">' + en + '%</b></div>' : "") + '</div>' +
-      '<div><h4>SET PIECES</h4>' + rows(20, 21) + '</div>' + (gk ? '<div><h4>GOALKEEPING</h4>' + rows(22, 26) + '</div>' : "") + '</div>';
+      '<div><h4>SET PIECES</h4>' + rows(20, 21) + '</div>' + (gk ? '<div><h4>GOALKEEPING</h4>' + rows(22, 26) + '</div>' : "") + '</div></div>';
     $("profile").innerHTML = html;
+    ["pfTabAttr", "pfTabTraits"].forEach(function (id) {
+      $(id).addEventListener("click", function () {
+        var traits = id === "pfTabTraits";
+        $("pfTabAttr").setAttribute("aria-selected", String(!traits));
+        $("pfTabTraits").setAttribute("aria-selected", String(traits));
+        $("pfAttr").hidden = traits;
+        $("pfTraits").hidden = !traits;
+        if (traits) $("pfTraits").innerHTML = traitsHtml(p); // (replays the entrance)
+      });
+    });
     $("profileBack").hidden = false;
     $("pfClose").focus();
   }

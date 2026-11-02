@@ -93,6 +93,17 @@ namespace SoccerVision.Replay
             b.Append(",\"leftFoot\":").Append(a.LeftFoot).Append(",\"rightFoot\":").Append(a.RightFoot);
             b.Append(",\"group\":\"").Append(pr.NaturalPosition).Append('"');
             b.Append(",\"nation\":"); Str(b, pr.Nationality);
+            // his traits (habits on the ball), by name
+            b.Append(",\"traits\":[");
+            bool firstTrait = true;
+            foreach (var t in PlayerTraits.All)
+            {
+                if ((pr.Traits & t) == 0) continue;
+                if (!firstTrait) b.Append(',');
+                b.Append('"').Append(t).Append('"');
+                firstTrait = false;
+            }
+            b.Append(']');
             b.Append(",\"cats\":[").Append((int)MathF.Round(a.Mental)).Append(',').Append((int)MathF.Round(a.Defence)).Append(',').Append((int)MathF.Round(a.Playmaking))
              .Append(',').Append((int)MathF.Round(a.Attacking)).Append(',').Append((int)MathF.Round(a.Athletic)).Append(',').Append((int)MathF.Round(a.Goalkeeping)).Append(']');
         }

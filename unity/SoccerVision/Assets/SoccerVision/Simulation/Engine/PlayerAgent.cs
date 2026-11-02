@@ -198,6 +198,8 @@ namespace SoccerVision.Simulation
         public static float Scale(Amount a, float less, float more) => a == Amount.Less ? less : a == Amount.More ? more : 1f;
         public bool IsActive => !SentOff;
         public int Number => Profile.ShirtNumber;
+        /// <summary>Does he have this habit on the ball (see <see cref="PlayerTraits"/>)?</summary>
+        public bool Has(PlayerTrait t) => (Profile.Traits & t) != 0;
         public Vec2 FacingDir => Vec2.FromAngle(Facing);
 
         // ---- Physical capabilities ------------------------------------------------------------------
