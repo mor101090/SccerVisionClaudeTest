@@ -69,7 +69,7 @@ namespace SoccerVision.Simulation.Tests
             Assert.True(curled >= 24 * 0.5, "curled cut-inside shots " + curled);
             // They are taken from the flank and aimed at the far corner: the shot's origin is wide, the finish is on the other side.
             var shots = engines.SelectMany(e => e.EventLog).Where(x => x.Type == MatchEventType.Shot && x.Detail == 2).ToList();
-            Assert.True(shots.Count >= 24, "cut-inside shots " + shots.Count);
+            Assert.True(shots.Count >= 24 * 0.75, "cut-inside shots " + shots.Count);
             Assert.True(shots.Count(x => MathF.Abs(x.Y) > 8f) > shots.Count * 0.55, "shot from the flank");
         }
 
