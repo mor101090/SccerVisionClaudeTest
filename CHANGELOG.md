@@ -2,6 +2,22 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/user-mode`
+
+- **Start screen: User or Developer.** Before anything opens the page asks how to play.
+  - **Developer**: everything as it was - the staged, random and live matches and every setting.
+  - **User**: pick the home kit, the away kit and the goalkeeper kit (ten shirt colours, seven keeper colours; a clash is
+    not offered, the keeper never wears an outfield colour), then the eleven, the formation and the instructions in the
+    pre-match, then **Start match** - a live match against the computer. No match-mode buttons (the time line under the
+    pitch is longer), no skipping the half-time break. The settings hold only Sound (moved there from under the pitch),
+    Gestures and emotions, Colour-blind and Reset; everything else is the default - sunny, day, stripes across, league
+    match, a perfect pitch, no wind. The user's choices are kept apart from the developer's. "Back to the start screen"
+    in the settings (both modes).
+- **Line-ups**: the away team's card now animates like the home team's (the rows and shirts of both cards played their
+  animation when the page opened, so the away team's had finished by the time it came on).
+- **Developer, live match: "Skip the break" works** (the live moment may now move to the second half, which is already
+  generated - the break makes no frames).
+
 ## `feature/character-gestures`
 
 The human side of the match - players that behave like people, not robots:

@@ -131,14 +131,16 @@ canvas { display: block; width: 100%; height: 100%; }
 .lu-col { display: grid; align-content: start; gap: 2px; min-height: 0; padding-right: 2%; border-right: 2px solid var(--tc); font-size: clamp(11px, 1.45cqi, 16px); }
 .lu-name { font: 800 clamp(16px, 2.6cqi, 30px)/1.05 var(--display); letter-spacing: .06em; text-transform: uppercase; padding-bottom: .35em; margin-bottom: .2em; border-bottom: 2px solid var(--tc); }
 .lu-col h4 { margin: .7em 0 .15em; font: 700 .72em/1 var(--body); letter-spacing: .16em; text-transform: uppercase; color: var(--accent-hi); }
-.lu-col .r { display: grid; grid-template-columns: 1.9em minmax(0, 1fr); gap: .5em; opacity: 0; animation: luRow .45s ease-out both; }
+.lu-col .r { display: grid; grid-template-columns: 1.9em minmax(0, 1fr); gap: .5em; opacity: 0; }
+.lu-team.on .lu-col .r { animation: luRow .45s ease-out both; } /* (each team's rows and shirts animate when its card comes on - the away team's too) */
 .lu-col .r i { font-style: normal; font-weight: 800; text-align: right; color: var(--tc-ink, #fff); }
 .lu-col .r.sub { color: #c9cdd8; font-size: .92em; }
 .lu-col .coach { color: var(--muted); } .lu-col .coach b { color: #fff; font-weight: 700; }
 .lu-mid { position: relative; min-height: 0; display: grid; place-items: center; }
 .lu-mid svg { height: 100%; max-height: 100%; width: auto; max-width: 100%; border-radius: 10px; background: linear-gradient(180deg, #236b34, #2c7a3d); box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.35); }
 .lu-mid svg .ln { fill: none; stroke: rgba(255,255,255,.7); stroke-width: .5; }
-.lu-mid svg .sh { opacity: 0; animation: luDrop .55s cubic-bezier(.2,.9,.3,1.2) both; }
+.lu-mid svg .sh { opacity: 0; }
+.lu-team.on .lu-mid svg .sh { animation: luDrop .55s cubic-bezier(.2,.9,.3,1.2) both; }
 .lu-mid svg .nm { font: 700 3.3px/1 var(--body); text-anchor: middle; fill: #fff; paint-order: stroke; stroke: rgba(0,0,0,.65); stroke-width: .7px; text-transform: uppercase; }
 .lu-right { display: grid; align-content: center; justify-items: center; gap: .6em; text-align: center; }
 .lu-right .big { width: min(100%, 9em); }
@@ -171,6 +173,30 @@ canvas { display: block; width: 100%; height: 100%; }
 .lu-list .r.sub { color: #c9cdd8; }
 .lu-mgr { padding: 0 12px 10px; color: var(--muted); font-size: 13px; } .lu-mgr b { color: var(--text); }
 .lu-bar { height: 3px; background: #2a2f40; border-radius: 2px; overflow: hidden; } .lu-bar b { display: block; height: 100%; width: 0; background: var(--amber); }
+/* the start screen: developer or user; the user's kits */
+.welcome { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; overflow: auto;
+  background: radial-gradient(circle at 50% 20%, #2b3350, #12162a 70%); }
+.welcome[hidden] { display: none; }
+.welcome .wbox { width: min(760px, 100%); display: grid; gap: 18px; justify-items: center; text-align: center; animation: luFade .5s both; }
+.welcome img { height: 64px; width: auto; filter: drop-shadow(0 2px 8px rgba(0,0,0,.6)); }
+.welcome h2 { margin: 0; font: 800 clamp(22px, 4vw, 34px)/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.welcome p { margin: 0; color: var(--muted); }
+.wopts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; width: 100%; }
+.wopts button { display: grid; gap: 8px; padding: 22px 18px; text-align: left; border-radius: 12px; border: 2px solid var(--rule); background: rgba(38,44,64,.9); }
+.wopts button b { font: 800 24px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.wopts button span { font: 500 14px/1.4 var(--body); color: #c9cdd8; }
+.wopts button:focus-visible, .wopts button.main { border-color: var(--amber); }
+.kitrow { display: grid; gap: 8px; width: 100%; text-align: left; }
+.kitrow h3 { margin: 0; font: 700 14px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--accent-hi); display: flex; align-items: center; gap: 10px; }
+.kitrow h3 svg { width: 40px; height: 30px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatches button { width: 44px; height: 44px; padding: 0; border-radius: 50%; border: 3px solid rgba(255,255,255,.18); }
+.swatches button[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 3px var(--amber); }
+.swatches button:disabled { opacity: .18; cursor: not-allowed; }
+#kitGo { font-size: 17px; padding: 14px 26px; background: var(--amber); border-color: var(--amber); color: #fff; }
+/* user mode: no match modes, no developer settings, no skipping the break */
+body.user .modes, body.user #sound, body.user #skip, body.user .dev-only, body.user .settings-head .dev, body.user .foot { display: none !important; }
+body:not(.user) .user-only { display: none !important; }
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .overlay[hidden] { display: none !important; }
 .overlay .box { pointer-events: auto; background: rgba(30, 34, 48, .92); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 20px; text-align: center; display: grid; gap: 8px; }
@@ -463,6 +489,27 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
 
+<div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="wTitle">
+  <div class="wbox">
+    <img alt="SoccerVision" src="data:image/png;base64,__LOGO__">
+    <h2 id="wTitle">How do you want to play?</h2>
+    <div class="wopts">
+      <button type="button" id="asUser" class="main"><b>User</b><span>Pick your home, away and keeper kits and your eleven - then play a live match against the computer.</span></button>
+      <button type="button" id="asDev"><b>Developer</b><span>Everything there is: the staged, random and live matches and every setting.</span></button>
+    </div>
+  </div>
+</div>
+<div class="welcome" id="kitSetup" role="dialog" aria-modal="true" aria-labelledby="kTitle" hidden>
+  <div class="wbox">
+    <img alt="SoccerVision" src="data:image/png;base64,__LOGO__">
+    <h2 id="kTitle">Your kits</h2>
+    <div class="kitrow"><h3><span id="kHomeShirt"></span>Home kit</h3><div class="swatches" id="kHome" role="group" aria-label="Home shirt colour"></div></div>
+    <div class="kitrow"><h3><span id="kAwayShirt"></span>Away kit</h3><div class="swatches" id="kAway" role="group" aria-label="Away shirt colour"></div></div>
+    <div class="kitrow"><h3><span id="kGkShirt"></span>Goalkeeper kit</h3><div class="swatches" id="kGk" role="group" aria-label="Goalkeeper shirt colour"></div></div>
+    <p>Next: your eleven, the formation and the instructions - then start the match.</p>
+    <button type="button" id="kitGo">Continue: pick your eleven</button>
+  </div>
+</div>
 <div class="wrap">
   <div class="top">
     <div>
@@ -510,30 +557,32 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     </div>
     <div class="settings" id="settings" role="dialog" aria-label="Settings" hidden>
       <div class="settings-head"><span>Settings<span class="dev">DEV</span></span><button id="settingsClose" type="button" aria-label="Close settings">✕</button></div>
-      <div class="srow"><label for="pace">Match pace</label><div class="colors"><input id="pace" type="range" min="50" max="100" step="5" value="100" style="flex:1"><span id="paceText" style="min-width:3.2em;text-align:right">100%</span></div></div>
+      <div class="srow user-only" id="soundRow"><span class="l">Sound</span><div class="seg"><button type="button" id="sndOff" aria-pressed="true">Off</button><button type="button" id="sndOn" aria-pressed="false">On</button></div></div>
+      <div class="srow dev-only"><label for="pace">Match pace</label><div class="colors"><input id="pace" type="range" min="50" max="100" step="5" value="100" style="flex:1"><span id="paceText" style="min-width:3.2em;text-align:right">100%</span></div></div>
       <h3>Pitch</h3>
-      <div class="srow"><span class="l">Grass</span><div class="seg" data-set="grass"><button type="button" data-v="along">Stripes along</button><button type="button" data-v="across">Stripes across</button><button type="button" data-v="circles">Circles</button></div></div>
-      <div class="srow"><span class="l">Upkeep</span><div class="seg" data-set="maint"><button type="button" data-v="2">Perfect</button><button type="button" data-v="1">Average</button><button type="button" data-v="0">Neglected</button></div></div>
-      <div class="srow"><label for="netColor">Goal nets</label><div class="colors"><input id="netColor" type="color" value="#ebf0eb"></div></div>
+      <div class="srow dev-only"><span class="l">Grass</span><div class="seg" data-set="grass"><button type="button" data-v="along">Stripes along</button><button type="button" data-v="across">Stripes across</button><button type="button" data-v="circles">Circles</button></div></div>
+      <div class="srow dev-only"><span class="l">Upkeep</span><div class="seg" data-set="maint"><button type="button" data-v="2">Perfect</button><button type="button" data-v="1">Average</button><button type="button" data-v="0">Neglected</button></div></div>
+      <div class="srow dev-only"><label for="netColor">Goal nets</label><div class="colors"><input id="netColor" type="color" value="#ebf0eb"></div></div>
       <h3>Weather</h3>
-      <div class="srow"><span class="l">Sky</span><div class="seg" data-set="weather"><button type="button" data-v="Sunny">Sunny</button><button type="button" data-v="Cloudy">Cloudy</button><button type="button" data-v="Rain">Rain</button><button type="button" data-v="Snow">Snow</button></div></div>
-      <div class="srow"><span class="l">Snow lines</span><div class="seg" data-set="snowLines"><button type="button" data-v="yellow">Yellow</button><button type="button" data-v="orange">Orange</button><button type="button" data-v="blue">Blue</button></div></div>
-      <div class="srow"><span class="l">Snow cover</span><div class="seg" data-set="snowCover"><button type="button" data-v="cleared">Cleared pitch</button><button type="button" data-v="covered">Covered (white)</button></div></div>
-      <div class="srow"><span class="l">Wind</span><div class="seg" data-set="wind"><button type="button" data-v="0">Calm</button><button type="button" data-v="1">Strong</button></div></div>
-      <div class="srow"><span class="l">Stadium</span><div class="seg" data-set="stadium"><button type="button" data-v="open">Open</button><button type="button" data-v="stand">Main stand</button><button type="button" data-v="bowl">Bowl</button></div></div>
-      <div class="srow"><span class="l">Competition</span><div class="seg" data-set="comp"><button type="button" data-v="League">League</button><button type="button" data-v="Cup">Cup</button><button type="button" data-v="LeagueCup">League Cup</button></div></div>
-      <div class="srow"><span class="l">Kick-off</span><div class="seg" data-set="night"><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div></div>
+      <div class="srow dev-only"><span class="l">Sky</span><div class="seg" data-set="weather"><button type="button" data-v="Sunny">Sunny</button><button type="button" data-v="Cloudy">Cloudy</button><button type="button" data-v="Rain">Rain</button><button type="button" data-v="Snow">Snow</button></div></div>
+      <div class="srow dev-only"><span class="l">Snow lines</span><div class="seg" data-set="snowLines"><button type="button" data-v="yellow">Yellow</button><button type="button" data-v="orange">Orange</button><button type="button" data-v="blue">Blue</button></div></div>
+      <div class="srow dev-only"><span class="l">Snow cover</span><div class="seg" data-set="snowCover"><button type="button" data-v="cleared">Cleared pitch</button><button type="button" data-v="covered">Covered (white)</button></div></div>
+      <div class="srow dev-only"><span class="l">Wind</span><div class="seg" data-set="wind"><button type="button" data-v="0">Calm</button><button type="button" data-v="1">Strong</button></div></div>
+      <div class="srow dev-only"><span class="l">Stadium</span><div class="seg" data-set="stadium"><button type="button" data-v="open">Open</button><button type="button" data-v="stand">Main stand</button><button type="button" data-v="bowl">Bowl</button></div></div>
+      <div class="srow dev-only"><span class="l">Competition</span><div class="seg" data-set="comp"><button type="button" data-v="League">League</button><button type="button" data-v="Cup">Cup</button><button type="button" data-v="LeagueCup">League Cup</button></div></div>
+      <div class="srow dev-only"><span class="l">Kick-off</span><div class="seg" data-set="night"><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div></div>
       <h3>Team colours</h3>
       <div class="srow"><span class="l">Gestures and emotions</span><div class="seg" data-set="gest"><button type="button" data-v="0">Off</button><button type="button" data-v="1">On</button></div></div>
       <div class="srow"><span class="l">Colour-blind</span><div class="seg" data-set="cb"><button type="button" data-v="0">Off</button><button type="button" data-v="1">On</button></div></div>
-      <div class="srow"><span class="l"></span><div class="colors"><small>shirt · edge · numbers · boots</small></div></div>
-      <div class="srow"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour" title="Shirt"><input id="homeS" type="color" aria-label="Home trim colour" title="Trim"><input id="homeN" type="color" aria-label="Home number colour" title="Numbers"><input id="homeB" type="color" aria-label="Home boots colour" title="Boots"></div></div>
-      <div class="srow"><span class="l" id="homeGkLabel">Home keeper</span><div class="colors"><input id="homeG" type="color" aria-label="Home goalkeeper shirt colour" title="Shirt"><input id="homeGS" type="color" aria-label="Home goalkeeper trim colour" title="Trim"><input id="homeGN" type="color" aria-label="Home goalkeeper number colour" title="Number"></div></div>
-      <div class="srow"><span class="l" id="awayLabel">Away</span><div class="colors"><input id="awayP" type="color" aria-label="Away shirt colour" title="Shirt"><input id="awayS" type="color" aria-label="Away trim colour" title="Trim"><input id="awayN" type="color" aria-label="Away number colour" title="Numbers"><input id="awayB" type="color" aria-label="Away boots colour" title="Boots"></div></div>
-      <div class="srow"><span class="l" id="awayGkLabel">Away keeper</span><div class="colors"><input id="awayG" type="color" aria-label="Away goalkeeper shirt colour" title="Shirt"><input id="awayGS" type="color" aria-label="Away goalkeeper trim colour" title="Trim"><input id="awayGN" type="color" aria-label="Away goalkeeper number colour" title="Number"></div></div>
-      <div class="srow"><span class="l">Referees</span><div class="colors"><input id="refC" type="color" aria-label="Referees' shirt colour" title="Shirt"><input id="refT" type="color" aria-label="Referees' trim colour" title="Trim"><input id="refL" type="color" aria-label="Referees' letter colour" title="Letter"><input id="refB" type="color" aria-label="Referees' boots colour" title="Boots"></div></div>
+      <div class="srow dev-only"><span class="l"></span><div class="colors"><small>shirt · edge · numbers · boots</small></div></div>
+      <div class="srow dev-only"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour" title="Shirt"><input id="homeS" type="color" aria-label="Home trim colour" title="Trim"><input id="homeN" type="color" aria-label="Home number colour" title="Numbers"><input id="homeB" type="color" aria-label="Home boots colour" title="Boots"></div></div>
+      <div class="srow dev-only"><span class="l" id="homeGkLabel">Home keeper</span><div class="colors"><input id="homeG" type="color" aria-label="Home goalkeeper shirt colour" title="Shirt"><input id="homeGS" type="color" aria-label="Home goalkeeper trim colour" title="Trim"><input id="homeGN" type="color" aria-label="Home goalkeeper number colour" title="Number"></div></div>
+      <div class="srow dev-only"><span class="l" id="awayLabel">Away</span><div class="colors"><input id="awayP" type="color" aria-label="Away shirt colour" title="Shirt"><input id="awayS" type="color" aria-label="Away trim colour" title="Trim"><input id="awayN" type="color" aria-label="Away number colour" title="Numbers"><input id="awayB" type="color" aria-label="Away boots colour" title="Boots"></div></div>
+      <div class="srow dev-only"><span class="l" id="awayGkLabel">Away keeper</span><div class="colors"><input id="awayG" type="color" aria-label="Away goalkeeper shirt colour" title="Shirt"><input id="awayGS" type="color" aria-label="Away goalkeeper trim colour" title="Trim"><input id="awayGN" type="color" aria-label="Away goalkeeper number colour" title="Number"></div></div>
+      <div class="srow dev-only"><span class="l">Referees</span><div class="colors"><input id="refC" type="color" aria-label="Referees' shirt colour" title="Shirt"><input id="refT" type="color" aria-label="Referees' trim colour" title="Trim"><input id="refL" type="color" aria-label="Referees' letter colour" title="Letter"><input id="refB" type="color" aria-label="Referees' boots colour" title="Boots"></div></div>
       <div class="note" id="setNote"></div>
       <button class="reset" id="setReset" type="button">Reset to defaults</button>
+      <button class="reset" id="setStart" type="button">Back to the start screen</button>
     </div>
     <div class="tac-toast" id="tacToast" role="status"></div>
     <div class="pcard" id="pcard" hidden></div>
@@ -1413,7 +1462,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null, refs: null, snowLines: "yellow", snowCover: "cleared", cb: "0", gest: "1", comp: "League", stadium: "stand" };
   var SET = (function () { var o = {}; for (var k in DEFAULTS) o[k] = DEFAULTS[k]; try { var st = JSON.parse(localStorage.getItem("sv-dev-settings") || "{}"); for (var k2 in st) if (k2 in DEFAULTS) o[k2] = st[k2]; } catch (e) {} return o; })();
   SET.night = SET.night === true || SET.night === "1";
-  function saveSettings() { try { var o = {}; for (var k in DEFAULTS) o[k] = SET[k]; o.night = SET.night ? "1" : "0"; localStorage.setItem("sv-dev-settings", JSON.stringify(o)); } catch (e) {} }
+  function saveSettings() {
+    try {
+      if (typeof ROLE !== "undefined" && ROLE === "user") { localStorage.setItem("sv-user-settings", JSON.stringify({ cb: SET.cb, gest: SET.gest })); return; } // (the user's own: nothing of the developer's)
+      var o = {}; for (var k in DEFAULTS) o[k] = SET[k]; o.night = SET.night ? "1" : "0"; localStorage.setItem("sv-dev-settings", JSON.stringify(o));
+    } catch (e) {}
+  }
   // Which recording fits the chosen conditions: d(ry)/r(ain)/s(now) + upkeep 2/1/0 + wind 0/1 ("d20" is the normal one).
   function condCode() { return (SET.weather === "Rain" ? "r" : SET.weather === "Snow" ? "s" : "d") + SET.maint + SET.wind + (SET.comp || "League"); }
   function syncSettingsUi() {
@@ -1517,6 +1571,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   $("setReset").addEventListener("click", function () {
     var before = condCode();
     for (var k in DEFAULTS) SET[k] = DEFAULTS[k]; SET.night = false;
+    if (ROLE === "user") { SET.grass = "across"; applyUserKits(); }
     saveSettings(); syncSettingsUi(); applyColours(); updateWeatherChip();
     if (condCode() !== before) restartMatch(true); else buildSurface();
   });
@@ -2824,7 +2879,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     });
   });
   seek.addEventListener("input", function () { jump(+seek.value); });
-  $("skip").addEventListener("click", function () { jump(secondHalfT + .01); });
+  $("skip").addEventListener("click", function () {
+    if (!isFinite(secondHalfT)) return;
+    // live: the second half has been generated already (the break makes no frames), so the live moment may move to it
+    if (MODE === "live") LIVE_T = Math.max(LIVE_T, Math.min(tEnd, secondHalfT + .01));
+    jump(secondHalfT + .01);
+  });
 
   var last = performance.now();
   // DOM text is only written when it changes (every write makes the browser re-lay out the page).
@@ -2961,7 +3021,71 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   });
   cv.addEventListener("mouseleave", function () { $("pcard").hidden = true; $("pcard").dataset.i = ""; });
   resize();
-  startMatch("staged", STAGED_SEED);
+  // ---- the start screen: developer (everything) or user (kits, eleven, a live match) ----------------------------------
+  var ROLE = null;
+  var SHIRTS = [["Red", "#d32f2f"], ["Blue", "#1e5bc6"], ["White", "#f2f2f2"], ["Black", "#1b1b1b"], ["Green", "#2e9e4f"], ["Yellow", "#f9d71c"], ["Orange", "#f57c00"], ["Sky blue", "#4fb3e8"], ["Purple", "#6a3fb5"], ["Maroon", "#7b1e2b"]];
+  var KEEPERS = [["Yellow", "#f9d71c"], ["Green", "#2e9e4f"], ["Pink", "#e05aa0"], ["Orange", "#f57c00"], ["Grey", "#7d8796"], ["Black", "#1b1b1b"], ["Cyan", "#18c6c6"]];
+  var KIT = { home: "#d32f2f", away: "#1e5bc6", gk: "#f9d71c" };
+  try { var kst = JSON.parse(localStorage.getItem("sv-user-kits") || "{}"); for (var kk in KIT) if (kst[kk]) KIT[kk] = kst[kk]; } catch (e) {}
+  function userSettings() {
+    var o = {}; for (var k in DEFAULTS) o[k] = DEFAULTS[k];
+    o.grass = "across"; o.weather = "Sunny"; o.night = false; // (sunny, day, stripes across - the rest as it comes)
+    try { var st = JSON.parse(localStorage.getItem("sv-user-settings") || "{}"); ["cb", "gest"].forEach(function (k) { if (k in st) o[k] = st[k]; }); } catch (e) {}
+    return o;
+  }
+  function edgeFor(c) { return textOn(c) === "#111" ? "#1a1a1a" : "#ffffff"; }
+  function applyUserKits() {
+    var free = KEEPERS.map(function (k) { return k[1]; }).filter(function (c) { return c !== KIT.gk && c !== KIT.home && c !== KIT.away; });
+    SET.home = { primary: KIT.home, secondary: edgeFor(KIT.home) === "#ffffff" && KIT.home !== "#1b1b1b" ? "#1a1a1a" : "#ffffff", gk: KIT.gk };
+    SET.away = { primary: KIT.away, secondary: KIT.away === "#1b1b1b" ? "#ffffff" : "#1a1a1a", gk: free[0] || "#2e9e4f" };
+    SET.home.secondary = KIT.home === "#1b1b1b" ? "#ffffff" : "#1a1a1a";
+  }
+  function drawKitPicker() {
+    function row(id, list, key, clash) {
+      $(id).innerHTML = list.map(function (c) {
+        var dis = clash.indexOf(c[1]) >= 0;
+        return '<button type="button" data-c="' + c[1] + '" style="background:' + c[1] + '" aria-label="' + c[0] + '" title="' + c[0] + '" aria-pressed="' + (KIT[key] === c[1]) + '"' + (dis ? " disabled" : "") + '></button>';
+      }).join("");
+    }
+    row("kHome", SHIRTS, "home", [KIT.away]);
+    row("kAway", SHIRTS, "away", [KIT.home]);
+    row("kGk", KEEPERS, "gk", [KIT.home, KIT.away]);
+    $("kHomeShirt").innerHTML = jerseySvg(KIT.home, textOn(KIT.home) === "#111" ? "#111" : "#fff", "");
+    $("kAwayShirt").innerHTML = jerseySvg(KIT.away, textOn(KIT.away) === "#111" ? "#111" : "#fff", "");
+    $("kGkShirt").innerHTML = jerseySvg(KIT.gk, textOn(KIT.gk) === "#111" ? "#111" : "#fff", "1");
+  }
+  [["kHome", "home"], ["kAway", "away"], ["kGk", "gk"]].forEach(function (r) {
+    $(r[0]).addEventListener("click", function (ev) {
+      var b = ev.target.closest("button[data-c]"); if (!b || b.disabled) return;
+      KIT[r[1]] = b.getAttribute("data-c");
+      // a keeper never wears an outfield colour
+      if (KIT.gk === KIT.home || KIT.gk === KIT.away) KIT.gk = KEEPERS.map(function (k) { return k[1]; }).filter(function (c) { return c !== KIT.home && c !== KIT.away; })[0];
+      drawKitPicker();
+    });
+  });
+  $("asDev").addEventListener("click", function () {
+    ROLE = "dev"; document.body.classList.remove("user"); $("welcome").hidden = true;
+    startMatch("staged", STAGED_SEED);
+  });
+  $("asUser").addEventListener("click", function () {
+    ROLE = "user"; document.body.classList.add("user");
+    SET = userSettings(); syncSettingsUi();
+    $("welcome").hidden = true; drawKitPicker(); $("kitSetup").hidden = false; $("kitGo").focus();
+  });
+  $("kitGo").addEventListener("click", function () {
+    try { localStorage.setItem("sv-user-kits", JSON.stringify(KIT)); } catch (e) {}
+    applyUserKits(); saveSettings();
+    $("kitSetup").hidden = true;
+    $("kickoff").textContent = "Start match";
+    $("prematchText").textContent = "Pick your eleven, the formation, roles and instructions below - then start the match.";
+    startMatch("live", newSeed());
+  });
+  $("setStart").addEventListener("click", function () { location.reload(); });
+  // the sound switch of the user's settings (the developer has his own button under the pitch)
+  function syncSoundRow() { $("sndOn").setAttribute("aria-pressed", String(soundOn)); $("sndOff").setAttribute("aria-pressed", String(!soundOn)); }
+  $("sndOn").addEventListener("click", function () { if (!soundOn) $("sound").click(); syncSoundRow(); });
+  $("sndOff").addEventListener("click", function () { if (soundOn) $("sound").click(); syncSoundRow(); });
+  $("asUser").focus();
   requestAnimationFrame(frame);
 })();
 </script>
