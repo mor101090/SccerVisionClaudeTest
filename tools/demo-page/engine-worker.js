@@ -9,8 +9,8 @@
 //                                              hold: send the header only, play nothing until "go" (pre-match)
 //               {cmd:"go", token}              kick off a held match
 //               {cmd:"progress", token, frames}  the viewer has played this many frames (live pacing)
-//               {cmd:"plan", token, plan}      the home manager's new plan during the match (live)
-//               {cmd:"sub", token, out, in}    the home manager asks for a change (shirt numbers; live)
+//               {cmd:"plan", token, plan, team}  a manager's new plan during the match (live; team 1 online)
+//               {cmd:"sub", token, out, in, team}  a manager asks for a change (shirt numbers; live; team 1 online)
 //               {cmd:"stop", token}            drop the current match
 // Messages out: {type:"ready"} | {type:"header", token, header} | {type:"chunk", token, len, frames, events, stats, finished}
 //               | {type:"error", message}
@@ -36,9 +36,9 @@ self.onmessage = async (e) => {
     } else if (m.cmd === "progress") {
       if (m.token === token) { played = m.frames; if (!held) pump(); }
     } else if (m.cmd === "plan") {
-      if (m.token === token) L.SetPlan(m.plan || "");
+      if (m.token === token) L.SetPlanFor(m.team | 0, m.plan || ""); // (team 1: the friend's, online)
     } else if (m.cmd === "sub") {
-      if (m.token === token) L.Substitute(m.out | 0, m.in | 0);
+      if (m.token === token) L.SubstituteFor(m.team | 0, m.out | 0, m.in | 0);
     } else if (m.cmd === "stop") {
       token = m.token;
     }

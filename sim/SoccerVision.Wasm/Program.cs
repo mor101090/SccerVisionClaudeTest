@@ -45,7 +45,7 @@ public static partial class LiveEngine
             TeamPlan.Random(home, seed * 7 + 1).ApplyBeforeKickOff(home);
             TeamPlan.Random(away, seed * 7 + 2).ApplyBeforeKickOff(away);
         }
-        else if (mode == "live") TeamPlan.Parse(homePlan).ApplyBeforeKickOff(home); // (only in a live match is the home team yours)
+        else if (mode == "live" || mode == "online") TeamPlan.Parse(homePlan).ApplyBeforeKickOff(home); // (only in a live match is the home team yours; online the away team is the friend's, see SetPlanFor)
         _engine = new MatchEngine(home, away, (ulong)seed, config);
         // live: you are the home team, the computer manages the away team and answers you
         _computer = mode == "live" || mode == "random" ? new ComputerManager(_engine, 1) : null;
@@ -94,6 +94,22 @@ public static partial class LiveEngine
     public static void Substitute(int outNumber, int inNumber)
     {
         _engine?.Submit(new SubstituteCommand(0, outNumber, inNumber));
+    }
+
+    /// <summary>A manager's new plan for team 0 (home) or 1 (away - the friend in an online match).</summary>
+    [JSExport]
+    public static void SetPlanFor(int team, string plan)
+    {
+        if (_engine == null || team < 0 || team > 1) return;
+        TeamPlan.Parse(plan).Submit(_engine, team);
+    }
+
+    /// <summary>A manager asks for a change for team 0 (home) or 1 (away - the friend in an online match).</summary>
+    [JSExport]
+    public static void SubstituteFor(int team, int outNumber, int inNumber)
+    {
+        if (team < 0 || team > 1) return;
+        _engine?.Submit(new SubstituteCommand(team, outNumber, inNumber));
     }
 
     [JSExport]

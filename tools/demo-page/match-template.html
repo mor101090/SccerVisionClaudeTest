@@ -201,7 +201,15 @@ canvas { display: block; width: 100%; height: 100%; }
 .swatches button { width: 44px; height: 44px; padding: 0; border-radius: 50%; border: 3px solid rgba(255,255,255,.18); }
 .swatches button[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 3px var(--amber); }
 .swatches button:disabled { opacity: .18; cursor: not-allowed; }
-#kitGo { font-size: 17px; padding: 14px 26px; background: var(--amber); border-color: var(--amber); color: #fff; }
+.ostep[hidden] { display: none; }
+.ostep { display: grid; gap: 6px; width: 100%; text-align: left; }
+.ostep label { font: 700 13px/1.2 var(--body); letter-spacing: .06em; color: var(--accent-hi); }
+.orow { display: flex; gap: 8px; }
+.orow input { flex: 1; min-width: 0; font: 500 14px var(--body); color: var(--text); background: #12162a; border: 1px solid var(--rule); border-radius: 6px; padding: 10px; }
+#oStatus { color: #9bd23c; font-weight: 600; min-height: 1.3em; }
+.kit.fixed { opacity: .55; pointer-events: none; }
+#kitGo.solo { font-size: 17px; }
+#kitGoOld { font-size: 17px; padding: 14px 26px; background: var(--amber); border-color: var(--amber); color: #fff; }
 /* user mode: no match modes, no developer settings, no skipping the break */
 body.user .modes, body.user #sound, body.user #skip, body.user .dev-only, body.user .settings-head .dev, body.user .foot { display: none !important; }
 body:not(.user) .user-only { display: none !important; }
@@ -499,7 +507,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 
 <div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="wTitle">
   <div class="wbox">
-    <img alt="SoccerVision" src="data:image/png;base64,__LOGO__">
+    <img alt="SoccerVision" class="wlogo">
     <h2 id="wTitle">How do you want to play?</h2>
     <div class="wopts">
       <button type="button" id="asUser" class="main"><b>User</b><span>Pick your home, away and keeper kits and your eleven - then play a live match against the computer.</span></button>
@@ -509,12 +517,27 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 </div>
 <div class="welcome" id="kitSetup" role="dialog" aria-modal="true" aria-labelledby="kTitle" hidden>
   <div class="wbox">
-    <img alt="SoccerVision" src="data:image/png;base64,__LOGO__">
+    <img alt="SoccerVision" class="wlogo">
     <h2 id="kTitle">Your kits</h2>
     <div class="kits" id="kitBlocks"></div>
     <p id="kRefs"></p>
     <p>Next: your eleven, the formation and the instructions - then start the match.</p>
-    <button type="button" id="kitGo">Continue: pick your eleven</button>
+    <div class="wopts" id="kitButtons">
+      <button type="button" id="kitGo" class="main"><b>Play the computer</b><span>Your eleven next, then a live match against the computer.</span></button>
+      <button type="button" id="kitInvite"><b>Invite a friend</b><span>Online: you send a link, your friend sends back a reply code - then you play each other.</span></button>
+    </div>
+  </div>
+</div>
+<div class="welcome" id="online" role="dialog" aria-modal="true" aria-labelledby="oTitle" hidden>
+  <div class="wbox">
+    <img alt="SoccerVision" class="wlogo">
+    <h2 id="oTitle">Play a friend</h2>
+    <p id="oText"></p>
+    <div class="ostep" id="oLinkBox" hidden><label for="oLink">1. Send this link to your friend</label><div class="orow"><input id="oLink" readonly><button type="button" id="oCopyLink">Copy</button></div></div>
+    <div class="ostep" id="oReplyBox" hidden><label for="oReply">2. Paste the reply code your friend sends back</label><div class="orow"><input id="oReply" placeholder="the reply code" autocomplete="off"><button type="button" id="oConnect">Connect</button></div></div>
+    <div class="ostep" id="oAnswerBox" hidden><label for="oAnswer">Send this reply code back to your friend</label><div class="orow"><input id="oAnswer" readonly><button type="button" id="oCopyAnswer">Copy</button></div></div>
+    <p id="oStatus" role="status"></p>
+    <button type="button" id="oCancel">Cancel</button>
   </div>
 </div>
 <div class="wrap">
@@ -1637,6 +1660,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     $("cbarText").textContent = "The match engine could not start";
   }
   function startWorker() {
+    if (ONLINE === "guest") { worker = NET.remoteWorker; return Promise.resolve(); } // (the friend's match is played on the host's engine)
     if (workerReady) return workerReady;
     workerReady = new Promise(function (resolve, reject) {
       try { worker = new Worker(ENGINE_DIR + "worker.js", { type: "module" }); } catch (e) { reject(e); return; }
@@ -1646,8 +1670,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
         if (m.type === "ready") resolve();
         else if (m.type === "error") { engineError(m.message); reject(new Error(m.message)); }
         else if (m.token !== token) return; // a match that was dropped
-        else if (m.type === "header") beginMatch(JSON.parse(m.header));
-        else if (m.type === "chunk") appendChunk(m);
+        else if (m.type === "header") { beginMatch(JSON.parse(m.header)); NET.forward(m); }
+        else if (m.type === "chunk") { NET.forward(m); appendChunk(m); }
       };
       worker.postMessage({ cmd: "init", base: new URL(ENGINE_DIR, location.href).href });
     });
@@ -1673,7 +1697,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       if (mine !== token) return;
       var c = engineSettings(seed);
       worker.postMessage({ cmd: "stop", token: mine });
-      worker.postMessage({ cmd: "start", token: mine, mode: mode, seed: seed, weather: c.weather, maintenance: c.maintenance, wind: c.wind, windAngle: c.windAngle, night: c.night, competition: SET.comp || "League", lead: mode === "live" ? 20 : 0, plan: planString(), hold: mode === "live" });
+      worker.postMessage({ cmd: "start", token: mine, mode: ONLINE === "host" ? "online" : mode, seed: seed, weather: c.weather, maintenance: c.maintenance, wind: c.wind, windAngle: c.windAngle, night: c.night, competition: SET.comp || "League", lead: mode === "live" ? 20 : 0, plan: planString(), hold: mode === "live" });
     }, function () {});
   }
 
@@ -2467,7 +2491,11 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     KICKED = true; $("prematch").hidden = true;
     resetTacticsPanel(); drawManager();
     var mine = token;
-    showLineups(function () { if (mine === token) worker.postMessage({ cmd: "go", token: token }); }); // (the line-ups, then the teams walk out)
+    showLineups(function () {
+      if (mine !== token) return;
+      if (ONLINE === "host") NET.whenGuestReady(function () { if (mine === token) worker.postMessage({ cmd: "go", token: token }); }); // (both managers ready)
+      else worker.postMessage({ cmd: "go", token: token });
+    }); // (the line-ups, then the teams walk out)
   });
   // ---- the line-ups: the managers' starting elevens, substitutes and the manager, before the teams walk out -----------
   var luTimer = 0, luDone = null;
@@ -2767,7 +2795,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     possTeam = -1; ballPrev = null; bgCv = null;
     seek.min = 0; seek.max = 0;
     $("seedText").textContent = (MODE === "staged" ? "(staged) " : MODE === "live" ? "(live) " : "") + R.seed;
-    $("liveYou").textContent = "You: " + R.home.name + " (home) v the computer: " + R.away.name;
+    $("liveYou").textContent = ONLINE ? "You: " + R.home.name + " v your friend: " + R.away.name : "You: " + R.home.name + " (home) v the computer: " + R.away.name;
     feed.textContent = ""; $("facts").textContent = ""; // (nothing has happened yet: before kick-off the old match is gone)
     $("cbarText").textContent = MODE === "live" ? "Pre-match: pick your team, then kick off" : "Kick-off"; $("cbar").style.background = "#3c4552"; $("cbar").dataset.bg = "";
     setText("sc", "0-0"); setText("mn", "00:00"); setText("rt", "0:00 / 0:00");
@@ -3047,8 +3075,136 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   });
   cv.addEventListener("mouseleave", function () { $("pcard").hidden = true; $("pcard").dataset.i = ""; });
   resize();
+  // ---- online: two friends, one match --------------------------------------------------------------------------------
+  // The host's browser runs the engine; the friend's receives the match as it is played and sends his instructions and
+  // changes back. The two connect directly (WebRTC): a public STUN server only tells each browser its own internet
+  // address - no game data passes through it. The handshake goes by hand: the invite link carries the host's offer, the
+  // friend sends back a reply code. The friend sees his own team as the home team: the data is turned round on his side.
+  var ONLINE = null;
+  var NET = (function () {
+    var pc = null, dc = null, guestReady = false, readyWaiters = [], parts = {}, onOpen = null;
+    var RTC = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
+    function b64(bytes) { var s = ""; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+    function unb64(t) { t = t.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "="; var s = atob(t), a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
+    function pack(obj) {
+      var data = new TextEncoder().encode(JSON.stringify(obj));
+      if (!window.CompressionStream) return Promise.resolve("j" + b64(data));
+      return new Response(new Blob([data]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer().then(function (buf) { return "z" + b64(new Uint8Array(buf)); });
+    }
+    function unpack(code) {
+      code = String(code || "").trim(); var kind = code[0], bytes = unb64(code.slice(1));
+      if (kind === "j") return Promise.resolve(JSON.parse(new TextDecoder().decode(bytes)));
+      return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).text().then(JSON.parse);
+    }
+    function gathered() { // the offer / answer with all the addresses in it (no trickle: it goes by hand)
+      return new Promise(function (res) {
+        if (pc.iceGatheringState === "complete") return res();
+        var done = false, fin = function () { if (!done) { done = true; res(); } };
+        pc.addEventListener("icegatheringstatechange", function () { if (pc.iceGatheringState === "complete") fin(); });
+        setTimeout(fin, 4000);
+      });
+    }
+    function status(t) { $("oStatus").textContent = t; }
+    // a message larger than the channel takes goes in pieces
+    function send(obj) {
+      if (!dc || dc.readyState !== "open") return;
+      var t = JSON.stringify(obj);
+      if (t.length < 15000) { dc.send(t); return; }
+      var id = Math.random().toString(36).slice(2), n = Math.ceil(t.length / 15000);
+      for (var i = 0; i < n; i++) dc.send(JSON.stringify({ t: "part", id: id, i: i, n: n, d: t.slice(i * 15000, (i + 1) * 15000) }));
+    }
+    function receive(raw) {
+      var m = JSON.parse(raw);
+      if (m.t === "part") {
+        var q = parts[m.id] = parts[m.id] || []; q[m.i] = m.d;
+        if (q.filter(function (x) { return x != null; }).length === m.n) { delete parts[m.id]; receive(q.join("")); }
+        return;
+      }
+      if (ONLINE === "host") {
+        if (m.t === "cmd" && m.cmd === "plan" && worker) worker.postMessage({ cmd: "plan", token: token, plan: m.plan, team: 1 });
+        else if (m.t === "cmd" && m.cmd === "sub" && worker) worker.postMessage({ cmd: "sub", token: token, out: m.out, in: m.in, team: 1 });
+        else if (m.t === "ready") { guestReady = true; var w = readyWaiters; readyWaiters = []; w.forEach(function (f) { f(); }); toast("Your friend is ready"); }
+      } else {
+        if (m.t === "header") beginMatch(swapHeader(JSON.parse(m.header)));
+        else if (m.t === "chunk") appendChunk(swapChunk(m));
+      }
+    }
+    function wire() {
+      dc.onopen = function () { status("Connected!"); if (onOpen) onOpen(); };
+      dc.onclose = function () { if (ONLINE) toast("The connection to your friend was lost"); };
+      dc.onmessage = function (ev) { receive(ev.data); };
+    }
+    // ---- the friend's side: his team is the home team in his view ----
+    function swapHeader(h) {
+      var a = h.home; h.home = h.away; h.away = a;
+      if (h.shootout) h.shootout = [h.shootout[1], h.shootout[0]];
+      return h;
+    }
+    function swapIndex(i) { return i >= 0 && i < 22 ? (i + 11) % 22 : i; }
+    function swapFrame(f) {
+      var a = f.slice(), PB0 = 9, PS0 = 5, GB0 = PB0 + 22 * PS0 + 9 + 3 + 4, FB0 = GB0 - 4;
+      a[3] = f[4]; a[4] = f[3]; a[8] = swapIndex(f[8]);
+      for (var p = 0; p < 22; p++) for (var k = 0; k < PS0; k++) a[PB0 + swapIndex(p) * PS0 + k] = f[PB0 + p * PS0 + k];
+      if (f.length > GB0 + 21) for (p = 0; p < 22; p++) a[GB0 + swapIndex(p)] = f[GB0 + p];
+      if (f[FB0 + 3] > 0) a[FB0 + 3] = (1 - Math.floor(f[FB0 + 3] / 1000)) * 1000 + f[FB0 + 3] % 1000;
+      return a;
+    }
+    function swapChunk(m) {
+      var L2 = m.len, out = [], i;
+      for (i = 0; i < m.frames.length; i += L2) Array.prototype.push.apply(out, swapFrame(m.frames.slice(i, i + L2)));
+      var ev = JSON.parse(m.events).map(function (e) { if (e.team === 0 || e.team === 1) e.team = 1 - e.team; if (e.p != null) e.p = swapIndex(e.p); if (e.o != null) e.o = swapIndex(e.o); return e; });
+      var SL = 15 + 22 + 22, st = m.stats.slice();
+      for (i = 0; i + SL <= st.length; i += SL) {
+        for (var k = 1; k < 15; k += 2) { st[i + k] = m.stats[i + k + 1]; st[i + k + 1] = m.stats[i + k]; }
+        for (k = 0; k < 22; k++) { st[i + 15 + swapIndex(k)] = m.stats[i + 15 + k]; st[i + 37 + swapIndex(k)] = m.stats[i + 37 + k]; }
+      }
+      var fin = null; if (m.final) { try { fin = JSON.stringify(swapHeader(JSON.parse(m.final))); } catch (x) {} }
+      return { len: L2, frames: out, events: JSON.stringify(ev), stats: st, finished: m.finished, final: fin };
+    }
+    return {
+      // the host: the invite link
+      invite: function (kit) {
+        ONLINE = "host";
+        pc = new RTCPeerConnection(RTC); dc = pc.createDataChannel("soccervision", { ordered: true }); wire();
+        return pc.createOffer().then(function (o) { return pc.setLocalDescription(o); }).then(gathered).then(function () {
+          return pack({ sdp: pc.localDescription.sdp, kit: kit });
+        }).then(function (code) { return location.origin + location.pathname + "#join=" + code; });
+      },
+      accept: function (reply) {
+        return unpack(reply).then(function (r) { return pc.setRemoteDescription({ type: "answer", sdp: r.sdp }).then(function () { return r.kit; }); });
+      },
+      // the friend: the reply code
+      join: function (offerCode) {
+        ONLINE = "guest";
+        return unpack(offerCode).then(function (o) {
+          pc = new RTCPeerConnection(RTC);
+          pc.ondatachannel = function (ev) { dc = ev.channel; wire(); };
+          return pc.setRemoteDescription({ type: "offer", sdp: o.sdp }).then(function () { return o.kit; });
+        });
+      },
+      answer: function (kit) {
+        return pc.createAnswer().then(function (a) { return pc.setLocalDescription(a); }).then(gathered).then(function () { return pack({ sdp: pc.localDescription.sdp, kit: kit }); });
+      },
+      onOpen: function (f) { onOpen = f; },
+      forward: function (m) { // the host's match, as it is played, to the friend
+        if (ONLINE !== "host") return;
+        if (m.type === "header") send({ t: "header", header: m.header });
+        else send({ t: "chunk", len: m.len, frames: Array.prototype.slice.call(m.frames), events: m.events, stats: Array.prototype.slice.call(m.stats), finished: m.finished, final: m.final });
+      },
+      whenGuestReady: function (f) { if (guestReady) f(); else { readyWaiters.push(f); toast("Waiting for your friend to start..."); } },
+      // the friend's "engine": his instructions, changes and kick-off go to the host
+      remoteWorker: { postMessage: function (m) {
+        if (m.cmd === "plan") send({ t: "cmd", cmd: "plan", plan: m.plan });
+        else if (m.cmd === "sub") send({ t: "cmd", cmd: "sub", out: m.out, in: m.in });
+        else if (m.cmd === "go") { send({ t: "cmd", cmd: "plan", plan: planString() }); send({ t: "ready" }); } // (his eleven and instructions, then ready)
+      } },
+      status: status
+    };
+  })();
+
   // ---- the start screen: developer (everything) or user (kits, eleven, a live match) ----------------------------------
   var ROLE = null;
+  document.querySelectorAll(".wlogo").forEach(function (i) { i.src = document.querySelector(".lu-top img").src; }); // (the logo once in the page)
   // a kit has four parts: the shirt, the trim round it, the socks (boots) and the number
   var COLS = [["Red", "#d32f2f"], ["Blue", "#1e5bc6"], ["White", "#f2f2f2"], ["Black", "#1b1b1b"], ["Green", "#2e9e4f"], ["Yellow", "#f9d71c"], ["Orange", "#f57c00"],
     ["Sky blue", "#4fb3e8"], ["Navy", "#14244f"], ["Purple", "#6a3fb5"], ["Maroon", "#7b1e2b"], ["Pink", "#e05aa0"], ["Grey", "#7d8796"], ["Cyan", "#18c6c6"]];
@@ -3064,31 +3220,33 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   var KEEPER_PICKS = ["#2e9e4f", "#f9d71c", "#e05aa0", "#f57c00", "#18c6c6", "#7d8796", "#6a3fb5", "#1b1b1b"];
   var REF_PICKS = ["#1b1b1b", "#f9d71c", "#e05aa0", "#18c6c6", "#2e9e4f", "#f57c00", "#7d8796", "#6a3fb5"];
   function awayKeeper() { var used = [KIT.home.base, KIT.away.base, KIT.gk.base]; return KEEPER_PICKS.filter(function (c) { return !clashAny(c, used); })[0] || "#2e9e4f"; }
-  function refShirt() { var used = [KIT.home.base, KIT.away.base, KIT.gk.base, awayKeeper()]; return REF_PICKS.filter(function (c) { return !clashAny(c, used); })[0] || "#1b1b1b"; }
+  function refShirt() { var used = [KIT.home.base, KIT.away.base, KIT.gk.base, OTHER_GK ? OTHER_GK.base : awayKeeper()]; return REF_PICKS.filter(function (c) { return !clashAny(c, used); })[0] || "#1b1b1b"; }
   function userSettings() {
     var o = {}; for (var k in DEFAULTS) o[k] = DEFAULTS[k];
     o.grass = "across"; o.weather = "Sunny"; o.night = false; // (sunny, day, stripes across - the rest as it comes)
     try { var st = JSON.parse(localStorage.getItem("sv-user-settings") || "{}"); ["cb", "gest"].forEach(function (k) { if (k in st) o[k] = st[k]; }); } catch (e) {}
     return o;
   }
+  var OTHER_GK = null; // (online: the friend's own keeper kit, which he chose)
   function applyUserKits() {
-    var ag = awayKeeper(), rs = refShirt();
+    var ag = OTHER_GK ? OTHER_GK.base : awayKeeper(), rs = refShirt();
     SET.home = { primary: KIT.home.base, secondary: KIT.home.trim, boots: KIT.home.socks, number: KIT.home.num, gk: KIT.gk.base, gkTrim: KIT.gk.trim, gkBoots: KIT.gk.socks, gkNumber: KIT.gk.num };
     SET.away = { primary: KIT.away.base, secondary: KIT.away.trim, boots: KIT.away.socks, number: KIT.away.num, gk: ag, gkTrim: textOn(ag) === "#111" ? "#1b1b1b" : "#f2f2f2", gkNumber: textOn(ag) === "#111" ? "#111111" : "#ffffff" };
+    if (OTHER_GK) { SET.away.gkTrim = OTHER_GK.trim; SET.away.gkNumber = OTHER_GK.num; SET.away.gkBoots = OTHER_GK.socks; }
     SET.refs = { shirt: rs };
   }
   // what a part may not be: the shirt clashes with no other shirt on the pitch, a keeper with neither team, the number is readable on the shirt
   function forbidden(team, part) {
-    if (part === "base") return team === "home" ? [KIT.away.base] : team === "away" ? [KIT.home.base] : [KIT.home.base, KIT.away.base]; // (a team may take the keeper's colour: the keeper changes)
+    if (part === "base") return team === "home" ? [KIT.away.base].concat(OTHER_GK ? [OTHER_GK.base] : []) : team === "away" ? [KIT.home.base] : [KIT.home.base, KIT.away.base].concat(OTHER_GK ? [OTHER_GK.base] : []); // (a team may take its own keeper's colour: the keeper changes)
     if (part === "num") return [KIT[team].base];
     return [];
   }
   function drawKitPicker() {
-    var names = { home: "Home kit", away: "Away kit", gk: "Goalkeeper" };
+    var names = ONLINE === "guest" ? { home: "Your kit", away: "Your friend's kit", gk: "Your goalkeeper" } : { home: "Home kit", away: "Away kit", gk: "Goalkeeper" };
     $("kitBlocks").innerHTML = ["home", "away", "gk"].map(function (t) {
       var k = KIT[t];
       var shirt = '<svg viewBox="0 0 60 44" aria-hidden="true"><path d="M18 6 L24 3 Q30 8 36 3 L42 6 L52 13 L47 21 L42 18 L42 42 L18 42 L18 18 L13 21 L8 13 Z" fill="' + k.base + '" stroke="' + k.trim + '" stroke-width="2.4"/><rect x="21" y="40" width="7" height="4" fill="' + k.socks + '"/><rect x="32" y="40" width="7" height="4" fill="' + k.socks + '"/><text x="30" y="31" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="800" font-size="15" fill="' + k.num + '">' + (t === "gk" ? 1 : 10) + '</text></svg>';
-      return '<div class="kit"><h3>' + shirt + names[t] + '</h3>' + PARTS.map(function (q) {
+      return '<div class="kit' + (ONLINE === "guest" && t === "away" ? " fixed" : "") + '"><h3>' + shirt + names[t] + '</h3>' + PARTS.map(function (q) {
         var no = forbidden(t, q[0]);
         return '<div class="part"><span>' + q[1] + '</span><div class="swatches" data-team="' + t + '" data-part="' + q[0] + '" role="group" aria-label="' + names[t] + ' ' + q[1].toLowerCase() + '">' + COLS.map(function (c) {
           var dis = no.length && clashAny(c[1], no);
@@ -3118,6 +3276,15 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     $("welcome").hidden = true; drawKitPicker(); $("kitSetup").hidden = false; $("kitGo").focus();
   });
   $("kitGo").addEventListener("click", function () {
+    if (ONLINE === "guest") {
+      $("kitSetup").hidden = true; $("online").hidden = false;
+      $("oText").textContent = "Preparing your reply code...";
+      NET.answer({ home: KIT.home, gk: KIT.gk }).then(function (code) {
+        $("oText").textContent = "Send this code back to your friend. The match opens here as soon as he connects.";
+        $("oAnswer").value = code; $("oAnswerBox").hidden = false; NET.status("Waiting for your friend...");
+      }, function (e) { $("oText").textContent = "Could not make the reply code: " + e.message; });
+      return;
+    }
     try { localStorage.setItem("sv-user-kits", JSON.stringify(KIT)); } catch (e) {}
     applyUserKits(); saveSettings();
     $("kitSetup").hidden = true;
@@ -3125,12 +3292,63 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     $("prematchText").textContent = "Pick your eleven, the formation, roles and instructions below - then start the match.";
     startMatch("live", newSeed());
   });
-  $("setStart").addEventListener("click", function () { location.reload(); });
+  $("setStart").addEventListener("click", function () { location.hash = ""; location.reload(); });
+  // online - the host: kits chosen, the invite link, then the friend's reply code
+  function copyField(id) { var el = $(id); el.select(); try { navigator.clipboard.writeText(el.value).then(function () { toast("Copied"); }, function () { document.execCommand("copy"); toast("Copied"); }); } catch (x) { document.execCommand("copy"); } }
+  $("oCopyLink").addEventListener("click", function () { copyField("oLink"); });
+  $("oCopyAnswer").addEventListener("click", function () { copyField("oAnswer"); });
+  $("oCancel").addEventListener("click", function () { location.hash = ""; location.reload(); });
+  function startOnline() {
+    // both sides: the match with the friend's kit as the away kit, then the eleven and "Start match"
+    applyUserKits(); saveSettings();
+    $("online").hidden = true;
+    $("kickoff").textContent = "Start match";
+    $("prematchText").textContent = "Pick your eleven, the formation, roles and instructions below - then start the match (it kicks off when you are both ready).";
+    if (ONLINE === "host") startMatch("live", newSeed());
+    else { startMatch("live", 0); $("cbarText").textContent = "Waiting for your friend's match..."; }
+  }
+  $("kitInvite").addEventListener("click", function () {
+    try { localStorage.setItem("sv-user-kits", JSON.stringify(KIT)); } catch (e) {}
+    if (!window.RTCPeerConnection) { toast("This browser cannot play online"); return; }
+    $("kitSetup").hidden = true; $("online").hidden = false;
+    $("oText").textContent = "Preparing your invite...";
+    NET.invite({ home: KIT.home, gk: KIT.gk }).then(function (link) {
+      $("oText").textContent = "Your friend opens the link, picks his kit and sends you back a reply code.";
+      $("oLink").value = link; $("oLinkBox").hidden = false; $("oReplyBox").hidden = false;
+    }, function (e) { $("oText").textContent = "Could not prepare the invite: " + e.message; });
+  });
+  $("oConnect").addEventListener("click", function () {
+    var code = $("oReply").value; if (!code.trim()) return;
+    NET.status("Connecting...");
+    NET.accept(code).then(function (kit) {
+      // the friend's colours are the away kit (his keeper gets a colour that clashes with nothing)
+      KIT.away = kit.home; OTHER_GK = kit.gk; NET.status("Connecting...");
+    }, function () { NET.status("That reply code does not work - copy it again from your friend."); });
+  });
+  NET.onOpen(function () { startOnline(); });
+  // online - the friend: the link brought him here
+  function joinFromLink() {
+    var m = /#join=([^&]+)/.exec(location.hash); if (!m) return false;
+    ROLE = "user"; document.body.classList.add("user"); SET = userSettings(); syncSettingsUi();
+    $("welcome").hidden = true;
+    if (!window.RTCPeerConnection) { $("online").hidden = false; $("oText").textContent = "This browser cannot play online."; return true; }
+    NET.join(m[1]).then(function (hostKit) {
+      KIT.away = hostKit.home; OTHER_GK = hostKit.gk; // (the friend's own kit must not look like the host's)
+      if (clashAny(KIT.home.base, [KIT.away.base, OTHER_GK.base])) KIT.home.base = COLS.map(function (c) { return c[1]; }).filter(function (c) { return !clashAny(c, [KIT.away.base, OTHER_GK.base]); })[0];
+      if (clash(KIT.home.num, KIT.home.base)) KIT.home.num = textOn(KIT.home.base) === "#111" ? "#1b1b1b" : "#f2f2f2";
+      if (clashAny(KIT.gk.base, [KIT.home.base, KIT.away.base, OTHER_GK.base])) KIT.gk.base = KEEPER_PICKS.filter(function (c) { return !clashAny(c, [KIT.home.base, KIT.away.base, OTHER_GK.base]); })[0];
+      $("kTitle").textContent = "Your kit"; $("kitInvite").hidden = true;
+      $("kitGo").innerHTML = "<b>Continue</b><span>Next: a reply code for your friend, then your eleven.</span>";
+      drawKitPicker(); $("kitSetup").hidden = false;
+    }, function () { $("online").hidden = false; $("oText").textContent = "This invite link does not work - ask your friend for a new one."; });
+    return true;
+  }
+
   // the sound switch of the user's settings (the developer has his own button under the pitch)
   function syncSoundRow() { $("sndOn").setAttribute("aria-pressed", String(soundOn)); $("sndOff").setAttribute("aria-pressed", String(!soundOn)); }
   $("sndOn").addEventListener("click", function () { if (!soundOn) $("sound").click(); syncSoundRow(); });
   $("sndOff").addEventListener("click", function () { if (soundOn) $("sound").click(); syncSoundRow(); });
-  $("asUser").focus();
+  if (!joinFromLink()) $("asUser").focus();
   requestAnimationFrame(frame);
 })();
 </script>

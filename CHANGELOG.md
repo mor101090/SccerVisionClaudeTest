@@ -2,6 +2,21 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/online-play`
+
+- **Play a friend online** (user mode). After the kits: *Play the computer* or *Invite a friend*. The host gets an invite
+  link and sends it (WhatsApp, mail...); the friend opens it, picks his own kit and keeper (nothing that looks like the
+  host's kit or keeper is offered) and gets a reply code to send back; the host pastes it and the two are connected. Both
+  pick their eleven, formation and instructions; the match kicks off when both have pressed *Start match*.
+  - The host's browser runs the engine (a new "online" mode: no computer manager for the away team) and streams the match
+    to the friend as it is played; the friend's instructions and changes go back to the engine for the away team (new
+    engine calls `SetPlanFor` / `SubstituteFor`).
+  - Each sees his own team as his: on the friend's side the data is turned round (his team is the "home" team in his view).
+  - The two browsers connect directly (WebRTC). A public STUN server is used only to tell each browser its own internet
+    address - no game data passes through it; there is no game server.
+  - Messages too large for the connection go in pieces.
+- The logo is in the page once (the start screens borrow it).
+
 ## `feature/finishing-and-saves`
 
 - **Shooting in the box.** With the ball in the box a player chose to dribble eight times as often as he shot (127 v 15
