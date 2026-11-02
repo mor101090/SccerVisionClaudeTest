@@ -92,6 +92,7 @@ namespace SoccerVision.Simulation
             IsraeliNames.Name(t, seed, 0);
             NumberByPosition(t);
             PlayerTraits.Assign(t, (int)(seed % 100000) * 2);
+            PlayerAppearances.Assign(t, (int)(seed % 100000) * 2);
             t.Tactics.Marking = MarkingStyle.Zonal;
             t.Tactics.Tackling = TacklingStyle.Normal;
             return t;
@@ -111,6 +112,7 @@ namespace SoccerVision.Simulation
             IsraeliNames.Name(t, seed, 1);
             NumberByPosition(t);
             PlayerTraits.Assign(t, (int)(seed % 100000) * 2 + 1);
+            PlayerAppearances.Assign(t, (int)(seed % 100000) * 2 + 1);
             t.Tactics.Marking = MarkingStyle.ManToMan;
             t.Tactics.Tackling = TacklingStyle.GetStuckIn;
             return t;

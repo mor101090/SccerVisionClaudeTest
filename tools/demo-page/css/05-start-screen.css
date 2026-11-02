@@ -78,3 +78,9 @@ td.l { color: var(--muted); }
 .moments { display: grid; gap: 6px; margin-top: 12px; }
 .moments button { text-align: left; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 6px; padding: 8px 10px; line-height: 1.3; }
 .foot { color: var(--muted); font-size: 13px; }
+
+.crest { width: 100%; max-width: 760px; grid-column: 1 / -1; }
+.crest-prev { width: 46px; height: 46px; border-radius: 8px; background: #12162a; border: 1px solid var(--rule); display: inline-grid; place-items: center; overflow: hidden; }
+.crest-prev img { width: 100%; height: 100%; object-fit: contain; }
+#crestNote { color: var(--muted); min-height: 1.2em; }
+.lu-crest { height: 2.4em; width: auto; vertical-align: middle; margin-right: .5em; }

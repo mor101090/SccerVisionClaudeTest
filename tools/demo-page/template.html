@@ -15,6 +15,7 @@
 /*@include css/07-tactics.css*/
 /*@include css/08-manager.css*/
 /*@include css/09-tooltip-profile.css*/
+/*@include css/10-faces.css*/
 </style>
 
 <div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="wTitle">
@@ -32,6 +33,11 @@
     <img alt="SoccerVision" class="wlogo">
     <h2 id="kTitle">Your kits</h2>
     <div class="kits" id="kitBlocks"></div>
+    <div class="kit crest" id="crestBox">
+      <h3><span id="crestPreview" class="crest-prev" aria-hidden="true"></span>Club crest</h3>
+      <div class="orow"><input id="crestPrompt" maxlength="200" placeholder="Describe your crest: a red falcon on a blue shield" autocomplete="off"><button type="button" id="crestGo">Create</button><button type="button" id="crestClear" hidden>Remove</button></div>
+      <small id="crestNote"></small>
+    </div>
     <p id="kRefs"></p>
     <p>Next: your eleven, the formation and the instructions - then start the match.</p>
     <div class="wopts" id="kitButtons">
@@ -312,6 +318,7 @@
 //@include js/17-lineups.js
 //@include js/18-tooltips.js
 //@include js/19-player-page.js
+//@include js/19a-faces.js
 //@include js/20-tactic-locks.js
 //@include js/21-scoreboard.js
 //@include js/22-hover-card.js

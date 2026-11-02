@@ -60,7 +60,7 @@
     var cat = function (title, v, from, to) { return '<div class="pf-cat"><h4>' + title + '</h4>' + gauge(v) + rows(from, to) + '</div>'; };
     var en = team === 0 ? energyOf(p.number) : null;
     var html = '<button type="button" class="pf-close" id="pfClose" aria-label="Close the player page">✕</button>' +
-      '<div class="pf-top"><div class="pf-photo">' + jerseySvg(gk ? tm.kit.gk : tm.kit.primary, gk ? tm.kit.gkNumber : tm.kit.number, p.number, 18) + '</div>' +
+      '<div class="pf-top"><div class="pf-photo">' + faceHtml(p, tm.kit, gk) + '</div>' +
       '<div class="pf-id"><span class="nm" id="pfName">' + esc((p.role || "") + " " + p.name) + '</span><span>Age: ' + esc(p.age) + '</span><span>Height: ' + esc(p.height) + ' cm</span>' +
       '<span class="pf-feet">' + footSvg(p) + '<span>Preferred foot: ' + esc(p.foot) + '<br><small class="muted">weak foot ' + esc(p.weakFoot) + '/3</small></span></span>' +
       '<span class="team">' + esc(tm.name) + ' · Num. ' + esc(p.number) + (p.nation ? ' · ' + esc(p.nation) : "") + '</span></div>' +

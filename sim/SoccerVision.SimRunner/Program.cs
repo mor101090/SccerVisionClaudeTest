@@ -29,6 +29,7 @@ MatchScript script = null;
 // --home "line=0.9,width=0.2,passing=short,tempo=0.8,aggression=0.8": the home team's tactics
 string homeTactics = null, awayTactics = null;
 bool golden = false;
+int exportRoster = 0;
 for (int i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -53,7 +54,30 @@ for (int i = 0; i < args.Length; i++)
         case "--away": awayTactics = args[++i]; break;
         case "--script": if (args[++i] == "staged") script = MatchScript.Staged(); break;
         case "--golden": golden = true; break;
+        case "--export-roster": exportRoster = int.Parse(args[++i]); break;
     }
+}
+
+if (exportRoster > 0)
+{
+    // the looks of the demo squads of the first N matches as the face generator's roster (tools/faces/generate_faces.py)
+    var list = new List<string>();
+    for (ulong sd = 1; sd <= (ulong)exportRoster; sd++)
+    {
+        ulong nm = sd * 2654435761UL + 17UL;
+        foreach (var t in new[] { DemoTeams.Red(nm), DemoTeams.Blue(nm) })
+            foreach (var p in t.Starters.Concat(t.Bench))
+            {
+                var lk = p.Appearance;
+                list.Add(JsonSerializer.Serialize(new Dictionary<string, object>
+                {
+                    ["key"] = lk.FaceSeed.ToString(), ["age"] = p.Age,
+                    ["look"] = new Dictionary<string, object> { ["origin"] = p.Origin, ["look"] = lk.Look, ["skin"] = lk.Skin, ["hair"] = lk.Hair, ["hairColour"] = lk.HairColour, ["facial"] = lk.Facial, ["build"] = lk.Build, ["seed"] = lk.FaceSeed },
+                }));
+            }
+    }
+    Console.WriteLine("[" + string.Join(",\n", list) + "]");
+    return;
 }
 
 if (golden)
@@ -353,6 +377,7 @@ static void Golden()
 {
     var sb = new StringBuilder();
     var all = System.Security.Cryptography.SHA256.Create();
+    var play = System.Security.Cryptography.SHA256.Create();
     void Run(string name, ulong seed, Action<MatchConfig> config, Func<MatchEngine, (Action update, Action done)> managers = null, Action<TeamSetup, TeamSetup> teams = null)
     {
         var cfg = MatchConfig.CreateDefault();
@@ -364,20 +389,22 @@ static void Golden()
         var rec = new ReplayRecorder(e, 10);
         var update = managers?.Invoke(e).update;
         var h = System.Security.Cryptography.SHA256.Create();
-        void Feed(byte[] b) { h.TransformBlock(b, 0, b.Length, null, 0); }
+        var hp = System.Security.Cryptography.SHA256.Create(); // the same without the headers: how the match played
+        void Feed(byte[] b, bool play = false) { h.TransformBlock(b, 0, b.Length, null, 0); if (play) hp.TransformBlock(b, 0, b.Length, null, 0); }
         Feed(Encoding.UTF8.GetBytes(rec.Header(false)));
         int guard = 0;
         while (!e.IsFinished && guard++ < 100000)
         {
             var chunk = rec.Step(30);
             update?.Invoke();
-            var fb = new byte[chunk.Frames.Length * 4]; Buffer.BlockCopy(chunk.Frames, 0, fb, 0, fb.Length); Feed(fb);
-            Feed(Encoding.UTF8.GetBytes(chunk.EventsJson));
-            var sbts = new byte[chunk.Stats.Length * 4]; Buffer.BlockCopy(chunk.Stats, 0, sbts, 0, sbts.Length); Feed(sbts);
+            var fb = new byte[chunk.Frames.Length * 4]; Buffer.BlockCopy(chunk.Frames, 0, fb, 0, fb.Length); Feed(fb, true);
+            Feed(Encoding.UTF8.GetBytes(chunk.EventsJson), true);
+            var sbts = new byte[chunk.Stats.Length * 4]; Buffer.BlockCopy(chunk.Stats, 0, sbts, 0, sbts.Length); Feed(sbts, true);
         }
         Feed(Encoding.UTF8.GetBytes(rec.Header(true)));
-        h.TransformFinalBlock(new byte[0], 0, 0);
+        h.TransformFinalBlock(new byte[0], 0, 0); hp.TransformFinalBlock(new byte[0], 0, 0);
         string hex = Convert.ToHexString(h.Hash).Substring(0, 16);
+        var pb = Encoding.UTF8.GetBytes(Convert.ToHexString(hp.Hash).Substring(0, 16)); play.TransformBlock(pb, 0, pb.Length, null, 0);
         sb.AppendLine($"{name,-22} {e.Home.Score}-{e.Away.Score} {hex}");
         var hb = Encoding.UTF8.GetBytes(hex); all.TransformBlock(hb, 0, hb.Length, null, 0);
     }
@@ -392,7 +419,9 @@ static void Golden()
     Run("managers 17", 17, null, e => { var m0 = new ComputerManager(e, 0); var m1 = new ComputerManager(e, 1); return (() => { m0.Update(); m1.Update(); }, null); });
     all.TransformFinalBlock(new byte[0], 0, 0);
     Console.Write(sb.ToString());
+    play.TransformFinalBlock(new byte[0], 0, 0);
     Console.WriteLine("ALL " + Convert.ToHexString(all.Hash).Substring(0, 16));
+    Console.WriteLine("PLAY " + Convert.ToHexString(play.Hash).Substring(0, 16) + "   (without the headers: frames, events and statistics only)");
 }
 
 sealed class MatchResult

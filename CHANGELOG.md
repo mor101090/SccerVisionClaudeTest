@@ -2,6 +2,25 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/faces-and-logos`
+
+Groundwork for portraits that are made once for each player, and for club crests made from a sentence (tools/faces/README.md):
+
+- **How a player looks** (`PlayerAppearance`): look (European, Mediterranean, Middle Eastern, East African, West African, Latin American, East Asian...),
+  skin tone 1-6, hairstyle, hair colour, facial hair, build, and a seed - decided when the player is created, by where he comes from
+  (`PlayerProfile.Origin`: Jewish, Arab, Russian, Ethiopian, Spanish, American; an Ethiopian Israeli looks East African, with the matching skin
+  tones; older players have beards and receding hairlines more often). It has its own random stream and plays no part in the match: the
+  fingerprint of the matches without their headers (`--golden`, line PLAY) is unchanged (`0370C365C06CFABB`). It is in the replay header
+  (`look`). `SimRunner --export-roster N` writes the roster for the face generator.
+- **The generator** (`tools/faces`, Python, standard library + Pillow): prompts from the look and the age (hair greys, lines and wrinkles come with
+  age; no shirt in the picture), a ComfyUI client and two Qwen-Image workflows (text to image; image edit for ageing), `generate_faces.py`
+  (a portrait per age and a manifest, resumable), `generate_logo.py` and a small local `server.py` (POST `/logo` from a prompt, POST `/face`).
+  Tested with a stand-in ComfyUI (4 tests); **the workflows have not been run against a real ComfyUI** (no GPU here) - the README says how to check them.
+- **On the page**: the player's page shows his portrait (the one for his age: he ages with the years) over a **vector shirt in the team's colours**;
+  until a portrait exists, a **vector face** drawn from the same look data (skin, hair, beard, build, greying and lines with age). "Club crest" in
+  the user's kit screen: write what it should look like, the page asks the local server, the crest is kept and shown on the club's line-up.
+- Tests: `AppearanceTests` (origin and look fit, the spread of hair and beards, determinism, the match does not depend on the faces).
+
 ## `chore/cleanup`
 
 - **Cleanup, no change in behaviour.** Removed what nothing uses: engine members (`BallPhysics.PositionAtTime`,

@@ -197,6 +197,7 @@ namespace SoccerVision.Simulation
                     var ls = spanish ? sl : al; int k = spanish ? sk++ : ak++;
                     do last = ls[k++ % ls.Count]; while (!used.Add(last) && k < 4 * ls.Count);
                     p.Nationality = spanish ? "Spain" : "USA";
+                    p.Origin = spanish ? "spanish" : "american";
                 }
                 else
                 {
@@ -204,9 +205,10 @@ namespace SoccerVision.Simulation
                     // of a player always come from the same list (never a Muhammad Cohen)
                     double g = rng.NextDouble();
                     string[] fl = IsraelFirst, ll = null;
-                    if (g < 0.12) { fl = ArabFirst; ll = ArabLast; }
-                    else if (g < 0.22) { fl = RussianFirst; ll = RussianLast; }
-                    else if (g < 0.28) { fl = EthiopianFirst; ll = EthiopianLast; }
+                    p.Origin = "jewish";
+                    if (g < 0.12) { fl = ArabFirst; ll = ArabLast; p.Origin = "arab"; }
+                    else if (g < 0.22) { fl = RussianFirst; ll = RussianLast; p.Origin = "russian"; }
+                    else if (g < 0.28) { fl = EthiopianFirst; ll = EthiopianLast; p.Origin = "ethiopian"; }
                     first = fl[rng.Next(fl.Length)];
                     if (ll == null)
                     {

@@ -93,6 +93,11 @@ namespace SoccerVision.Replay
             b.Append(",\"leftFoot\":").Append(a.LeftFoot).Append(",\"rightFoot\":").Append(a.RightFoot);
             b.Append(",\"group\":\"").Append(pr.NaturalPosition).Append('"');
             b.Append(",\"nation\":"); Str(b, pr.Nationality);
+            // how he looks (the portrait is made from this: tools/faces)
+            var lk = pr.Appearance;
+            b.Append(",\"look\":{\"origin\":"); Str(b, pr.Origin); b.Append(",\"look\":"); Str(b, lk.Look); b.Append(",\"skin\":").Append(lk.Skin);
+            b.Append(",\"hair\":"); Str(b, lk.Hair); b.Append(",\"hairColour\":"); Str(b, lk.HairColour); b.Append(",\"facial\":"); Str(b, lk.Facial);
+            b.Append(",\"build\":"); Str(b, lk.Build); b.Append(",\"seed\":").Append(lk.FaceSeed).Append('}');
             // his traits (habits on the ball), by name
             b.Append(",\"traits\":[");
             bool firstTrait = true;

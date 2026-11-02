@@ -23,7 +23,7 @@
     var xi = order.map(function (i) { var p = bySlot[i]; return p ? row("", p.number, p.name, i === 0 ? " (GK)" : "") : ""; }).join("");
     var subs = (tm.bench || []).map(function (p) { return row("sub", p.number, p.name); }).join("");
     var bigShirt = '<svg viewBox="0 0 60 44" aria-hidden="true"><path d="M18 6 L24 3 Q30 8 36 3 L42 6 L52 13 L47 21 L42 18 L42 42 L18 42 L18 18 L13 21 L8 13 Z" fill="' + kit.primary + '" stroke="rgba(0,0,0,.35)" stroke-width=".8"/></svg>';
-    return '<div class="lu-col" style="--tc:' + kit.primary + '"><div class="lu-name">' + esc(tm.name) + '</div><h4>Starting XI</h4>' + xi +
+    return '<div class="lu-col" style="--tc:' + kit.primary + '"><div class="lu-name">' + (tm === R.home && typeof CREST === "string" && CREST ? '<img class="lu-crest" alt="" src="' + CREST + '">' : "") + esc(tm.name) + '</div><h4>Starting XI</h4>' + xi +
       '<h4>Coach</h4><div class="coach"><b>' + esc(tm.manager || "-") + '</b></div><h4>Substitutes</h4>' + subs + '</div>' +
       '<div class="lu-mid">' + svg + '</div>' +
       '<div class="lu-right"><div class="big">' + bigShirt + '</div><div class="fm">' + esc(f.name) + '</div><div class="cmp">' + esc(tm.shortName || "") + '</div></div>';

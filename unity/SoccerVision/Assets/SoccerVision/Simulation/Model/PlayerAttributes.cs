@@ -97,6 +97,10 @@ namespace SoccerVision.Simulation
         public PlayerAttributes Attributes = new PlayerAttributes();
         /// <summary>His character on the ball (about three habits, see <see cref="PlayerTraits"/>).</summary>
         public PlayerTrait Traits;
+        /// <summary>Where he comes from, for his looks: jewish, arab, russian, ethiopian, spanish, american.</summary>
+        public string Origin = "";
+        /// <summary>How he looks (see <see cref="PlayerAppearance"/>): decided when he is created, for good.</summary>
+        public PlayerAppearance Appearance = new PlayerAppearance();
 
         public string ShortName => string.IsNullOrEmpty(LastName) ? FirstName : LastName;
         public string FullName => string.IsNullOrEmpty(FirstName) ? LastName : FirstName + " " + LastName;

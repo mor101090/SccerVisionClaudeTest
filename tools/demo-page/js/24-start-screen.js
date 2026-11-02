@@ -62,6 +62,27 @@
     drawKitPicker();
     var again = document.querySelector('#kitBlocks [data-team="' + t + '"][data-part="' + part + '"] button[aria-pressed="true"]'); if (again) again.focus();
   });
+  // ---- the club crest: described in words, made by the faces server (tools/faces/server.py: Qwen-Image in ComfyUI) ----------------
+  // the address of that server: #faces=http://127.0.0.1:8765 in the page's address, or the last one used; without it the button says how to start it
+  var CREST = (function () { try { return localStorage.getItem("sv-crest") || ""; } catch (e) { return ""; } })();
+  var FACES_API = (/#faces=([^&]+)/.exec(location.hash) || [])[1] || (function () { try { return localStorage.getItem("sv-faces-api") || ""; } catch (e) { return ""; } })() || "http://127.0.0.1:8765";
+  function drawCrest() {
+    $("crestPreview").innerHTML = CREST ? '<img alt="" src="' + CREST + '">' : "";
+    $("crestClear").hidden = !CREST;
+  }
+  function setCrest(dataUrl) { CREST = dataUrl || ""; try { localStorage.setItem("sv-crest", CREST); } catch (e) {} drawCrest(); }
+  $("crestGo").addEventListener("click", function () {
+    var prompt = $("crestPrompt").value.trim(); if (!prompt) { $("crestNote").textContent = "Write what the crest should look like."; return; }
+    $("crestGo").disabled = true; $("crestNote").textContent = "Creating your crest... (about a minute)";
+    fetch(FACES_API + "/logo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: prompt, name: (R && R.home && R.home.name) || "" }) })
+      .then(function (r) { if (!r.ok) return r.json().then(function (j) { throw new Error(j.error || "the server said " + r.status); }); return r.blob(); })
+      .then(function (b) { return new Promise(function (res) { var im = new Image(), u = URL.createObjectURL(b); im.onload = function () { var c = document.createElement("canvas"); c.width = c.height = 256; c.getContext("2d").drawImage(im, 0, 0, 256, 256); URL.revokeObjectURL(u); res(c.toDataURL("image/png")); }; im.src = u; }); })
+      .then(function (d) { setCrest(d); $("crestNote").textContent = "Your crest."; try { localStorage.setItem("sv-faces-api", FACES_API); } catch (e) {} })
+      .catch(function (e) { $("crestNote").textContent = e instanceof TypeError ? "The crest server is not running. Start it with: python3 tools/faces/server.py  (ComfyUI with Qwen-Image must be running)" : "Could not make the crest: " + e.message; })
+      .then(function () { $("crestGo").disabled = false; });
+  });
+  $("crestClear").addEventListener("click", function () { setCrest(""); $("crestNote").textContent = ""; });
+  drawCrest();
   $("asDev").addEventListener("click", function () {
     ROLE = "dev"; document.body.classList.remove("user"); $("welcome").hidden = true;
     startMatch("staged", STAGED_SEED);
