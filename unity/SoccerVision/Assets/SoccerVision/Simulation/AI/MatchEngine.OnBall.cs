@@ -169,6 +169,7 @@ namespace SoccerVision.Simulation
                 if (p.Has(PlayerTrait.Unselfish) && !openGoal) tendency *= 0.8f;
                 // (the habits shift which shots a player takes, not how many a team takes: the balance for the squad's mix)
                 tendency *= p.CutInUntil > SimTime ? 0.92f : 0.72f; // (the cut inside and shoot is the winger's signature: left as it was)
+                if (p.FirstTimeUntil > SimTime) tendency *= 1.7f; // (set to hit it first time)
                 if (openGoal) { tendency = MathF.Max(tendency, 3f); if (CollectDiagnostics) Count("shot.openGoal.considered"); }
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
                 float afterShotLoss = 0.006f + 0.25f * _riskPremium;
@@ -260,7 +261,7 @@ namespace SoccerVision.Simulation
                     if (openGoal) { so.Utility = 10f; _options[shootAt] = so; if (CollectDiagnostics) Count("shot.openGoal.forced"); }
                     else
                     {
-                        so.Utility = MathF.Max(so.Utility, xgNow * (1.05f - 0.15f * MathUtil.A(p.Attr.Composure))); // (a cool head may wait a beat)
+                        so.Utility = MathF.Max(so.Utility, xgNow * (1.05f - 0.15f * MathUtil.A(p.Attr.Composure)) * (p.Has(PlayerTrait.Unselfish) ? 0.8f : 1f)); // (a cool head may wait a beat; the unselfish one looks up first)
                         _options[shootAt] = so;
                         for (int i = 0; i < _options.Count; i++)
                         {
@@ -268,7 +269,7 @@ namespace SoccerVision.Simulation
                             if (o.Action == BallAction.Dribble)
                             {
                                 if (p.CutInUntil > SimTime) continue; // (the winger cutting inside carries on: his curler comes from the run)
-                                float later = EstimateShotXG(p, o.DribbleTarget) * MathUtil.Clamp01(o.Success) * 0.85f;
+                                float later = EstimateShotXG(p, o.DribbleTarget, false, KeeperWhenThere(team, pos, o.DribbleTarget)) * MathUtil.Clamp01(o.Success) * 0.85f;
                                 if (o.Utility > later) { o.Utility = later; _options[i] = o; }
                             }
                             else if (o.Action == BallAction.Hold && xgNow > 0.06f && o.Utility > xgNow * 0.4f) { o.Utility = xgNow * 0.4f; _options[i] = o; }

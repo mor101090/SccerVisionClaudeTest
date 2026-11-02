@@ -148,6 +148,7 @@ namespace SoccerVision.Simulation
             if (defending == _chargeDownTeam && SimTime - _chargeDownTime < 8f) KeeperChargeDownGoals++;
             scoringTeam.Score++;
             scoringTeam.Stats.Goals++;
+            if (CollectDiagnostics && _lastShotKeeperBucket != null) Count("goal.keeper." + _lastShotKeeperBucket);
             if (SimTime - scoringTeam.SetPieceAt < 10f) scoringTeam.Stats.SetPieceGoals++;
             MomentumGoal(scoringTeam);
             bool recentShot = Ball.Shooter != null && Ball.Shooter.Team == scoringTeam && SimTime - _lastShotTime < 3f;

@@ -144,6 +144,8 @@ namespace SoccerVision.Simulation
         public float LastSortieTime = -100f;
         /// <summary>Sim time until which this player is on a cut-inside run (a shot then counts as one).</summary>
         public float CutInUntil = -1f;
+        /// <summary>He got the ball in the box from a team-mate at a good angle and set himself to hit it first time.</summary>
+        public float FirstTimeUntil = -1f;
         /// <summary>One-two: the team-mate this player just passed to and runs past for the return ball, until OneTwoUntil.</summary>
         public PlayerAgent OneTwoWith;
         public float OneTwoUntil = -1f;

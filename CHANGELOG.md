@@ -30,6 +30,23 @@ behaviours, not tactics to set (`AI/MatchEngine.TeamAI.Intelligence.cs`):
   page, the commentary and the React app.
 - **A ball that goes out is gone once it leaves the picture**: nothing beyond the lines (the advertising boards used to) sends it back
   into view. It still bounces off the outside of the net.
+- **Finishing like a forward, keeping goal like a keeper** (forwards ran on until they stood on the keeper, then shot; the
+  keeper charged out on a crooked path or from a tight angle and left the goal empty):
+  - The forward's idea of his chance now sees the keeper: how much of the goal mouth the keeper covers from where the forward
+    stands (the spread body close in, the dive further out), and for carrying the ball on, where the keeper will be by then. So
+    he shoots while there is goal to aim at, squares it to a free team-mate, or goes round the keeper - he does not run into him.
+    (Before, the estimate knew only the distance and the angle, so every step closer looked better.)
+  - First-time finishes: a pass into the box at a good angle - a good finisher has set his body and hits it at once, before the
+    keeper and the defenders close him down (about 2.4 a match, 16% go in).
+  - A keeper right on the forward is a wall: a shot that is not past his body hits him (the close-range bonus for the shooter
+    applied even then).
+  - The keeper gets onto the line between the ball and the goal before he comes out (no crooked run), guards his near post
+    from a tight angle (no charge that leaves the goal for the cut-back), comes less when another forward is free in the box,
+    and no further than 6-10 m (the bold keeper the furthest).
+  - Measured over 100 matches: shots with the keeper within 3 m in front of the shooter 36% -> 18% of open-play shots; goals
+    2.70 a match (in the real range); open-goal goals ~1 a match.
+- Tests: `FinishingIntelligenceTests`; the samples of a few rare-event tests (long throws, dives, traits) enlarged - the effects
+  are the same, four or six matches were too few to see them reliably.
 - Test fix: the half-length check allows the Law 7 extension when a penalty is given at the very end of a half.
 - Tests: `IntelligenceTests`.
 

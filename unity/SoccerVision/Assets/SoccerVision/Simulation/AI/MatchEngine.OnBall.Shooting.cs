@@ -21,7 +21,7 @@ namespace SoccerVision.Simulation
 
         private bool _shotCountedOnTarget;
 
-        private float EstimateShotXG(PlayerAgent p, Vec2 pos, bool header = false)
+        private float EstimateShotXG(PlayerAgent p, Vec2 pos, bool header = false, Vec2? keeperAt = null)
         {
             var team = p.Team;
             float xg = ExpectedGoals.FromLocation(pos, team.AttackGoalSign);
@@ -30,6 +30,14 @@ namespace SoccerVision.Simulation
             xg *= 0.65f + 0.7f * skill;
             if (header) xg *= 0.6f;
 
+            // The keeper: how much of the goal he covers from where the shooter stands. On his line he leaves the corners;
+            // coming out he closes the angle; standing on the shooter's toes he covers it all - then the shot is the wrong
+            // choice (the pass to a free team-mate, going round him or a chip is the right one). A keeper on the ground or
+            // beaten leaves it open.
+            float cover = KeeperCoverFactor(team, pos, keeperAt);
+            // (the winger cutting inside bends it round the keeper to the far post: the keeper covers less of that)
+            if (p.CutInUntil > SimTime && !header) cover = MathF.Max(cover, 0.95f);
+            xg *= cover;
             // Bodies in the shooting cone block shots.
             Vec2 postA = new Vec2(Pitch.HalfLength * team.AttackGoalSign, Pitch.GoalHalfWidth);
             Vec2 postB = new Vec2(Pitch.HalfLength * team.AttackGoalSign, -Pitch.GoalHalfWidth);
@@ -42,6 +50,51 @@ namespace SoccerVision.Simulation
                 else if (d < 1.6f) xg *= 0.8f;
             }
             return xg;
+        }
+
+        /// <summary>
+        /// 0.45 (the keeper covers the whole goal) .. 1.4 (he is out of it): from the share of the goal mouth, seen from
+        /// <paramref name="pos"/>, that the keeper does not cover. Normalised so that a keeper on his line facing a shot from
+        /// the penalty spot is about 1 (what the location model already assumes).
+        /// </summary>
+        private float KeeperCoverFactor(TeamAgent team, Vec2 pos, Vec2? keeperAt = null)
+        {
+            var gk = team.Opponent.Goalkeeper;
+            if (gk == null || gk.SentOff || gk.IsDown) return 1.4f;
+            int sign = team.AttackGoalSign;
+            Vec2 postA = new Vec2(Pitch.HalfLength * sign, Pitch.GoalHalfWidth), postB = new Vec2(Pitch.HalfLength * sign, -Pitch.GoalHalfWidth);
+            float a1 = (postA - pos).Angle, a2 = (postB - pos).Angle;
+            float lo = MathF.Min(a1, a2), hi = MathF.Max(a1, a2);
+            if (hi - lo > MathF.PI) { float t = lo; lo = hi; hi = t + 2f * MathF.PI; } // (the goal straddles the angle wrap)
+            float width = MathF.Max(0.02f, hi - lo);
+            Vec2 toK = (keeperAt ?? gk.Pos) - pos;
+            float dk = toK.Length;
+            // (a keeper behind the shooter, or far off to the side, covers nothing)
+            if (dk < 0.3f || Vec2.Dot(toK, (team.AttackGoal - pos)) <= 0f) return 1.4f;
+            float ak = toK.Angle;
+            while (ak < lo - MathF.PI) ak += 2f * MathF.PI;
+            while (ak > lo + MathF.PI) ak -= 2f * MathF.PI;
+            // his reach: the spread body close in, the dive further away
+            float reach = dk < 4f ? 1.4f + 0.2f * MathUtil.A(gk.Attr.OneOnOne) : 2.0f + 0.4f * MathUtil.A(gk.Attr.Reflexes);
+            float h = MathF.Atan2(reach, dk);
+            float covered = MathF.Max(0f, MathF.Min(hi, ak + h) - MathF.Max(lo, ak - h));
+            float open = MathUtil.Clamp01(1f - covered / width);
+            return MathUtil.Clamp(0.45f + 1.6f * open, 0.45f, 1.4f);
+        }
+
+        /// <summary>
+        /// Where the keeper will be when the carrier gets to <paramref name="target"/>: coming out at him (a keeper does not
+        /// stand still while a forward runs at him) - so carrying the ball on is weighed against the keeper who meets him.
+        /// </summary>
+        private Vec2 KeeperWhenThere(TeamAgent team, Vec2 from, Vec2 target)
+        {
+            var gk = team.Opponent.Goalkeeper;
+            if (gk == null || gk.SentOff) return team.Opponent.OwnGoal;
+            float t = Vec2.Distance(from, target) / 6.5f;
+            Vec2 toward = target - gk.Pos;
+            float d = toward.Length;
+            if (d < 0.5f) return gk.Pos;
+            return gk.Pos + toward / d * MathF.Min(MathF.Max(0f, d - 1.2f), 6.5f * t);
         }
 
         private static bool PointInTriangle(Vec2 p, Vec2 a, Vec2 b, Vec2 c)
@@ -59,6 +112,7 @@ namespace SoccerVision.Simulation
 
         /// <summary>Shot at goal: aims at a corner away from the keeper, then applies skill-based error.</summary>
         private bool _lastShotOpenGoal;
+        private string _lastShotKeeperBucket;
 
         private void ExecuteShot(PlayerAgent p, bool header, bool penalty, float xg, bool volley = false, bool bicycle = false)
         {
@@ -198,6 +252,17 @@ namespace SoccerVision.Simulation
                 if (CollectDiagnostics) Count("shot.openGoal");
             }
             _lastShotOpenGoal = openGoal;
+            if (CollectDiagnostics && !penalty && !header)
+            {
+                // how close the keeper was when the shot was struck (open play, on the ground or volleyed)
+                float dk = keeper != null ? Vec2.Distance(keeper.Pos, from) : 99f;
+                _lastShotKeeperBucket = dk < 3f ? "a<3" : dk < 6f ? "b3-6" : dk < 10f ? "c6-10" : "d10+";
+                if (dk < 3f) _lastShotKeeperBucket += keeper != null && !keeper.IsDown && Vec2.DistanceToSegment(keeper.Pos, from, team.AttackGoal, out _) < 1.6f ? ".front" : ".beaten";
+                Count("shot.keeper." + _lastShotKeeperBucket);
+            }
+            else _lastShotKeeperBucket = null;
+            if (CollectDiagnostics && p.FirstTimeUntil > SimTime && !header && !penalty) { Count("shot.firstTime"); if (_lastShotKeeperBucket != null) _lastShotKeeperBucket += ".ft"; }
+            p.FirstTimeUntil = -1f;
             Vec2 aim = new Vec2(Pitch.HalfLength * goalSign, aimY);
             Vec2 dir = (aim - from).Normalized;
             float distToAim = Vec2.Distance(from, aim);

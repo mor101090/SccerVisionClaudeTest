@@ -68,9 +68,9 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void DribblersDribbleAndLongShootersShootFromDistance()
         {
-            var plain = Play(() => Red(PlayerTrait.None), 500, 4);
-            var dribblers = Play(() => Red(PlayerTrait.LovesToDribble), 500, 4);
-            var shooters = Play(() => Red(PlayerTrait.ShootsFromDistance), 500, 4);
+            var plain = Play(() => Red(PlayerTrait.None), 500, 12);
+            var dribblers = Play(() => Red(PlayerTrait.LovesToDribble), 500, 12);
+            var shooters = Play(() => Red(PlayerTrait.ShootsFromDistance), 500, 12);
             double dr0 = plain.Average(e => e.Diagnostics.GetValueOrDefault("decide.Dribble")), dr1 = dribblers.Average(e => e.Diagnostics.GetValueOrDefault("decide.Dribble"));
             Assert.True(dr1 > dr0 * 1.05, $"dribble decisions {dr0:0.0} -> {dr1:0.0}");
             static double Far(MatchEngine e) => e.EventLog.Count(x => x.Type == MatchEventType.Shot && x.Team == 0
@@ -83,8 +83,8 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void HardTacklersGoInMoreAndFoulMore()
         {
-            var plain = Play(() => Red(PlayerTrait.None, p => p.Attributes.Aggression = 75), 520, 4);
-            var hard = Play(() => Red(PlayerTrait.HardTackler, p => p.Attributes.Aggression = 75), 520, 4);
+            var plain = Play(() => Red(PlayerTrait.None, p => p.Attributes.Aggression = 75), 520, 12);
+            var hard = Play(() => Red(PlayerTrait.HardTackler, p => p.Attributes.Aggression = 75), 520, 12);
             // (he goes in sooner, standing or sliding)
             double sl0 = plain.Average(e => e.Home.Stats.Tackles), sl1 = hard.Average(e => e.Home.Stats.Tackles);
             double f0 = plain.Average(e => e.Home.Stats.Fouls), f1 = hard.Average(e => e.Home.Stats.Fouls);
@@ -96,8 +96,8 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void UnselfishPlayersShootLess()
         {
-            var plain = Play(() => Red(PlayerTrait.None), 540, 4);
-            var givers = Play(() => Red(PlayerTrait.Unselfish), 540, 4);
+            var plain = Play(() => Red(PlayerTrait.None), 540, 12);
+            var givers = Play(() => Red(PlayerTrait.Unselfish), 540, 12);
             double s0 = plain.Average(e => e.Home.Stats.Shots), s1 = givers.Average(e => e.Home.Stats.Shots);
             Assert.True(s1 < s0, $"shots {s0:0.0} -> {s1:0.0}");
         }

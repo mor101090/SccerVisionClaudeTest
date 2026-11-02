@@ -195,9 +195,9 @@ namespace SoccerVision.Simulation.Tests
             _out.WriteLine($"keeper off his line while his team attacks: bold {bold:0.0} m, on the line {line:0.0} m");
             Assert.True(bold > line + 0.8, "the bold keeper stands higher");
 
-            var divers = Play(() => Give(DemoTeams.Red(), PlayerTrait.DrawsFouls), 8700, 16);
+            var divers = Play(() => Give(DemoTeams.Red(), PlayerTrait.DrawsFouls), 8700, 32); // (rare: a dive near the box)
             int bought = divers.Sum(e => e.Diagnostics.GetValueOrDefault("dive.bought")), booked = divers.Sum(e => e.Diagnostics.GetValueOrDefault("dive.booked"));
-            _out.WriteLine($"dives bought {bought}, booked {booked} in sixteen matches");
+            _out.WriteLine($"dives bought {bought}, booked {booked} in 32 matches");
             Assert.True(bought > 0 && booked > 0, "the diver sometimes wins it and is sometimes booked");
             Assert.All(divers, e => Assert.Equal(0, e.RecoveredErrors));
         }

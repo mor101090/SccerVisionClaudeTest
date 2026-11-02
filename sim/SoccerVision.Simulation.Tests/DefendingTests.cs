@@ -202,7 +202,8 @@ namespace SoccerVision.Simulation.Tests
             int through = engines.Sum(e => e.Home.Stats.ThroughBalls + e.Away.Stats.ThroughBalls);
             int throughOk = engines.Sum(e => e.Home.Stats.ThroughBallsCompleted + e.Away.Stats.ThroughBallsCompleted);
             int space = engines.Sum(e => e.Home.Stats.PassesIntoSpace + e.Away.Stats.PassesIntoSpace);
-            Assert.InRange(through / 8.0, 15, 60);
+            // (a handful a match: a ball in behind is a gamble taken when it is on - top leagues ~2-4 per team)
+            Assert.InRange(through / 8.0, 4, 30);
             Assert.InRange(throughOk / (double)through, 0.2, 0.6);
             Assert.True(space >= 8 * 6, "passes into space " + space);
             var log = engines.SelectMany(e => e.EventLog).ToList();

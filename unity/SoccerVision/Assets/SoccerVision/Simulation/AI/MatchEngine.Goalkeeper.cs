@@ -56,8 +56,21 @@ namespace SoccerVision.Simulation
                 if (d < 24f && NoDefenderBetween(carrier, team))
                 {
                     float rush = MathUtil.Clamp01(MathUtil.A(gk.Attr.OneOnOne) + (gk.Has(PlayerTrait.BoldKeeper) ? 0.25f : gk.Has(PlayerTrait.StaysOnLine) ? -0.2f : 0f));
-                    float outDist = MathUtil.Clamp(d * (0.35f + 0.25f * rush), 1.5f, MathF.Min(d - 1.2f, 13f));
-                    gk.Target = goal + (carrier.Pos - goal).Normalized * outDist;
+                    float outDist = MathUtil.Clamp(d * (0.25f + 0.25f * rush), 1.5f, MathF.Min(d - 1.2f, 6f + 4f * rush)); // (the bold one comes further)
+                    Vec2 line = (carrier.Pos - goal).Normalized;
+                    // From a tight angle (out wide, near the by-line) he guards his near post: charging out there leaves the
+                    // goal empty for the cut-back.
+                    float angleCos = MathF.Abs(Vec2.Dot(line, team.DirToWorld(Vec2.UnitX)));
+                    if (angleCos < 0.75f) outDist = MathF.Min(outDist, 1.5f + 2.5f * MathUtil.Clamp01((angleCos - 0.35f) / 0.4f));
+                    // Another forward free in the box: he cannot sell himself to the man on the ball - he comes less.
+                    if (FreeAttackerInBox(carrier, team)) outDist = MathF.Min(outDist, 1.5f + 0.5f * outDist);
+                    Vec2 spot = goal + line * outDist;
+                    // Angle first: off the line between the ball and the goal he gets back onto it before coming out - he
+                    // does not run at the forward on a crooked path and leave half the goal open.
+                    float along = Vec2.Dot(gk.Pos - goal, line);
+                    Vec2 onLine = goal + line * MathUtil.Clamp(along, 0.8f, outDist);
+                    if (Vec2.Distance(gk.Pos, onLine) > 1.2f) { spot = onLine; if (CollectDiagnostics) Count("keeper.angleFirst"); }
+                    gk.Target = spot;
                     gk.Urgency = 0.95f;
                     return;
                 }
@@ -119,6 +132,22 @@ namespace SoccerVision.Simulation
                     savePoint = new Vec2((Pitch.HalfLength - MathF.Min(gkDepth, MathF.Max(0.4f, gkDepth))) * goalSign, MathUtil.Clamp(savePoint.Y, -Pitch.GoalHalfWidth - 0.5f, Pitch.GoalHalfWidth + 0.5f));
                     return onFrame && t < 2.5f;
                 }
+            }
+            return false;
+        }
+
+        /// <summary>A team-mate of the carrier in the box, onside-ish and with nobody near him: the square ball is on.</summary>
+        private bool FreeAttackerInBox(PlayerAgent carrier, TeamAgent defending)
+        {
+            Vec2 goal = defending.OwnGoal;
+            foreach (var a in carrier.Team.Players)
+            {
+                if (a == carrier || a.SentOff || a.IsGoalkeeper) continue;
+                if (Vec2.Distance(a.Pos, goal) > 16f) continue;
+                bool marked = false;
+                foreach (var d in defending.Players)
+                    if (!d.SentOff && !d.IsGoalkeeper && Vec2.Distance(d.Pos, a.Pos) < 2.5f) { marked = true; break; }
+                if (!marked) return true;
             }
             return false;
         }

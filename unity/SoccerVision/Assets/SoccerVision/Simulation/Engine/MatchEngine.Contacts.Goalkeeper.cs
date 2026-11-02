@@ -67,7 +67,11 @@ namespace SoccerVision.Simulation
             float skill = 0.5f * reflex + 0.2f * handling + 0.3f * positioning + (gk.PlayRole == PlayerRole.ShotStopper ? 0.05f : 0f); // (a shot-stopper lives on his line)
             float reachNeeded = MathUtil.Clamp(Ball.ShotGoalkeeperDistance / 3.2f, 0f, 1.4f);
             float shotDistance = shooter != null ? Vec2.Distance(shooter.Pos, gk.Team.OwnGoal) : 20f;
-            float closeRange = MathUtil.Clamp01((15f - shotDistance) / 10f); // little time to react
+            // Little time to react from close range - unless he is right on the shooter: then he is a wall, spread in
+            // front of the ball, and a shot that is not past his body hits him.
+            float shooterGap = shooter != null ? Vec2.Distance(shooter.Pos, gk.Pos) : 20f;
+            float smother = MathUtil.Clamp01((shooterGap - 1.2f) / 2.8f);
+            float closeRange = MathUtil.Clamp01((15f - shotDistance) / 10f) * smother;
             float difficulty = 0.42f * MathUtil.Clamp((speed - 12f) / 20f, 0f, 1.2f) + 0.55f * reachNeeded + (Ball.Z > 1.8f ? 0.12f : 0f) + 0.35f * closeRange;
             if (Ball.LastKickKind == KickKind.Header) difficulty += 0.25f; // close-range headers give little time to react
             if (Ball.ShotKnuckle) difficulty += 0.22f; // a ball with no spin moves late in the air
@@ -79,6 +83,7 @@ namespace SoccerVision.Simulation
                 pSave *= gk.Team == Home ? 1f + 0.08f * Config.HomeAdvantage : 1f - 0.06f * Config.HomeAdvantage;
             }
 
+            if (shooter != null && shooterGap < 3.5f && reachNeeded < 0.6f && Ball.IsShot) pSave = MathF.Min(0.95f, pSave + 0.3f * (1f - shooterGap / 3.5f)); // (the block)
             if (_lastShotOpenGoal && Ball.IsShot) pSave *= 0.25f; // (a keeper scrambling back to an open goal rarely gets there)
             if (!_rng.Chance(pSave))
             {

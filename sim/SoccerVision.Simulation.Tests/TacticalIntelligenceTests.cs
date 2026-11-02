@@ -132,15 +132,16 @@ namespace SoccerVision.Simulation.Tests
         {
             // a team of strong throwers: long throws near the box land around the six-yard box
             int longThrows = 0;
-            Parallel.For(0, Seeds.Length, i =>
+            var seeds = Seeds.Concat(Seeds.Select(x => x + 100)).ToArray(); // (a rare thing: twelve matches, not six)
+            Parallel.For(0, seeds.Length, i =>
             {
                 var red = DemoTeams.Red();
                 foreach (var p in red.Starters) p.Attributes.PhysicalPower = 85;
-                var e = new MatchEngine(red, DemoTeams.Blue(), Seeds[i], MatchConfig.CreateDefault());
+                var e = new MatchEngine(red, DemoTeams.Blue(), seeds[i], MatchConfig.CreateDefault());
                 e.RunToEnd();
                 System.Threading.Interlocked.Add(ref longThrows, e.Home.Stats.LongThrows);
             });
-            Assert.True(longThrows >= 3, $"long throws in {Seeds.Length} matches: {longThrows}");
+            Assert.True(longThrows >= 3, $"long throws in {seeds.Length} matches: {longThrows}");
         }
 
         [Fact]

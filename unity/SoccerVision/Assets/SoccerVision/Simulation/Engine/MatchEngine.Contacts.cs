@@ -325,6 +325,25 @@ namespace SoccerVision.Simulation
             _penaltyKickTime = -1f;
             float tempo = TempoNow(p.Team);
             p.DecisionTimer = MathUtil.Clamp(0.1f + 0.3f * (1f - MathUtil.A(p.Attr.BallControl)) + relSpeed * 0.012f - 0.08f * (tempo - 0.5f), 0.08f, 0.6f);
+            // First time: a pass into the box at a good angle - a good finisher has already set his body and opened his
+            // foot, and he hits it now, before the keeper and the defenders can close him down (no touch to control it).
+            if (!changeOfPossession && !p.IsGoalkeeper && Ball.LastPasser != null && Ball.LastPasser != p && Ball.LastPasser.Team == p.Team && SimTime - Ball.LastPassTime < 3f)
+            {
+                Vec2 goal = p.Team.AttackGoal;
+                float dg = Vec2.Distance(Ball.Pos, goal);
+                if (dg < 17f && p.Team.Forward(Ball.Pos) > 36f && MathF.Abs(p.Team.Lateral(Ball.Pos)) < 13f)
+                {
+                    float xg = EstimateShotXG(p, Ball.Pos);
+                    float ready = 0.2f + 0.45f * MathUtil.A(p.Attr.Finishing) + 0.15f * MathUtil.A(p.Attr.Composure);
+                    if (p.Has(PlayerTrait.Unselfish)) ready *= 0.6f; // (he looks for the pass first)
+                    if (xg > 0.09f && _rng.Chance(ready))
+                    {
+                        p.FirstTimeUntil = SimTime + 0.45f;
+                        p.DecisionTimer = 0.04f;
+                        if (CollectDiagnostics) Count("shot.firstTime.set");
+                    }
+                }
+            }
             p.OneTwoUntil = -1f; // (the return ball has arrived, or the run is over)
             p.ThirdManUntil = -1f;
             p.RunCheckUntil = -1f;
