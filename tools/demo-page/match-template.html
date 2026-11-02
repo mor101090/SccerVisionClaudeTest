@@ -177,7 +177,8 @@ canvas { display: block; width: 100%; height: 100%; }
 .overlay .big { font: 800 28px/1 var(--display); letter-spacing: .04em; }
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 button { font: 600 14px/1 var(--body); color: var(--text); background: var(--panel-2); border: 1px solid var(--rule); border-radius: 6px; padding: 9px 12px; cursor: pointer; }
-button:hover { border-color: var(--amber); }
+button, a, input, select, [role="tab"], canvas { touch-action: manipulation; } /* (no double-tap zoom delay on phones) */
+@media (hover: hover) { button:hover { border-color: var(--amber); } }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 button[aria-pressed="true"] { background: var(--amber); color: var(--ink); border-color: var(--amber); }
 .speeds { display: flex; gap: 4px; }
@@ -709,6 +710,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   var playing = true, speed = 1, current = -1, addedMinutes = [0, 0, 0, 0], et1T = Infinity, et2T = Infinity, SO_KICKS = [];
 
   var $ = function (id) { return document.getElementById(id); };
+  // a touch screen (no hover): tooltips and hover cards are off, so every tap is a click at once
+  var TOUCH = !!(window.matchMedia && matchMedia("(hover: none)").matches);
   var seek = $("seek");
 
   function ft(f) { return f[0] / 100; }
@@ -2459,9 +2462,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       tip.style.left = Math.max(6, Math.min(innerWidth - w - 6, x + 14)) + "px";
       tip.style.top = Math.max(6, y - h - 12 < 6 ? y + 18 : y - h - 12) + "px";
     }
-    document.addEventListener("mouseover", function (ev) { var el = ev.target.closest && ev.target.closest("[data-tip]"); if (el !== cur) { cur = el; if (!el) tip.hidden = true; else show(el, ev.clientX, ev.clientY); } });
-    document.addEventListener("mousemove", function (ev) { if (cur) show(cur, ev.clientX, ev.clientY); });
-    document.addEventListener("focusin", function (ev) { var el = ev.target.closest && ev.target.closest("[data-tip]"); if (el) { var r = el.getBoundingClientRect(); cur = el; show(el, r.left, r.top); } });
+    // On a touch screen there is no hovering: a tooltip shown on the tap's emulated mouseover makes iOS treat the first tap
+    // as a hover and swallow the click (it then needs a second tap) - so no tooltips and no hover cards on touch.
+    document.addEventListener("pointerdown", function (ev) { TOUCH = ev.pointerType === "touch"; if (TOUCH) { cur = null; tip.hidden = true; } }, true);
+    document.addEventListener("mouseover", function (ev) { if (TOUCH) return; var el = ev.target.closest && ev.target.closest("[data-tip]"); if (el !== cur) { cur = el; if (!el) tip.hidden = true; else show(el, ev.clientX, ev.clientY); } });
+    document.addEventListener("mousemove", function (ev) { if (TOUCH) return; if (cur) show(cur, ev.clientX, ev.clientY); });
+    document.addEventListener("focusin", function (ev) { if (TOUCH) return; var el = ev.target.closest && ev.target.closest("[data-tip]"); if (el) { var r = el.getBoundingClientRect(); cur = el; show(el, r.left, r.top); } });
     document.addEventListener("focusout", function () { cur = null; tip.hidden = true; });
     document.addEventListener("scroll", function () { cur = null; tip.hidden = true; }, true);
   })();
@@ -2925,7 +2931,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var rb = el.querySelector(".pc-rating b"), rv = row && row.length > 37 + i ? row[37 + i] / 10 : 0;
     if (rb) { rb.textContent = rv > 0 ? rv.toFixed(1) : "-"; rb.style.color = rv > 0 ? ratingColour(rv) : ""; }
   }
-  cv.addEventListener("mousemove", function (ev) {
+  cv.addEventListener("mousemove", function (ev) { if (!TOUCH) cvHover(ev); }); // (no hover card from a tap)
+  function cvHover(ev) {
     var el = $("pcard");
     if (!lastS || !R) { el.hidden = true; return; }
     var rect = cv.getBoundingClientRect(), k = cv.width / rect.width, mx = (ev.clientX - rect.left) * k, my = (ev.clientY - rect.top) * k;
@@ -2941,8 +2948,10 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     el.hidden = false;
     var sx = ev.clientX - rect.left, sy = ev.clientY - rect.top, w = el.offsetWidth, h = el.offsetHeight;
     el.style.left = Math.min(rect.width - w - 6, sx + 16) + "px"; el.style.top = Math.max(6, Math.min(rect.height - h - 6, sy - h / 2)) + "px";
-  });
-  cv.addEventListener("click", function () {
+  }
+
+  cv.addEventListener("click", function (ev) {
+    if (TOUCH) cvHover(ev); // (a tap: find the player under the finger first)
     var el = $("pcard"); if (el.hidden || !el.dataset.i) return;
     var i = +el.dataset.i, tm = teams[i < 11 ? 0 : 1], cur = infoAt(i), p = tm.players[i % 11];
     if (cur !== p) (tm.bench || []).forEach(function (b) { if (b.number === cur.number) p = b; });
