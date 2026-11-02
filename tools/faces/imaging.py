@@ -38,7 +38,7 @@ def split_shirt(img, top=0.42):
     for y in range(int(h * top), h):
         for x in range(w):
             r, g, b = px[x, y]
-            if g > 70 and g > r * 1.3 and g > b * 1.25:
+            if g > 32 and g > r * 1.22 and g > b * 1.15:
                 m[x, y] = 255
                 lum.append(g)
     if len(lum) < w * h * 0.02:
@@ -49,8 +49,12 @@ def split_shirt(img, top=0.42):
     for y in range(int(h * top) - 2, h):
         for x in range(w):
             k = m[x, y]
-            if not k: continue
             r, g, b, a = o[x, y]
+            if not k:
+                # (green spill at the edges: the rim of light the green shirt throws on the neck, the arms, the background)
+                hi = max(r, b)
+                if g > hi * 1.08 and g > 30: o[x, y] = (r, int(hi * 1.04), b, a)
+                continue
             shade = min(255, int(235 * g / typical))
             t = k / 255.0
             o[x, y] = (int(r + (shade - r) * t), int(g + (shade - g) * t), int(b + (shade - b) * t), a)
