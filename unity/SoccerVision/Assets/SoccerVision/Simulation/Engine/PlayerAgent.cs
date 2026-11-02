@@ -216,7 +216,6 @@ namespace SoccerVision.Simulation
         public PlayerRole PlayRole { get { var r = Orders.Role; return r == PlayerRole.Auto || PlayerOrders.Fits(r, Kind) ? r : PlayerRole.Auto; } }
         /// <summary>An individual instruction as a multiplier: <paramref name="less"/> for Less, 1 for Mixed, <paramref name="more"/> for More.</summary>
         public static float Scale(Amount a, float less, float more) => a == Amount.Less ? less : a == Amount.More ? more : 1f;
-        public bool IsActive => !SentOff;
         public int Number => Profile.ShirtNumber;
         /// <summary>Does he have this habit on the ball (see <see cref="PlayerTraits"/>)?</summary>
         public bool Has(PlayerTrait t) => (Profile.Traits & t) != 0;

@@ -129,14 +129,7 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void TheCharactersChangeHowTheyPlay()
         {
-            var plain = Play(() => Give(DemoTeams.Red(), PlayerTrait.None), 8200, 4);
             // roamers are nearer the ball, the position-holders and the runners differ in how often they run in behind
-            double Near(MatchEngine[] es)
-            {
-                double sum = 0; long n = 0;
-                foreach (var e in es) { /* sampled below */ }
-                return sum / Math.Max(1, n);
-            }
             double Dist(Func<TeamSetup> setup, ulong seed, Func<PlayerAgent, bool> pick, Func<MatchEngine, PlayerAgent, double> measure)
             {
                 double sum = 0; long n = 0;
@@ -173,8 +166,6 @@ namespace SoccerVision.Simulation.Tests
             double saveE = Dist(() => Give(DemoTeams.Red(), PlayerTrait.SavesEnergy), 8500, p => true, Energy);
             _out.WriteLine($"energy after forty minutes: pressers {pressE:P1}, savers {saveE:P1}");
             Assert.True(pressE < saveE, "pressers tire faster");
-            Assert.NotNull(plain);
-            _ = Near(plain);
         }
 
         [Fact]

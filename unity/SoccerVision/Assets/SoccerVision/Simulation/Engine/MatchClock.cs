@@ -25,7 +25,6 @@ namespace SoccerVision.Simulation
                                          : Period == MatchPeriod.ExtraTimeFirstHalf ? 2f * RegulationHalfSeconds
                                          : Period == MatchPeriod.ExtraTimeSecondHalf ? 2f * RegulationHalfSeconds + ExtraHalfSeconds : 0f;
         public float PeriodRegulationEnd => PeriodStartSeconds + (InExtraTime ? ExtraHalfSeconds : RegulationHalfSeconds);
-        public float PeriodElapsed => Seconds - PeriodStartSeconds;
         public bool InAddedTime => Seconds >= PeriodRegulationEnd;
         public float AddedTimeEnd => AddedMinutes < 0 ? float.PositiveInfinity : PeriodRegulationEnd + AddedMinutes * 60f;
 

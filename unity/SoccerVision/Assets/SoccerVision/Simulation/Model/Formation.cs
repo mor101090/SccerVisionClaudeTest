@@ -326,9 +326,5 @@ namespace SoccerVision.Simulation
             }
         }
 
-        public IEnumerable<int> IndicesOf(Line line)
-        {
-            for (int i = 0; i < Slots.Length; i++) if (Slots[i].Line == line) yield return i;
-        }
     }
 }

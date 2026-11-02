@@ -77,7 +77,6 @@ namespace SoccerVision.Simulation
         public int CornerRoutineRight, CornerRoutineLeft;
         /// <summary>Who stands where for a corner (shirt numbers for the six zones; 0 = whoever fits) - see <see cref="CornerZones"/>.</summary>
         public int[] CornerZonesRight = new int[6], CornerZonesLeft = new int[6];
-        public const int CornerZoneCount = 6;
         /// <summary>
         /// The manager's own corner set-up, attacking and defending: where each player stands (shirt number and a spot in the
         /// team's own frame - forward, lateral - for a corner taken on the side where lateral is positive; mirrored for the

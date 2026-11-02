@@ -34,9 +34,6 @@ namespace SoccerVision.Simulation
 
         public const float BallRadius = 0.11f;        // size 5 ball: 68-70 cm circumference
 
-        /// <summary>X of the goal line for the goal on side <paramref name="goalSign"/> (+1 or -1).</summary>
-        public static float GoalLineX(int goalSign) => HalfLength * goalSign;
-
         public static Vec2 GoalCentre(int goalSign) => new Vec2(HalfLength * goalSign, 0f);
 
         public static Vec2 PenaltySpot(int goalSign) => new Vec2((HalfLength - PenaltySpotDistance) * goalSign, 0f);
@@ -52,13 +49,6 @@ namespace SoccerVision.Simulation
         {
             float depth = HalfLength - p.X * goalSign;
             return depth >= -0.01f && depth <= GoalAreaDepth && MathF.Abs(p.Y) <= GoalAreaHalfWidth;
-        }
-
-        /// <summary>Inside the penalty area or the penalty arc in front of it (used for penalty kick positioning).</summary>
-        public static bool InPenaltyAreaOrArc(Vec2 p, int goalSign)
-        {
-            if (InPenaltyArea(p, goalSign)) return true;
-            return Vec2.Distance(p, PenaltySpot(goalSign)) < PenaltyArcRadius;
         }
 
         public static bool InsideField(Vec2 p, float margin = 0f)

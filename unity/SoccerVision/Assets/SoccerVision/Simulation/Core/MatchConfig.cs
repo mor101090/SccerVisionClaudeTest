@@ -80,7 +80,6 @@ namespace SoccerVision.Simulation
         public float FreeKickSetupSeconds = 7f;
         public float FreeKickWithWallSetupSeconds = 15f;
         public float PenaltySetupSeconds = 18f;
-        public float CardShowSeconds = 3f;
         /// <summary>Real seconds between the referee's whistle and the kick at kick-offs, penalties and ceremonial free kicks.</summary>
         public float WhistleToKickRealSeconds = 1.5f;
         /// <summary>Pause after the ball goes out, a foul or an offside, before the restart is set up (real seconds; the clock waits).</summary>

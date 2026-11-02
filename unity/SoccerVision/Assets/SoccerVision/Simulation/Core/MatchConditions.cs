@@ -34,9 +34,6 @@ namespace SoccerVision.Simulation
         public bool IsSnow => Weather == Weather.Snow;
         public Vec2 Wind => Vec2.FromAngle(WindAngle) * WindSpeed;
 
-        /// <summary>True when nothing about the football changes (a dry, perfect pitch and no wind).</summary>
-        public bool AffectsPlay => IsWet || IsSnow || Maintenance < 0.999f || WindSpeed > 0.01f;
-
         public MatchConditions Clone() => (MatchConditions)MemberwiseClone();
 
         public void Sanitize()

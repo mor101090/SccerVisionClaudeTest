@@ -152,26 +152,7 @@ canvas { display: block; width: 100%; height: 100%; }
 .modes button.back { background: #e2372f; color: #fff; }
 .lineups { position: absolute; inset: 0; z-index: 40; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: rgba(20, 23, 33, .94); color: var(--text); padding: 12px 14px 10px; gap: 10px; overflow: auto; }
 .lineups[hidden] { display: none; }
-.lu-head { display: flex; justify-content: space-between; align-items: center; }
-.lu-title { font: 800 20px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; }
-.lu-head button { padding: 6px 12px; }
-.lu-body { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; min-height: 0; align-items: start; }
-@media (max-width: 640px) { .lu-body { grid-template-columns: 1fr; } }
 .lu-team { background: #1f2331; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; display: grid; grid-template-rows: auto auto auto; align-content: start; min-height: 0; }
-.lu-band { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 12px; border-left: 6px solid var(--tc); background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 35%, #1f2331), #1f2331); }
-.lu-band b { font: 800 17px/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
-.lu-band span { color: var(--muted); font: 700 13px/1 var(--body); }
-.lu-main { display: grid; grid-template-columns: minmax(110px, 40%) 1fr; gap: 10px; padding: 10px 12px; min-height: 0; }
-.lu-main svg { width: 100%; height: auto; background: #2c7a3d; border-radius: 6px; }
-.lu-main svg .ln { fill: none; stroke: rgba(255,255,255,.65); stroke-width: .5; }
-.lu-main svg text { font: 800 4.2px/1 var(--body); text-anchor: middle; }
-.lu-list { font-size: 13px; display: grid; align-content: start; gap: 2px; }
-.lu-list h4 { margin: 6px 0 2px; font: 700 11px/1 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-.lu-list .r { display: grid; grid-template-columns: 2em minmax(0, 1fr) 2.6em; gap: 6px; }
-.lu-list .r i { font-style: normal; font-weight: 800; text-align: right; }
-.lu-list .r em { font-style: normal; color: var(--muted); text-align: right; font-size: 12px; }
-.lu-list .r.sub { color: #c9cdd8; }
-.lu-mgr { padding: 0 12px 10px; color: var(--muted); font-size: 13px; } .lu-mgr b { color: var(--text); }
 .lu-bar { height: 3px; background: #2a2f40; border-radius: 2px; overflow: hidden; } .lu-bar b { display: block; height: 100%; width: 0; background: var(--amber); }
 /* the start screen: developer or user; the user's kits */
 .welcome { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; overflow: auto;
@@ -194,9 +175,6 @@ canvas { display: block; width: 100%; height: 100%; }
 .kit .part > span { font: 600 12px/1.1 var(--body); color: var(--muted); }
 .kit .swatches { gap: 5px; }
 .kit .swatches button { width: 24px; height: 24px; border-width: 2px; }
-.kitrow { display: grid; gap: 8px; width: 100%; text-align: left; }
-.kitrow h3 { margin: 0; font: 700 14px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--accent-hi); display: flex; align-items: center; gap: 10px; }
-.kitrow h3 svg { width: 40px; height: 30px; }
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatches button { width: 44px; height: 44px; padding: 0; border-radius: 50%; border: 3px solid rgba(255,255,255,.18); }
 .swatches button[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 3px var(--amber); }
@@ -208,8 +186,6 @@ canvas { display: block; width: 100%; height: 100%; }
 .orow input { flex: 1; min-width: 0; font: 500 14px var(--body); color: var(--text); background: #12162a; border: 1px solid var(--rule); border-radius: 6px; padding: 10px; }
 #oStatus { color: #9bd23c; font-weight: 600; min-height: 1.3em; }
 .kit.fixed { opacity: .55; pointer-events: none; }
-#kitGo.solo { font-size: 17px; }
-#kitGoOld { font-size: 17px; padding: 14px 26px; background: var(--amber); border-color: var(--amber); color: #fff; }
 /* user mode: no match modes, no developer settings, no skipping the break */
 body.user .modes, body.user #sound, body.user #skip, body.user .dev-only, body.user .settings-head .dev, body.user .foot { display: none !important; }
 body:not(.user) .user-only { display: none !important; }
@@ -431,7 +407,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .sp ol { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 3px; }
 .sp li { display: grid; grid-template-columns: 1.6em minmax(0,1fr) auto auto auto; gap: 6px; align-items: center; padding: 5px 8px; background: #262b3b; border-radius: 6px; font-size: 13px; }
 .sp li .v { font-weight: 700; font-variant-numeric: tabular-nums; }
-.sp li button, .sp .addrow button { padding: 2px 7px; font-size: 12px; }
+.sp li button { padding: 2px 7px; font-size: 12px; }
 .sp select { background: #262b3b; color: var(--text); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 7px; font: inherit; font-size: 13px; max-width: 100%; }
 .sp .note { color: var(--muted); font-size: 13px; margin: 0; }
 .sp .zones { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; align-items: center; font-size: 13px; }
@@ -1844,10 +1820,6 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var a = (PLAN.slots && !KICKED && MODE === "live") ? PLAN.slots.slice() : startLineup();
     homeChanges(t).forEach(function (c) { var k = a.indexOf(c.off); if (k >= 0) a[k] = c.on; });
     return a;
-  }
-  function benchNow() {
-    var on = lineupNow(), gone = homeChanges(MODE === "live" ? null : t).map(function (c) { return c.off; });
-    return squad().filter(function (p) { return on.indexOf(p.number) < 0; }).map(function (p) { return { p: p, gone: gone.indexOf(p.number) >= 0 }; });
   }
   // the frame index (0-10) of a home player by shirt number now, for his energy, cards and injury
   function indexOf(n) { for (var i = 0; i < 11; i++) if (R && infoAt(i).number === n) return i; return -1; }

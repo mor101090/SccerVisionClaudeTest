@@ -167,15 +167,6 @@ namespace SoccerVision.Simulation
             return true;
         }
 
-        /// <summary>The nearest point just outside the touchlines or goal lines.</summary>
-        private static Vec2 NearestExit(Vec2 pos)
-        {
-            float toSide = Pitch.HalfWidth - MathF.Abs(pos.Y), toEnd = Pitch.HalfLength - MathF.Abs(pos.X);
-            return toSide <= toEnd
-                ? new Vec2(pos.X, MathF.Sign(pos.Y == 0f ? 1f : pos.Y) * (Pitch.HalfWidth + 0.4f))
-                : new Vec2(MathF.Sign(pos.X == 0f ? 1f : pos.X) * (Pitch.HalfLength + 0.4f), MathUtil.Clamp(pos.Y, -Pitch.HalfWidth + 1f, Pitch.HalfWidth - 1f));
-        }
-
         /// <summary>True for a player walking off for a waiting change (the stoppage loop leaves him to StepSubstitutions).</summary>
         private bool IsComingOff(PlayerAgent p)
         {

@@ -2,6 +2,15 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `chore/cleanup`
+
+- **Cleanup, no change in behaviour.** Removed what nothing uses: engine members (`BallPhysics.PositionAtTime`,
+  `Formation.IndicesOf`, `MatchClock.PeriodElapsed`, `MatchConditions.AffectsPlay`, `MatchConfig.CardShowSeconds`,
+  `NearestExit`, `RealSecondsPerClockSecond`, `Pitch.GoalLineX` / `InPenaltyAreaOrArc`, `PlayerAgent.IsActive`,
+  `TeamSetup.CornerZoneCount`, the unused attribute-order list of the squad generator); on the demo page the old line-up
+  layout's styles, the `kitrow` and `solo` rules, `addrow` and the unused `benchNow`; two dead helpers in the tests.
+  No compiler warnings in the engine, the browser build, the runner or the tests.
+
 ## `feature/online-play`
 
 - **Play a friend online** (user mode). After the kits: *Play the computer* or *Invite a friend*. The host gets an invite

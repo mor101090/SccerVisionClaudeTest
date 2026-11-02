@@ -292,17 +292,6 @@ namespace SoccerVision.Simulation
         public float HeightAt(int i) => _z[i];
         public Vec2 FinalPosition => Count > 0 ? new Vec2(_x[Count - 1], _y[Count - 1]) : Vec2.Zero;
 
-        public Vec2 PositionAtTime(float t, out float z)
-        {
-            if (Count == 0) { z = Pitch.BallRadius; return Vec2.Zero; }
-            float idx = t / SampleInterval;
-            int i = (int)idx;
-            if (i >= Count - 1) { z = _z[Count - 1]; return FinalPosition; }
-            if (i < 0) { z = _z[0]; return PositionAt(0); }
-            float f = idx - i;
-            z = _z[i] + (_z[i + 1] - _z[i]) * f;
-            return new Vec2(_x[i] + (_x[i + 1] - _x[i]) * f, _y[i] + (_y[i + 1] - _y[i]) * f);
-        }
     }
 
     /// <summary>Numerical solvers that turn an intention (land here / hit that corner) into a kick velocity.</summary>

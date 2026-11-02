@@ -297,9 +297,6 @@ namespace SoccerVision.Simulation
 
         public PlayerAgent PlayerByIndex(int index) => index >= 0 && index < AllPlayers.Count ? AllPlayers[index] : null;
 
-        /// <summary>Seconds of the half-time break / real half length as configured (for UIs).</summary>
-        public float RealSecondsPerClockSecond => 1f / Config.ClockSecondsPerRealSecond;
-
         // ------------------------------------------------------------------------------------------------
         // Main step
         // ------------------------------------------------------------------------------------------------

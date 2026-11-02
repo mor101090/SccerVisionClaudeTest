@@ -6,11 +6,6 @@ namespace SoccerVision.Simulation
     /// <summary>The two demo squads, made by the team generator: real spread of speed, strength, height and feet.</summary>
     public static class GeneratedTeams
     {
-        private static readonly string[] Order =
-        {
-            "Aggression", "Teamwork", "Composure", "Decisions", "Tackling", "Marking", "Positioning", "Creativity", "Passing", "Crossing", "Finishing", "LongShots", "OffTheBall", "PhysicalPower", "BallControl", "Dribbling", "Acceleration", "Speed", "Jumping", "Heading", "FreeKicks", "Penalty", "AerialAbility", "Handling", "Kicking", "OneOnOne", "Reflexes"
-        };
-
         private static PlayerProfile P(int id, string first, string last, int number, PositionGroup group, string pos, int height, int stamina, FitnessLevel fitness, int left, int right, int age, string nation, int[] v)
         {
             var a = new PlayerAttributes { Stamina = stamina, Fitness = fitness, LeftFoot = left, RightFoot = right };
