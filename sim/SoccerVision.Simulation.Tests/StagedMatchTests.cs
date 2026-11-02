@@ -47,6 +47,27 @@ namespace SoccerVision.Simulation.Tests
             Assert.True(Clock(MatchEventType.Injury, 1) < reds[1].ClockSeconds);
         }
 
+        /// <summary>The staged match exactly as the demo page runs it: the page's seed, names and traits drawn from it, the walk-out.</summary>
+        [Theory]
+        [InlineData(7274)]
+        [InlineData(1)]
+        [InlineData(99)]
+        public void TheStagedMatchAsThePageRunsItHasAllItsIncidents(int seed)
+        {
+            var c = MatchConfig.CreateDefault();
+            c.Script = MatchScript.Staged();
+            c.WalkOut = true;
+            ulong names = (ulong)seed * 2654435761UL + 17UL;
+            var e = new MatchEngine(DemoTeams.Red(names), DemoTeams.Blue(names), (ulong)seed, c);
+            e.RunToEnd();
+            var log = e.EventLog;
+            Assert.Equal(2, log.Count(x => x.Type == MatchEventType.RedCard));
+            Assert.Contains(log, x => x.Type == MatchEventType.RedCard && x.Text.Contains("Second yellow"));
+            Assert.Equal(1, log.Count(x => x.Type == MatchEventType.Injury && x.Detail == 0));
+            Assert.Equal(1, log.Count(x => x.Type == MatchEventType.Injury && x.Detail == 1));
+            Assert.Equal(1, log.Count(x => x.Type == MatchEventType.Substitution));
+        }
+
         [Fact]
         public void TheStagedMatchIsTheSameEveryTime()
         {

@@ -264,6 +264,28 @@ namespace SoccerVision.Simulation
                 }
             }
 
+            // In a good position he hits it first time: a clear chance (the xG says so) and a shot on, and he does not run on with it
+            // until he is standing on the keeper - the striker's instinct is to shoot while the chance is there.
+            if (distGoal < 22f && f > 30f)
+            {
+                int shootAt = -1;
+                for (int i = 0; i < _options.Count; i++) if (_options[i].Action == BallAction.Shoot) { shootAt = i; break; }
+                if (shootAt >= 0 && _options[shootAt].ExpectedGoals >= 0.18f)
+                {
+                    float composureNow = MathUtil.A(p.Attr.Composure);
+                    // (a cool head waits a beat for a better one-on-one; a clear chance in the box is taken)
+                    float firstTime = 1.35f + 0.5f * MathUtil.Clamp01((_options[shootAt].ExpectedGoals - 0.18f) / 0.3f) - 0.15f * composureNow;
+                    var so = _options[shootAt]; so.Utility = so.Utility > 0f ? so.Utility * firstTime : so.Utility; _options[shootAt] = so;
+                    for (int i = 0; i < _options.Count; i++)
+                    {
+                        var o = _options[i];
+                        if (o.Action != BallAction.Dribble || o.Utility <= 0f) continue;
+                        float ahead = Vec2.Distance(o.DribbleTarget, team.AttackGoal);
+                        if (ahead < distGoal - 0.5f) { o.Utility *= 0.55f; _options[i] = o; } // running on towards the keeper
+                    }
+                }
+            }
+
             // Weighted randomness: perception noise grows with poor decisions and pressure on low composure.
             float decisions = MathUtil.A(p.Attr.Decisions);
             float composure = MathUtil.A(p.Attr.Composure);
@@ -295,6 +317,7 @@ namespace SoccerVision.Simulation
                     if (!wasForward) Count(chosen.Action == BallAction.Pass ? "fwd.missed.passBack" : "fwd.missed." + chosen.Action);
                 }
             }
+            if (CollectDiagnostics && chosen.Action == BallAction.Dribble && distGoal < 9f && f > 40f) Count("dribble.atKeeper");
             if (CollectDiagnostics) Count("decide." + chosen.Action + (chosen.Action == BallAction.Pass ? "." + chosen.Kind + (chosen.Lofted ? ".lofted" : "") : ""));
             if (chosen.Action != BallAction.Dribble && chosen.Action != BallAction.Hold) p.HoldTime = 0f;
             if (chosen.Action == BallAction.Dribble && IsCutInsidePlayer(p) && MathF.Abs(team.Lateral(chosen.DribbleTarget)) < MathF.Abs(l) - 2f && f > 14f && MathF.Abs(l) > 14f)

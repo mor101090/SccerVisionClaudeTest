@@ -67,7 +67,7 @@ h1 { margin: 2px 0 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--display); lett
 .sb.cup .sb-score { background: #3a4058; min-width: 2.7em; }
 .sb.cup .sb-sub { background: linear-gradient(90deg, #3a4058 55%, rgba(58,64,88,0)); padding-right: 3.5em; }
 /* the league cup: the broadcast bar of the reference drawn as a vector (lightning-bolt separators, a slanted end), in the page's palette */
-.sb-lcup { display: none; height: 1.62em; width: auto; filter: drop-shadow(0 .12em .25em rgba(0,0,0,.4)); }
+.sb-lcup { display: none; overflow: visible; height: 1.62em; width: auto; filter: drop-shadow(0 .12em .25em rgba(0,0,0,.4)); }
 .sb.lcup .sb-lcup { display: block; }
 .sb.lcup .sb-row > .sb-clock, .sb.lcup .sb-row > .sb-team, .sb.lcup .sb-row > .sb-score { display: none; }
 .sb.lcup .sb-row { height: 1.62em; }
@@ -450,6 +450,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .pf-tabs { display: flex; gap: 6px; margin-top: 16px; border-bottom: 2px solid #2f3547; }
 .pf-tabs button { background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 8px 16px; color: var(--muted); font: 700 15px/1 var(--body); letter-spacing: .05em; cursor: pointer; }
 .pf-tabs button[aria-selected="true"] { color: #fff; border-bottom-color: var(--amber, #f2b233); }
+.pf-traits[hidden] { display: none; }
 .pf-traits { display: grid; gap: 10px; margin-top: 16px; }
 .pf-trait { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px 14px; background: #2f3547; border-radius: 4px; animation: pfTraitIn .35s ease-out both; }
 .pf-trait .ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: #1b1f2b; font-size: 22px; }
@@ -2766,7 +2767,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     $("lcClock").textContent = $("mn").textContent; $("lcHome").textContent = $("hn").textContent; $("lcAway").textContent = $("an").textContent;
     $("lcScore").textContent = $("sc").textContent.replace("-", " - ");
     if (R) { $("lcHomeBolt").setAttribute("fill", R.home.kit.primary); $("lcAwayBolt").setAttribute("fill", R.away.kit.primary); }
-    var reds = ""; for (var i = 0; i < redCards(0); i++) reds += '<rect x="' + (124 + i * 9) + '" y="3" width="6" height="8" fill="#ed1c24"/>'; for (i = 0; i < redCards(1); i++) reds += '<rect x="' + (366 + i * 9) + '" y="3" width="6" height="8" fill="#ed1c24"/>';
+    var reds = ""; for (var i = 0; i < redCards(0); i++) reds += '<rect x="' + (124 + i * 13) + '" y="-12" width="10" height="10" fill="#ed1c24"/>'; for (i = 0; i < redCards(1); i++) reds += '<rect x="' + (364 + i * 13) + '" y="-12" width="10" height="10" fill="#ed1c24"/>'; // (above the name plates, like the other two boards)
     $("lcReds").innerHTML = reds;
   }
   function clockText(c) { var m = Math.floor(c / 60), sec = Math.floor(c % 60); return String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0"); }

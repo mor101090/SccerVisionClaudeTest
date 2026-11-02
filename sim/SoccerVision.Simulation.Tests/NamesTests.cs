@@ -24,18 +24,40 @@ namespace SoccerVision.Simulation.Tests
                 Assert.Equal(IsraeliNames.ForeignPlayers, all.Count(p => p.Nationality != "Israel"));
                 Assert.Equal(IsraeliNames.ForeignPlayers / 2, all.Count(p => p.Nationality == "Spain"));
                 Assert.Equal(IsraeliNames.ForeignPlayers / 2, all.Count(p => p.Nationality == "USA"));
+                var groups = new[]
+                {
+                    (IsraeliNames.IsraelFirst, IsraeliNames.IsraelLast), (IsraeliNames.ArabFirst, IsraeliNames.ArabLast),
+                    (IsraeliNames.RussianFirst, IsraeliNames.RussianLast), (IsraeliNames.EthiopianFirst, IsraeliNames.EthiopianLast),
+                };
                 foreach (var p in all)
                 {
-                    var (fs, ls) = p.Nationality == "Spain" ? (IsraeliNames.SpanishFirst, IsraeliNames.SpanishLast)
-                                 : p.Nationality == "USA" ? (IsraeliNames.AmericanFirst, IsraeliNames.AmericanLast) : (IsraeliNames.IsraelFirst, IsraeliNames.IsraelLast);
-                    Assert.Contains(p.FirstName, fs);
-                    Assert.Contains(p.LastName, ls);
+                    if (p.Nationality == "Spain") { Assert.Contains(p.FirstName, IsraeliNames.SpanishFirst); Assert.Contains(p.LastName, IsraeliNames.SpanishLast); }
+                    else if (p.Nationality == "USA") { Assert.Contains(p.FirstName, IsraeliNames.AmericanFirst); Assert.Contains(p.LastName, IsraeliNames.AmericanLast); }
+                    else Assert.Contains(groups, g => g.Item1.Contains(p.FirstName) && g.Item2.Contains(p.LastName)); // (both names from the same list)
                 }
                 Assert.False(string.IsNullOrEmpty(home.Manager));
                 Assert.False(string.IsNullOrEmpty(away.Manager));
                 // the starting elevens are mostly Israeli
                 Assert.True(home.Starters.Count(p => p.Nationality == "Israel") >= 4);
             }
+        }
+
+        [Fact]
+        public void TheListsAreSeparateAndHoldNoHeadings()
+        {
+            var all = new[] { IsraeliNames.IsraelFirst, IsraeliNames.IsraelLast, IsraeliNames.ArabFirst, IsraeliNames.ArabLast, IsraeliNames.RussianFirst,
+                IsraeliNames.RussianLast, IsraeliNames.EthiopianFirst, IsraeliNames.EthiopianLast, IsraeliNames.SpanishFirst, IsraeliNames.SpanishLast,
+                IsraeliNames.AmericanFirst, IsraeliNames.AmericanLast };
+            foreach (var a in all) { Assert.NotEmpty(a); Assert.DoesNotContain(a, n => n.Contains("name") || n.Contains("database") || n.EndsWith(":")); }
+            // a Muhammad never has a Jewish surname, nor an Avi an Arab one
+            Assert.DoesNotContain("Muhammad", IsraeliNames.IsraelFirst);
+            Assert.DoesNotContain("Cohen", IsraeliNames.ArabLast);
+            Assert.Contains("Cohen", IsraeliNames.IsraelLast);
+            var kinds = new HashSet<string>();
+            for (ulong seed = 1; seed <= 40; seed++)
+                foreach (var p in Squad(DemoTeams.Red(seed)).Where(p => p.Nationality == "Israel"))
+                    kinds.Add(IsraeliNames.ArabFirst.Contains(p.FirstName) ? "arab" : IsraeliNames.RussianFirst.Contains(p.FirstName) ? "russian" : IsraeliNames.EthiopianFirst.Contains(p.FirstName) ? "ethiopian" : "jewish");
+            Assert.True(kinds.Count == 4, "all four communities appear: " + string.Join(",", kinds));
         }
 
         [Fact]

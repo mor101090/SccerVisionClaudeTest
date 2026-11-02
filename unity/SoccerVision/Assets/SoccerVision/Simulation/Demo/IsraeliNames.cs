@@ -14,6 +14,7 @@ namespace SoccerVision.Simulation
         /// <summary>Foreign players in a match (7 Spanish and 7 American) among the 40 of the two squads.</summary>
         public const int ForeignPlayers = 14;
 
+        /// <summary>jewish: first names and surnames - a player's two names always come from the same list.</summary>
         public static readonly string[] IsraelFirst =
         {
             "Avi", "Avior", "Aviel", "Aviv", "Avigad", "Avidor", "Avidan", "Avihu", "Avichai", "Avihan", "Avimelech",
@@ -60,20 +61,49 @@ namespace SoccerVision.Simulation
             "Shavit", "Shabtai", "Shabat", "Segev", "Sagi", "Shor", "Shurk", "Shushan", "Schori", "Shilon", "Shiri",
             "Tamir", "Tikva", "Tamuz", "Tel Zur", "Tirosh", "Tor", "Tadmor", "Tagar", "Tavori", "Tavor", "Sharon",
             "Shkalim", "Shaked", "Sahar", "Shemesh", "Shivhon", "Shalem", "Shalom", "Sharabi",
-            "Israeli arabs first name:", "Muhammad", "Hamudi", "Ahmad", "Hatem", "Walid", "Said", "Daud", "Moodi",
-            "Shafik", "Samir", "Omar", "Moanes", "Anas", "Tamer", "Taufik", "Mustafa", "Nazer", "Nazir", "Abed",
-            "Yehya", "Salah", "Hisham", "Wasim", "Amin", "Dia", "Mahdi", "Israeli arabs last name:", "Abu Muhammad",
-            "Abdul", "Abdalla", "Abu Amar", "Abu Saif", "Dabur", "Hamed", "Elhamed", "Abu Said", "Abu Farhi",
-            "Farhi", "Kanaan", "Haled", "Abu hamza", "Ali", "Abu Ali", "Abu Ahmed", "Abu aladdin", "Aladdin",
-            "Gadir", "Badir", "Havivallah", "Allah", "Guamis", "Abu Salah", "Laius", "Abu Hadir", "Saba",
-            "Abu Zkika", "Turk", "Abu Kaf", "El Ziadat", "Zbidet", "Kayal", "Asaad", "Israeli russian first name:",
+        };
+
+        /// <summary>arab: first names and surnames - a player's two names always come from the same list.</summary>
+        public static readonly string[] ArabFirst =
+        {
+            "Muhammad", "Hamudi", "Ahmad", "Hatem", "Walid", "Said", "Daud", "Moodi", "Shafik", "Samir", "Amir",
+            "Omar", "Moanes", "Anas", "Tamer", "Taufik", "Mustafa", "Nazer", "Nazir", "Abed", "Yehya", "Salah",
+            "Hisham", "Wasim", "Amin", "Dia", "Mahdi",
+        };
+
+        public static readonly string[] ArabLast =
+        {
+            "Muhammad", "Abu Muhammad", "Abdul", "Abdalla", "Abu Amar", "Abu Saif", "Dabur", "Hamed", "Elhamed",
+            "Abu Said", "Abu Farhi", "Farhi", "Kanaan", "Haled", "Samir", "Mustafa", "Abu hamza", "Ali", "Abu Ali",
+            "Abu Ahmed", "Abu aladdin", "Aladdin", "Gadir", "Badir", "Havivallah", "Allah", "Guamis", "Salah",
+            "Abu Salah", "Laius", "Abu Hadir", "Saba", "Abu Zkika", "Turk", "Abu Kaf", "El Ziadat", "Zbidet",
+            "Kayal", "Asaad", "Mahdi",
+        };
+
+        /// <summary>russian: first names and surnames - a player's two names always come from the same list.</summary>
+        public static readonly string[] RussianFirst =
+        {
             "Slava", "Maxim", "Dimitri", "Anton", "Sasha", "Michael", "Ilia", "Stas", "Leon", "Misha", "Boris",
-            "Leonid", "Ariel", "Victor", "Artem", "Igor", "Israeli russian last name:", "Zabrovski", "Polanski",
-            "Projanski", "Savranski", "Popov", "Petrov", "Plutkin", "Ivanov", "Romanov", "Zvulunov", "Makov",
-            "Avrutkin", "Babian", "Ponomeranko", "Israeli Ethiopian first name:", "Warko", "Avram", "Addisu", "Abai",
-            "Abebe", "Afework", "Aforke", "Zelalem", "Zewdu", "Dawit", "Isayas", "Eli", "Aaron", "Yonas", "Yarga",
-            "Israeli Ethiopian last name:", "Dassa", "Adane", "Bekele", "Gebre", "Habte", "Kebede", "Mesfin",
-            "Mengistu", "Tefera", "Dgania", "Takala", "Kasa", "Yaakov", "Tzagai", "Tzaga", "Mula",
+            "Leonid", "Ariel", "Victor", "Artem", "Igor",
+        };
+
+        public static readonly string[] RussianLast =
+        {
+            "Zabrovski", "Polanski", "Dutov", "Projanski", "Savranski", "Popov", "Petrov", "Plutkin", "Ivanov",
+            "Romanov", "Zvulunov", "Makov", "Davidov", "Avrutkin", "Babian", "Ponomeranko",
+        };
+
+        /// <summary>ethiopian: first names and surnames - a player's two names always come from the same list.</summary>
+        public static readonly string[] EthiopianFirst =
+        {
+            "Warko", "Avram", "Addisu", "Abai", "Abebe", "Afework", "Aforke", "Zelalem", "Zewdu", "Dawit", "Isayas",
+            "Eli", "Aaron", "Yonas", "Yarga",
+        };
+
+        public static readonly string[] EthiopianLast =
+        {
+            "Dassa", "Abebe", "Adane", "Bekele", "Gebre", "Habte", "Kebede", "Mesfin", "Mengistu", "Tefera",
+            "Dgania", "Takala", "Kasa", "Yaakov", "Tzagai", "Tzaga", "Mula",
         };
 
         public static readonly string[] SpanishFirst =
@@ -170,10 +200,25 @@ namespace SoccerVision.Simulation
                 }
                 else
                 {
-                    first = IsraelFirst[rng.Next(IsraelFirst.Length)];
-                    int k = ik++;
-                    do last = il[k++ % il.Count]; while (!used.Add(last) && k < 4 * il.Count);
-                    ik = k;
+                    // an Israeli squad is mostly Jewish Israelis, with Arab, Russian-speaking and Ethiopian Israelis: the two names
+                    // of a player always come from the same list (never a Muhammad Cohen)
+                    double g = rng.NextDouble();
+                    string[] fl = IsraelFirst, ll = null;
+                    if (g < 0.12) { fl = ArabFirst; ll = ArabLast; }
+                    else if (g < 0.22) { fl = RussianFirst; ll = RussianLast; }
+                    else if (g < 0.28) { fl = EthiopianFirst; ll = EthiopianLast; }
+                    first = fl[rng.Next(fl.Length)];
+                    if (ll == null)
+                    {
+                        int k = ik++;
+                        do last = il[k++ % il.Count]; while (!used.Add(last) && k < 4 * il.Count);
+                        ik = k;
+                    }
+                    else
+                    {
+                        int tries = 0;
+                        do last = ll[rng.Next(ll.Length)]; while (!used.Add(last) && ++tries < 30);
+                    }
                     p.Nationality = "Israel";
                 }
                 p.FirstName = first;

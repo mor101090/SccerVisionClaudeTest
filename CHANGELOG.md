@@ -28,6 +28,15 @@ The human side of the match - players that behave like people, not robots:
   protest to the referee, a pat for a team-mate), a hand up and an "!" for a run in behind, sound waves for the keeper's shout,
   hands on the head and "..." after a miss or a goal conceded, hands up and "?" after a bad pass, arms up, a gold pulse and a
   star for the scorer and a heart for those who join him. They are in the replay frames (22 more numbers) and fade out.
+- **Fixes**:
+  - **Names**: the Israeli list is four separate lists again - Jewish, Arab, Russian-speaking and Ethiopian Israelis (about 72 / 12 /
+    10 / 6 per cent of an Israeli squad) - and a player's first name and surname always come from the same one (never a
+    Muhammad Cohen); the file's headings ("Israeli arabs first name:") no longer end up as names. Test: `TheListsAreSeparateAndHoldNoHeadings`.
+  - **Player page**: the Traits panel was shown under Attributes too (the CSS `display: grid` beat `hidden`); now only in its tab.
+  - **League cup board**: the red cards sit above the name plates like on the other two boards.
+  - **Finishing**: in a good position (xG 0.18 or more, in the box area) the shot is favoured over running on with it; a cool
+    head waits a beat longer. Dribbles that end standing on the keeper were halved (50 -> 25 a match), goals 3.05 a match.
+  - The staged match as the page runs it (page seed, names, traits, walk-out) is now tested: `TheStagedMatchAsThePageRunsItHasAllItsIncidents`.
 - Tests: `CharacterTests` (traits per kind of player, every gesture seen and encoded, the leader's effect, confidence, the
   big-game lift, the crowd, roamers v position-holders, runners, pressers v savers, bold keepers, the diver). Fixed the five
   tests the previous round loosened (marking by distance, offsides, momentum after a goal, cut-in shots, the high line after a clearance).
