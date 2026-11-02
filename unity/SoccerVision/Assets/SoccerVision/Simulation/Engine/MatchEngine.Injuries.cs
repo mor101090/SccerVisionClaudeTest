@@ -29,6 +29,7 @@ namespace SoccerVision.Simulation
             // Fitter, stronger players get hurt a little less; tired ones more.
             float resilience = 1.15f - 0.3f * MathUtil.A(p.Attr.PhysicalPower) + 0.3f * (1f - MathUtil.Clamp01(p.Energy));
             resilience *= GroundInjuryFactor(p.Pos);
+            if (p.Has(PlayerTrait.Fragile)) resilience *= 1.8f; // brittle
             // (a player already carrying a knock is more fragile: the next one is more often serious)
             if (p.Injury == InjuryLevel.Light) pSerious *= 2.2f;
             float r = _rng.NextFloat();
@@ -99,7 +100,7 @@ namespace SoccerVision.Simulation
             if (p.Energy > 0.5f && !(poorShape > 1f && p.Energy > 0.4f && p.Attr.Stamina < 55)) return;
             float tired = 1.25f - MathUtil.Clamp01(p.Energy);
             float rate = 0.00003f * tired * tired * poorShape * (1.3f - 0.6f * MathUtil.A(p.Attr.Stamina));
-            rate *= GroundInjuryFactor(p.Pos) * (p.Injury == InjuryLevel.Light ? 2f : 1f);
+            rate *= GroundInjuryFactor(p.Pos) * (p.Injury == InjuryLevel.Light ? 2f : 1f) * (p.Has(PlayerTrait.Fragile) ? 2.2f : 1f);
             if (!_rng.Chance(rate * clockDt)) return;
             if (_rng.Chance(p.Injury == InjuryLevel.Light ? 0.6f : 0.35f)) InjureSeriously(p, "strain");
             else if (p.Injury == InjuryLevel.None) InjureLightly(p, "strain");

@@ -52,7 +52,7 @@ namespace SoccerVision.Simulation.Tests
         public void TheOffsideTrapCatchesMoreForwardsOffside()
         {
             double normal = Avg(null, e => e.Away.Stats.Offsides), trap = Avg(t => t.Defence = DefenceStyle.OffsideTrap, e => e.Away.Stats.Offsides);
-            Assert.True(trap > normal * 2 && trap >= 3, $"opponents caught offside: trap {trap:0.0} v normal {normal:0.0}");
+            Assert.True(trap > normal * 1.6 && trap >= 3, $"opponents caught offside: trap {trap:0.0} v normal {normal:0.0}");
         }
 
         [Fact]

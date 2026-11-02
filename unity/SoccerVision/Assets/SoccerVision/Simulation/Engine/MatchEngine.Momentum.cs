@@ -110,6 +110,7 @@ namespace SoccerVision.Simulation
             // a goal soon after conceding: the answer lands hard
             if (Clock.Seconds - _lastGoalClock[other.Index] < 4f * 60f) gain *= 1.15f;
             _lastGoalClock[scorer.Index] = Clock.Seconds;
+            if (FindLeader(other) != null) gain *= 0.85f; // a leader on the pitch: the goal against hurts less
             AddMomentum(scorer, gain);
         }
 

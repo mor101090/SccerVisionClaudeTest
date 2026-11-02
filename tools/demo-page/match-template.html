@@ -521,6 +521,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       <div class="srow"><span class="l">Competition</span><div class="seg" data-set="comp"><button type="button" data-v="League">League</button><button type="button" data-v="Cup">Cup</button><button type="button" data-v="LeagueCup">League Cup</button></div></div>
       <div class="srow"><span class="l">Kick-off</span><div class="seg" data-set="night"><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div></div>
       <h3>Team colours</h3>
+      <div class="srow"><span class="l">Gestures and emotions</span><div class="seg" data-set="gest"><button type="button" data-v="0">Off</button><button type="button" data-v="1">On</button></div></div>
       <div class="srow"><span class="l">Colour-blind</span><div class="seg" data-set="cb"><button type="button" data-v="0">Off</button><button type="button" data-v="1">On</button></div></div>
       <div class="srow"><span class="l"></span><div class="colors"><small>shirt · edge · numbers · boots</small></div></div>
       <div class="srow"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour" title="Shirt"><input id="homeS" type="color" aria-label="Home trim colour" title="Trim"><input id="homeN" type="color" aria-label="Home number colour" title="Numbers"><input id="homeB" type="color" aria-label="Home boots colour" title="Boots"></div></div>
@@ -723,11 +724,11 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var i = find(time), a = F[i], b = F[Math.min(i + 1, F.length - 1)];
     var gap = ft(b) - ft(a), half = gap > 5;
     var k = gap > 1e-6 && !half ? Math.max(0, Math.min(1, (time - ft(a)) / gap)) : 0;
-    var ps = [];
+    var ps = [], GB = OB + 9 + 3 + 4; // (the gesture codes follow the substitution's second man)
     for (var p = 0; p < 22; p++) {
       var o = PB + p * PS;
       var ka = KICK_OFF[(a[o + 4] >> 7) & 3], kb = KICK_OFF[(b[o + 4] >> 7) & 3];
-      ps.push({ kp: lerp(ka, kb, k), kl: (a[o + 4] & 512) !== 0, x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, f: lerpA(a[o + 2] / 100, b[o + 2] / 100, k), j: lerp(a[o + 3], b[o + 3], k) / 100, off: (a[o + 4] & 1) !== 0, gk: (a[o + 4] & 2) !== 0, bk: (a[o + 4] & 4) !== 0, os: (a[o + 4] & 8) !== 0, sl: (a[o + 4] & 16) !== 0, gr: (a[o + 4] & 32) !== 0, inj: (a[o + 4] & 64) !== 0 });
+      ps.push({ kp: lerp(ka, kb, k), kl: (a[o + 4] & 512) !== 0, x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, f: lerpA(a[o + 2] / 100, b[o + 2] / 100, k), j: lerp(a[o + 3], b[o + 3], k) / 100, off: (a[o + 4] & 1) !== 0, gk: (a[o + 4] & 2) !== 0, bk: (a[o + 4] & 4) !== 0, os: (a[o + 4] & 8) !== 0, sl: (a[o + 4] & 16) !== 0, gr: (a[o + 4] & 32) !== 0, inj: (a[o + 4] & 64) !== 0, g: a.length > GB + p ? a[GB + p] : 0 });
     }
     var os = [];
     for (var q = 0; q < 3; q++) { var oo = OB + q * 3; os.push({ x: lerp(a[oo], b[oo], k) / 10, y: lerp(a[oo + 1], b[oo + 1], k) / 10, flag: a[oo + 2] === 1 || a[oo + 2] === 4, fdir: a[oo + 2] === 4 ? -1 : 1, card: a[oo + 2] === 2 ? 1 : a[oo + 2] === 3 ? 2 : 0 }); }
@@ -1156,6 +1157,57 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   }
   var KICK_OFF = [0, -.55, .55, .18];  // foot offset (x radius) in the phases of the swing: none, backswing, strike, follow-through
   function playerDisc(x, y, r, fill, edge) { var lw = Math.max(1.2, r * .12); ctx.beginPath(); ctx.arc(x, y, r - lw / 2, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = edge; ctx.stroke(); }
+  // What a player shows with his arms and his face, drawn on the disc: an arm out (the call to the line, "here!", a protest),
+  // a sign in a small bubble (! ? ... + star heart), sound waves for the keeper's shout, a ring for the celebration.
+  // code = kind * 100000 + fade (99 -> 0) * 1000 + angle in degrees (world, as the engine has it).
+  var GEST = {
+    1: { arm: 1.7, col: "#ffffff", sign: "" },
+    2: { arm: 1.35, col: "#ffd23f", sign: "!", up: true },
+    3: { waves: true, col: "#ffffff", sign: "" },
+    4: { arm: 1.5, col: "#ff6b57", sign: "!" },
+    5: { col: "#9fb4d8", sign: "\u2026", head: true },
+    6: { arm: 1.2, arm2: true, col: "#ff9f43", sign: "?" },
+    7: { arm: 1.1, col: "#6fdc8c", sign: "+" },
+    8: { ring: true, col: "#ffd23f", sign: "\u2605", up: true, vee: true },
+    9: { ring: true, col: "", sign: "\u2665" }
+  };
+  function gestureMark(code, tm, x, y, r, now) {
+    var kind = Math.floor(code / 100000), d = GEST[kind]; if (!d) return;
+    var fade = Math.floor(code / 1000) % 100 / 99, ang = (code % 1000) * Math.PI / 180, prog = 1 - fade;
+    var pop = Math.min(1, prog * 7), al = Math.min(1, fade * 4) * pop, ca = Math.cos(ang), sa = -Math.sin(ang);
+    var col = d.col || tm.kit.primary;
+    ctx.save(); ctx.globalAlpha = al; ctx.lineCap = "round"; ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = Math.max(1.6, r * .26);
+    if (d.ring) { // the pulse round the celebrating player
+      var k = (now * 1.6) % 1; ctx.globalAlpha = al * (1 - k) * .8; ctx.lineWidth = Math.max(1.4, r * .22);
+      ctx.beginPath(); ctx.arc(x, y, r * (1.25 + k * 1.1), 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = al;
+    }
+    if (d.vee) { // both arms up
+      [-.9, .9].forEach(function (s) { var a2 = -Math.PI / 2 + s; ctx.beginPath(); ctx.moveTo(x + Math.cos(a2) * r * .95, y + Math.sin(a2) * r * .95); ctx.lineTo(x + Math.cos(a2) * r * 1.75, y + Math.sin(a2) * r * 1.75); ctx.stroke(); });
+    }
+    if (d.arm) { // an arm out towards the angle (the second one for a double gesture)
+      [0, d.arm2 ? .75 : null, d.arm2 ? -.75 : null].forEach(function (off, ix) {
+        if (off === null || (ix === 0 && d.arm2)) return;
+        var cs = Math.cos(Math.atan2(sa, ca) + off), sn = Math.sin(Math.atan2(sa, ca) + off), L = r * d.arm * (d.up ? .95 : 1);
+        ctx.beginPath(); ctx.moveTo(x + cs * r * .9, y + sn * r * .9); ctx.lineTo(x + cs * (r * .9 + L), y + sn * (r * .9 + L)); ctx.stroke();
+        ctx.beginPath(); ctx.arc(x + cs * (r * .9 + L), y + sn * (r * .9 + L), r * .26, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+    if (d.waves) { // the shout
+      [1.5, 2.1].forEach(function (rad, ix) { ctx.globalAlpha = al * (ix ? .5 : .9); ctx.beginPath(); ctx.arc(x, y, r * rad, Math.atan2(sa, ca) - .5, Math.atan2(sa, ca) + .5); ctx.stroke(); });
+      ctx.globalAlpha = al;
+    }
+    if (d.head) { // hands on the head
+      ctx.beginPath(); ctx.arc(x - r * .55, y - r * .15, r * .24, 0, Math.PI * 2); ctx.arc(x + r * .55, y - r * .15, r * .24, 0, Math.PI * 2); ctx.fill();
+    }
+    if (d.sign) { // the sign in its bubble, up and to the right of the disc
+      var bx = x + r * 1.25, by = y - r * 1.7, br = r * .85;
+      ctx.globalAlpha = al * .94; ctx.fillStyle = "#12182a"; ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = Math.max(1.2, r * .16); ctx.strokeStyle = col; ctx.stroke();
+      ctx.globalAlpha = al; ctx.fillStyle = col; ctx.font = "800 " + Math.max(8, r * 1.05) + "px Barlow, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(d.sign, bx, by + r * .04);
+    }
+    ctx.restore();
+  }
   function entities(S, now, dt) {
     var s = view.s, r = .95 * s;
     [[-52.5, -34], [-52.5, 34], [52.5, -34], [52.5, 34]].forEach(function (c, i) { cornerFlag(X(c[0]), Y(c[1]), s, now, i, X(c[0] + Math.sign(c[0])) - X(c[0]), Y(c[1] + Math.sign(c[1])) - Y(c[1])); });
@@ -1182,6 +1234,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       fillC(String(info.number), x, y);
       if (p.bk) { ctx.fillStyle = "#ffd23f"; ctx.fillRect(x + r * .55, y - r * 1.05, r * .32, r * .45); }
       if (p.inj) injuryMark(x, y, r);
+      if (p.g && SET.gest !== "0") gestureMark(p.g, tm, x, y, r * g, now);
       if (inShade(p.x, p.y)) { ctx.fillStyle = "rgba(10,24,40,.3)"; ctx.beginPath(); ctx.arc(x, y, r * g * 1.1, 0, Math.PI * 2); ctx.fill(); }
     });
     if (S.fig) {
@@ -1352,7 +1405,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   }
 
   // ---- developer settings ----------------------------------------------------------------------------
-  var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null, refs: null, snowLines: "yellow", snowCover: "cleared", cb: "0", comp: "League", stadium: "stand" };
+  var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null, refs: null, snowLines: "yellow", snowCover: "cleared", cb: "0", gest: "1", comp: "League", stadium: "stand" };
   var SET = (function () { var o = {}; for (var k in DEFAULTS) o[k] = DEFAULTS[k]; try { var st = JSON.parse(localStorage.getItem("sv-dev-settings") || "{}"); for (var k2 in st) if (k2 in DEFAULTS) o[k2] = st[k2]; } catch (e) {} return o; })();
   SET.night = SET.night === true || SET.night === "1";
   function saveSettings() { try { var o = {}; for (var k in DEFAULTS) o[k] = SET[k]; o.night = SET.night ? "1" : "0"; localStorage.setItem("sv-dev-settings", JSON.stringify(o)); } catch (e) {} }
@@ -2439,7 +2492,19 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     HardTackler: ["🛡", "Goes in hard", "Throws himself into tackles and slides - wins the ball back, but gives away more fouls."],
     ShootsFromDistance: ["🎯", "Shoots from distance", "Has a go from outside the box whenever he sees the target."],
     SwitchesPlay: ["↔", "Switches the play", "Looks for the long ball to the other flank to get out of a crowd."],
-    BackToGoal: ["🧱", "Plays with his back to goal", "Holds the ball up, uses his body against the defender and lays it off to the runners."]
+    BackToGoal: ["🧱", "Plays with his back to goal", "Holds the ball up, uses his body against the defender and lays it off to the runners."],
+    AerialCharger: ["🦅", "Attacks every high ball", "Goes for every ball in the air, further and with a stretch - at corners, crosses and long balls."],
+    HoldsPosition: ["⚓", "Holds his position", "Keeps to his post: does not roam, does not chase, does not run in behind - the rest of the team can count on him being there."],
+    Roams: ["🧭", "Roams", "Leaves his post and drifts towards the ball, looking for it between the lines - and leaves a hole behind him."],
+    RunsBehind: ["🏃", "Runs in behind", "Lives on the last defender's shoulder: times his runs beyond the line and calls for the ball."],
+    PressesHard: ["🔥", "Presses relentlessly", "Chases the ball everywhere and closes down at once - at a cost in energy."],
+    SavesEnergy: ["🔋", "Saves his energy", "Picks his moments: presses less and has more left at the end of the match."],
+    Leader: ["📣", "Leader", "Organises the line (calls the step up with an arm out), makes the back line work as one, lifts the others after a goal against."],
+    BigGamePlayer: ["⭐", "Big-game player", "Rises to the moment - the last quarter of an hour of a close match, extra time - and is flat when it is settled."],
+    Fragile: ["🩹", "Fragile", "Tires faster and is hurt more often."],
+    DrawsFouls: ["🎭", "Draws fouls", "Wins free kicks and penalties near the box - and now and then goes down too easily, and is booked for it."],
+    BoldKeeper: ["🧤", "Bold keeper", "Comes off his line to sweep up behind the defence and claims crosses through the crowd."],
+    StaysOnLine: ["🥅", "Stays on his line", "A shot-stopper first: stays home and trusts his reflexes."]
   };
   function traitsHtml(p) {
     var list = p.traits || [];
@@ -2812,6 +2877,8 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   // Category averages (mental, defence, playmaking, attacking, athletic) on a pentagon, as on the player page of the
   // web game; height, feet, age and fitness; a few key skills.
   var lastS = null;
+  window.__svView = function () { return view; };
+  window.__svState = function () { return lastS; }; // (a read-only peek at the frame on screen, for the browser tests)
   function playerCard(i) {
     var tm = teams[i < 11 ? 0 : 1], cur = infoAt(i), base = tm.players[i % 11], p = base;
     if (cur !== base) { (tm.bench || []).forEach(function (b) { if (b.number === cur.number) p = b; }); if (p === base) p = { number: cur.number, name: cur.shortName, role: "SUB" }; }

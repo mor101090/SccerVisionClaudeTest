@@ -579,7 +579,7 @@ namespace SoccerVision.Simulation
             float aerial = MathUtil.A(gk.Attr.AerialAbility);
             float handling = MathUtil.A(gk.Attr.Handling);
             float skill = Ball.Z > 1.3f ? 0.6f * aerial + 0.4f * handling : handling;
-            bool dominant = gk.PlayRole == PlayerRole.DominantKeeper; // he owns his six-yard box: claims through the crowd
+            bool dominant = gk.PlayRole == PlayerRole.DominantKeeper || gk.Has(PlayerTrait.BoldKeeper); // he owns his six-yard box: claims through the crowd
             float pCatch = MathUtil.Clamp(0.68f + 0.3f * skill + (dominant ? 0.08f : 0f) - crowd * (dominant ? 0.045f : 0.09f) - (contested ? 0.12f : 0f), 0.35f, 0.98f);
             if (Conditions.IsWet) pCatch *= 0.9f; // a wet ball slips through the gloves
             if (Ball.Z > 1.5f) StartJump(gk, Ball.Z - 1.2f);
@@ -644,6 +644,8 @@ namespace SoccerVision.Simulation
                 _shotCountedOnTarget = true;
                 gk.Team.Stats.Saves++;
                 gk.Saves++;
+                AddConfidence(gk, 0.15f);
+                OnShotWasted(shooter, _lastShotXg);
             }
             Vec2 savePos = Ball.Pos;
             if (Ball.Z > 1.6f || reachNeeded > 0.5f) StartJump(gk, 0.35f);
@@ -1066,9 +1068,24 @@ namespace SoccerVision.Simulation
                 CommitFoul(d, carrier, fromBehind, true, carrier.Pos);
                 return;
             }
+            // The man who goes down too easily near the box: the referee may buy it (a free kick, a penalty in the area), or see through
+            // it and book him for simulation.
+            if (carrier.Has(PlayerTrait.DrawsFouls) && Vec2.Distance(carrier.Pos, d.Team.OwnGoal) < 26f && _rng.Chance(0.07f))
+            {
+                if (_rng.Chance(0.55f))
+                {
+                    if (CollectDiagnostics) Count("dive.bought");
+                    CommitFoul(d, carrier, false, true, carrier.Pos, true);
+                    return;
+                }
+                if (CollectDiagnostics) Count("dive.booked");
+                ApplySanction(new PendingSanction { Player = carrier, Yellow = true, Reason = "simulation" });
+                return;
+            }
             if (_rng.Chance(pWin))
             {
                 d.Team.Stats.TacklesWon++;
+                AddConfidence(d, 0.08f);
                 Emit(MatchEventType.Tackle, d.Team, d, carrier, carrier.Pos, 0f, WhistleKind.Short, 0);
                 ClearOffside();
                 if (_rng.Chance(0.5f))

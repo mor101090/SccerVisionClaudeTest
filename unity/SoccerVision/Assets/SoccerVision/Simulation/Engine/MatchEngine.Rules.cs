@@ -177,6 +177,7 @@ namespace SoccerVision.Simulation
             _celebrationAssist = assist;
             _kickOffAfterGoal = defending;
             ChooseCelebration(scoringTeam);
+            OnGoalReactions(scoringTeam, defending, ownGoal ? null : scorer, assist, ownGoal);
             _restart = null;
             foreach (var p in AllPlayers) p.Task = PlayerTask.Celebrate;
         }
@@ -367,7 +368,7 @@ namespace SoccerVision.Simulation
 
         /// <summary>The crowd's effect on the referee: a multiplier below 1 for the home team, above 1 for the away team.</summary>
         private float RefereeBias(TeamAgent team, float home, float away) =>
-            team == Home ? 1f - home * Config.HomeAdvantage : 1f + away * Config.HomeAdvantage;
+            team == Home ? 1f - home * Config.HomeAdvantage * CrowdIntensity() : 1f + away * Config.HomeAdvantage * CrowdIntensity();
 
         private void CommitFoul(PlayerAgent offender, PlayerAgent victim, bool fromBehind, bool playedForBall, Vec2 contact, bool noContactNeeded = false)
         {
@@ -384,6 +385,7 @@ namespace SoccerVision.Simulation
             bool penaltyArea = Pitch.InPenaltyArea(contact, offender.Team.OwnGoalSign);
             var sanction = DecideSanction(offender, victim, fromBehind, playedForBall, penaltyArea);
             Emit(MatchEventType.Foul, offender.Team, offender, victim, contact);
+            MaybeProtest(offender, 0.12f);
 
             if (Config.AllowAdvantage && !_scriptedFoul && !penaltyArea && (sanction == null || !sanction.Red) && Ball.Owner == victim
                 && victim.Team.Forward(contact) > -5f && _rng.Chance(0.5f))
@@ -556,6 +558,7 @@ namespace SoccerVision.Simulation
                 p.YellowCards++;
                 p.Team.Stats.YellowCards++;
                 Emit(MatchEventType.YellowCard, p.Team, p, null, p.Pos, p.YellowCards);
+                MaybeProtest(p, 0.5f);
                 ShowCard(1);
                 if (p.YellowCards >= 2)
                 {

@@ -44,6 +44,7 @@ namespace SoccerVision.Simulation
         private float _lastShotTime = -10f;
         /// <summary>The team that took the last shot (rebounds: its players follow in, the defenders turn to the goal).</summary>
         private TeamAgent _lastShotTeam;
+        private float _lastShotXg;
         /// <summary>How the last shot was struck: 0 foot, 1 volley, 2 cut inside, 3 direct free kick, 4 penalty, 5 header.</summary>
         private int _lastShotKind;
         private ShotTechnique _lastShotTechnique;
@@ -186,7 +187,7 @@ namespace SoccerVision.Simulation
                 if (p.Has(PlayerTrait.CutsInsideToShoot) && p.CutInUntil > SimTime) tendency *= 1.15f;
                 if (p.Has(PlayerTrait.Unselfish) && !openGoal) tendency *= 0.8f;
                 // (the habits shift which shots a player takes, not how many a team takes: the balance for the squad's mix)
-                tendency *= 0.72f;
+                tendency *= p.CutInUntil > SimTime ? 0.92f : 0.72f; // (the cut inside and shoot is the winger's signature: left as it was)
                 if (openGoal) { tendency = MathF.Max(tendency, 3f); if (CollectDiagnostics) Count("shot.openGoal.considered"); }
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
                 float afterShotLoss = 0.006f + 0.25f * _riskPremium;
@@ -999,7 +1000,8 @@ namespace SoccerVision.Simulation
                     KickLofted(p, plan.Target, plan.LaunchAngle, KickKind.Cross, plan.Receiver, pressure, MathUtil.A(p.Attr.Crossing), curl: true);
                     break;
                 case BallAction.Clear:
-                    p.Team.PushUpUntil = SimTime + 4f;
+                    p.Team.PushUpUntil = SimTime + 3f;
+                    CallStepUp(p.Team);
                     KickLofted(p, plan.Target, plan.LaunchAngle, KickKind.Clearance, null, pressure, 0.35f + 0.3f * MathUtil.A(p.Attr.Passing), curl: false);
                     break;
                 case BallAction.Pass:
@@ -1369,6 +1371,7 @@ namespace SoccerVision.Simulation
             Ball.ShotSpeed = power;
             _lastShotTime = SimTime;
             _lastShotTeam = team;
+            _lastShotXg = xg;
             _shotCountedOnTarget = false;
             team.Stats.Shots++;
             team.Stats.ExpectedGoals += xg;
@@ -1727,6 +1730,12 @@ namespace SoccerVision.Simulation
                 controller.Team.Stats.Interceptions++;
                 controller.Interceptions++;
                 bool read = controller.AnticipatedAt >= Ball.LastKickTime && Ball.IntendedReceiver != null && Ball.IntendedReceiver.Team == passer.Team;
+                // the pass that never reached him: now and then the man it was meant for throws his hands up at the passer
+                var meant = Ball.IntendedReceiver;
+                if (meant != null && meant.Team == passer.Team && meant != passer && !meant.SentOff && Phase == MatchPhase.Live
+                    && _rng.Chance(0.12f + 0.2f * MathUtil.A(meant.Attr.Aggression)))
+                    Gesture(meant, GestureKind.Complain, 1.4f, (passer.Pos - meant.Pos).Angle);
+                AddConfidence(passer, -0.05f);
                 if (read) controller.Team.Stats.AnticipatedInterceptions++;
                 if (CollectDiagnostics)
                 {

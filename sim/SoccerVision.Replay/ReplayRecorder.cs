@@ -32,7 +32,7 @@ namespace SoccerVision.Replay
         private const int PlayerBase = 9;
         private const int PlayerStride = 5;
         /// <summary>... then the ball that went out and rolls on beyond the lines: x, y (decimetres), height (cm; -1: none).</summary>
-        public static readonly int FrameLength = PlayerBase + 22 * PlayerStride + 3 * 3 + 3 + 4;
+        public static readonly int FrameLength = PlayerBase + 22 * PlayerStride + 3 * 3 + 3 + 4 + 22;
 
         private readonly MatchEngine _engine;
         private readonly int _fps;
@@ -350,6 +350,8 @@ namespace SoccerVision.Replay
             var cf = e.Figure;
             if (cf.Active) { f.Add(Q(cf.Pos.X)); f.Add(Q(cf.Pos.Y)); f.Add((int)MathF.Round(MathUtil.WrapAngle(cf.Facing) * 100f)); f.Add(cf.Team * 1000 + cf.Number); }
             else { f.Add(0); f.Add(0); f.Add(0); f.Add(0); }
+            // what each player is showing with his arms: kind * 100000 + fade * 1000 + angle in degrees (0: nothing)
+            foreach (var p in e.AllPlayers) f.Add(e.GestureCode(p));
         }
 
         private void AppendEvent(MatchEvent e)

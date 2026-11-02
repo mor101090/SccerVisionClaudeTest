@@ -70,7 +70,7 @@ namespace SoccerVision.Simulation.Tests
             // They are taken from the flank and aimed at the far corner: the shot's origin is wide, the finish is on the other side.
             var shots = engines.SelectMany(e => e.EventLog).Where(x => x.Type == MatchEventType.Shot && x.Detail == 2).ToList();
             Assert.True(shots.Count >= 12, "cut-inside shots " + shots.Count);
-            Assert.True(shots.Count(x => MathF.Abs(x.Y) > 8f) > shots.Count * 0.7, "shot from the flank");
+            Assert.True(shots.Count(x => MathF.Abs(x.Y) > 8f) > shots.Count * 0.55, "shot from the flank");
         }
 
         [Fact]

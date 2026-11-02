@@ -24,6 +24,9 @@ namespace SoccerVision.Simulation
         private void BeginRestart(RestartType type, TeamAgent team, Vec2 spot, PlayerAgent taker)
         {
             if (type != RestartType.CornerKick && type != RestartType.GoalKick && type != RestartType.ThrowIn) _newBallRolls = false;
+            // the shot that ended in a goal kick: the man who shot puts his hands on his head
+            if (type == RestartType.GoalKick && Ball.Shooter != null && Ball.Shooter.Team != team && SimTime - _lastShotTime < 3f) OnShotWasted(Ball.Shooter, _lastShotXg);
+            OrganiseDefence(type, team, spot);
             Phase = MatchPhase.Stoppage;
             Ball.Owner = null;
             Ball.InHands = false;
@@ -1452,6 +1455,7 @@ namespace SoccerVision.Simulation
             team.Stats.FreeKickShots++;
             _lastShotTime = SimTime;
             _lastShotTeam = team;
+            _lastShotXg = 0.1f;
             _shotCountedOnTarget = false;
             _lastShotKind = 3;
             team.Stats.ExpectedGoals += xg;

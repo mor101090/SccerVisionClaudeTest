@@ -55,7 +55,7 @@ namespace SoccerVision.Simulation
                 float d = Vec2.Distance(carrier.Pos, goal);
                 if (d < 24f && NoDefenderBetween(carrier, team))
                 {
-                    float rush = MathUtil.A(gk.Attr.OneOnOne);
+                    float rush = MathUtil.Clamp01(MathUtil.A(gk.Attr.OneOnOne) + (gk.Has(PlayerTrait.BoldKeeper) ? 0.25f : gk.Has(PlayerTrait.StaysOnLine) ? -0.2f : 0f));
                     float outDist = MathUtil.Clamp(d * (0.35f + 0.25f * rush), 1.5f, MathF.Min(d - 1.2f, 13f));
                     gk.Target = goal + (carrier.Pos - goal).Normalized * outDist;
                     gk.Urgency = 0.95f;
@@ -72,8 +72,8 @@ namespace SoccerVision.Simulation
             {
                 // Sweeper position behind the defensive line, ready for counters.
                 // (a sweeper-keeper behind a high backline stands far off his line to clear the balls played over it)
-                bool sweeper = team.Tactics.Defence == DefenceStyle.HighBackline || gk.PlayRole == PlayerRole.SweeperKeeper;
-                bool stopper = gk.PlayRole == PlayerRole.ShotStopper;
+                bool sweeper = team.Tactics.Defence == DefenceStyle.HighBackline || gk.PlayRole == PlayerRole.SweeperKeeper || gk.Has(PlayerTrait.BoldKeeper);
+                bool stopper = gk.PlayRole == PlayerRole.ShotStopper || gk.Has(PlayerTrait.StaysOnLine);
                 depth = MathUtil.Clamp(8f + 0.12f * (team.Forward(ballPos) + 5f) + 4f * team.Eff.DefensiveLine + (sweeper ? 4f : 0f), 8f, sweeper ? 23f : stopper ? 14f : 19f);
                 depth = MathF.Min(depth, team.LineForward + Pitch.HalfLength - 6f);
                 depth = MathF.Max(depth, 2f);

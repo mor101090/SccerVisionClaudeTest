@@ -2,6 +2,36 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/character-gestures`
+
+The human side of the match - players that behave like people, not robots:
+
+- **Twelve more traits** (Traits tab): *attacks every high ball*, *holds his position*, *roams*, *runs in behind*, *presses
+  relentlessly*, *saves his energy*, *leader*, *big-game player*, *fragile*, *draws fouls*, and for keepers *bold* (off his
+  line, claims crosses) and *stays on his line*. Never two that contradict (holds position / roams or runs in behind,
+  presses / saves energy, bold / stays on the line, leader / draws fouls). The cool-headed trait was left out - there is the
+  composure skill - and so was age-related tiring - stamina is the skill that does it.
+  Effects: the roamer drifts up to 4 m (7 in possession) towards the ball and leaves a hole; the position-holder does not
+  chase, run in behind or leave his zone; the runner times his runs and calls for the ball; the presser is first to the ball
+  and burns 10% more energy, the saver 10% less; the fragile one tires 12% faster and is hurt about twice as often; the bold
+  keeper stands higher and claims crosses; the diver near the box either wins the free kick or penalty or is booked for
+  simulation; the charger goes further and stretches for every ball in the air.
+- **Leader**: with one on the pitch the back line works as one (the defensive chemistry +10%), he calls the step up with an arm
+  out after a clearance and before a set piece, a goal against hurts the team's momentum 15% less, and after a goal against
+  or a bad pass he goes to the player who let the side down.
+- **Personal confidence**: a goal (+), an assist, a save or a tackle won lifts a player; a miss, a conceded goal or a lost
+  pass drains him; it fades over about seven match minutes. It moves the skills of his head and feet by up to 5%, in steps.
+- **Big-game player**: +7% in the last fifteen minutes of a close match or in extra time, -4% when the match is settled.
+- **Crowd pressure on the referee** grows (up to +60%) when the home team is behind late, or level with time running out:
+  the 50-50 calls and cautions tilt more to the home side. Clear decisions are unaffected.
+- **Gestures and emotions on the circles** (settings: Gestures and emotions): an arm out (the leader calling the line, a
+  protest to the referee, a pat for a team-mate), a hand up and an "!" for a run in behind, sound waves for the keeper's shout,
+  hands on the head and "..." after a miss or a goal conceded, hands up and "?" after a bad pass, arms up, a gold pulse and a
+  star for the scorer and a heart for those who join him. They are in the replay frames (22 more numbers) and fade out.
+- Tests: `CharacterTests` (traits per kind of player, every gesture seen and encoded, the leader's effect, confidence, the
+  big-game lift, the crowd, roamers v position-holders, runners, pressers v savers, bold keepers, the diver). Fixed the five
+  tests the previous round loosened (marking by distance, offsides, momentum after a goal, cut-in shots, the high line after a clearance).
+
 ## `feature/tactics-realism`
 
 Principles from tactical analysis (the-footballanalyst.com guides to box defending, man-marking distance, the low block,

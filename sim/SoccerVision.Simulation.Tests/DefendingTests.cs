@@ -47,7 +47,8 @@ namespace SoccerVision.Simulation.Tests
             Assert.True(samples > 2000, "samples " + samples);
             Assert.True(changes < samples / 500, $"man-to-man assignments changed mid-phase {changes} times in {samples} samples");
             // (defenders let a man go when he stands beyond the line - he is left offside - so not every sample is close)
-            Assert.True(close > samples * 0.5, $"close {close}/{samples}");
+            // (a man far from the ball is given room, and on the far side his marker tucks in towards the middle - see distance marking)
+            Assert.True(close > samples * 0.4, $"close {close}/{samples}");
         }
 
         [Fact]

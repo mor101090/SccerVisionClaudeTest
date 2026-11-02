@@ -58,6 +58,8 @@ namespace SoccerVision.Simulation
         public float LostBallAt = -100f;
         /// <summary>After a clearance the whole block pushes up together (10-15 m) until then.</summary>
         public float PushUpUntil = -100f;
+        /// <summary>When the organiser last called the line up.</summary>
+        public float LastCallAt = -100f;
         /// <summary>When the team last took a set piece in the opponents' half.</summary>
         public float SetPieceAt = -100f;
         public Vec2 LostBallSpot;
@@ -123,7 +125,11 @@ namespace SoccerVision.Simulation
                     n++;
                 }
                 // a line missing a man (sent off) is never quite in sync
-                return n == 0 ? 0f : sum / n * (n >= 4 ? 1f : 0.8f);
+                float v = n == 0 ? 0f : sum / n * (n >= 4 ? 1f : 0.8f);
+                // a leader on the pitch (a centre-back, the keeper, a midfielder) calls the line: it moves as one
+                foreach (var p in Players)
+                    if (!p.SentOff && (p.Profile.Traits & PlayerTrait.Leader) != 0) { v = MathF.Min(1f, v * 1.1f + 0.02f); break; }
+                return v;
             }
         }
         public readonly List<PlayerAgent> Supporters = new List<PlayerAgent>();

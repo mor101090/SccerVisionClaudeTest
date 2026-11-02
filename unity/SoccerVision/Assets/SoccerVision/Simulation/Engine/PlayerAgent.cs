@@ -36,7 +36,25 @@ namespace SoccerVision.Simulation
         /// The player's skills as he plays them today: his fitness changes all of them (stats spec): low fitness -10%,
         /// moderate unchanged, peak +5% (at most 100).
         /// </summary>
-        public PlayerAttributes Attr => _attrOf == Profile && _attrConf == Team.ConfidenceFactor ? _attr : (_attr = PlayedAttributes(_attrOf = Profile, _attrConf = Team.ConfidenceFactor));
+        public PlayerAttributes Attr
+        {
+            get
+            {
+                float c = Team.ConfidenceFactor * PersonalFactor;
+                return _attrOf == Profile && _attrConf == c ? _attr : (_attr = PlayedAttributes(_attrOf = Profile, _attrConf = c));
+            }
+        }
+
+        // ---- the human side: his own confidence, the big game, what he is showing with his arms ----
+        /// <summary>His own run of form (-1..1): a goal lifts him, a miss drains him; it fades over minutes.</summary>
+        public float Confidence;
+        /// <summary>The big-game player's lift (or flatness) in the situation the match is in.</summary>
+        public float SituationBonus;
+        /// <summary>What his confidence and the situation do to the skills of his head and feet (about +-8%, in steps).</summary>
+        public float PersonalFactor = 1f;
+        public void RefreshPersonal() => PersonalFactor = 1f + 0.05f * (MathF.Round(Confidence * 4f) / 4f) + SituationBonus;
+        public GestureKind Gesture;
+        public float GestureUntil, GestureLen, GestureAngle;
         private PlayerAttributes _attr;
         private PlayerProfile _attrOf;
         private float _attrConf = -1f;

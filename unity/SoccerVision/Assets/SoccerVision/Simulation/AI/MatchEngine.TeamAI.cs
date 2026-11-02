@@ -40,7 +40,10 @@ namespace SoccerVision.Simulation
                 bool highBackline = tac0.Defence == DefenceStyle.HighBackline;
                 float stepUp = highBackline ? 1.6f : 1f;
                 if (opp != null && Vec2.Dot(opp.FacingDir, ourAttack) > 0.3f && Pressure(opp, out _) > 0.45f && ballF > lineTarget + 12f)
+                {
                     lineTarget += 5f * chem * stepUp;
+                    CallStepUp(team);
+                }
                 else if (Ball.Owner == null && Ball.LastTouchTeam != team && Vec2.Dot(Ball.Velocity, ourAttack) > 4f && ballF > lineTarget + 10f)
                     lineTarget += 6f * chem * stepUp;
                 // Stay goal-side of the ball.
@@ -87,7 +90,7 @@ namespace SoccerVision.Simulation
             // leaves anyone still in the box offside) - not while the ball is still dropping near our box.
             if (team.PushUpUntil > SimTime && ballF > lineTarget + 16f)
             {
-                lineTarget = MathF.Min(lineTarget + 12f, ballF - 8f);
+                lineTarget = MathF.Min(lineTarget + 8f, ballF - 8f);
                 if (CollectDiagnostics) Count("line.pushUp");
             }
             lineTarget = MathF.Max(lineTarget, -47.5f);
@@ -159,7 +162,7 @@ namespace SoccerVision.Simulation
         private readonly List<PlayerAgent> _threats = new List<PlayerAgent>(11);
 
         /// <summary>Zone radius in zonal marking: an opponent inside it is this player's responsibility.</summary>
-        private static float ZoneRadius(PlayerAgent p) => p.Slot.Line == Line.Defence ? 9f : 10.5f;
+        private static float ZoneRadius(PlayerAgent p) => (p.Slot.Line == Line.Defence ? 9f : 10.5f) * (p.Has(PlayerTrait.HoldsPosition) ? 0.85f : 1f);
 
         /// <summary>One marker per attacker (no two defenders on the same man), by the team's marking system.</summary>
         private void AssignMarking(TeamAgent team, bool inPossession, float ballF)
@@ -666,6 +669,9 @@ namespace SoccerVision.Simulation
                     float carrierF = def.Forward(carrier.Pos);
                     if (d.Slot.IsCentralMidfielder && carrierF > -28f && carrierF < 18f) t *= d == def.Anchor ? 0.8f : 0.9f;
                     t *= RolePressFactor(d);
+                    if (d.Has(PlayerTrait.PressesHard)) t *= 0.88f;          // chases everything
+                    else if (d.Has(PlayerTrait.SavesEnergy)) t *= 1.15f;    // picks his moments
+                    if (d.Has(PlayerTrait.HoldsPosition)) t *= 1.2f;          // keeps to his post
                     if (t < t1) { second = best; t2 = t1; best = d; t1 = t; }
                     else if (t < t2) { second = d; t2 = t; }
                 }
@@ -690,6 +696,7 @@ namespace SoccerVision.Simulation
                 if (best != null)
                 {
                     float fromZone = Vec2.Distance(best.ShapeTarget, carrier.Pos);
+                    if (best.Has(PlayerTrait.PressesHard)) fromZone -= 4f; else if (best.Has(PlayerTrait.SavesEnergy)) fromZone += 3f;
                     bool inOwnThird = def.Forward(carrier.Pos) < -18f;
                     if (fromZone < engage || inOwnThird || t1 < 1.2f) def.Presser = best;
                     else def.Presser = null;
@@ -1082,6 +1089,15 @@ namespace SoccerVision.Simulation
             p.Task = PlayerTask.Shape;
             float urgency = 0.5f;
 
+            // The roamer leaves his post and drifts towards the ball (up to 4 m, 7 in possession), looking for it between the
+            // lines - and leaves a hole behind him.
+            if (p.Has(PlayerTrait.Roams))
+            {
+                Vec2 toBall = Ball.Pos - target;
+                float db = toBall.Length;
+                if (db > 9f) target += toBall.Normalized * MathF.Min(db - 9f, inPossession ? 7f : 4f);
+            }
+
             // Rebounds: for a moment after a shot near goal, the attackers follow it in (a parry, a post, a block falls
             // to the one who gambled) and the defenders turn and get between them and the goal.
             if (Ball.Owner == null && _lastShotTeam != null && SimTime - _lastShotTime < 1.4f)
@@ -1171,9 +1187,11 @@ namespace SoccerVision.Simulation
                         // Too early and he cannot use it; a run into a carrier with his back to goal is wasted.
                         bool headUp = Vec2.Dot(carrier.FacingDir, team.DirToWorld(Vec2.UnitX)) > 0.25f && pressure < 0.4f;
                         willing *= headUp ? 1.3f : 0.65f;
+                        if (p.Has(PlayerTrait.RunsBehind)) willing *= 1.4f;
                         if (_rng.Chance(willing * 0.45f))
                         {
                             p.RunTimer = _rng.Range(2.2f, 3.6f);
+                            if (p.Has(PlayerTrait.RunsBehind) || _rng.Chance(0.35f)) Gesture(p, GestureKind.CallForBall, 1.1f, (carrier.Pos - p.Pos).Angle); // "here!"
                             // Counter-movement: a clever forward first comes short (as if for the ball at his feet) to drag his
                             // marker up, then spins in behind into the space the marker left.
                             if ((p.Slot.Line == Line.Attack || p.Slot.IsWideMidfielder) && _rng.Chance(0.15f + 0.5f * MathUtil.A(p.Attr.OffTheBall)))
@@ -1187,7 +1205,7 @@ namespace SoccerVision.Simulation
                             float lateral = MathUtil.Clamp(team.Lateral(p.Pos) * 0.8f + _rng.Range(-6f, 6f), -26f, 26f);
                             p.RunPlan = new Vec2(timingError, lateral); // (overshoot beyond the line, lateral) in local space
                         }
-                        p.RunCooldown = _rng.Range(4f, 9f) * (team.Tactics.Attack == AttackStyle.RunsInBehind || team.CounterUntil > SimTime ? 0.5f : 1f);
+                        p.RunCooldown = _rng.Range(4f, 9f) * (team.Tactics.Attack == AttackStyle.RunsInBehind || team.CounterUntil > SimTime ? 0.5f : 1f) * (p.Has(PlayerTrait.RunsBehind) ? 0.7f : 1f);
                     }
                     if (p.RunTimer > 0f && p.RunCheckUntil > SimTime)
                     {
@@ -1343,8 +1361,9 @@ namespace SoccerVision.Simulation
 
         private static bool IsRunner(PlayerAgent p)
         {
+            if (p.Has(PlayerTrait.HoldsPosition)) return false;
             var slot = p.Slot;
-            return slot.Line == Line.Attack || slot.IsWideMidfielder || slot.IsCentralMidfielder;
+            return slot.Line == Line.Attack || slot.IsWideMidfielder || slot.IsCentralMidfielder || (p.Has(PlayerTrait.RunsBehind) && !p.IsGoalkeeper && slot.Line != Line.Defence);
         }
 
         /// <summary>Pressure on a player: 0 (free) .. 1 (closed down by several opponents).</summary>
@@ -1560,12 +1579,13 @@ namespace SoccerVision.Simulation
                 if (p.SentOff || p.IsGoalkeeper || p.JumpZ > 0f || p.StunTimer > 0f) continue;
                 Vec2 rel = p.Pos - Ball.Pos;
                 float tc = Vec2.Dot(rel, bv) / bv2;
-                if (tc <= 0f || tc > 1.2f) continue;
+                bool charger = p.Has(PlayerTrait.AerialCharger); // he goes for every high ball: further, and stretches for it
+                if (tc <= 0f || tc > (charger ? 1.5f : 1.2f)) continue;
                 Vec2 closest = Ball.Pos + bv * tc;
-                if (Vec2.Distance(closest, p.Pos + p.Vel * tc) > 1.1f) continue;
+                if (Vec2.Distance(closest, p.Pos + p.Vel * tc) > (charger ? 1.7f : 1.1f)) continue;
                 // Ball height at that moment (drag ignored over such a short time).
                 float z = Ball.Z + Ball.M.Vz * tc - 0.5f * Config.Gravity * tc * tc;
-                if (z < 1.75f || z > p.HeadReach + 0.15f) continue;
+                if (z < 1.75f || z > p.HeadReach + (charger ? 0.35f : 0.15f)) continue;
                 float need = MathUtil.Clamp(z - 1.75f + 0.15f, 0.2f, MaxJumpHeight(p));
                 if (tc <= TimeToApex(need) + 0.02f) StartJump(p, need);
             }
@@ -1591,6 +1611,8 @@ namespace SoccerVision.Simulation
             return 0.95f;
         }
 
+        private int _personalStep = -1;
+
         private void UpdateEnergy(PlayerAgent p, float speed, float dt)
         {
             float clockDt = dt * Config.ClockSecondsPerSimSecond;
@@ -1598,6 +1620,10 @@ namespace SoccerVision.Simulation
             float staminaFactor = 1.35f - 0.7f * MathUtil.A(p.Attr.Stamina);
             float drain = (0.00005f + 0.00066f * intensity * intensity * intensity) * staminaFactor;
             drain *= WorkRate(p) * p.Team.Tactics.EnergyDrain * (p.Team == Away ? 1f + 0.03f * Config.HomeAdvantage : 1f); // (the travel)
+            if ((p.Profile.Traits & (PlayerTrait.PressesHard | PlayerTrait.SavesEnergy | PlayerTrait.Fragile)) != 0)
+                drain *= (p.Has(PlayerTrait.PressesHard) ? 1.1f : 1f) * (p.Has(PlayerTrait.SavesEnergy) ? 0.9f : 1f) * (p.Has(PlayerTrait.Fragile) ? 1.12f : 1f);
+            if (StepCount != _personalStep) { _personalStep = StepCount; UpdateBigGameBonus(); }
+            UpdatePersonalState(p, clockDt);
             float recover = speed < 2.2f ? 0.00004f : 0f;
             p.Energy = MathUtil.Clamp(p.Energy - (drain - recover) * clockDt, 0.25f, 1f);
             MaybeStrain(p, intensity, clockDt);
