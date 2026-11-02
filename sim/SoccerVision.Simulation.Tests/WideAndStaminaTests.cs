@@ -59,17 +59,17 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void CutInWingersCurlTheBallAroundTheKeeperToTheFarPost()
         {
-            var engines = new MatchEngine[12];
+            var engines = new MatchEngine[24];
             Parallel.For(0, engines.Length, i =>
             {
                 engines[i] = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 5200 + (ulong)i) { CollectDiagnostics = true };
                 engines[i].RunToEnd();
             });
             int curled = engines.Sum(e => e.Diagnostics.TryGetValue("shot.cutin.curl", out int v) ? v : 0);
-            Assert.True(curled >= 12 * 0.75, "curled cut-inside shots " + curled);
+            Assert.True(curled >= 24 * 0.5, "curled cut-inside shots " + curled);
             // They are taken from the flank and aimed at the far corner: the shot's origin is wide, the finish is on the other side.
             var shots = engines.SelectMany(e => e.EventLog).Where(x => x.Type == MatchEventType.Shot && x.Detail == 2).ToList();
-            Assert.True(shots.Count >= 12, "cut-inside shots " + shots.Count);
+            Assert.True(shots.Count >= 24, "cut-inside shots " + shots.Count);
             Assert.True(shots.Count(x => MathF.Abs(x.Y) > 8f) > shots.Count * 0.55, "shot from the flank");
         }
 

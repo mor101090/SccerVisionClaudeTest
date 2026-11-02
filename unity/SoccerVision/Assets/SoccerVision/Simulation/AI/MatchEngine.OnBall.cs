@@ -267,6 +267,7 @@ namespace SoccerVision.Simulation
                             var o = _options[i];
                             if (o.Action == BallAction.Dribble)
                             {
+                                if (p.CutInUntil > SimTime) continue; // (the winger cutting inside carries on: his curler comes from the run)
                                 float later = EstimateShotXG(p, o.DribbleTarget) * MathUtil.Clamp01(o.Success) * 0.85f;
                                 if (o.Utility > later) { o.Utility = later; _options[i] = o; }
                             }

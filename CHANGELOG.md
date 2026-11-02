@@ -10,6 +10,15 @@ Each round of changes is developed on its own branch, named after what it change
   `TeamSetup.CornerZoneCount`, the unused attribute-order list of the squad generator); on the demo page the old line-up
   layout's styles, the `kitrow` and `solo` rules, `addrow` and the unused `benchNow`; two dead helpers in the tests.
   No compiler warnings in the engine, the browser build, the runner or the tests.
+- **Three tests that had been failing on `main` (not caused by the cleanup)**: the full run that followed the finishing round
+  ended with four failures (one of them fixed in the next commit), and I read it halfway through and pushed to `main`
+  without waiting for the end. Now:
+  - *Momentum after a goal*: the test measured the level afterwards, which depends on where the team started; it now
+    measures the swing the goal causes.
+  - *Cut-in curlers*: the traits and the finishing rule had halved them (21 -> 7 per 12 matches). The winger who is cutting inside
+    now keeps running at the full-back (the finishing rule leaves his dribble alone) and shoots a little more readily; about 15
+    curlers in 24 matches (0.6 a match); the test counts 24 matches.
+  - *The diver*: 16 matches instead of 6 (a rare event).
 - **Reorganisation, no change in behaviour - proved, not assumed.**
   - *A fingerprint tool*: `SimRunner --golden` plays 20 fixed matches (leagues, the staged match as the page runs it, rain,
     snow and wind, night, cup and league cup with shoot-outs, random plans, computer managers) through the replay recorder and

@@ -41,14 +41,16 @@ namespace SoccerVision.Simulation.Tests
                 var e = Engine(seed);
                 while (!e.IsFinished && checkedGoals < 4)
                 {
+                    float before = e.Momentum;
                     e.Advance(0.05f);
                     foreach (var ev in e.DrainEvents())
                     {
                         if (ev.Type != MatchEventType.Goal) continue;
                         var scorer = ev.Team == 0 ? e.Home : e.Away;
-                        // (a team that was on the back foot has further to climb: always clearly up, usually well up)
-                        Assert.True(e.MomentumOf(scorer) > 0.1f, $"momentum of the scorer after his goal: {e.MomentumOf(scorer):0.00}");
-                        Assert.True(e.MomentumOf(scorer.Opponent) < -0.1f);
+                        // the goal swings it to the scorer by its gain (a team that was on the back foot has further to climb: its level
+                        // afterwards depends on where it started, the swing does not)
+                        float swing = (e.Momentum - before) * (scorer == e.Home ? 1f : -1f);
+                        Assert.True(swing > 0.25f || e.MomentumOf(scorer) > 0.9f, $"the swing of a goal: {swing:0.00} (momentum of the scorer {e.MomentumOf(scorer):0.00})");
                         checkedGoals++;
                     }
                 }
