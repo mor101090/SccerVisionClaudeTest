@@ -146,7 +146,7 @@ namespace SoccerVision.Simulation
                 if (p.SentOff) continue;
                 p.Vel = Vec2.Zero; p.StunTimer = 0f; p.GroundTimer = 0f; p.SlideTimer = 0f; p.DiveTimer = 0f; p.TouchCooldown = 0f;
                 if (p == _soTaker || p == _soKeeper) continue;
-                if (p.IsGoalkeeper) { p.Target = new Vec2((Pitch.HalfLength - 16.5f) * _soSign, 20f); continue; }
+                if (p.IsGoalkeeper) { p.Target = new Vec2((Pitch.HalfLength - 16.5f) * _soSign, 11f); continue; } // (the other keeper waits at the edge of the area, close to the goal he defends next)
                 // (each team in a line across the centre circle, arm in arm)
                 int i = p.Team.Players.IndexOf(p);
                 p.Target = new Vec2(-5.5f + i * 1.1f, p.Team == Home ? 1.6f : -1.6f);
@@ -170,12 +170,13 @@ namespace SoccerVision.Simulation
                     foreach (var p in AllPlayers)
                     {
                         if (p.SentOff) continue;
-                        bool arrived = MoveTowards(ref p.Pos, ref p.Vel, p.Target, p == _soTaker ? 3.2f : 2.4f, dt);
+                        bool arrived = MoveTowards(ref p.Pos, ref p.Vel, p.Target, p == _soTaker ? 3.2f : p == _soKeeper ? 4.2f : 2.4f, dt);
                         if (p == _soTaker || p == _soKeeper) there &= arrived;
                         p.Facing = p.Vel.LengthSq > 0.04f ? p.Vel.Angle : (p == _soKeeper ? (_soSign > 0 ? MathUtil.Pi : 0f) : (Ball.Pos - p.Pos).Angle);
                     }
-                    if ((there && _soTimer > 2.5f) || _soTimer > 9f)
+                    if ((there && _soTimer > 2.5f) || _soTimer > 14f)
                     {
+                        if (_soKeeper != null && !_soKeeper.SentOff) { _soKeeper.Pos = _soKeeper.Target; _soKeeper.Vel = Vec2.Zero; } // (exactly in the middle of his line)
                         _soStep = ShootoutStep.RunUp;
                         _soTimer = 0f;
                         Whistle(WhistleKind.Short);

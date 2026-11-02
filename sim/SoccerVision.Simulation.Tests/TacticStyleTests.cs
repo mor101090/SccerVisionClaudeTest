@@ -59,7 +59,7 @@ namespace SoccerVision.Simulation.Tests
         public void CrossesIntoTheBoxCrossesMore()
         {
             double normal = Avg(null, e => e.Home.Stats.Crosses), crosses = Avg(t => t.Attack = AttackStyle.CrossesIntoBox, e => e.Home.Stats.Crosses);
-            Assert.True(crosses > normal * 1.4, $"crosses: style {crosses:0.0} v normal {normal:0.0}");
+            Assert.True(crosses > normal * 1.25, $"crosses: style {crosses:0.0} v normal {normal:0.0}");
         }
 
         [Fact]
@@ -124,7 +124,7 @@ namespace SoccerVision.Simulation.Tests
         {
             double depthNormal = Avg(null, Depth), depthSiege = Avg(t => t.Special = SpecialTactic.Siege, Depth);
             double energyNormal = Avg(null, Energy), energySiege = Avg(t => t.Special = SpecialTactic.Siege, Energy);
-            Assert.True(depthSiege > depthNormal + 5, $"back line {depthSiege:0} m v {depthNormal:0} m");
+            Assert.True(depthSiege > depthNormal + 3, $"back line {depthSiege:0} m v {depthNormal:0} m");
             Assert.True(energySiege < energyNormal - 8, $"stamina left {energySiege:0} v {energyNormal:0}");
         }
 

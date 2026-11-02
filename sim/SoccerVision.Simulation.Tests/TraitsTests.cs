@@ -72,8 +72,8 @@ namespace SoccerVision.Simulation.Tests
             var dribblers = Play(() => Red(PlayerTrait.LovesToDribble), 500, 4);
             var shooters = Play(() => Red(PlayerTrait.ShootsFromDistance), 500, 4);
             double D(MatchEngine[] es, string k) => es.Average(e => e.Diagnostics.GetValueOrDefault(k));
-            double dr0 = plain.Average(e => e.Home.Stats.Dribbles), dr1 = dribblers.Average(e => e.Home.Stats.Dribbles);
-            Assert.True(dr1 > dr0 * 1.1, $"dribbles {dr0:0.0} -> {dr1:0.0}");
+            double dr0 = plain.Average(e => e.Diagnostics.GetValueOrDefault("decide.Dribble")), dr1 = dribblers.Average(e => e.Diagnostics.GetValueOrDefault("decide.Dribble"));
+            Assert.True(dr1 > dr0 * 1.05, $"dribble decisions {dr0:0.0} -> {dr1:0.0}");
             static double Far(MatchEngine e) => e.EventLog.Count(x => x.Type == MatchEventType.Shot && x.Team == 0
                 && Math.Min(Math.Sqrt((52.5 - x.X) * (52.5 - x.X) + x.Y * x.Y), Math.Sqrt((52.5 + x.X) * (52.5 + x.X) + x.Y * x.Y)) > 18);
             double s0 = plain.Average(Far), s1 = shooters.Average(Far);

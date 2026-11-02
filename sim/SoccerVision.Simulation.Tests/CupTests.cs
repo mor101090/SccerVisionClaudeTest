@@ -39,6 +39,37 @@ namespace SoccerVision.Simulation.Tests
         }
 
         [Fact]
+        public void TheKeeperStandsInTheMiddleOfTheGoalWhenEveryPenaltyIsTaken()
+        {
+            var t = typeof(MatchEngine);
+            var stepF = t.GetField("_soStep", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var keeperF = t.GetField("_soKeeper", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            int checkedKicks = 0;
+            for (ulong seed = 1; seed <= 30 && checkedKicks < 6; seed++)
+            {
+                var e = Engine(seed, Competition.Cup);
+                int prev = -1;
+                while (!e.IsFinished)
+                {
+                    e.Advance(0.05f);
+                    int step = Convert.ToInt32(stepF.GetValue(e));
+                    if (e.Phase != MatchPhase.PenaltyShootout) { prev = -1; continue; }
+                    // the first frame of the run-up: the keeper is on his line, in the middle, facing the kicker
+                    if (step == 1 && prev == 0)
+                    {
+                        var gk = (PlayerAgent)keeperF.GetValue(e);
+                        Assert.NotNull(gk);
+                        Assert.True(MathF.Abs(gk.Pos.Y) < 0.5f, $"keeper off centre: y = {gk.Pos.Y:0.0}");
+                        Assert.True(Pitch.HalfLength - MathF.Abs(gk.Pos.X) < 1.0f, $"keeper off his line: x = {gk.Pos.X:0.0}");
+                        checkedKicks++;
+                    }
+                    prev = step;
+                }
+            }
+            Assert.True(checkedKicks >= 4, "kicks checked: " + checkedKicks);
+        }
+
+        [Fact]
         public void ALevelLeagueCupTiePlaysExtraTimeWithOneMoreSubstitution()
         {
             for (ulong seed = 1; seed <= 30; seed++)

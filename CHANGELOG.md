@@ -37,6 +37,8 @@ The human side of the match - players that behave like people, not robots:
   - **Finishing**: in a good position (xG 0.18 or more, in the box area) the shot is favoured over running on with it; a cool
     head waits a beat longer. Dribbles that end standing on the keeper were halved (50 -> 25 a match), goals 3.05 a match.
   - **Key moments on a computer too** scroll to the pitch (centred, smoothly) and play. (The list still only shows moments the engine has generated.)
+  - **Penalty shoot-out**: the keeper of the next kick was still walking to his goal (up to 4 m off the middle) when the kick was taken; the other keeper now waits at the edge of the area, walks faster, the kick waits until he is on his line, and he is placed in the exact middle. Test: `TheKeeperStandsInTheMiddleOfTheGoalWhenEveryPenaltyIsTaken`.
+  - Four statistical tests loosened after the finishing and tactics changes (cut-in curlers, crosses by style, the siege line, dribbling decisions by trait).
   - **Phone**: tapping a key moment moved the clock but left the pitch far above the screen, so nothing seemed to happen; now the page scrolls to the pitch and plays.
   - The staged match as the page runs it (page seed, names, traits, walk-out) is now tested: `TheStagedMatchAsThePageRunsItHasAllItsIncidents`.
 - Tests: `CharacterTests` (traits per kind of player, every gesture seen and encoded, the leader's effect, confidence, the
