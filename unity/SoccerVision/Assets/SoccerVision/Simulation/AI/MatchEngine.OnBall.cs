@@ -264,24 +264,39 @@ namespace SoccerVision.Simulation
                 }
             }
 
-            // In a good position he hits it first time: a clear chance (the xG says so) and a shot on, and he does not run on with it
-            // until he is standing on the keeper - the striker's instinct is to shoot while the chance is there.
-            if (distGoal < 22f && f > 30f)
+            // In and around the box the question is simple: is there a better shot to be had by carrying it on? A dribble
+            // there is worth the shot it leads to (the xG from where he would be, if he keeps the ball, a moment later) - not
+            // the "progress" it makes; sitting on the ball is worth less still. So a striker with a sight of goal hits it, and
+            // he does not run on until he is standing on the keeper. An open goal is always a shot.
+            if ((distGoal < 20f && f > 30f) || openGoal)
             {
                 int shootAt = -1;
                 for (int i = 0; i < _options.Count; i++) if (_options[i].Action == BallAction.Shoot) { shootAt = i; break; }
-                if (shootAt >= 0 && _options[shootAt].ExpectedGoals >= 0.18f)
+                if (shootAt >= 0)
                 {
-                    float composureNow = MathUtil.A(p.Attr.Composure);
-                    // (a cool head waits a beat for a better one-on-one; a clear chance in the box is taken)
-                    float firstTime = 1.35f + 0.5f * MathUtil.Clamp01((_options[shootAt].ExpectedGoals - 0.18f) / 0.3f) - 0.15f * composureNow;
-                    var so = _options[shootAt]; so.Utility = so.Utility > 0f ? so.Utility * firstTime : so.Utility; _options[shootAt] = so;
-                    for (int i = 0; i < _options.Count; i++)
+                    var so = _options[shootAt];
+                    float xgNow = so.ExpectedGoals;
+                    if (openGoal) { so.Utility = 10f; _options[shootAt] = so; if (CollectDiagnostics) Count("shot.openGoal.forced"); }
+                    else
                     {
-                        var o = _options[i];
-                        if (o.Action != BallAction.Dribble || o.Utility <= 0f) continue;
-                        float ahead = Vec2.Distance(o.DribbleTarget, team.AttackGoal);
-                        if (ahead < distGoal - 0.5f) { o.Utility *= 0.55f; _options[i] = o; } // running on towards the keeper
+                        so.Utility = MathF.Max(so.Utility, xgNow * (1.05f - 0.15f * MathUtil.A(p.Attr.Composure))); // (a cool head may wait a beat)
+                        _options[shootAt] = so;
+                        for (int i = 0; i < _options.Count; i++)
+                        {
+                            var o = _options[i];
+                            if (o.Action == BallAction.Dribble)
+                            {
+                                float later = EstimateShotXG(p, o.DribbleTarget) * MathUtil.Clamp01(o.Success) * 0.85f;
+                                if (o.Utility > later) { o.Utility = later; _options[i] = o; }
+                            }
+                            else if (o.Action == BallAction.Hold && xgNow > 0.06f && o.Utility > xgNow * 0.4f) { o.Utility = xgNow * 0.4f; _options[i] = o; }
+                            // the pass to a team-mate in a better spot (the cut-back, the square ball) is worth his shot
+                            else if (o.Action == BallAction.Pass && o.Receiver != null && !o.Lofted && team.Forward(o.Target) > 30f)
+                            {
+                                float theirs = EstimateShotXG(o.Receiver, o.Target) * MathUtil.Clamp01(o.Success) * 0.9f;
+                                if (theirs > o.Utility) { o.Utility = theirs; _options[i] = o; }
+                            }
+                        }
                     }
                 }
             }
@@ -303,7 +318,7 @@ namespace SoccerVision.Simulation
                 }
             }
             var chosen = _options[best];
-            chosen = MaybeSkill(p, chosen, pos, pressure);
+            if (!(openGoal && chosen.Action == BallAction.Shoot)) chosen = MaybeSkill(p, chosen, pos, pressure);
             if (CollectDiagnostics)
             {
                 // is a good forward pass on, and did he play something else (a back or square pass, or sat on it)?
@@ -318,6 +333,7 @@ namespace SoccerVision.Simulation
                 }
             }
             if (CollectDiagnostics && chosen.Action == BallAction.Dribble && distGoal < 9f && f > 40f) Count("dribble.atKeeper");
+            if (CollectDiagnostics && distGoal < 18f) Count("box.decide." + chosen.Action);
             if (CollectDiagnostics) Count("decide." + chosen.Action + (chosen.Action == BallAction.Pass ? "." + chosen.Kind + (chosen.Lofted ? ".lofted" : "") : ""));
             if (chosen.Action != BallAction.Dribble && chosen.Action != BallAction.Hold) p.HoldTime = 0f;
             if (chosen.Action == BallAction.Dribble && IsCutInsidePlayer(p) && MathF.Abs(team.Lateral(chosen.DribbleTarget)) < MathF.Abs(l) - 2f && f > 14f && MathF.Abs(l) > 14f)

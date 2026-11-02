@@ -97,6 +97,8 @@ namespace SoccerVision.Simulation
         /// <summary>Substitution opportunities used during play (IFAB: three; half-time does not count) and the stoppage of the last one.</summary>
         public int WindowsUsed;
         public Restart WindowRestart;
+        /// <summary>The stoppage (see MatchEngine.StoppageId) in which the team last used a substitution opportunity.</summary>
+        public int WindowStoppage = -1;
         /// <summary>The players who have been substituted (they cannot come back on).</summary>
         public readonly List<PlayerProfile> SubbedOff = new List<PlayerProfile>();
         /// <summary>Everyone who has played for the team in this match (starters and substitutes), with their ratings.</summary>

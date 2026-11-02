@@ -230,7 +230,7 @@ namespace SoccerVision.Simulation
             team.Stats.Substitutions++;
             DampMomentum(0.85f);
             // (the change uses one of the three opportunities, unless one is already open at this stoppage)
-            if (_restart != null && team.WindowRestart != _restart && !SecondHalfKickOff) { team.WindowRestart = _restart; team.WindowsUsed++; }
+            if (_restart != null && team.WindowStoppage != StoppageId && !SecondHalfKickOff) { team.WindowStoppage = StoppageId; team.WindowRestart = _restart; team.WindowsUsed++; }
             string outLabel = p.Label;
             int outNumber = p.Number;
             CloseRecord(p);

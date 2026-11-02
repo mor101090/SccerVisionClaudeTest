@@ -880,6 +880,7 @@ namespace SoccerVision.Simulation
             var r = _restart;
             if (r == null)
             {
+                StoppageId++;
                 Phase = MatchPhase.Live;
                 return;
             }
@@ -1136,6 +1137,7 @@ namespace SoccerVision.Simulation
             RestartExecuting?.Invoke(r);
             if (r.Team != null && r.Type != RestartType.KickOff && r.Type != RestartType.GoalKick && r.Type != RestartType.DroppedBall && r.Team.Forward(r.Spot) > 0f)
                 r.Team.SetPieceAt = SimTime;
+            StoppageId++; // (the ball is back in play: the next stoppage is a new substitution opportunity)
             Phase = MatchPhase.Live;
             _restart = null;
             _goalkeeperHoldTimer = 0f;

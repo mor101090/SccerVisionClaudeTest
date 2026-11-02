@@ -2,6 +2,20 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/finishing-and-saves`
+
+- **Shooting in the box.** With the ball in the box a player chose to dribble eight times as often as he shot (127 v 15
+  decisions a match), and an open goal was shot at only a third of the time - he ran on into the keeper. Now the choice
+  there is the shot: a dribble is worth the shot it leads to (the xG from where he would be a moment later, if he keeps the
+  ball), not the "progress"; holding the ball is worth less still; the cut-back or square ball to a team-mate is worth his
+  shot. An open goal is always a shot (no fake shot either). Dribbles that end on the keeper: 23 -> 3 a match; open goals
+  put away 90% of the time; 35 shots, 16-17 on target and 13-14 saves a match (9 of them parries), about 3.3 goals.
+- **The keeper's dive is drawn**: stretched out low along the line of the dive, arms and gloves reaching for the ball,
+  with a short trail (the replay frames carry it as flag 1024).
+- **Substitution opportunities** are counted per stoppage, not per restart: a restart set up again while the players were
+  changing counted as a second opportunity, so a change was refused with one still left. Test: `TwoChangesAtOneStoppageUseOneOpportunity`.
+- Tests: `FinishingTests`.
+
 ## `feature/user-mode`
 
 - **Start screen: User or Developer.** Before anything opens the page asks how to play.

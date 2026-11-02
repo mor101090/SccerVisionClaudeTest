@@ -56,10 +56,12 @@ namespace SoccerVision.Simulation
 
         /// <summary>True if the team may still use a substitution opportunity: at half-time, during an opportunity already open, or with one left.</summary>
         private bool WindowAvailable(TeamAgent team) =>
-            Phase == MatchPhase.HalfTimeBreak || SecondHalfKickOff || ExtraTimeKickOff || (_restart != null && team.WindowRestart == _restart) || team.WindowsUsed < MaxWindowsNow;
+            Phase == MatchPhase.HalfTimeBreak || SecondHalfKickOff || ExtraTimeKickOff || (_restart != null && team.WindowStoppage == StoppageId) || team.WindowsUsed < MaxWindowsNow;
 
         /// <summary>Law 3: in extra time one more substitution and one more opportunity (the league cup).</summary>
         public int MaxSubstitutionsNow => Config.MaxSubstitutions + (ExtraTimeReached ? 1 : 0);
+        /// <summary>Counts the stoppages: it moves on each time the ball is put back into play.</summary>
+        public int StoppageId { get; private set; }
         public int MaxWindowsNow => Config.MaxSubstitutionWindows + (ExtraTimeReached ? 1 : 0);
 
         /// <summary>The kick-off of a period of extra time is still being set up: changes now count as made in the break.</summary>
@@ -121,8 +123,10 @@ namespace SoccerVision.Simulation
                 var p = s.Out;
                 if (p.SentOff || p.Injury == InjuryLevel.Serious) { _pendingSubs.RemoveAt(i); continue; } // (sent off meanwhile, or the injury change takes over)
                 var team = p.Team;
-                if (team.WindowRestart != _restart && !SecondHalfKickOff && !ExtraTimeKickOff)
+                // (one opportunity per stoppage - however often the restart is set up again while the players change)
+                if (team.WindowStoppage != StoppageId && !SecondHalfKickOff && !ExtraTimeKickOff)
                 {
+                    team.WindowStoppage = StoppageId;
                     team.WindowRestart = _restart;
                     team.WindowsUsed++;
                 }
