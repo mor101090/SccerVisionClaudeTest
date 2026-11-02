@@ -10,6 +10,19 @@ Each round of changes is developed on its own branch, named after what it change
   `TeamSetup.CornerZoneCount`, the unused attribute-order list of the squad generator); on the demo page the old line-up
   layout's styles, the `kitrow` and `solo` rules, `addrow` and the unused `benchNow`; two dead helpers in the tests.
   No compiler warnings in the engine, the browser build, the runner or the tests.
+- **Reorganisation, no change in behaviour - proved, not assumed.**
+  - *A fingerprint tool*: `SimRunner --golden` plays 20 fixed matches (leagues, the staged match as the page runs it, rain,
+    snow and wind, night, cup and league cup with shoot-outs, random plans, computer managers) through the replay recorder and
+    hashes every frame, event and statistics row. The fingerprint is `21195E340097B26F` before the cleanup, after it and after
+    each step below.
+  - *The engine*: the four largest files, 1100-1800 lines each, split by topic into files of 130-620 lines (moves of whole
+    methods with their comments, nothing rewritten): `OnBall` (decision, `.Passing`, `.Dribbling`, `.Shooting`), `TeamAI`
+    (shape, `.Marking`, `.Pressing`, `.Players`, `.Movement`), `SetPieces` (start, `.Layout`, `.Execution`), `Contacts`
+    (control and headers, `.Goalkeeper`, `.Tackles`). The map is in TECHNICAL_OVERVIEW.
+  - *The demo page*: the 3300-line `match-template.html` is `template.html` (the markup) plus `css/NN-topic.css` (10 files) and
+    `js/NN-topic.js` (25 files, one per topic); the build puts them back together at the `@include` lines, and the assembled
+    page is identical to the old template byte for byte.
+  - TECHNICAL_OVERVIEW brought up to date (the frame is 157 numbers, the file map, the fingerprint, the page's parts).
 
 ## `feature/online-play`
 

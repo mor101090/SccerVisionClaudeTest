@@ -49,7 +49,7 @@ flowchart LR
     ME -->|same source files| REC[sim/SoccerVision.Replay<br/>ReplayRecorder]
     REC --> WASM[sim/SoccerVision.Wasm<br/>JSExport LiveEngine]
     WASM --> WORKER[engine-worker.js<br/>Web Worker]
-    WORKER -->|frames, events, stats| DEMO[Demo page<br/>match-template.html]
+    WORKER -->|frames, events, stats| DEMO[Demo page<br/>tools/demo-page]
     REC --> SIM
     SIM -->|replay JSON| REACT[React ReplayViewer]
     UNITY <-->|JSON events / commands<br/>WebBridge + jslib| REACT
@@ -59,8 +59,8 @@ Key facts:
 
 - **Determinism**: a seed gives the same match on every runtime (own RNG, own `Vec2`). Floating point may still differ slightly between WASM and native (Inferred; noted in the changelog).
 - **Time model**: `MatchEngine.Advance(realSeconds)` runs fixed 0.02 s physics steps; a half is 600 real seconds = 45 clock minutes (clock speed 4.5×). See `docs/ARCHITECTURE.md`.
-- **Replay format** (Confirmed): integer frames of 128 numbers each (header 9, 22 players × 5, 3 officials × 3), plus events JSON and per-second stats rows. Written by `ReplayRecorder`, shared by the CLI and the browser build.
-- **Three renderers** draw the same replay/engine state and must stay visually consistent: Unity (`Runtime/Rendering`), React (`web/src/replay/drawPitch.ts`), demo page (`tools/demo-page/match-template.html`). Every visual change is currently made three times (see risks).
+- **Replay format** (Confirmed): integer frames of 157 numbers each (header 9, 22 players × 5, 3 officials × 3, the ball that rolled out 3, the second man of a substitution 4, one gesture code per player 22), plus events JSON and per-second stats rows. Written by `ReplayRecorder`, shared by the CLI and the browser build.
+- **Three renderers** draw the same replay/engine state and must stay visually consistent: Unity (`Runtime/Rendering`), React (`web/src/replay/drawPitch.ts`), demo page (`tools/demo-page/`). Every visual change is currently made three times (see risks).
 
 ## 4. Codebase
 
@@ -73,10 +73,22 @@ Key facts:
 | `unity/.../Editor/SoccerVisionMenu.cs` | Menu: "Create Match Scene", "Build WebGL for React" | Build only |
 | `web/src/` | `App.tsx` (tabs), `unity/UnityMatch.tsx`, `replay/` (`ReplayViewer.tsx`, `drawPitch.ts`, `replay.ts`, `ball3d.ts`, `textures.ts`), `components/`, `settings/devSettings.ts`, `bridge/protocol.ts` (mirrors `BridgeProtocol.cs`), `audio/matchAudio.ts` | React work |
 | `web/vite.config.ts` | Dev-only plugin: `GET /api/new-replay` spawns `dotnet run` of SimRunner and returns replay JSON | Dev tooling |
-| `tools/demo-page/` | `match-template.html` (the whole demo UI + renderer), `engine-worker.js`, `build.sh`, `build_page.py` | **Yes – best place to see the engine working** |
+| `tools/demo-page/` | `template.html` (the page's markup) with its parts - `css/NN-topic.css` (styles) and `js/NN-topic.js` (the script, one file per topic, put back together in order at the `@include` lines) - `engine-worker.js`, `build.sh`, `build_page.py` | **Yes – best place to see the engine working** |
 | `tools/teams/build_teams.py`, `data/teams/*.json` | Turns generator JSON into `Simulation/Demo/GeneratedTeams.cs` (auto-generated; do not hand-edit) | Data pipeline |
 | `.github/workflows/publish-demo.yml` | CI: build and publish the demo | CI |
 | `CHANGELOG.md`, `README.md` | History per branch, run instructions | Read |
+
+**The engine's files** (`Simulation/Engine`, `Simulation/AI`): `MatchEngine` is one partial class, one file per topic.
+
+| Topic | Files |
+|---|---|
+| The loop, clock, phases, commands | `MatchEngine.cs`, `MatchClock.cs`, `MatchEngine.Script.cs` (the staged match) |
+| Team behaviour (AI) | `TeamAI.cs` (shape, rest defence, support), `TeamAI.Marking.cs`, `TeamAI.Pressing.cs` (who presses, cover, interceptions), `TeamAI.Players.cs` (per-player thinking), `TeamAI.Movement.cs` (locomotion, energy), `Goalkeeper.cs` |
+| With the ball | `OnBall.cs` (the decision), `OnBall.Passing.cs`, `OnBall.Dribbling.cs` (also crosses and skills), `OnBall.Shooting.cs` |
+| Contacts and duels | `Contacts.cs` (control, headers, blocks), `Contacts.Goalkeeper.cs` (saves), `Contacts.Tackles.cs` |
+| Restarts | `SetPieces.cs` (start, taker), `SetPieces.Layout.cs` (where everybody stands), `SetPieces.Execution.cs`, `DeadBall.cs`, `Cup.cs` (extra time, shoot-out), `WalkOut.cs` |
+| Rules and people | `Rules.cs` (fouls, cards, offside, goals), `Injuries.cs`, `Substitutions.cs`, `Officials.cs`, `Ratings.cs`, `Momentum.cs`, `Conditions.cs` (weather, pitch), `Gestures.cs` (calls, confidence, the crowd) |
+| Models | `Model/` (attributes, traits, formations, orders, setups), `PlayerAgent.cs`, `TeamAgent.cs`, `TeamPlan.cs` |
 
 Suggested reading order: `README.md` → `docs/ARCHITECTURE.md` → `Engine/MatchEngine.cs` (`Step`, `StepLive`, commands) →
 `AI/MatchEngine.TeamAI.cs` (`UpdateTeamShape`, `ComputeShapeTarget`) → `AI/MatchEngine.OnBall.cs` (`ChooseAction`) →
@@ -88,7 +100,7 @@ Suggested reading order: `README.md` → `docs/ARCHITECTURE.md` → `Engine/Matc
 
 ```
 User clicks "Offside trap"  (.tac-seg button)
-  → match-template.html: tacChanged()  [debounced 600 ms]            (tools/demo-page/match-template.html)
+  → page: tacChanged()  [debounced 600 ms]                           (tools/demo-page/js/)
   → worker.postMessage({cmd:"tactics", defence, attack, special, line, width, ...})
   → engine-worker.js: L.SetTactics(...)                              (tools/demo-page/engine-worker.js)
   → LiveEngine.SetTactics → MakeTactics → engine.Submit(new ChangeTacticsCommand(0, …))   (sim/SoccerVision.Wasm/Program.cs)
@@ -111,8 +123,9 @@ has played (`progress` messages) so the engine stays about 2 s ahead (live pacin
 
 | Goal | Command |
 |---|---|
-| Engine tests (~25-30 min for the whole suite) | `cd sim && dotnet test` |
+| Engine tests (~45 min for the whole suite) | `cd sim && dotnet test` |
 | Calibration table vs. real football stats | `cd sim && dotnet run -c Release --project SoccerVision.SimRunner -- --matches 100` |
+| Fingerprint of the engine (before/after a refactoring: the same hash = the same football) | `cd sim && dotnet run -c Release --project SoccerVision.SimRunner -- --golden` (20 matches, ~40 s; prints one hash per match and `ALL`) |
 | Try tactics | `... -- --matches 60 --seed 900 --home "defence=trap,line=0.9" --away "attack=long"` |
 | Demo page | `tools/demo-page/build.sh`, then serve `docs/` with any static server (a Worker needs `http://`, not `file://`) |
 | React shell | `cd web && npm install && npm run dev` (replay tab needs the .NET 8 SDK) |

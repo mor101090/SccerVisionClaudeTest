@@ -1,0 +1,48 @@
+/* ---- the line-ups before the walk-out: a broadcast "team sheet" per side, in the page's palette ---- */
+.lineups { position: absolute; inset: 0; z-index: 40; overflow: hidden; color: var(--text); background: radial-gradient(120% 90% at 50% 120%, #3a4466 0%, rgba(34,38,52,0) 60%), linear-gradient(180deg, #1b1e2b, #222634); }
+.lineups[hidden] { display: none; }
+.lineups::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(100deg, rgba(139,156,196,.05) 0 40px, transparent 40px 80px); animation: luPan 18s linear infinite; }
+@keyframes luPan { to { background-position: 160px 0; } }
+.lu-top { position: absolute; left: 3%; right: 3%; top: 3%; display: flex; align-items: center; justify-content: space-between; z-index: 2; }
+.lu-top img { height: 2.2em; width: auto; filter: drop-shadow(0 1px 3px rgba(0,0,0,.5)); animation: luFade .8s both; }
+.lu-comp { font: 700 clamp(10px, 1.3cqi, 15px)/1 var(--display); letter-spacing: .22em; text-transform: uppercase; color: var(--accent-hi); }
+.lu-top button { padding: 5px 12px; }
+.lu-stage { position: absolute; inset: 11% 3% 6%; display: grid; place-items: center; }
+.lu-team { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(150px, 30%) minmax(0, 1fr) minmax(110px, 22%); gap: 2.2%; align-items: stretch; opacity: 0; pointer-events: none; }
+.lu-team.on { opacity: 1; pointer-events: auto; }
+.lu-team.on .lu-col, .lu-team.on .lu-mid, .lu-team.on .lu-right { animation: luSlide .7s cubic-bezier(.2,.8,.2,1) both; }
+.lu-team.on .lu-mid { animation-name: luRise; animation-delay: .1s; }
+.lu-team.on .lu-right { animation-name: luSlideR; animation-delay: .25s; }
+.lu-team.out { opacity: 0; transition: opacity .5s; }
+@keyframes luSlide { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
+@keyframes luSlideR { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+@keyframes luRise { from { opacity: 0; transform: translateY(30px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes luFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes luDrop { from { opacity: 0; transform: translateY(-26px) scale(1.3); } to { opacity: 1; transform: none; } }
+@keyframes luRow { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+.lu-col { display: grid; align-content: start; gap: 2px; min-height: 0; padding-right: 2%; border-right: 2px solid var(--tc); font-size: clamp(11px, 1.45cqi, 16px); }
+.lu-name { font: 800 clamp(16px, 2.6cqi, 30px)/1.05 var(--display); letter-spacing: .06em; text-transform: uppercase; padding-bottom: .35em; margin-bottom: .2em; border-bottom: 2px solid var(--tc); }
+.lu-col h4 { margin: .7em 0 .15em; font: 700 .72em/1 var(--body); letter-spacing: .16em; text-transform: uppercase; color: var(--accent-hi); }
+.lu-col .r { display: grid; grid-template-columns: 1.9em minmax(0, 1fr); gap: .5em; opacity: 0; }
+.lu-team.on .lu-col .r { animation: luRow .45s ease-out both; } /* (each team's rows and shirts animate when its card comes on - the away team's too) */
+.lu-col .r i { font-style: normal; font-weight: 800; text-align: right; color: var(--tc-ink, #fff); }
+.lu-col .r.sub { color: #c9cdd8; font-size: .92em; }
+.lu-col .coach { color: var(--muted); } .lu-col .coach b { color: #fff; font-weight: 700; }
+.lu-mid { position: relative; min-height: 0; display: grid; place-items: center; }
+.lu-mid svg { height: 100%; max-height: 100%; width: auto; max-width: 100%; border-radius: 10px; background: linear-gradient(180deg, #236b34, #2c7a3d); box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.35); }
+.lu-mid svg .ln { fill: none; stroke: rgba(255,255,255,.7); stroke-width: .5; }
+.lu-mid svg .sh { opacity: 0; }
+.lu-team.on .lu-mid svg .sh { animation: luDrop .55s cubic-bezier(.2,.9,.3,1.2) both; }
+.lu-mid svg .nm { font: 700 3.3px/1 var(--body); text-anchor: middle; fill: #fff; paint-order: stroke; stroke: rgba(0,0,0,.65); stroke-width: .7px; text-transform: uppercase; }
+.lu-right { display: grid; align-content: center; justify-items: center; gap: .6em; text-align: center; }
+.lu-right .big { width: min(100%, 9em); }
+.lu-right .big svg { width: 100%; height: auto; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+.lu-right .fm { font: 800 clamp(20px, 3.6cqi, 44px)/1 var(--display); letter-spacing: .08em; color: var(--accent-hi); }
+.lu-right .cmp { font: 600 clamp(10px, 1.2cqi, 14px)/1.2 var(--body); color: var(--muted); letter-spacing: .12em; text-transform: uppercase; }
+.lu-bar { position: absolute; left: 3%; right: 3%; bottom: 3%; height: 3px; background: rgba(255,255,255,.12); border-radius: 2px; overflow: hidden; z-index: 2; } .lu-bar b { display: block; height: 100%; width: 0; background: var(--amber); }
+@media (max-width: 640px) { .lu-team { grid-template-columns: 1fr; grid-template-rows: auto 1fr; } .lu-right { display: none; } }
+.modes button.back { background: #e2372f; color: #fff; }
+.lineups { position: absolute; inset: 0; z-index: 40; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: rgba(20, 23, 33, .94); color: var(--text); padding: 12px 14px 10px; gap: 10px; overflow: auto; }
+.lineups[hidden] { display: none; }
+.lu-team { background: #1f2331; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; display: grid; grid-template-rows: auto auto auto; align-content: start; min-height: 0; }
+.lu-bar { height: 3px; background: #2a2f40; border-radius: 2px; overflow: hidden; } .lu-bar b { display: block; height: 100%; width: 0; background: var(--amber); }

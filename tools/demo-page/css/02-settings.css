@@ -1,0 +1,24 @@
+/* settings: an ordinary button - dark rounded square with a thin border and a line gear */
+.topctl button#gear { width: 1.9em; height: 1.9em; display: grid; place-items: center; padding: 0; border-radius: .4em; background: rgba(22, 27, 36, .78); border: 1px solid rgba(255,255,255,.22); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.topctl button#gear:hover { background: rgba(40, 48, 62, .9); border-color: rgba(255,255,255,.4); }
+.topctl button#gear[aria-expanded="true"] { background: rgba(70, 82, 104, .95); }
+.topctl #gear svg { width: 1.05em; height: 1.05em; filter: none; }
+#play .dim { opacity: .38; }
+.settings { position: absolute; right: 2.2%; top: 11%; width: min(340px, calc(100% - 4.4%)); max-height: 84%; overflow-y: auto; background: rgba(20, 26, 30, .95); border: 1px solid rgba(255,255,255,.14); border-radius: 8px; padding: 10px 12px 12px; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.35); font-size: 13px; }
+.settings .dev { font: 700 10px/1 var(--body); letter-spacing: .08em; background: var(--amber); color: var(--ink); border-radius: 3px; padding: 3px 5px; margin-left: 6px; vertical-align: middle; }
+.settings h3 { margin: 12px 0 6px; font: 700 12px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.srow { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 6px 8px; margin: 6px 0; }
+.srow > label, .srow > span.l { color: #c9d2d8; }
+.seg { display: flex; flex-wrap: wrap; gap: 3px; }
+.seg button { padding: 6px 8px; font-size: 12px; border-radius: 5px; }
+.srow input[type="range"] { width: 100%; accent-color: var(--amber); }
+.colors { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.colors input[type="color"] { width: 34px; height: 26px; padding: 0; border: 1px solid var(--rule); border-radius: 5px; background: none; cursor: pointer; }
+.colors small { color: var(--muted); }
+.settings .note { margin-top: 8px; color: #b9c2c9; font-size: 12px; min-height: 1em; }
+.settings .reset { margin-top: 10px; font-size: 12px; padding: 6px 10px; }
+.sb-wx { display: inline-flex; align-items: center; gap: .45em; margin-top: .3em; height: 1.35em; padding: 0 .6em; background: rgba(37, 38, 51, .85); color: #fff; font-size: .74em; }
+.sb-wx svg { height: 1em; width: 1em; display: block; }
+.settings[hidden] { display: none; }
+.settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font: 700 15px var(--display); letter-spacing: .08em; text-transform: uppercase; }
+.settings-head button { padding: 2px 8px; }

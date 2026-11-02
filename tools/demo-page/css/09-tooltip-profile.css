@@ -1,0 +1,40 @@
+/* ---- tooltip ---- */
+.tip { position: fixed; z-index: 50; max-width: 300px; padding: 8px 10px; border-radius: 6px; background: #161a26; border: 1px solid var(--rule); color: #fff; font: 500 13px/1.4 var(--body); box-shadow: 0 6px 18px rgba(0,0,0,.4); pointer-events: none; }
+.tip b { display: block; margin-bottom: 2px; }
+.tip[hidden] { display: none; }
+/* ---- player profile (the player page of the web game) ---- */
+.profile-back { position: fixed; inset: 0; z-index: 40; background: rgba(10, 12, 20, .62); display: grid; place-items: center; padding: 16px; }
+.profile-back[hidden] { display: none; }
+.profile { position: relative; width: min(980px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: #262b3a; border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 20px; box-shadow: 0 18px 50px rgba(0,0,0,.5); }
+.pf-close { position: absolute; right: 10px; top: 10px; }
+.pf-top { display: grid; grid-template-columns: 150px minmax(0, 1fr) 260px; gap: 18px; align-items: center; }
+@media (max-width: 760px) { .pf-top { grid-template-columns: 110px minmax(0, 1fr); } .pf-pent { grid-column: 1 / -1; justify-self: center; } }
+.pf-photo { border: 2px solid #d9dde8; border-radius: 3px; background: linear-gradient(180deg, #e9ecf3, #c8cede); aspect-ratio: 3 / 3.4; overflow: hidden; }
+.pf-photo svg { width: 100%; height: 100%; display: block; }
+.pf-id { display: grid; gap: 4px; font: 600 19px/1.3 var(--body); }
+.pf-id .nm { font: 700 23px/1.15 var(--body); }
+.pf-id .team { color: var(--muted); font-size: 15px; }
+.pf-feet { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.pf-feet svg { width: 46px; height: 46px; }
+.pf-pent svg { width: 260px; height: 220px; display: block; }
+.pf-pent text { fill: #fff; font: 700 15px var(--body); }
+.pf-cats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+@media (max-width: 860px) { .pf-cats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pf-cat h4 { margin: 0; text-align: center; font: 700 16px/1 var(--body); letter-spacing: .04em; }
+.pf-gauge { display: block; width: 92px; height: 52px; margin: 8px auto 6px; }
+.pf-gauge text { font: 800 15px var(--body); }
+.pf-row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; margin-top: 4px; background: #2f3547; border-radius: 3px; font: 600 14px/1.1 var(--body); }
+.pf-row b { font-variant-numeric: tabular-nums; }
+.pf-lower { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 14px; }
+.pf-tabs { display: flex; gap: 6px; margin-top: 16px; border-bottom: 2px solid #2f3547; }
+.pf-tabs button { background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 8px 16px; color: var(--muted); font: 700 15px/1 var(--body); letter-spacing: .05em; cursor: pointer; }
+.pf-tabs button[aria-selected="true"] { color: #fff; border-bottom-color: var(--amber, #f2b233); }
+.pf-traits[hidden] { display: none; }
+.pf-traits { display: grid; gap: 10px; margin-top: 16px; }
+.pf-trait { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px 14px; background: #2f3547; border-radius: 4px; animation: pfTraitIn .35s ease-out both; }
+.pf-trait .ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: #1b1f2b; font-size: 22px; }
+.pf-trait b { display: block; font: 700 16px/1.2 var(--body); }
+.pf-trait small { display: block; color: var(--muted); font: 500 13px/1.35 var(--body); margin-top: 2px; }
+@keyframes pfTraitIn { from { opacity: 0; transform: translateY(6px); } }
+.pf-lower h4 { margin: 0 0 4px; text-align: center; font: 700 16px/1 var(--body); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }

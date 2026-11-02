@@ -1,0 +1,320 @@
+<meta charset="utf-8">
+<title>SoccerVision Demo Match</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800&display=swap">
+<style>
+/*@include css/00-base.css*/
+/*@include css/01-scoreboard.css*/
+/*@include css/02-settings.css*/
+/*@include css/03-commentary.css*/
+/*@include css/04-lineups.css*/
+/*@include css/05-start-screen.css*/
+/*@include css/06-hover-card.css*/
+/*@include css/07-tactics.css*/
+/*@include css/08-manager.css*/
+/*@include css/09-tooltip-profile.css*/
+</style>
+
+<div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="wTitle">
+  <div class="wbox">
+    <img alt="SoccerVision" class="wlogo">
+    <h2 id="wTitle">How do you want to play?</h2>
+    <div class="wopts">
+      <button type="button" id="asUser" class="main"><b>User</b><span>Pick your home, away and keeper kits and your eleven - then play a live match against the computer.</span></button>
+      <button type="button" id="asDev"><b>Developer</b><span>Everything there is: the staged, random and live matches and every setting.</span></button>
+    </div>
+  </div>
+</div>
+<div class="welcome" id="kitSetup" role="dialog" aria-modal="true" aria-labelledby="kTitle" hidden>
+  <div class="wbox">
+    <img alt="SoccerVision" class="wlogo">
+    <h2 id="kTitle">Your kits</h2>
+    <div class="kits" id="kitBlocks"></div>
+    <p id="kRefs"></p>
+    <p>Next: your eleven, the formation and the instructions - then start the match.</p>
+    <div class="wopts" id="kitButtons">
+      <button type="button" id="kitGo" class="main"><b>Play the computer</b><span>Your eleven next, then a live match against the computer.</span></button>
+      <button type="button" id="kitInvite"><b>Invite a friend</b><span>Online: you send a link, your friend sends back a reply code - then you play each other.</span></button>
+    </div>
+  </div>
+</div>
+<div class="welcome" id="online" role="dialog" aria-modal="true" aria-labelledby="oTitle" hidden>
+  <div class="wbox">
+    <img alt="SoccerVision" class="wlogo">
+    <h2 id="oTitle">Play a friend</h2>
+    <p id="oText"></p>
+    <div class="ostep" id="oLinkBox" hidden><label for="oLink">1. Send this link to your friend</label><div class="orow"><input id="oLink" readonly><button type="button" id="oCopyLink">Copy</button></div></div>
+    <div class="ostep" id="oReplyBox" hidden><label for="oReply">2. Paste the reply code your friend sends back</label><div class="orow"><input id="oReply" placeholder="the reply code" autocomplete="off"><button type="button" id="oConnect">Connect</button></div></div>
+    <div class="ostep" id="oAnswerBox" hidden><label for="oAnswer">Send this reply code back to your friend</label><div class="orow"><input id="oAnswer" readonly><button type="button" id="oCopyAnswer">Copy</button></div></div>
+    <p id="oStatus" role="status"></p>
+    <button type="button" id="oCancel">Cancel</button>
+  </div>
+</div>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="kicker">SoccerVision · engine demo</div>
+      <h1>Red Rovers v Blue Falcons</h1>
+      <div class="meta">4-4-2 v 4-4-2 · 10 real minutes per half + added time · 2 minute break</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="pitch" aria-label="Pitch view of the match"></canvas>
+    <div class="sb" role="group" aria-label="Scoreboard">
+      <div class="sb-row">
+        <svg class="sb-lcup" id="lcupBar" viewBox="0 0 470 40" aria-hidden="true">
+          <path d="M0 0H104L112 14L106 16L116 40H0Z" fill="var(--amber)"/>
+          <path d="M104 0H109L117 14L111 16L121 40H116L106 16L112 14Z" fill="#fff"/>
+          <path d="M109 0H236L244 14L238 16L248 40H121L111 16L117 14Z" fill="#1d1f2a"/>
+          <path id="lcHomeBolt" d="M236 0H247L255 14L249 16L259 40H248L238 16L244 14Z" fill="#8b9cc4"/>
+          <path d="M247 0H338L346 14L340 16L350 40H259L249 16L255 14Z" fill="#eef0f5"/>
+          <path id="lcAwayBolt" d="M338 0H349L357 14L351 16L361 40H350L340 16L346 14Z" fill="#e2372f"/>
+          <path d="M349 0H470L459 40H361L351 16L357 14Z" fill="#1d1f2a"/>
+          <text id="lcClock" x="54" y="21" fill="#fff">00:00</text>
+          <text id="lcHome" x="180" y="21" fill="#fff">HOME</text>
+          <text id="lcScore" x="298" y="21" fill="#14161f" style="font-size:26px">0 - 0</text>
+          <text id="lcAway" x="408" y="21" fill="#fff">AWAY</text>
+          <g id="lcReds"></g>
+        </svg>
+        <span class="sb-clock" id="mn">00:00</span>
+        <span class="sb-team" id="hb"><span class="sb-reds" id="hr"></span><span id="hn">HOME</span></span>
+        <span class="sb-score" id="sc">0-0</span>
+        <span class="sb-team" id="ab"><span class="sb-reds" id="ar"></span><span id="an">AWAY</span></span>
+        <span class="sb-add" id="ad" hidden></span>
+        <span class="sb-pens" id="pens" hidden></span>
+      </div>
+      <div class="sb-sub"><img alt="SoccerVision" src="data:image/png;base64,__LOGO__"><span id="sbComp">League match</span></div>
+      <div><span class="sb-wx" id="wx"></span></div>
+    </div>
+    <div class="topctl">
+      <button id="play" class="icon" type="button" aria-label="Pause" title="Play / pause">
+        <svg viewBox="0 0 48 24" aria-hidden="true"><path id="playTri" class="dim" d="M2 2 L20 12 L2 22 Z" fill="currentColor"/><g id="pauseBars"><rect x="26" y="2" width="7" height="20" fill="currentColor"/><rect x="38" y="2" width="7" height="20" fill="currentColor"/></g></svg>
+      </button>
+      <button id="gear" class="icon" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings" title="Settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+    <div class="settings" id="settings" role="dialog" aria-label="Settings" hidden>
+      <div class="settings-head"><span>Settings<span class="dev">DEV</span></span><button id="settingsClose" type="button" aria-label="Close settings">✕</button></div>
+      <div class="srow user-only" id="soundRow"><span class="l">Sound</span><div class="seg"><button type="button" id="sndOff" aria-pressed="true">Off</button><button type="button" id="sndOn" aria-pressed="false">On</button></div></div>
+      <div class="srow dev-only"><label for="pace">Match pace</label><div class="colors"><input id="pace" type="range" min="50" max="100" step="5" value="100" style="flex:1"><span id="paceText" style="min-width:3.2em;text-align:right">100%</span></div></div>
+      <h3>Pitch</h3>
+      <div class="srow dev-only"><span class="l">Grass</span><div class="seg" data-set="grass"><button type="button" data-v="along">Stripes along</button><button type="button" data-v="across">Stripes across</button><button type="button" data-v="circles">Circles</button></div></div>
+      <div class="srow dev-only"><span class="l">Upkeep</span><div class="seg" data-set="maint"><button type="button" data-v="2">Perfect</button><button type="button" data-v="1">Average</button><button type="button" data-v="0">Neglected</button></div></div>
+      <div class="srow dev-only"><label for="netColor">Goal nets</label><div class="colors"><input id="netColor" type="color" value="#ebf0eb"></div></div>
+      <h3>Weather</h3>
+      <div class="srow dev-only"><span class="l">Sky</span><div class="seg" data-set="weather"><button type="button" data-v="Sunny">Sunny</button><button type="button" data-v="Cloudy">Cloudy</button><button type="button" data-v="Rain">Rain</button><button type="button" data-v="Snow">Snow</button></div></div>
+      <div class="srow dev-only"><span class="l">Snow lines</span><div class="seg" data-set="snowLines"><button type="button" data-v="yellow">Yellow</button><button type="button" data-v="orange">Orange</button><button type="button" data-v="blue">Blue</button></div></div>
+      <div class="srow dev-only"><span class="l">Snow cover</span><div class="seg" data-set="snowCover"><button type="button" data-v="cleared">Cleared pitch</button><button type="button" data-v="covered">Covered (white)</button></div></div>
+      <div class="srow dev-only"><span class="l">Wind</span><div class="seg" data-set="wind"><button type="button" data-v="0">Calm</button><button type="button" data-v="1">Strong</button></div></div>
+      <div class="srow dev-only"><span class="l">Stadium</span><div class="seg" data-set="stadium"><button type="button" data-v="open">Open</button><button type="button" data-v="stand">Main stand</button><button type="button" data-v="bowl">Bowl</button></div></div>
+      <div class="srow dev-only"><span class="l">Competition</span><div class="seg" data-set="comp"><button type="button" data-v="League">League</button><button type="button" data-v="Cup">Cup</button><button type="button" data-v="LeagueCup">League Cup</button></div></div>
+      <div class="srow dev-only"><span class="l">Kick-off</span><div class="seg" data-set="night"><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div></div>
+      <h3>Team colours</h3>
+      <div class="srow"><span class="l">Gestures and emotions</span><div class="seg" data-set="gest"><button type="button" data-v="0">Off</button><button type="button" data-v="1">On</button></div></div>
+      <div class="srow"><span class="l">Colour-blind</span><div class="seg" data-set="cb"><button type="button" data-v="0">Off</button><button type="button" data-v="1">On</button></div></div>
+      <div class="srow dev-only"><span class="l"></span><div class="colors"><small>shirt · edge · numbers · boots</small></div></div>
+      <div class="srow dev-only"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour" title="Shirt"><input id="homeS" type="color" aria-label="Home trim colour" title="Trim"><input id="homeN" type="color" aria-label="Home number colour" title="Numbers"><input id="homeB" type="color" aria-label="Home boots colour" title="Boots"></div></div>
+      <div class="srow dev-only"><span class="l" id="homeGkLabel">Home keeper</span><div class="colors"><input id="homeG" type="color" aria-label="Home goalkeeper shirt colour" title="Shirt"><input id="homeGS" type="color" aria-label="Home goalkeeper trim colour" title="Trim"><input id="homeGN" type="color" aria-label="Home goalkeeper number colour" title="Number"></div></div>
+      <div class="srow dev-only"><span class="l" id="awayLabel">Away</span><div class="colors"><input id="awayP" type="color" aria-label="Away shirt colour" title="Shirt"><input id="awayS" type="color" aria-label="Away trim colour" title="Trim"><input id="awayN" type="color" aria-label="Away number colour" title="Numbers"><input id="awayB" type="color" aria-label="Away boots colour" title="Boots"></div></div>
+      <div class="srow dev-only"><span class="l" id="awayGkLabel">Away keeper</span><div class="colors"><input id="awayG" type="color" aria-label="Away goalkeeper shirt colour" title="Shirt"><input id="awayGS" type="color" aria-label="Away goalkeeper trim colour" title="Trim"><input id="awayGN" type="color" aria-label="Away goalkeeper number colour" title="Number"></div></div>
+      <div class="srow dev-only"><span class="l">Referees</span><div class="colors"><input id="refC" type="color" aria-label="Referees' shirt colour" title="Shirt"><input id="refT" type="color" aria-label="Referees' trim colour" title="Trim"><input id="refL" type="color" aria-label="Referees' letter colour" title="Letter"><input id="refB" type="color" aria-label="Referees' boots colour" title="Boots"></div></div>
+      <div class="note" id="setNote"></div>
+      <button class="reset" id="setReset" type="button">Reset to defaults</button>
+      <button class="reset" id="setStart" type="button">Back to the start screen</button>
+    </div>
+    <div class="tac-toast" id="tacToast" role="status"></div>
+    <div class="pcard" id="pcard" hidden></div>
+    <div class="cbar" id="cbar" aria-live="polite"><span id="cbarText">Kick-off</span></div>
+    <div class="overlay" id="prematch" hidden>
+      <div class="box">
+        <div class="big">PRE-MATCH</div>
+        <div id="prematchText">Pick your eleven, the formation, roles and instructions below - then kick off.</div>
+        <button id="kickoff" type="button">Kick off</button>
+      </div>
+    </div>
+    <div class="lineups" id="lineups" hidden role="dialog" aria-label="Starting line-ups">
+      <div class="lu-top"><img alt="SoccerVision" src="data:image/png;base64,__LOGO__"><span class="lu-comp" id="luComp">Starting line-ups</span><button id="luSkip" type="button">Skip</button></div>
+      <div class="lu-stage"><div class="lu-team" id="luHome"></div><div class="lu-team" id="luAway"></div></div>
+      <div class="lu-bar"><b id="luBar"></b></div>
+    </div>
+    <div class="overlay" id="ht" hidden>
+      <div class="box">
+        <div class="big">HALF TIME</div>
+        <div id="htText">Second half in 2:00</div>
+        <button id="skip" type="button">Skip the break</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="modes" role="group" aria-label="Game mode">
+      <button id="modeStaged" type="button" data-mode="staged" aria-pressed="true" title="The same scripted match every time: a light injury, a yellow, a direct red, a serious injury with a substitution, and a second yellow">Staged match</button>
+      <button id="modeRandom" type="button" data-mode="random" aria-pressed="false" title="A new random match every time">Random match</button>
+      <button id="modeLive" type="button" data-mode="live" aria-pressed="false" title="You are the home team against the computer; watch it live (no rewinding)">Live match</button>
+    </div>
+    <button id="sound" type="button" aria-pressed="false">Sound off</button>
+    <div class="speeds" role="group" aria-label="Playback speed">
+      <button type="button" data-speed="1" aria-pressed="true">1×</button>
+      <button type="button" data-speed="2" aria-pressed="false">2×</button>
+      <button type="button" data-speed="4" aria-pressed="false">4×</button>
+      <button type="button" data-speed="8" aria-pressed="false">8×</button>
+      <button type="button" data-speed="16" aria-pressed="false">16×</button>
+    </div>
+    <button type="button" class="badge-live live-only" id="liveBadge" title="Live">LIVE</button>
+    <span class="live-only" id="liveYou" style="color:var(--muted);font-size:13px"></span>
+    <input id="seek" type="range" min="0" max="100" step="0.5" value="0" aria-label="Match position">
+    <span class="time" id="rt">0:00</span>
+  </div>
+
+
+  <section class="panel tactics mgr" id="tactics" aria-labelledby="tacTitle">
+    <div class="tac-head">
+      <h2 id="tacTitle">Manager <span class="tac-team"><i></i><span id="tacTeam">Red Rovers</span> · you</span></h2>
+      <span class="tac-status"><b id="tacBadge">THE MANAGER'S PICK</b><span id="tacStatus">The home manager's own team and instructions - pick yours in a live match.</span></span>
+    </div>
+    <div class="squad" aria-label="Your squad">
+      <div class="squad-row"><span class="squad-tag" data-tip="The eleven on the pitch. Pick one, then a bench player to bring on - or another player on the pitch to swap their positions.">IN</span><div class="cards" id="cardsIn"></div></div>
+      <div class="squad-row"><span class="squad-tag out" data-tip="The bench: nine substitutes (Premier League rules). A player who has come off cannot return.">OUT</span><div class="cards" id="cardsOut"></div></div>
+      <div class="sub-bar"><span id="subInfo"></span><span class="sub-confirm" id="subConfirm" hidden><button type="button" id="subOk">Confirm changes</button><button type="button" id="subCancel">Cancel</button></span><span id="subHint" class="muted"></span></div>
+    </div>
+    <div class="mtabs" role="tablist" aria-label="Manager">
+      <button type="button" role="tab" data-tab="team" aria-selected="true">Team Tactics</button>
+      <button type="button" role="tab" data-tab="player" aria-selected="false">Player Instruction</button>
+      <button type="button" role="tab" data-tab="corners" aria-selected="false">Corners</button>
+      <button type="button" role="tab" data-tab="freekicks" aria-selected="false">Free Kicks</button>
+      <button type="button" role="tab" data-tab="penalties" aria-selected="false">Penalty Kickers</button>
+    </div>
+    <div class="mtab" data-pane="team" role="tabpanel">
+      <div class="team-grid">
+        <div class="fboard-wrap">
+          <div class="fpick"><label for="formation">Formation</label><select id="formation"></select></div>
+          <svg class="fboard" id="fBoard" viewBox="0 0 68 105" role="img" aria-label="Your formation">
+            <defs><marker id="tacHead" viewBox="0 0 6 6" refX="4.5" refY="3" markerWidth="3.2" markerHeight="3.2" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="#fff"/></marker></defs>
+            <rect x="0" y="0" width="68" height="105" fill="#0f8a3c"/>
+            <g class="fl"><rect x="2" y="2" width="64" height="101"/><line x1="2" y1="52.5" x2="66" y2="52.5"/><circle cx="34" cy="52.5" r="9.15"/>
+              <rect x="13.85" y="2" width="40.3" height="16.5"/><rect x="24.85" y="2" width="18.3" height="5.5"/><path d="M26.7 18.5 A9.15 9.15 0 0 0 41.3 18.5"/>
+              <rect x="13.85" y="86.5" width="40.3" height="16.5"/><rect x="24.85" y="97.5" width="18.3" height="5.5"/><path d="M26.7 86.5 A9.15 9.15 0 0 1 41.3 86.5"/></g>
+            <text class="ftitle" x="34" y="-1.5" text-anchor="middle"></text>
+            <g id="fDots"></g>
+          </svg>
+          <p class="hint">Click two players to swap their positions. The line and width move the whole shape.</p>
+        </div>
+        <div class="sheet-wrap"><table class="sheet"><thead><tr><th>Position</th><th>Name</th><th>Role</th><th>Stamina</th><th>Fitness</th><th>Rating</th></tr></thead><tbody id="sheet"></tbody></table></div>
+      </div>
+      <h3 class="mtab-h">Team instructions</h3>
+      <div class="tac-grid">
+      <div class="tac-controls">
+        <div class="tac-row">
+          <div class="tac-label"><label for="tacLine">Defensive line</label><b id="tacLineVal">Middle</b></div>
+          <input id="tacLine" type="range" min="0" max="100" step="1" value="50">
+          <div class="tac-ends"><span>Deep block</span><span>High line</span></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><label for="tacWidth">Width</label><b id="tacWidthVal">Normal</b></div>
+          <input id="tacWidth" type="range" min="0" max="100" step="1" value="50">
+          <div class="tac-ends"><span>Narrow</span><span>Wide</span></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Passing</span></div>
+          <div class="tac-seg" data-tac="passing" role="group" aria-label="Passing"><button type="button" data-v="0">Short combinations</button><button type="button" data-v="1">Mixed</button><button type="button" data-v="2">Balls in behind</button></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Tempo</span></div>
+          <div class="tac-seg" data-tac="tempo" role="group" aria-label="Tempo"><button type="button" data-v="0">Slow</button><button type="button" data-v="1">Normal</button><button type="button" data-v="2">Fast</button></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Aggression</span></div>
+          <div class="tac-seg" data-tac="style" role="group" aria-label="Aggression"><button type="button" data-v="0">Gentle</button><button type="button" data-v="1">Balanced</button><button type="button" data-v="2">Aggressive</button></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Defence</span><b id="tacDefenceNote"></b></div>
+          <div class="tac-seg tac-seg6" data-tac="defence" role="group" aria-label="Defence"><button type="button" data-v="3">Park the bus</button><button type="button" data-v="0">Balanced</button><button type="button" data-v="5">Inverted full-backs</button><button type="button" data-v="2">Offside trap</button><button type="button" data-v="4">High backline</button><button type="button" data-v="1">High press</button></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Attack</span></div>
+          <div class="tac-seg" data-tac="attack" role="group" aria-label="Attack"><button type="button" data-v="1">Crosses into the box</button><button type="button" data-v="0">Balanced</button><button type="button" data-v="2">Runs in behind</button><button type="button" data-v="3">Long shots</button></div>
+        </div>
+        <div class="tac-row">
+          <div class="tac-label"><span>Style</span></div>
+          <div class="tac-seg" data-tac="special" role="group" aria-label="Style"><button type="button" data-v="2">Time wasting</button><button type="button" data-v="1">Possession</button><button type="button" data-v="0">Balanced</button><button type="button" data-v="3">Counter-attacks</button><button type="button" data-v="4">Relentless pressure</button></div>
+        </div>
+      </div>
+      <div class="tac-cpu">
+        <div class="cpu-head"><span class="cpu-dot"></span>Computer · <b id="cpuTeam">Blue Falcons</b></div>
+        <div class="cpu-now" id="cpuNow">Middle line, normal width, mixed passing, normal tempo, balanced</div>
+        <ul class="cpu-log" id="cpuLog"></ul>
+        <p class="cpu-note" id="cpuNote">In a live match the computer reads your tactics and the score, and answers every few minutes.</p>
+      </div>
+      </div>
+    </div>
+    <div class="mtab" data-pane="player" role="tabpanel" hidden>
+      <div class="pi">
+        <ul class="pi-list" id="piList" aria-label="Positions"></ul>
+        <div class="pi-detail" id="piDetail"></div>
+      </div>
+    </div>
+    <div class="mtab" data-pane="corners" role="tabpanel" hidden>
+      <div class="subtabs" role="tablist" aria-label="Corners">
+        <button type="button" role="tab" data-sub="takers" aria-selected="true">Takers</button>
+        <button type="button" role="tab" data-sub="attack" aria-selected="false">Attack</button>
+        <button type="button" role="tab" data-sub="defence" aria-selected="false">Defence</button>
+      </div>
+      <div class="subpane" data-subpane="takers"><div class="sp" data-sp="corners"></div></div>
+      <div class="subpane" data-subpane="attack" hidden><div class="cset" data-cset="cpa"></div></div>
+      <div class="subpane" data-subpane="defence" hidden><div class="cset" data-cset="cpd"></div></div>
+    </div>
+    <div class="mtab" data-pane="freekicks" role="tabpanel" hidden><div class="sp" data-sp="fk"></div></div>
+    <div class="mtab" data-pane="penalties" role="tabpanel" hidden><div class="sp" data-sp="pen"></div></div>
+  </section>
+
+  <div class="cols">
+    <section class="panel">
+      <h2>Live commentary</h2>
+      <div id="feed" aria-live="polite"></div>
+    </section>
+    <section class="panel">
+      <h2>Match facts</h2>
+      <table><tbody id="facts"></tbody></table>
+      <div class="moments" id="moments"></div>
+    </section>
+  </div>
+  <p class="foot">This is the real C# match engine (the same code that runs inside Unity), running here in your browser as WebAssembly, match <span id="seedText"></span>. The clock runs 4.5× faster than real time, so 45 minutes take 10. <b>Staged match</b>: the same scripted match every time - a light injury, a yellow card, a direct red card, a serious injury with a substitution, and a second yellow and red - whatever the weather; find them under "Key moments". <b>Random match</b>: a new match every time, which you can rewind and fast-forward. <b>Live match</b>: you are the home team against the computer, played as it happens and not rewindable. Give your team its tactic in the panel under the pitch (defensive line, width, passing, tempo, style): in a live match the players follow it at once, and the computer manager reads your tactics and the score and answers every few minutes. The settings (gear) choose the weather, wind, pitch upkeep, day or night, grass pattern, net and team colours and the match pace; rain, snow, wind and a worn pitch change how the match is played.</p>
+</div>
+
+<div class="profile-back" id="profileBack" hidden>
+  <div class="profile" id="profile" role="dialog" aria-modal="true" aria-labelledby="pfName"></div>
+</div>
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<script>__AUDIO__</script>
+<script>__TEXTURES__</script>
+<script>
+//@include js/00-core.js
+//@include js/01-canvas.js
+//@include js/02-pitch-state.js
+//@include js/03-ball.js
+//@include js/04-weather.js
+//@include js/05-settings.js
+//@include js/06-panels.js
+//@include js/07-match.js
+//@include js/08-tactic.js
+//@include js/09-manager.js
+//@include js/10-board-positions.js
+//@include js/11-ratings.js
+//@include js/12-plan-changes.js
+//@include js/13-cards.js
+//@include js/14-formation-board.js
+//@include js/15-corners.js
+//@include js/16-interaction.js
+//@include js/17-lineups.js
+//@include js/18-tooltips.js
+//@include js/19-player-page.js
+//@include js/20-tactic-locks.js
+//@include js/21-scoreboard.js
+//@include js/22-hover-card.js
+//@include js/23-online.js
+//@include js/24-start-screen.js
+</script>

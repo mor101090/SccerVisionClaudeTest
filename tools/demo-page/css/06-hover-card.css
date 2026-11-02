@@ -1,0 +1,21 @@
+/* ---- Player card on hover (design doc: tooltip with the player's skills) ---- */
+.pcard { position: absolute; z-index: 5; width: 230px; pointer-events: none; background: rgba(31, 35, 49, .97); border: 1px solid var(--rule); border-left: 4px solid var(--pc, #888); border-radius: 8px; padding: 9px 11px 10px; color: var(--text); font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.pcard[hidden] { display: none; }
+.pcard .pc-rating { margin-top: 3px; } .pcard .pc-rating b { font-weight: 800; }
+.pc-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.pc-top b { font: 700 15px/1.1 var(--display); letter-spacing: .02em; }
+.pc-top span { font: 700 11px/1 var(--body); color: var(--ink); background: var(--amber); border-radius: 3px; padding: 3px 5px; }
+.pc-meta { color: var(--muted); margin: 4px 0 6px; line-height: 1.35; }
+.pc-body { display: grid; grid-template-columns: 112px 1fr; gap: 8px; align-items: center; }
+.pc-body svg { width: 112px; height: 104px; display: block; }
+.pc-body svg .web { fill: none; stroke: #4a536b; stroke-width: .8; }
+.pc-body svg .val { fill: rgba(60,200,75,.3); stroke: var(--good); stroke-width: 1.3; }
+.pc-body svg text { fill: #d3d9e6; font: 700 7px var(--body); }
+.pc-kv { display: grid; gap: 3px; }
+.pc-meta div { color: #d3d9e6; }
+.pc-energy { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px; margin-top: 3px; }
+.pc-energy i { height: 6px; border-radius: 3px; background: #3a4258; overflow: hidden; display: block; }
+.pc-energy b { display: block; height: 100%; width: 100%; }
+.pc-energy em { font-style: normal; font-variant-numeric: tabular-nums; color: var(--text); }
+.pc-kv div { display: flex; justify-content: space-between; }
+.pc-kv div b { font-variant-numeric: tabular-nums; }
