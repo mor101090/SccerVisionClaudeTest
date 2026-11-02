@@ -1,0 +1,273 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace SoccerVision.Simulation
+{
+    /// <summary>In possession - running with the ball, crossing and clearing, and the pieces of skill (fake shot, backheel).</summary>
+    public sealed partial class MatchEngine
+    {
+        private static readonly float[] DribbleAngles = { 0f, 0.45f, -0.45f, 0.9f, -0.9f, 1.5f, -1.5f };
+
+        private void EvaluateDribbles(PlayerAgent p, Vec2 pos, float pressure, float lossNow)
+        {
+            var team = p.Team;
+            float f = team.Forward(pos);
+            float dribbling = MathUtil.A(p.Attr.Dribbling);
+            Vec2 forward = team.DirToWorld(Vec2.UnitX);
+            Vec2 toGoal = (team.AttackGoal - pos).Normalized;
+            Vec2 baseDir = f > 25f ? Vec2.Lerp(forward, toGoal, 0.6f).Normalized : forward;
+            bool cutIn = IsCutInsidePlayer(p);
+            float cutInSkill = MathUtil.A((p.Attr.Dribbling + p.Attr.LongShots + p.Attr.Finishing) / 3);
+            bool inverted = p.Slot.IsWideMidfielder && ((p.Slot.BaseLateral > 0f) == (p.Attr.StrongFoot == Foot.Right));
+            const float length = 6.5f;
+            float tMe = length / MathF.Max(1f, p.DribbleSpeed);
+
+            foreach (float a in DribbleAngles)
+            {
+                Vec2 dir = baseDir.Rotate(a);
+                Vec2 target = pos + dir * length;
+                Vec2 clamped = new Vec2(MathUtil.Clamp(target.X, -Pitch.HalfLength + 1.5f, Pitch.HalfLength - 1.5f),
+                                        MathUtil.Clamp(target.Y, -Pitch.HalfWidth + 1.8f, Pitch.HalfWidth - 1.8f));
+                if (Vec2.Distance(clamped, pos) < 3f) continue;
+                target = clamped;
+                Vec2 mid = Vec2.Lerp(pos, target, 0.5f);
+
+                float threat = 0f;
+                bool takeOn = false;
+                int crowd = 0;
+                foreach (var o in team.Opponent.Players)
+                {
+                    if (o.SentOff) continue;
+                    if (Vec2.DistanceSq(o.Pos, target) < 16f) crowd++;
+                    float tMid = o.TimeToReach(mid);
+                    float tEnd = o.TimeToReach(target);
+                    float r = MathF.Max(MathUtil.Clamp01(0.5f + (tMe * 0.5f - tMid) / 0.6f), MathUtil.Clamp01(0.5f + (tMe - tEnd) / 0.6f));
+                    if (r > threat) threat = r;
+                    if (Vec2.DistanceToSegment(o.Pos, pos, target, out _) < 1.4f) takeOn = true;
+                }
+                float keep = MathUtil.Clamp(0.94f - 0.55f * threat + 0.15f * (dribbling - 0.5f), 0.08f, 0.96f);
+                if (takeOn) keep *= 0.55f + 0.4f * dribbling;
+                keep *= MathF.Pow(0.82f, crowd); // dribbling into a crowd rarely works
+                float value = ExpectedThreat.At(team, target);
+                bool inward = MathF.Abs(team.Lateral(target)) < MathF.Abs(team.Lateral(pos)) - 2f;
+                if (cutIn && inward && f > 14f && MathF.Abs(team.Lateral(pos)) > 14f) value += (p.Has(PlayerTrait.CutsInsideToShoot) ? 0.06f : 0.05f) * cutInSkill;
+                else if (inverted && team.Forward(pos) > 15f && inward) value += 0.003f;
+                // Wide players (wingers, attacking full-backs) love to take it down the line towards the by-line,
+                // where they can deliver; the ones who cut in (strong foot inside) prefer to come inside instead.
+                bool wideRunner = (p.Slot.IsWideMidfielder || p.Slot.IsFullBack || (p.Slot.Line == Line.Attack && MathF.Abs(p.Slot.BaseLateral) > 12f))
+                                  && !(cutIn && inverted);
+                if (wideRunner && f > 5f && MathF.Abs(team.Lateral(pos)) > 19f && MathF.Abs(team.Lateral(target)) > 21f
+                    && team.Forward(target) - team.Forward(pos) > 3f)
+                    value += 0.006f + 0.008f * dribbling;
+                bool progressive = team.Forward(target) - team.Forward(pos) > 3f;
+                float stale = MathF.Max(0f, p.HoldTime - (progressive ? 3f : 1.5f)) * 0.005f;
+                float utility = keep * value - (1f - keep) * (lossNow + _riskPremium) - stale;
+                float like = DribbleFactor(p, progressive);
+                utility = utility > 0f ? utility * like : utility / like;
+                _options.Add(new KickPlan { Action = BallAction.Dribble, DribbleTarget = target, Utility = utility, Success = keep });
+            }
+        }
+
+        /// <summary>How much the player wants to run with the ball: his individual instruction and his role.</summary>
+        private static float DribbleFactor(PlayerAgent p, bool progressive)
+        {
+            float f = PlayerAgent.Scale(p.Orders.Dribbling, 0.55f, 1.4f);
+            if (p.Has(PlayerTrait.LovesToDribble)) f *= 1.35f;
+            if (p.Has(PlayerTrait.Unselfish)) f *= 0.9f;
+            switch (p.PlayRole)
+            {
+                case PlayerRole.Carrier: f *= 1.3f; break;
+                case PlayerRole.Trequartista: f *= 1.15f; break; // short bursts past the press
+                case PlayerRole.Regista: f *= 0.8f; break;
+                case PlayerRole.BallPlayingDefender: if (progressive) f *= 1.15f; break;
+                case PlayerRole.ClassicWinger: case PlayerRole.InvertedWinger: f *= 1.12f; break;
+                case PlayerRole.TempoSetter: case PlayerRole.TargetForward: case PlayerRole.AnchorMan: f *= 0.8f; break;
+            }
+            return f;
+        }
+
+        private void EvaluateCrosses(PlayerAgent p, Vec2 pos)
+        {
+            var team = p.Team;
+            float side = MathF.Sign(team.Lateral(pos));
+            var zones = new[]
+            {
+                new Vec2(46.5f, side * 3f),   // near post
+                new Vec2(41.5f, 0f),          // penalty spot
+                new Vec2(47f, -side * 3.5f),  // far post
+            };
+            float crossing = MathUtil.A(p.Attr.Crossing);
+            var keeper = team.Opponent.Goalkeeper;
+            foreach (var z in zones)
+            {
+                Vec2 target = team.ToWorld(z.X, z.Y);
+                float d = Vec2.Distance(pos, target);
+                if (d < 8f) continue;
+                PlayerAgent bestMate = null;
+                float bestMateT = float.PositiveInfinity;
+                foreach (var q in team.Players)
+                {
+                    if (q.SentOff || q == p || q.IsGoalkeeper) continue;
+                    float t = q.TimeToReach(target);
+                    if (t < bestMateT) { bestMateT = t; bestMate = q; }
+                }
+                if (bestMate == null) continue;
+                float bestOppT = float.PositiveInfinity;
+                PlayerAgent bestOpp = null;
+                foreach (var o in team.Opponent.Players)
+                {
+                    if (o.SentOff) continue;
+                    float t = o.TimeToReach(target);
+                    if (o == keeper)
+                    {
+                        if (!Pitch.InGoalArea(target, team.AttackGoalSign) && Vec2.Distance(o.Pos, target) > 7f) continue;
+                        t -= 0.4f * MathUtil.A(o.Attr.AerialAbility);
+                    }
+                    if (t < bestOppT) { bestOppT = t; bestOpp = o; }
+                }
+                float flight = d / 17f + 0.4f;
+                float aerialMate = (bestMate.Attr.Jumping + bestMate.Attr.Heading + bestMate.Attr.PhysicalPower) / 3f + (bestMate.Profile.HeightCm - 180) * 0.3f;
+                float aerialOpp = bestOpp != null ? (bestOpp.IsGoalkeeper ? bestOpp.Attr.AerialAbility + 10f : (bestOpp.Attr.Jumping + bestOpp.Attr.Heading + bestOpp.Attr.PhysicalPower) / 3f + (bestOpp.Profile.HeightCm - 180) * 0.3f) : 0f;
+                float pWin = MathUtil.Sigmoid((bestOppT - MathF.Max(bestMateT, flight)) / 0.45f + (aerialMate - aerialOpp) / 35f);
+                float delivery = 0.45f + 0.4f * crossing;
+                float headerXg = ExpectedGoals.FromLocation(target, team.AttackGoalSign) * 0.55f * (0.65f + 0.7f * MathUtil.A(bestMate.Attr.Heading));
+                float utility = pWin * delivery * (headerXg + 0.01f) - (1f - pWin * delivery) * (LossCost(team, target) * 0.25f + _riskPremium * 0.6f);
+                // the manager wants crosses: into the box from everywhere wide (crosses style, relentless pressure)
+                if (team.Tactics.Attack == AttackStyle.CrossesIntoBox) utility = utility > 0f ? utility * 1.7f + 0.0015f : utility * 0.6f;
+                else if (team.Tactics.Special == SpecialTactic.Siege) utility = utility > 0f ? utility * 1.25f : utility;
+                // the classic winger lives to cross, the inverted one would rather come inside
+                float crosser = p.PlayRole == PlayerRole.ClassicWinger ? 1.3f : p.PlayRole == PlayerRole.WingBack ? 1.15f : p.PlayRole == PlayerRole.InvertedWinger ? 0.8f : 1f;
+                if (p.PlayRole == PlayerRole.Auto && p.Slot.IsWideMidfielder && !IsCutInsidePlayer(p)) crosser *= 1.3f; // (a winger on his strong side goes to the by-line and crosses)
+                if (utility > 0f) utility *= crosser;
+                _options.Add(new KickPlan
+                {
+                    Action = BallAction.Cross,
+                    Kind = KickKind.Cross,
+                    Receiver = bestMate,
+                    Target = target,
+                    Lofted = true,
+                    LaunchAngle = d > 30f ? 0.42f : 0.36f,
+                    Heading = (target - pos).Angle,
+                    Utility = utility,
+                    Success = pWin * delivery,
+                });
+            }
+        }
+
+        private void EvaluateClearance(PlayerAgent p, Vec2 pos, float pressure)
+        {
+            var team = p.Team;
+            float f = team.Forward(pos);
+            float l = team.Lateral(pos);
+            float side = MathF.Abs(l) > 4f ? MathF.Sign(l) : (_rng.Chance(0.5f) ? 1f : -1f);
+            float lateral = MathF.Abs(l) > 22f && pressure > 0.6f ? _rng.Range(30f, 44f) : _rng.Range(14f, 32f);
+            Vec2 target = team.ToWorld(MathUtil.Clamp(f + 38f, -10f, 20f), side * lateral);
+            float utility = 0.45f * ExpectedThreat.At(team, target) - 0.55f * LossCost(team, target) + 0.004f * pressure;
+            _options.Add(new KickPlan
+            {
+                Action = BallAction.Clear,
+                Kind = KickKind.Clearance,
+                Target = target,
+                Lofted = true,
+                LaunchAngle = 0.62f,
+                Heading = (target - pos).Angle,
+                Utility = utility,
+            });
+        }
+
+        /// <summary>Under pressure by the touchline: put it out (concede a throw-in rather than lose it in play).</summary>
+        private void EvaluateKickOut(PlayerAgent p, Vec2 pos, float pressure)
+        {
+            var team = p.Team;
+            float side = MathF.Sign(team.Lateral(pos));
+            Vec2 target = team.ToWorld(team.Forward(pos) + _rng.Range(4f, 14f), side * 40f);
+            Vec2 throwSpot = new Vec2(MathUtil.Clamp((pos.X + target.X) * 0.5f, -52f, 52f), Pitch.HalfWidth * MathF.Sign(target.Y));
+            float utility = -LossCost(team, throwSpot) * 0.45f + 0.002f * pressure;
+            _options.Add(new KickPlan
+            {
+                Action = BallAction.Clear,
+                Kind = KickKind.Clearance,
+                Target = target,
+                Lofted = true,
+                LaunchAngle = 0.35f,
+                Heading = (target - pos).Angle,
+                Utility = utility,
+            });
+        }
+
+        /// <summary>
+        /// A piece of skill instead of the plain action: the fake shot (shapes to shoot, the defender throws himself in the
+        /// way, he cuts past him) and the backheel pass to a team-mate behind him when he has no time to turn. Only the
+        /// creative, technical players do it, and not often.
+        /// </summary>
+        private KickPlan MaybeSkill(PlayerAgent p, KickPlan chosen, Vec2 pos, float pressure)
+        {
+            var team = p.Team;
+            float flair = MathUtil.A((p.Attr.Creativity + p.Attr.Dribbling + p.Attr.Composure) / 3);
+            bool showboat = p.Has(PlayerTrait.Showboat);
+            if (showboat) flair = MathF.Min(1f, flair + 0.2f);
+            if (chosen.Action == BallAction.Shoot && flair > 0.55f)
+            {
+                Vec2 toGoal = (team.AttackGoal - pos).Normalized;
+                PlayerAgent blocker = null;
+                foreach (var o in team.Opponent.Players)
+                {
+                    if (o.SentOff || o.IsGoalkeeper || o.StunTimer > 0f) continue;
+                    Vec2 d = o.Pos - pos;
+                    float len = d.Length;
+                    if (len < 3.6f && len > 0.3f && Vec2.Dot(d / len, toGoal) > 0.4f) { blocker = o; break; }
+                }
+                if (blocker != null && _rng.Chance((0.7f * (flair - 0.55f) / 0.45f + 0.1f) * (showboat ? 1.5f : 1f)))
+                {
+                    // the cut: away from the side the defender committed to, still towards goal
+                    float side = Vec2.Cross(toGoal, blocker.Pos - pos) > 0f ? -1f : 1f;
+                    Vec2 across = new Vec2(-toGoal.Y, toGoal.X) * side;
+                    blocker.StunTimer = MathF.Max(blocker.StunTimer, 0.75f); // sold: committed to the block
+                    p.KickTimer = PlayerAgent.KickSwing * 0.6f;              // (the shooting motion)
+                    Emit(MatchEventType.Skill, team, p, blocker, pos, 0f, WhistleKind.Short, 1);
+                    if (CollectDiagnostics) Count("skill.fakeShot");
+                    return new KickPlan { Action = BallAction.Dribble, DribbleTarget = Pitch.ClampToField(pos + across * 3.2f + toGoal * 1.2f, -1f), Utility = chosen.Utility };
+                }
+            }
+            if (chosen.Action == BallAction.Pass && !chosen.Lofted && chosen.Receiver != null && pressure > 0.25f)
+            {
+                Vec2 to = chosen.Target - pos;
+                float len = to.Length;
+                float technique = MathUtil.A((p.Attr.BallControl + p.Attr.Creativity) / 2) + (showboat ? 0.2f : 0f);
+                if (len > 3f && len < 14f && Vec2.Dot(to / len, p.FacingDir) < -0.55f && technique > 0.55f
+                    && _rng.Chance((0.4f * (technique - 0.55f) / 0.45f + 0.03f) * (showboat ? 1.6f : 1f)))
+                {
+                    Emit(MatchEventType.Skill, team, p, chosen.Receiver, pos, 0f, WhistleKind.Short, 2);
+                    if (CollectDiagnostics) Count("skill.backheel");
+                }
+            }
+            return chosen;
+        }
+
+        /// <summary>A target man with his back to goal in the final third: he holds it up and lays it off.</summary>
+        private static bool BackToGoalNow(PlayerAgent p)
+        {
+            if (!p.Has(PlayerTrait.BackToGoal)) return false;
+            var team = p.Team;
+            if (team.Forward(p.Pos) < 12f) return false;
+            Vec2 toGoal = (team.AttackGoal - p.Pos).Normalized;
+            return Vec2.Dot(p.FacingDir, toGoal) < -0.2f;
+        }
+
+        private static bool IsCutInsidePlayer(PlayerAgent p)
+        {
+            var slot = p.Slot;
+            if (!(slot.IsWideMidfielder || (slot.Line == Line.Attack && MathF.Abs(slot.BaseLateral) > 12f))) return false;
+            var role = p.PlayRole;
+            if (role == PlayerRole.ClassicWinger || role == PlayerRole.WideTargetMan) return false; // he stays wide
+            bool inverted = (slot.BaseLateral > 0f) == (p.Attr.StrongFoot == Foot.Right);
+            // (the trait: a winger with his strong foot inside, or a two-footed one, always looks to come in)
+            if (p.Has(PlayerTrait.CutsInsideToShoot) && (inverted || p.Attr.WeakFootRating >= 2)) return true;
+            float skill = (p.Attr.Dribbling + p.Attr.LongShots + p.Attr.Finishing + p.Attr.BallControl) / 4f;
+            if (role == PlayerRole.InvertedWinger) return skill >= 45f; // the manager asked him to come inside
+            if (!inverted) return skill >= 62f && p.Attr.WeakFootRating >= 2; // a good two-footed winger cuts in too
+            return skill >= 50f;
+        }
+    }
+}

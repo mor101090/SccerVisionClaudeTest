@@ -12,6 +12,8 @@ using SoccerVision.Simulation;
 //   dotnet run -c Release -- --matches 20 --diag          (decision mix / outcome counters)
 //   dotnet run -c Release -- --matches 10 --shotorigins   (what leads to close-range shots)
 //   dotnet run -c Release -- --matches 40 --seed 100 --scan  (one line per match: set pieces, goals; to pick demos)
+//   dotnet run -c Release -- --golden                    (a fingerprint of a fixed set of matches: events, frames, stats; the same before and
+//                                                          after a change that must not alter how the match plays)
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
@@ -26,6 +28,7 @@ float homeAdvantage = 1f, momentumStrength = 1f;
 MatchScript script = null;
 // --home "line=0.9,width=0.2,passing=short,tempo=0.8,aggression=0.8": the home team's tactics
 string homeTactics = null, awayTactics = null;
+bool golden = false;
 for (int i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -49,7 +52,14 @@ for (int i = 0; i < args.Length; i++)
         case "--home": homeTactics = args[++i]; break;
         case "--away": awayTactics = args[++i]; break;
         case "--script": if (args[++i] == "staged") script = MatchScript.Staged(); break;
+        case "--golden": golden = true; break;
     }
+}
+
+if (golden)
+{
+    Golden();
+    return;
 }
 
 MatchConfig MakeConfig()
@@ -336,6 +346,55 @@ static void ExportReplay(string path, ulong seed, MatchConfig config, int fps)
     Console.WriteLine($"Replay written: {path}  frames={frameCount}  score {engine.Home.Score}-{engine.Away.Score}  size={new FileInfo(path).Length / 1024} KB");
 }
 
+// The fingerprint: a fixed set of matches (leagues, the staged match as the page runs it, rain, snow and wind, cup and league cup
+// with shoot-outs, random plans, computer managers) played through the replay recorder; everything it records - every frame,
+// event and statistics row - goes into one hash per match, and the hashes into one. A refactoring that keeps it is a refactoring.
+static void Golden()
+{
+    var sb = new StringBuilder();
+    var all = System.Security.Cryptography.SHA256.Create();
+    void Run(string name, ulong seed, Action<MatchConfig> config, Func<MatchEngine, (Action update, Action done)> managers = null, Action<TeamSetup, TeamSetup> teams = null)
+    {
+        var cfg = MatchConfig.CreateDefault();
+        config?.Invoke(cfg);
+        ulong names = seed * 2654435761UL + 17UL;
+        var home = DemoTeams.Red(names); var away = DemoTeams.Blue(names);
+        teams?.Invoke(home, away);
+        var e = new MatchEngine(home, away, seed, cfg);
+        var rec = new ReplayRecorder(e, 10);
+        var update = managers?.Invoke(e).update;
+        var h = System.Security.Cryptography.SHA256.Create();
+        void Feed(byte[] b) { h.TransformBlock(b, 0, b.Length, null, 0); }
+        Feed(Encoding.UTF8.GetBytes(rec.Header(false)));
+        int guard = 0;
+        while (!e.IsFinished && guard++ < 100000)
+        {
+            var chunk = rec.Step(30);
+            update?.Invoke();
+            var fb = new byte[chunk.Frames.Length * 4]; Buffer.BlockCopy(chunk.Frames, 0, fb, 0, fb.Length); Feed(fb);
+            Feed(Encoding.UTF8.GetBytes(chunk.EventsJson));
+            var sbts = new byte[chunk.Stats.Length * 4]; Buffer.BlockCopy(chunk.Stats, 0, sbts, 0, sbts.Length); Feed(sbts);
+        }
+        Feed(Encoding.UTF8.GetBytes(rec.Header(true)));
+        h.TransformFinalBlock(new byte[0], 0, 0);
+        string hex = Convert.ToHexString(h.Hash).Substring(0, 16);
+        sb.AppendLine($"{name,-22} {e.Home.Score}-{e.Away.Score} {hex}");
+        var hb = Encoding.UTF8.GetBytes(hex); all.TransformBlock(hb, 0, hb.Length, null, 0);
+    }
+    for (ulong s = 1; s <= 6; s++) { ulong seed = s; Run("league " + seed, seed, null); }
+    Run("staged page 7274", 7274, c => { c.Script = MatchScript.Staged(); c.WalkOut = true; });
+    Run("rain wind 5", 5, c => c.Conditions = new MatchConditions { Weather = Weather.Rain, Maintenance = 0f, WindSpeed = 12f, WindAngle = 1f });
+    Run("snow 77", 77, c => c.Conditions = new MatchConditions { Weather = Weather.Snow, Maintenance = 0.5f });
+    Run("night 12", 12, c => c.Conditions = new MatchConditions { Night = true });
+    for (ulong s = 1; s <= 4; s++) { ulong seed = s; Run("cup " + seed, seed, c => c.Competition = Competition.Cup); }
+    for (ulong s = 1; s <= 4; s++) { ulong seed = s; Run("league cup " + seed, seed, c => c.Competition = Competition.LeagueCup); }
+    Run("random plans 31", 31, null, null, (h, a) => { TeamPlan.Random(h, 31 * 7 + 1).ApplyBeforeKickOff(h); TeamPlan.Random(a, 31 * 7 + 2).ApplyBeforeKickOff(a); });
+    Run("managers 17", 17, null, e => { var m0 = new ComputerManager(e, 0); var m1 = new ComputerManager(e, 1); return (() => { m0.Update(); m1.Update(); }, null); });
+    all.TransformFinalBlock(new byte[0], 0, 0);
+    Console.Write(sb.ToString());
+    Console.WriteLine("ALL " + Convert.ToHexString(all.Hash).Substring(0, 16));
+}
+
 sealed class MatchResult
 {
     /// <summary>Goals by the position kind of the scorer (own goals left out): GK, CB, FB, DM, CM, AM, W, ST.</summary>
@@ -516,3 +575,4 @@ static class RoleStats
         }
     }
 }
+
