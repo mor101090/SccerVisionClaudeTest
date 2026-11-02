@@ -23,7 +23,7 @@ Each round of changes is developed on its own branch, named after what it change
   - *A fingerprint tool*: `SimRunner --golden` plays 20 fixed matches (leagues, the staged match as the page runs it, rain,
     snow and wind, night, cup and league cup with shoot-outs, random plans, computer managers) through the replay recorder and
     hashes every frame, event and statistics row. The fingerprint is `21195E340097B26F` before the cleanup, after it and after
-    each step below.
+    each step below (the cut-in change above is a change of behaviour, made after them: the fingerprint from then on is `5662DC3522CDEFF8`).
   - *The engine*: the four largest files, 1100-1800 lines each, split by topic into files of 130-620 lines (moves of whole
     methods with their comments, nothing rewritten): `OnBall` (decision, `.Passing`, `.Dribbling`, `.Shooting`), `TeamAI`
     (shape, `.Marking`, `.Pressing`, `.Players`, `.Movement`), `SetPieces` (start, `.Layout`, `.Execution`), `Contacts`
