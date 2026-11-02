@@ -34,26 +34,27 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void APlanMovesAHoldingMidfielderUpAndHePlaysThere()
         {
-            var red = DemoTeams.Red();
-            TeamPlan.Parse("formation=4-4-2;pos=6:-7:0").ApplyBeforeKickOff(red);
-            Assert.Equal(PositionKind.AttackingMidfielder, red.Formation.KindAt(6));
-            var e = new MatchEngine(red, DemoTeams.Blue(), 4, MatchConfig.CreateDefault());
-            double sum = 0; int n = 0;
-            while (!e.IsFinished && e.Clock.Seconds < 30 * 60)
+            var probe = DemoTeams.Red();
+            TeamPlan.Parse("formation=4-4-2;pos=6:-7:0").ApplyBeforeKickOff(probe);
+            Assert.Equal(PositionKind.AttackingMidfielder, probe.Formation.KindAt(6));
+            // where the man in slot 6 plays (his average depth over half an hour) - over four matches: in one match alone it
+            // depends on how much of the ball his team has
+            static double Depth(Func<TeamSetup> red, ulong seed)
             {
-                e.Advance(0.5f);
-                var p = e.Home.Players.FirstOrDefault(q => q.SlotIndex == 6);
-                if (p != null && e.Phase == MatchPhase.Live) { sum += e.Home.Forward(p.Pos); n++; }
+                var e = new MatchEngine(red(), DemoTeams.Blue(), seed, MatchConfig.CreateDefault());
+                double sum = 0; int n = 0;
+                while (!e.IsFinished && e.Clock.Seconds < 30 * 60)
+                {
+                    e.Advance(0.5f);
+                    var p = e.Home.Players.FirstOrDefault(q => q.SlotIndex == 6);
+                    if (p != null && e.Phase == MatchPhase.Live) { sum += e.Home.Forward(p.Pos); n++; }
+                }
+                return sum / Math.Max(1, n);
             }
-            var plain = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 4, MatchConfig.CreateDefault());
-            double sum2 = 0; int n2 = 0;
-            while (!plain.IsFinished && plain.Clock.Seconds < 30 * 60)
-            {
-                plain.Advance(0.5f);
-                var p = plain.Home.Players.FirstOrDefault(q => q.SlotIndex == 6);
-                if (p != null && plain.Phase == MatchPhase.Live) { sum2 += plain.Home.Forward(p.Pos); n2++; }
-            }
-            Assert.True(sum / n > sum2 / n2 + 3, $"moved up: {sum / n:0.0} m v {sum2 / n2:0.0} m");
+            TeamSetup Moved() { var r = DemoTeams.Red(); TeamPlan.Parse("formation=4-4-2;pos=6:-7:0").ApplyBeforeKickOff(r); return r; }
+            var seeds = new ulong[] { 4, 5, 6, 7 };
+            double moved = seeds.Average(s => Depth(Moved, s)), plain = seeds.Average(s => Depth(() => DemoTeams.Red(), s));
+            Assert.True(moved > plain + 3, $"moved up: {moved:0.0} m v {plain:0.0} m");
         }
 
         [Fact]

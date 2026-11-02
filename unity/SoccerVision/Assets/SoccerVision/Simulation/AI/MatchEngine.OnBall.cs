@@ -157,7 +157,7 @@ namespace SoccerVision.Simulation
                 if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 1.7f; xg *= 1.1f; }
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
                 // long shots: the manager wants a shot on sight - from the edge of the box out to about 30 m
-                if (longShots && distGoal > 12f && distGoal < 33f) tendency *= 2.2f;
+                if (longShots && distGoal > 12f && distGoal < 33f) tendency *= 2.6f;
                 if (team.Tactics.Special == SpecialTactic.Siege) tendency *= 1.2f;
                 // the individual instruction: shoot from distance more / less (inside the box he shoots as usual)
                 if (distGoal > 18f) tendency *= PlayerAgent.Scale(p.Orders.LongShots, 0.35f, 1.75f);

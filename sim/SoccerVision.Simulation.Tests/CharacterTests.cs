@@ -108,8 +108,14 @@ namespace SoccerVision.Simulation.Tests
             // late in a close match the big-game player is lifted; early on he is not
             Assert.Equal(0f, pa.SituationBonus);
             while (!e.IsFinished && e.Clock.Seconds < 78 * 60 && Math.Abs(e.Home.Score - e.Away.Score) <= 1) e.Advance(0.5f);
-            if (Math.Abs(e.Home.Score - e.Away.Score) <= 1 && e.Clock.Seconds >= 75 * 60)
-                Assert.True(pa.SituationBonus > 0f, "the big-game player rises late in a close match");
+            // (the lift is felt in play: if the whistle has gone - a set piece, a substitution - wait for the ball to be live)
+            for (int k = 0; k < 400 && !e.IsFinished && e.Phase != MatchPhase.Live; k++) e.Advance(0.5f);
+            e.Advance(0.5f);
+            // (only if he is still on the pitch: a player who has gone off - substituted, injured, sent off - is not lifted)
+            // (a substitute takes over the agent of the man he replaces: follow the player, not the agent)
+            var now = e.Home.Players.FirstOrDefault(q => q.Profile == star && !q.SentOff);
+            if (now != null && Math.Abs(e.Home.Score - e.Away.Score) <= 1 && e.Clock.Seconds >= 75 * 60)
+                Assert.True(now.SituationBonus > 0f, $"the big-game player rises late in a close match (minute {e.Clock.Seconds / 60:0}, {e.Home.Score}-{e.Away.Score})");
             Assert.True(hot > 1f);
         }
 

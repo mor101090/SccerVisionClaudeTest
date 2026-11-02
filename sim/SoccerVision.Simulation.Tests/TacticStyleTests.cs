@@ -11,14 +11,16 @@ namespace SoccerVision.Simulation.Tests
     {
         private static readonly ulong[] Seeds = { 21, 22, 23, 24, 25, 26 };
 
-        private static double Avg(Action<TeamTactics> home, Func<MatchEngine, double> f)
+        private static double Avg(Action<TeamTactics> home, Func<MatchEngine, double> f, int matches = 0)
         {
-            var results = new double[Seeds.Length];
-            Parallel.For(0, Seeds.Length, i =>
+            // (the six seeds, or as many matches as asked: the six and then the next ones)
+            var seeds = matches <= Seeds.Length ? Seeds : Seeds.Concat(Enumerable.Range(0, matches - Seeds.Length).Select(k => 100UL + (ulong)k)).ToArray();
+            var results = new double[seeds.Length];
+            Parallel.For(0, seeds.Length, i =>
             {
                 var red = DemoTeams.Red();
                 home?.Invoke(red.Tactics);
-                var e = new MatchEngine(red, DemoTeams.Blue(), Seeds[i], MatchConfig.CreateDefault()) { CollectDiagnostics = true };
+                var e = new MatchEngine(red, DemoTeams.Blue(), seeds[i], MatchConfig.CreateDefault()) { CollectDiagnostics = true };
                 e.RunToEnd();
                 Assert.True(e.IsFinished);
                 Assert.Equal(0, e.RecoveredErrors);
@@ -65,7 +67,8 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void LongShotsStyleShootsFromDistance()
         {
-            double normal = Avg(null, LongShots), shots = Avg(t => t.Attack = AttackStyle.LongShots, LongShots);
+            // (twelve matches: long shots are a handful a match, six matches were too few to see the style reliably)
+            double normal = Avg(null, LongShots, 12), shots = Avg(t => t.Attack = AttackStyle.LongShots, LongShots, 12);
             Assert.True(shots > normal * 1.5, $"shots from 18 m+: style {shots:0.0} v normal {normal:0.0}");
         }
 

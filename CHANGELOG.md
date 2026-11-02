@@ -45,8 +45,12 @@ behaviours, not tactics to set (`AI/MatchEngine.TeamAI.Intelligence.cs`):
     and no further than 6-10 m (the bold keeper the furthest).
   - Measured over 100 matches: shots with the keeper within 3 m in front of the shooter 36% -> 18% of open-play shots; goals
     2.70 a match (in the real range); open-goal goals ~1 a match.
+- The long-shots style weighs a shot from range a little more (x2.6, was x2.2): over 60 matches it now gives ~2.2 times the long
+  shots of normal play (7.1 v 3.2), as normal play shoots from range a bit more than before.
 - Tests: `FinishingIntelligenceTests`; the samples of a few rare-event tests (long throws, dives, traits) enlarged - the effects
-  are the same, four or six matches were too few to see them reliably.
+  are the same, four or six matches were too few to see them reliably (also the long-shots style and a plan moving a midfielder
+  up: four or twelve matches instead of one or six). The big-game player test follows the player, not the agent (a substitute takes
+  over the agent of the man he replaces - the star had been substituted).
 - Test fix: the half-length check allows the Law 7 extension when a penalty is given at the very end of a half.
 - Tests: `IntelligenceTests`.
 
