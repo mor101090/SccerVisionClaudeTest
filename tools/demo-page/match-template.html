@@ -1524,7 +1524,13 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var b = document.createElement("button"); b.type = "button";
     b.innerHTML = '<span class="m"></span><span></span>';
     b.children[0].textContent = e.minute; b.children[1].textContent = e.text; b.children[1].className = "tone-" + e.tone;
-    b.addEventListener("click", function () { jump(Math.max(t0, e.t - 8)); });
+    b.addEventListener("click", function () {
+      jump(Math.max(t0, e.t - 8));
+      // (on a phone the list is far below the pitch: take the viewer to the moment, not just move the clock)
+      var r = cv.getBoundingClientRect();
+      if (r.top < 0 || r.bottom > innerHeight) try { cv.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (x) { cv.scrollIntoView(); }
+      if (!playing) setPlaying(true);
+    });
     moments.appendChild(b);
   }
 
