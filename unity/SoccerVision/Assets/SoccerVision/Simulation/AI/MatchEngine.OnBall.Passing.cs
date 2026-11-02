@@ -19,6 +19,20 @@ namespace SoccerVision.Simulation
 
         private bool _nextPassIntoSpace, _nextOneTwo;
 
+        /// <summary>
+        /// The chance the runner beats the keeper to a ball played in behind (1 when the keeper is far away). The keeper starts
+        /// as the ball is played, needs only to get a hand to it and is a little quicker off his line than the plain time to
+        /// the spot says; how well the passer judges it is his decisions (a poor one overrates his runner's chance).
+        /// </summary>
+        private float KeeperRace(PlayerAgent passer, TeamAgent team, Vec2 target, float runnerArrives)
+        {
+            var gk = team.Opponent.Goalkeeper;
+            if (gk == null || gk.SentOff) return 1f;
+            float gkT = gk.TimeToReach(target) - 0.45f - 0.25f * MathUtil.A(gk.Attr.OneOnOne);
+            float misjudge = 0.35f * (1f - MathUtil.A(passer.Attr.Decisions));
+            return MathUtil.Clamp01(0.5f + (gkT - runnerArrives + misjudge) / 0.7f);
+        }
+
         private float PassAngleSigma(PlayerAgent p, float pressure, bool lofted)
         {
             float skill = MathUtil.A(p.Attr.Passing);
@@ -206,6 +220,9 @@ namespace SoccerVision.Simulation
             // Through balls behind the line: keepers sweep, defenders turn and recover - the race is harder to win
             // than the simple estimate suggests (measured: well below the predicted success).
             else if (kind == KickKind.ThroughBall && !_nextOneTwo) success *= 0.68f + 0.5f * SpaceBehindLine(team);
+            // ...and the keeper: he reads the ball from the moment it is played and comes off his line, and he may use his
+            // hands - a ball he can reach first is his. A passer who reads the game sees it (he plays it shorter, or not at all).
+            if (kind == KickKind.ThroughBall && !_nextOneTwo && !_nextPassIntoSpace) success *= KeeperRace(p, team, target, MathF.Max(tArrive, tRecv));
             // (against a high backline the space behind it is there for the taking)
             float styleBoost = (kind == KickKind.ThroughBall && team.Opponent.Tactics.Defence == DefenceStyle.HighBackline ? 1.2f : 1f)
                                * (kind == KickKind.ThroughBall && team.Tactics.Attack == AttackStyle.RunsInBehind ? 1.28f : 1f)
@@ -231,6 +248,13 @@ namespace SoccerVision.Simulation
             if (progress < -5f) value -= 0.0006f * (TempoNow(team) - 0.3f) * (-progress / 10f);
             float loss = LossCost(team, pIntercept > 0.3f ? riskPoint : target) + _riskPremium;
             float utility = success * value - (1f - success) * loss;
+            // A ball in behind is a gamble a good team takes when it is on, not the default: patience over a hopeful ball
+            // (a long ball the runner has little chance of reaching is not even considered).
+            if (kind == KickKind.ThroughBall && !_nextOneTwo && !_nextPassIntoSpace)
+            {
+                if (success < 0.3f) return;
+                utility = success * value * 0.75f - (1f - success) * loss;
+            }
 
             _options.Add(new KickPlan
             {
@@ -352,6 +376,7 @@ namespace SoccerVision.Simulation
             float pAccuracy = 1f - MathF.Exp(-0.635f * capture * capture / (sd * sd));
             float success = pWin * pControl * pAccuracy;
             if (kind == KickKind.ThroughBall) success *= 0.78f + 0.3f * SpaceBehindLine(team); // the keeper and the recovering defenders (see AddGroundPass)
+            if (kind == KickKind.ThroughBall) success *= KeeperRace(p, team, target, arrive);
             float value = ExpectedThreat.At(team, target) * StyleFactor(team, kind, d, true) * RolePassFactor(p, q, kind, d, true, team.Forward(target) - team.Forward(from));
             float relief = SwitchRelief(p, from, target, pressure) * (p.Has(PlayerTrait.SwitchesPlay) ? 1.6f : 1f) * LowBlockSwitch(team);
             value += relief;
@@ -617,6 +642,7 @@ namespace SoccerVision.Simulation
                 {
                     float pf = passer.Team.Forward(controller.Pos);
                     Count("pass.intercepted" + (controller.IsGoalkeeper ? ".gk" : ""));
+                    if (controller.IsGoalkeeper) Count("pass.gk." + (intoSpace ? "intospace" : key ?? "other"));
                     Count("pass.intercepted.zone" + (pf < -17.5f ? "1own" : pf < 17.5f ? "2mid" : "3fin") + "." + (key ?? "other"));
                 }
                 if (read) Emit(MatchEventType.Interception, controller.Team, controller, Ball.IntendedReceiver, controller.Pos, 0f, WhistleKind.Short, 1);

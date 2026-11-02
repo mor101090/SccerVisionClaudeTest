@@ -18,6 +18,15 @@ behaviours, not tactics to set (`AI/MatchEngine.TeamAI.Intelligence.cs`):
   creative passer than a hopeful cross; counted in the team statistics (`DeepCompletions`, about 6-7 per team a match).
 - Calibration (60 matches, before -> after): goals 3.72 -> 3.67, shots 35.8 -> 35.0, passes 403 -> 411, completion 77.9% -> 78.4%,
   headed goals 11.7% -> 14.1% of goals; the rest within the noise.
+- **Fewer hopeful balls in behind** (a match ended 0-0 with ball after ball over the top for the keeper): measured over 30 matches there
+  were ~25 balls in behind a match, a third reached the runner and ~9 ended in the keeper's hands. The passer now weighs the keeper's race
+  (he reads the ball as it is played, comes off his line and may use his hands; a passer with poor decisions overrates his runner), a ball
+  the runner has little chance of reaching is not considered, and the ball in behind is a gamble taken when it is on, not the default:
+  ~9 a match, ~2 for the keeper. (Balls into the path of a team-mate already running are unchanged.)
+- **Fix: a ball on the roof of the net stayed there for the rest of the match** - the roof stopped it every frame and a ball was only
+  collected lying on the grass. It now rolls off the back of the roof and drops behind the goal, and no ball that went out is shown for
+  more than 9 s.
+- Test fix: the half-length check allows the Law 7 extension when a penalty is given at the very end of a half.
 - Tests: `IntelligenceTests`.
 
 ## `feature/faces-and-logos`

@@ -49,8 +49,12 @@ namespace SoccerVision.Simulation.Tests
             // end-of-half grace (an attack may finish) - all at 4.5 clock seconds per real second.
             float perMinute = 60f / c.ClockSecondsPerRealSecond;
             float grace = c.EndOfHalfGraceClockSeconds / c.ClockSecondsPerRealSecond + 2f;
-            Assert.InRange(e.FirstHalfRealSeconds, c.HalfRealSeconds + added[0] * perMinute - 0.5f, c.HalfRealSeconds + added[0] * perMinute + grace);
-            Assert.InRange(e.SecondHalfRealSeconds, c.HalfRealSeconds + added[1] * perMinute - 0.5f, c.HalfRealSeconds + added[1] * perMinute + grace);
+            // (Law 7: a penalty given at the very end extends the half until it is taken - then the half may run longer)
+            float half = c.RegulationHalfClockSeconds;
+            bool LatePenalty(float end) => e.EventLog.Any(x => x.Type == MatchEventType.PenaltyAwarded && x.ClockSeconds > end - 90f && x.ClockSeconds <= end + c.EndOfHalfGraceClockSeconds);
+            float pen1 = LatePenalty(half + added[0] * 60f) ? 25f : 0f, pen2 = LatePenalty(2f * half + added[1] * 60f) ? 25f : 0f;
+            Assert.InRange(e.FirstHalfRealSeconds, c.HalfRealSeconds + added[0] * perMinute - 0.5f, c.HalfRealSeconds + added[0] * perMinute + grace + pen1);
+            Assert.InRange(e.SecondHalfRealSeconds, c.HalfRealSeconds + added[1] * perMinute - 0.5f, c.HalfRealSeconds + added[1] * perMinute + grace + pen2);
             Assert.Equal(c.HalftimeRealSeconds, e.HalftimeRealSeconds, 2);
 
             Assert.True(e.Clock.Seconds >= 2f * c.RegulationHalfClockSeconds + added[1] * 60f - 1f);

@@ -12,7 +12,7 @@ namespace SoccerVision.Simulation
         /// <summary>The ball that went out (Active while it is still moving or lying there).</summary>
         public BallMotion DeadBall;
         public bool DeadBallActive;
-        private float _deadBallRest;
+        private float _deadBallRest, _deadBallAge;
 
         private const float BoardsX = Pitch.HalfLength + 5f, BoardsY = Pitch.HalfWidth + 4f;
 
@@ -22,6 +22,7 @@ namespace SoccerVision.Simulation
             DeadBall = Ball.M;
             DeadBallActive = true;
             _deadBallRest = 0f;
+            _deadBallAge = 0f;
         }
 
         private void UpdateDeadBall(float dt)
@@ -49,7 +50,8 @@ namespace SoccerVision.Simulation
                 bool wasInBox = (px - line) * side > 0f && (px - line) * side < Pitch.GoalDepth && MathF.Abs(py) < Pitch.GoalHalfWidth + 0.1f && pz < Pitch.GoalHeight + 0.1f;
                 if (wasInBox) continue;
                 if (MathF.Abs(py) >= Pitch.GoalHalfWidth + 0.1f) { b.Y = MathF.Sign(py) * (Pitch.GoalHalfWidth + 0.12f); b.Vy = -b.Vy * 0.15f; b.Vx *= 0.35f; }
-                else if (pz >= Pitch.GoalHeight + 0.1f) { b.Z = Pitch.GoalHeight + 0.12f; b.Vz = MathF.Abs(b.Vz) * 0.1f; b.Vx *= 0.5f; b.Vy *= 0.5f; }
+                // (on the roof: the netting sags towards the back - it rolls off behind the goal and drops to the grass)
+                else if (pz >= Pitch.GoalHeight + 0.1f) { b.Z = Pitch.GoalHeight + 0.12f; b.Vz = 0f; b.Vx = side * MathF.Max(MathF.Abs(b.Vx) * 0.5f, 1.2f); b.Vy *= 0.5f; }
                 else { b.X = line + side * (Pitch.GoalDepth + 0.05f); b.Vx = MathF.Abs(b.Vx) * 0.2f * side; } // (the back of the net, from behind)
             }
             // the advertising boards
@@ -58,7 +60,9 @@ namespace SoccerVision.Simulation
             // lying still for a moment, then it is collected
             float speed = MathF.Sqrt(b.Vx * b.Vx + b.Vy * b.Vy + b.Vz * b.Vz);
             _deadBallRest = speed < 0.15f && b.Z <= Pitch.BallRadius + 0.01f ? _deadBallRest + dt : 0f;
-            if (_deadBallRest > 1.5f) DeadBallActive = false;
+            _deadBallAge += dt;
+            // (and whatever happens, a ball boy has it after a while - it never lies anywhere for good)
+            if (_deadBallRest > 1.5f || _deadBallAge > 9f) DeadBallActive = false;
         }
     }
 }

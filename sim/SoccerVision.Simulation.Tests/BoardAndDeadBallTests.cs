@@ -82,6 +82,35 @@ namespace SoccerVision.Simulation.Tests
         }
 
         [Fact]
+        public void ABallOnTheRoofOfTheNetRollsOffAndNoDeadBallLiesForever()
+        {
+            // a shot over the bar dropping onto the roof of the net (the bug: it stayed there for the rest of the match)
+            var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 8, MatchConfig.CreateDefault());
+            e.DeadBall = new BallMotion { X = Pitch.HalfLength + 0.6f, Y = 1f, Z = Pitch.GoalHeight + 0.8f, Vx = 0.5f, Vy = 0f, Vz = -2f };
+            e.DeadBallActive = true;
+            bool onRoof = false;
+            for (int i = 0; i < 120 && e.DeadBallActive; i++)
+            {
+                e.Advance(0.1f);
+                if (e.DeadBallActive && e.DeadBall.Z > Pitch.GoalHeight) onRoof = true;
+            }
+            Assert.True(onRoof, "the ball never landed on the roof");
+            Assert.False(e.DeadBallActive, "the ball is still lying on the roof of the net");
+            // and in whole matches no ball that went out is shown for long
+            for (ulong seed = 1; seed <= 3; seed++)
+            {
+                var m = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed, MatchConfig.CreateDefault());
+                float since = -1f;
+                while (!m.IsFinished)
+                {
+                    m.Advance(0.25f);
+                    if (m.DeadBallActive) { if (since < 0f) since = m.SimTime; Assert.True(m.SimTime - since < 12f, "a dead ball lay there for good"); }
+                    else since = -1f;
+                }
+            }
+        }
+
+        [Fact]
         public void APlayerShootsAtAnOpenGoal()
         {
             int considered = 0;
