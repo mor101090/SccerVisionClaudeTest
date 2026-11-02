@@ -409,6 +409,7 @@ namespace SoccerVision.Simulation
             {
                 shooter.Team.Stats.ShotsBlocked++;
                 Emit(MatchEventType.ShotBlocked, p.Team, p, shooter, Ball.Pos);
+                if (CollectDiagnostics && _lastShotOpenGoal) Count("openGoal.blocked");
             }
             Ball.IsShot = false;
             Vec2 v = Ball.Velocity;
@@ -620,7 +621,7 @@ namespace SoccerVision.Simulation
             float difficulty = 0.42f * MathUtil.Clamp((speed - 12f) / 20f, 0f, 1.2f) + 0.55f * reachNeeded + (Ball.Z > 1.8f ? 0.12f : 0f) + 0.35f * closeRange;
             if (Ball.LastKickKind == KickKind.Header) difficulty += 0.25f; // close-range headers give little time to react
             if (Ball.ShotKnuckle) difficulty += 0.22f; // a ball with no spin moves late in the air
-            float pSave = MathUtil.Clamp(0.98f - difficulty * 0.46f + (skill - 0.5f) * 0.35f, 0.08f, 0.93f);
+            float pSave = MathUtil.Clamp(1.03f - difficulty * 0.44f + (skill - 0.5f) * 0.35f, 0.1f, 0.94f); // (a little more for the keepers: more saves, a more watchable match)
             if (_penaltyKickTime >= 0f && shooter != null && SimTime - _penaltyKickTime < 1.5f)
             {
                 pSave = _penaltyGuessCorrect ? MathUtil.Clamp(0.36f + 0.3f * (skill - 0.5f) - reachNeeded * 0.15f, 0.15f, 0.7f) : 0.05f;
@@ -628,6 +629,7 @@ namespace SoccerVision.Simulation
                 pSave *= gk.Team == Home ? 1f + 0.08f * Config.HomeAdvantage : 1f - 0.06f * Config.HomeAdvantage;
             }
 
+            if (_lastShotOpenGoal && Ball.IsShot) pSave *= 0.25f; // (a keeper scrambling back to an open goal rarely gets there)
             if (!_rng.Chance(pSave))
             {
                 gk.TouchCooldown = 1f; // beaten
@@ -650,6 +652,7 @@ namespace SoccerVision.Simulation
             {
                 gk.Team.Stats.KeeperCatches++;
                 Emit(MatchEventType.Save, gk.Team, gk, shooter, savePos, 0f, WhistleKind.Short, 0);
+                if (CollectDiagnostics && _lastShotOpenGoal) Count("openGoal.saved");
                 GoalkeeperCatch(gk);
                 return;
             }

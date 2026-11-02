@@ -17,6 +17,31 @@ namespace SoccerVision.Simulation
         {
             public PlayerAgent Out;
             public PlayerAgent In;
+            /// <summary>Seconds of the handshake at the halfway line (-1: not there yet).</summary>
+            public float Shake = -1f;
+        }
+
+        /// <summary>
+        /// The other man of a change, drawn by the viewers only (the engine has one agent per place): the substitute waiting at
+        /// the halfway line for the high five, then the player who came off walking to the bench.
+        /// </summary>
+        public struct ChangeFigure
+        {
+            public bool Active;
+            public Vec2 Pos, Target;
+            public float Facing, Timer;
+            public int Team, Number;
+        }
+        public ChangeFigure Figure;
+
+        private void UpdateChangeFigure(float dt)
+        {
+            if (!Figure.Active) return;
+            Figure.Timer -= dt;
+            Vec2 d = Figure.Target - Figure.Pos;
+            float len = d.Length;
+            if (len > 0.05f) { Figure.Pos += d / len * MathF.Min(len, 1.8f * dt); Figure.Facing = d.Angle; }
+            if (Figure.Timer <= 0f) Figure.Active = false;
         }
 
         private readonly List<PendingSubstitution> _pendingSubs = new List<PendingSubstitution>();
@@ -102,18 +127,37 @@ namespace SoccerVision.Simulation
                     team.WindowsUsed++;
                 }
                 if (_restart.Taker == p) _restart.Taker = null;
-                // Law 3: he leaves by the nearest point on the boundary line (the substitute comes on at the halfway line)
-                p.Target = NearestExit(p.Pos);
+                // he walks off towards the benches, at the halfway line, where the substitute waits for him
+                p.Target = new Vec2(BenchSpot(team).X, Pitch.HalfWidth + 0.3f);
                 p.Task = PlayerTask.Leave;
                 p.FaceBall = false;
                 p.StunTimer = 0f;
                 Vec2 to = p.Target - p.Pos;
-                float d = to.Length, v = 3.4f; // a brisk walk off
-                if (d > 0.05f) { p.Pos += to / d * MathF.Min(d, v * dt); p.Vel = to / d * v; p.Facing = (to / d).Angle; }
-                if (d < 0.3f)
+                float d = to.Length, v = d > 25f ? 4.6f : 3.4f; // a brisk walk off (a jog from the far side)
+                if (d > 0.05f && s.Shake < 0f) { p.Pos += to / d * MathF.Min(d, v * dt); p.Vel = to / d * v; p.Facing = (to / d).Angle; }
+                if (d < 6f && s.Shake < 0f && !Figure.Active)
                 {
-                    MakeChange(p, s.In, true);
-                    _pendingSubs.RemoveAt(i);
+                    // the substitute steps up to the line
+                    Figure = new ChangeFigure { Active = true, Pos = new Vec2(p.Target.X + 1.2f, Pitch.HalfWidth + 1.5f), Target = new Vec2(p.Target.X + 1.0f, Pitch.HalfWidth + 0.4f), Team = team.Index, Number = s.In.Number, Timer = 30f };
+                }
+                if (d < 0.3f && s.Shake < 0f && Figure.Active && Figure.Number == s.In.Number && Figure.Team == team.Index) { s.Shake = 0f; p.Vel = Vec2.Zero; }
+                if (s.Shake >= 0f)
+                {
+                    // the high five
+                    s.Shake += dt;
+                    p.Facing = (Figure.Pos - p.Pos).Angle;
+                    Figure.Facing = (p.Pos - Figure.Pos).Angle;
+                    if (s.Shake >= 0.9f)
+                    {
+                        var outPos = p.Pos;
+                        int outNumber = p.Number;
+                        Vec2 inPos = Figure.Pos;
+                        MakeChange(p, s.In, true);
+                        p.Pos = p.PrevPos = new Vec2(inPos.X, MathF.Min(inPos.Y, Pitch.HalfWidth - 0.2f));
+                        // the player who came off walks on to the bench
+                        Figure = new ChangeFigure { Active = true, Pos = outPos, Target = new Vec2(outPos.X - 3f * MathF.Sign(outPos.X == 0f ? 1f : outPos.X), Pitch.HalfWidth + 4.5f), Team = team.Index, Number = outNumber, Timer = 3.5f };
+                        _pendingSubs.RemoveAt(i);
+                    }
                 }
             }
             return true;

@@ -25,6 +25,50 @@ namespace SoccerVision.Simulation
             "Fendar", "Galvin", "Harrow", "Ilvane", "Jestin", "Korval", "Lorcan", "Mirren", "Novak", "Orsini",
         };
 
+        /// <summary>
+        /// Shirt numbers as football uses them: 1 the keeper, 2 the right-back, 3 the left-back, 4 and 5 the centre-backs, 6 the
+        /// holding midfielder, 7 the right winger, 8 the central midfielder, 9 the centre-forward, 10 the playmaker or second
+        /// striker, 11 the left winger; the bench from 12 (the reserve keeper) up, the numbers above 11 loosely by position.
+        /// </summary>
+        public static void NumberByPosition(TeamSetup t)
+        {
+            var used = new HashSet<int>();
+            int Take(params int[] prefs)
+            {
+                foreach (int n in prefs) if (used.Add(n)) return n;
+                for (int n = 14; n < 99; n++) if (used.Add(n)) return n;
+                return 99;
+            }
+            for (int i = 0; i < t.Starters.Count; i++)
+            {
+                var p = t.Starters[i];
+                var k = t.Formation.KindAt(i);
+                var role = t.Formation.Slots[i].Role;
+                bool right = t.Formation.Slots[i].BaseLateral < 0f;
+                switch (k)
+                {
+                    case PositionKind.Goalkeeper: p.ShirtNumber = Take(1); break;
+                    case PositionKind.FullBack: p.ShirtNumber = right ? Take(2, 12, 22) : Take(3, 15, 23); break;
+                    case PositionKind.CentreBack: p.ShirtNumber = Take(4, 5, 6, 15); break;
+                    case PositionKind.DefensiveMidfielder: p.ShirtNumber = Take(6, 4, 16); break;
+                    case PositionKind.CentralMidfielder: p.ShirtNumber = Take(8, 6, 14, 16); break;
+                    case PositionKind.AttackingMidfielder: p.ShirtNumber = Take(10, 8, 20); break;
+                    case PositionKind.Winger: p.ShirtNumber = right ? Take(7, 17, 11) : Take(11, 7, 19); break;
+                    default: p.ShirtNumber = role == Role.Striker || right ? Take(9, 10, 18, 21) : Take(10, 9, 21, 18); break;
+                }
+            }
+            foreach (var p in t.Bench)
+            {
+                switch (p.NaturalPosition)
+                {
+                    case PositionGroup.Goalkeeper: p.ShirtNumber = Take(12, 13, 23, 31); break;
+                    case PositionGroup.Defender: p.ShirtNumber = Take(15, 22, 23, 24, 25); break;
+                    case PositionGroup.Midfielder: p.ShirtNumber = Take(14, 16, 17, 18, 19, 20); break;
+                    default: p.ShirtNumber = Take(19, 21, 18, 20, 27); break;
+                }
+            }
+        }
+
         private static TeamSetup FromGenerated(string name, string shortName, KitColors kit, (List<PlayerProfile> Starters, List<PlayerProfile> Bench) squad)
         {
             var t = new TeamSetup { Name = name, ShortName = shortName, Kit = kit, Formation = Formation.F442(), Tactics = new TeamTactics() };
@@ -46,6 +90,7 @@ namespace SoccerVision.Simulation
                 GoalkeeperNumber = "#1A1A1A",
             }, GeneratedTeams.Red());
             IsraeliNames.Name(t, seed, 0);
+            NumberByPosition(t);
             t.Tactics.Marking = MarkingStyle.Zonal;
             t.Tactics.Tackling = TacklingStyle.Normal;
             return t;
@@ -63,6 +108,7 @@ namespace SoccerVision.Simulation
                 GoalkeeperNumber = "#FFFFFF",
             }, GeneratedTeams.Blue());
             IsraeliNames.Name(t, seed, 1);
+            NumberByPosition(t);
             t.Tactics.Marking = MarkingStyle.ManToMan;
             t.Tactics.Tackling = TacklingStyle.GetStuckIn;
             return t;

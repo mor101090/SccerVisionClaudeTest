@@ -1147,6 +1147,8 @@ namespace SoccerVision.Simulation
         }
 
         /// <summary>Shot at goal: aims at a corner away from the keeper, then applies skill-based error.</summary>
+        private bool _lastShotOpenGoal;
+
         private void ExecuteShot(PlayerAgent p, bool header, bool penalty, float xg, bool volley = false, bool bicycle = false)
         {
             var team = p.Team;
@@ -1268,6 +1270,23 @@ namespace SoccerVision.Simulation
                     accuracy = 1f + (3 - MathUtil.Clamp(p.Attr.WeakFootRating, 1, 3)) * 0.3f;
                     break;
             }
+            // An open goal (the keeper beaten or down, nobody in the lane): he just rolls it in - well inside the posts, low,
+            // no curl, no showing off. Nine in ten of these go in.
+            bool openGoal = !penalty && !header && dist < 26f && (keeper == null || keeper.SentOff || keeper.IsDown
+                            || Vec2.DistanceToSegment(keeper.Pos, from, team.AttackGoal, out _) > 2.4f);
+            if (openGoal)
+                foreach (var o in team.Opponent.Players)
+                    if (!o.SentOff && o != keeper && Vec2.DistanceToSegment(o.Pos, from, team.AttackGoal, out _) < 1.2f) { openGoal = false; break; }
+            if (openGoal)
+            {
+                float kY = keeper != null ? keeper.Pos.Y : 0f;
+                aimY = MathUtil.Clamp(-MathF.Sign(kY == 0f ? 1f : kY) * 1.4f, -1.8f, 1.8f); // (away from where the keeper is coming back)
+                aimZ = 0.35f;
+                curlMag = 0f;
+                power = MathF.Min(power, 18f + 0.4f * dist);
+                if (CollectDiagnostics) Count("shot.openGoal");
+            }
+            _lastShotOpenGoal = openGoal;
             Vec2 aim = new Vec2(Pitch.HalfLength * goalSign, aimY);
             Vec2 dir = (aim - from).Normalized;
             float distToAim = Vec2.Distance(from, aim);
@@ -1300,14 +1319,16 @@ namespace SoccerVision.Simulation
             if (volley) sigmaA *= 1.35f;
             sigmaA *= accuracy;
             if (keeper != null && !penalty && Vec2.Distance(keeper.Pos, from) < 14f) sigmaA *= 1f + 0.5f * (1f - composure); // (cool in front of the keeper)
+            if (openGoal) sigmaA *= 0.2f;
             float sigmaZ = (0.6f + 1.8f * (1f - skill)) * (1f + 0.5f * pressure) * p.FatigueError;
+            if (openGoal) sigmaZ *= 0.3f;
             if (penalty) sigmaZ *= 0.35f;
             if (tech == ShotTechnique.PlacedNear || tech == ShotTechnique.PlacedFar) sigmaZ *= 0.6f;
             if (tech == ShotTechnique.Chip) sigmaZ *= 0.5f; // a soft lob: errors are in length, not height
             // Technique error that does not shrink with distance (snatched/skied finishes at close range).
             float flight = MathF.Max(0.15f, distToAim / MathF.Max(5f, power));
-            float fixedLateral = (penalty ? 0.15f : 1.0f) * (1.3f - skill) * (1f + pressure);
-            float fixedHeight = (penalty ? 0.15f : 0.55f + 1.0f * (1f - skill)) * (1f + 0.6f * pressure);
+            float fixedLateral = (penalty ? 0.15f : openGoal ? 0.25f : 1.0f) * (1.3f - skill) * (1f + pressure);
+            float fixedHeight = (penalty ? 0.15f : openGoal ? 0.2f : 0.55f + 1.0f * (1f - skill)) * (1f + 0.6f * pressure);
             if (tech == ShotTechnique.Chip) fixedHeight *= 0.3f;
             float angle = dir.Angle + _rng.Gaussian(0f, sigmaA) + _rng.Gaussian(0f, fixedLateral / MathF.Max(3f, distToAim));
             vz += _rng.Gaussian(0f, sigmaZ) + _rng.Gaussian(0f, fixedHeight / flight);

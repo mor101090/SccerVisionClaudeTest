@@ -321,6 +321,7 @@ namespace SoccerVision.Simulation
 
             UpdateTimers(dt);
             UpdateDeadBall(dt);
+            UpdateChangeFigure(dt);
             if (WalkingOut)
             {
                 StepWalkOut(dt);

@@ -66,13 +66,12 @@ h1 { margin: 2px 0 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--display); lett
 .sb.cup #ab { border-right: 0; border-left: .22em solid var(--team, #888); }
 .sb.cup .sb-score { background: #3a4058; min-width: 2.7em; }
 .sb.cup .sb-sub { background: linear-gradient(90deg, #3a4058 55%, rgba(58,64,88,0)); padding-right: 3.5em; }
-/* the league cup (the broadcast bar): slanted ends, a light score box between two zigzags in the teams' colours */
-.sb.lcup .sb-row { height: 1.5em; filter: drop-shadow(0 .12em .2em rgba(0,0,0,.35)); }
-.sb.lcup .sb-clock { background: var(--amber); min-width: 3.3em; padding: 0 .75em 0 .5em; clip-path: polygon(0 0, 100% 0, 86% 50%, 100% 100%, 0 100%); }
-.sb.lcup .sb-team { background: #1d1f2a; box-shadow: none; min-width: 4.8em; padding: 0 .9em; margin-left: -.35em; }
-.sb.lcup #hb { clip-path: polygon(0 0, 100% 0, 92% 100%, 4% 100%); padding-left: 1.1em; }
-.sb.lcup #ab { clip-path: polygon(8% 0, 100% 0, 96% 100%, 0 100%); margin-left: -.35em; padding-right: 1.1em; }
-.sb.lcup .sb-score { background: #e9ecf3; color: #14161f; min-width: 3.1em; margin-left: -.5em; padding: 0 .85em; clip-path: polygon(7% 0, 100% 0, 93% 100%, 0 100%); box-shadow: inset .3em 0 var(--home, #d32f2f), inset -.3em 0 var(--away, #1e5bc6); font-weight: 600; }
+/* the league cup: the broadcast bar of the reference drawn as a vector (lightning-bolt separators, a slanted end), in the page's palette */
+.sb-lcup { display: none; height: 1.62em; width: auto; filter: drop-shadow(0 .12em .25em rgba(0,0,0,.4)); }
+.sb.lcup .sb-lcup { display: block; }
+.sb.lcup .sb-row > .sb-clock, .sb.lcup .sb-row > .sb-team, .sb.lcup .sb-row > .sb-score { display: none; }
+.sb.lcup .sb-row { height: 1.62em; }
+.sb-lcup text { font: 700 23px/1 "Barlow Condensed", "Arial Narrow", sans-serif; text-anchor: middle; dominant-baseline: central; }
 .sb.lcup .sb-sub { background: #3a4058; }
 .topctl { position: absolute; right: 2.2%; top: 2.4%; display: flex; align-items: center; gap: .5em; font-size: clamp(18px, 2.6cqi, 32px); }
 .topctl button.icon { background: none; border: 0; padding: .1em; color: #fff; line-height: 0; border-radius: 6px; }
@@ -189,6 +188,8 @@ body.live .live-only { display: inline-flex; }
 body.live .speeds button:not([data-speed="1"]) { display: none; }
 body.live #seek { accent-color: #e2372f; }
 .badge-live { align-items: center; gap: .4em; background: #d50000; color: #fff; font: 700 11px/1 var(--body); letter-spacing: .1em; padding: 5px 8px; border-radius: 4px; }
+button.badge-live { border: 0; cursor: default; }
+button.badge-live.back { cursor: pointer; box-shadow: 0 0 0 2px rgba(255,255,255,.35); }
 .badge-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: blink 1.2s infinite; }
 @keyframes blink { 50% { opacity: .25; } }
 @keyframes tacflow { to { stroke-dashoffset: -8; } }
@@ -394,6 +395,9 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .sp .box { width: 100%; max-width: 300px; background: #1e5a2e; border-radius: 6px; }
 .tac-seg button.locked { opacity: .35; cursor: not-allowed; background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(255,255,255,.06) 6px 9px); }
 #tacLine.locked, #tacWidth.locked { outline: 1px dashed rgba(242,194,48,.6); outline-offset: 3px; border-radius: 4px; }
+.sub-confirm { display: inline-flex; gap: 6px; margin: 0 10px; }
+.sub-confirm[hidden] { display: none; }
+#subOk { background: var(--good); color: #0d1a10; font-weight: 700; } #subCancel { background: #3a4058; }
 .subtabs { display: flex; gap: 4px; margin: 0 0 12px; border-bottom: 1px solid var(--rule); }
 .subtabs button { background: transparent; border: 0; border-bottom: 3px solid transparent; color: var(--muted); padding: 7px 12px; font: 600 14px/1 var(--body); border-radius: 0; }
 .subtabs button[aria-selected="true"] { color: #fff; border-bottom-color: var(--amber); }
@@ -460,6 +464,20 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     <canvas id="pitch" aria-label="Pitch view of the match"></canvas>
     <div class="sb" role="group" aria-label="Scoreboard">
       <div class="sb-row">
+        <svg class="sb-lcup" id="lcupBar" viewBox="0 0 470 40" aria-hidden="true">
+          <path d="M0 0H104L112 14L106 16L116 40H0Z" fill="var(--amber)"/>
+          <path d="M104 0H109L117 14L111 16L121 40H116L106 16L112 14Z" fill="#fff"/>
+          <path d="M109 0H236L244 14L238 16L248 40H121L111 16L117 14Z" fill="#1d1f2a"/>
+          <path id="lcHomeBolt" d="M236 0H247L255 14L249 16L259 40H248L238 16L244 14Z" fill="#8b9cc4"/>
+          <path d="M247 0H338L346 14L340 16L350 40H259L249 16L255 14Z" fill="#eef0f5"/>
+          <path id="lcAwayBolt" d="M338 0H349L357 14L351 16L361 40H350L340 16L346 14Z" fill="#e2372f"/>
+          <path d="M349 0H470L459 40H361L351 16L357 14Z" fill="#1d1f2a"/>
+          <text id="lcClock" x="54" y="21" fill="#fff">00:00</text>
+          <text id="lcHome" x="180" y="21" fill="#fff">HOME</text>
+          <text id="lcScore" x="298" y="21" fill="#14161f" style="font-size:26px">0 - 0</text>
+          <text id="lcAway" x="408" y="21" fill="#fff">AWAY</text>
+          <g id="lcReds"></g>
+        </svg>
         <span class="sb-clock" id="mn">00:00</span>
         <span class="sb-team" id="hb"><span class="sb-reds" id="hr"></span><span id="hn">HOME</span></span>
         <span class="sb-score" id="sc">0-0</span>
@@ -542,7 +560,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       <button type="button" data-speed="8" aria-pressed="false">8×</button>
       <button type="button" data-speed="16" aria-pressed="false">16×</button>
     </div>
-    <span class="badge-live live-only" id="liveBadge">LIVE</span>
+    <button type="button" class="badge-live live-only" id="liveBadge" title="Live">LIVE</button>
     <span class="live-only" id="liveYou" style="color:var(--muted);font-size:13px"></span>
     <input id="seek" type="range" min="0" max="100" step="0.5" value="0" aria-label="Match position">
     <span class="time" id="rt">0:00</span>
@@ -557,7 +575,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     <div class="squad" aria-label="Your squad">
       <div class="squad-row"><span class="squad-tag" data-tip="The eleven on the pitch. Pick one, then a bench player to bring on - or another player on the pitch to swap their positions.">IN</span><div class="cards" id="cardsIn"></div></div>
       <div class="squad-row"><span class="squad-tag out" data-tip="The bench: nine substitutes (Premier League rules). A player who has come off cannot return.">OUT</span><div class="cards" id="cardsOut"></div></div>
-      <div class="sub-bar"><span id="subInfo"></span><span id="subHint" class="muted"></span></div>
+      <div class="sub-bar"><span id="subInfo"></span><span class="sub-confirm" id="subConfirm" hidden><button type="button" id="subOk">Confirm changes</button><button type="button" id="subCancel">Cancel</button></span><span id="subHint" class="muted"></span></div>
     </div>
     <div class="mtabs" role="tablist" aria-label="Manager">
       <button type="button" role="tab" data-tab="team" aria-selected="true">Team Tactics</button>
@@ -677,7 +695,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   var ENGINE_DIR = "__ENGINE_DIR__";
   var R, F, E, teams, t0, tEnd, secondHalfT, t, shown = -1;
   var PB = 9, PS = 5, OB = PB + 22 * PS;
-  var playing = true, speed = 1, current = -1, addedMinutes = [0, 0, 0, 0], et1T = Infinity, et2T = Infinity;
+  var playing = true, speed = 1, current = -1, addedMinutes = [0, 0, 0, 0], et1T = Infinity, et2T = Infinity, SO_KICKS = [];
 
   var $ = function (id) { return document.getElementById(id); };
   var seek = $("seek");
@@ -707,7 +725,9 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     var jump = Math.hypot(b[5] - a[5], b[6] - a[6]) > 150, bk = jump ? 0 : k;
     // the ball that went out, rolling on beyond the lines (height -1: none)
     var DB = OB + 9, dead = a.length > DB + 2 && a[DB + 2] >= 0 ? { x: lerp(a[DB], b[DB + 2] >= 0 ? b[DB] : a[DB], k) / 10, y: lerp(a[DB + 1], b[DB + 2] >= 0 ? b[DB + 1] : a[DB + 1], k) / 10, z: a[DB + 2] / 100 } : null;
-    return { dead: dead, clock: lerp(a[1], b[1], half ? 0 : k), phase: a[2], hs: a[3], as: a[4], bx: lerp(a[5], b[5], bk) / 10, by: lerp(a[6], b[6], bk) / 10, bz: lerp(a[7], b[7], bk) / 100, owner: a[8], ps: ps, os: os, half: half };
+    // the other man of a substitution (the substitute waiting for the high five, the player walking off)
+    var FB = DB + 3, fig = a.length > FB + 3 && a[FB + 3] > 0 ? { x: lerp(a[FB], b[FB + 3] > 0 ? b[FB] : a[FB], k) / 10, y: lerp(a[FB + 1], b[FB + 3] > 0 ? b[FB + 1] : a[FB + 1], k) / 10, f: a[FB + 2] / 100, team: Math.floor(a[FB + 3] / 1000), number: a[FB + 3] % 1000 } : null;
+    return { fig: fig, dead: dead, clock: lerp(a[1], b[1], half ? 0 : k), phase: a[2], hs: a[3], as: a[4], bx: lerp(a[5], b[5], bk) / 10, by: lerp(a[6], b[6], bk) / 10, bz: lerp(a[7], b[7], bk) / 100, owner: a[8], ps: ps, os: os, half: half };
   }
   function minuteText(clock, second) {
     var end = clock >= 5400 && t >= et1T ? (t >= et2T ? 7200 : 6300) : second ? 5400 : 2700;
@@ -1155,6 +1175,13 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       if (p.inj) injuryMark(x, y, r);
       if (inShade(p.x, p.y)) { ctx.fillStyle = "rgba(10,24,40,.3)"; ctx.beginPath(); ctx.arc(x, y, r * g * 1.1, 0, Math.PI * 2); ctx.fill(); }
     });
+    if (S.fig) {
+      var ft = teams[S.fig.team], fx = X(S.fig.x), fy = Y(S.fig.y);
+      castShadow(S.fig.x, S.fig.y, fx, fy, r * 1.05, r * .95, .5);
+      playerFeet(fx, fy, r, S.fig.f, 0, false, ft.kit.boots);
+      playerDisc(fx, fy, r, ft.kit.primary, ft.kit.secondary);
+      ctx.fillStyle = ft.kit.number; ctx.font = "700 " + Math.max(8, r * 1.05) + "px Barlow, system-ui, sans-serif"; fillC(String(S.fig.number), fx, fy);
+    }
     S.ps.forEach(function (p) { if (p.os) offsideMark(X(p.x), Y(p.y), s); });
     var h = Math.max(0, S.bz - .11), bx = X(S.bx), by = Y(S.by);
     var bsr = .42 * s * Math.max(.45, 1 - h * .05); castShadow(S.bx, S.by, bx, by, bsr, bsr, Math.max(.18, .6 - h * .04));
@@ -1665,7 +1692,14 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     }
     return RCACHE[n] != null ? RCACHE[n] : null;
   }
+  var tallyMemo = { key: "", v: null };
   function tallies() {
+    var key = Math.floor(t * 4) + ":" + (E ? E.length : 0);
+    if (tallyMemo.key === key) return tallyMemo.v;
+    tallyMemo = { key: key, v: talliesNow() };
+    return tallyMemo.v;
+  }
+  function talliesNow() {
     var g = {}, a = {};
     (E || []).forEach(function (ev) {
       if (ev.t > t || ev.type !== "Goal" || ev.v > .5 || ev.team !== 0) return;
@@ -1753,11 +1787,25 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     if (p && p.off) { toast("A sent-off player cannot be replaced"); return; }
     if (left <= 0) { toast("All " + (R.rules ? R.rules.maxSubs : 5) + " substitutions are used"); return; }
     if (PENDING.some(function (q) { return q.out === outN || q.in === inN; })) { toast("That change is already waiting"); return; }
-    PENDING.push({ out: outN, in: inN });
-    worker.postMessage({ cmd: "sub", token: token, out: outN, in: inN });
-    toast("Change at the next stoppage: " + (byNum(inN) || {}).shortName + " for " + (byNum(outN) || {}).shortName);
+    // staged: nothing is sent until the manager confirms - all the changes go together, at one stoppage (one opportunity)
+    PENDING.push({ out: outN, in: inN, staged: true });
+    toast("Planned: " + (byNum(inN) || {}).shortName + " for " + (byNum(outN) || {}).shortName + " - confirm to send the changes");
     drawManager();
   }
+  function confirmChanges() {
+    var n = 0;
+    PENDING.forEach(function (q) { if (!q.staged) return; q.staged = false; n++; worker.postMessage({ cmd: "sub", token: token, out: q.out, in: q.in }); });
+    if (n) toast(n === 1 ? "The change is made at the next stoppage" : n + " changes are made together at the next stoppage");
+    drawManager();
+  }
+  function cancelChanges() {
+    var before = PENDING.length;
+    PENDING = PENDING.filter(function (q) { return !q.staged; });
+    if (PENDING.length !== before) toast("Changes cancelled");
+    drawManager();
+  }
+  $("subOk").addEventListener("click", confirmChanges);
+  $("subCancel").addEventListener("click", cancelChanges);
   function subEvent(e) {
     if (e.team !== 0) return;
     var s = String(e.s || "").split("|");
@@ -1831,9 +1879,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     });
     outEl.innerHTML = html;
     var max = R.rules ? R.rules.maxSubs : 5, win = R.rules ? R.rules.windows : 3;
-    $("subInfo").innerHTML = "Substitutions <b>" + changesUsed() + "/" + max + "</b> · Opportunities <b>" + windowsUsed() + "/" + win + "</b>" + (PENDING.length ? " · <b>" + PENDING.length + " waiting</b> for the next stoppage" : "");
+    var staged = PENDING.filter(function (q) { return q.staged; }).length, sent = PENDING.length - staged;
+    $("subInfo").innerHTML = "Substitutions <b>" + changesUsed() + "/" + max + "</b> · Opportunities <b>" + windowsUsed() + "/" + win + "</b>" + (sent ? " · <b>" + sent + " waiting</b> for the next stoppage" : "") + (staged ? " · <b>" + staged + " planned</b>" : "");
+    $("subConfirm").hidden = !staged;
+    $("subOk").textContent = staged > 1 ? "Confirm " + staged + " changes" : "Confirm change";
     $("subHint").textContent = prematch() ? "Before kick-off: pick a player, then a bench player to change your starting eleven - or another player to swap places. You can also drag."
-      : canChange() ? "Pick a player on the pitch, then a bench player (or drag one onto the other): the change shows at once and is made at the next stoppage. Half-time changes are free."
+      : canChange() ? "Pick a player on the pitch, then a bench player (or drag one onto the other); plan all your changes, then Confirm - they are made together at the next stoppage (one opportunity). Half-time changes are free."
       : MODE === "live" ? "The match is over." : "Substitutions are made in a live match. Here a change of eleven replays this match with it.";
   }
   // ---- the formation board: the shape, and what the chosen tactics do (arrows) ------------------------------------
@@ -2398,19 +2449,19 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     function lim(k, lo, hi, why) { r[k] = [Math.max(r[k][0], lo), Math.min(r[k][1], hi)]; r.why[k] = why; }
     function ban(k, v, why) { if (!(v in r.off[k])) r.off[k][v] = why; }
     if (T.defence === 3) { lim("line", 0, 30, "Park the bus: the line stays deep"); ban("special", 4, "Park the bus: no relentless pressure"); ban("tempo", 2, "Park the bus: no fast tempo"); }
-    if (T.defence === 1) { lim("line", 45, 100, "High press: the line pushes up behind the press"); ban("tempo", 0, "High press: never a slow tempo"); ban("special", 2, "High press: no time wasting"); }
+    // (a high press is just pressing high up the pitch: it locks nothing)
     if (T.defence === 2) lim("line", 50, 100, "Offside trap: the line has to hold high");
     if (T.defence === 4) lim("line", 65, 100, "High backline: the line lives up the pitch");
     if (T.attack === 1) lim("width", 50, 100, "Crosses into the box: the play goes wide");
     if (T.attack === 2) ban("passing", 0, "Runs in behind need balls played behind - not short combinations");
     if (T.special === 1) { ban("passing", 2, "Possession: the ball is kept, not played long"); ban("tempo", 2, "Possession: no fast tempo"); }
-    if (T.special === 2) { ban("tempo", 1, "Time wasting: the tempo is slow"); ban("tempo", 2, "Time wasting: the tempo is slow"); ban("defence", 1, "Time wasting: no high press"); }
+    if (T.special === 2) { ban("tempo", 1, "Time wasting: the tempo is slow"); ban("tempo", 2, "Time wasting: the tempo is slow"); }
     if (T.special === 3) { ban("tempo", 0, "Counter-attacks are fast - never slow"); ban("passing", 0, "Counter-attacks are direct - no short combinations"); lim("line", 0, 60, "Counter-attacks: space behind the opponents to break into"); }
     if (T.special === 4) { lim("line", 55, 100, "Relentless pressure: the whole team up"); ban("defence", 3, "Relentless pressure: no parking the bus"); ban("tempo", 0, "Relentless pressure: never slow"); }
     // and the other way: a passing or tempo already chosen locks the styles that need the opposite
     if (T.passing === 0) { ban("special", 3, "Short combinations: no counter-attacks (pick mixed or balls in behind)"); ban("attack", 2, "Short combinations: no runs in behind"); }
     if (T.passing === 2) ban("special", 1, "Balls in behind: no possession game");
-    if (T.tempo === 0) { ban("special", 3, "Slow tempo: no counter-attacks"); ban("special", 4, "Slow tempo: no relentless pressure"); ban("defence", 1, "Slow tempo: no high press"); }
+    if (T.tempo === 0) { ban("special", 3, "Slow tempo: no counter-attacks"); ban("special", 4, "Slow tempo: no relentless pressure"); }
     if (T.tempo === 2) { ban("special", 1, "Fast tempo: no possession game"); ban("special", 2, "Fast tempo: no time wasting"); ban("defence", 3, "Fast tempo: no parking the bus"); }
     if (T.tempo === 1) ban("special", 2, "Time wasting needs a slow tempo");
     return r;
@@ -2495,14 +2546,13 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   document.querySelectorAll(".modes button").forEach(function (b) {
     b.addEventListener("click", function () {
       var m = b.getAttribute("data-mode");
-      if (m === "live" && MODE === "live" && REWOUND) { jump(LIVE_T); setRewound(false); return; } // (back to the live moment)
       startMatch(m, m === "staged" ? STAGED_SEED : newSeed());
     });
   });
   function beginMatch(hdr) {
     R = hdr; F = R.frames = []; E = R.events = []; R.stats = []; teams = [R.home, R.away];
     R.home._kit0 = R.home.kit; R.away._kit0 = R.away.kit;
-    SUBS = {}; t0 = 0; tEnd = 0; secondHalfT = Infinity; addedMinutes = [0, 0, 0, 0]; et1T = Infinity; et2T = Infinity; finished = false;
+    SUBS = {}; t0 = 0; tEnd = 0; secondHalfT = Infinity; addedMinutes = [0, 0, 0, 0]; et1T = Infinity; et2T = Infinity; SO_KICKS = []; finished = false;
     var comp = R.competition || "League", sbEl = document.querySelector(".sb");
     sbEl.classList.toggle("cup", comp === "Cup"); sbEl.classList.toggle("lcup", comp === "LeagueCup");
     $("sbComp").textContent = comp === "Cup" ? "Cup match" : comp === "LeagueCup" ? "League Cup match" : "League match";
@@ -2536,6 +2586,7 @@ body.live .tac-status b { background: #d50000; color: #fff; }
       if (e.type === "Substitution" && e.s) { var parts = String(e.s).split("|"); (SUBS[e.p] = SUBS[e.p] || []).push({ t: e.t, number: parseInt(parts[0], 10), shortName: parts[1] }); }
       if (e.type === "SecondHalfStart" && secondHalfT === Infinity) secondHalfT = e.t;
       if (e.type === "AddedTime") { var am = parseInt(String(e.text).replace(/[^0-9]/g, ""), 10) || 0; addedMinutes[e.t >= et2T ? 3 : e.t >= et1T ? 2 : e.t < secondHalfT ? 0 : 1] = am; }
+      if (e.type === "ShootoutKick") SO_KICKS.push(e);
       if (e.type === "ExtraTime") { if (e.detail === 2) et2T = e.t; else et1T = e.t; }
     });
     var SL = 15 + 22 + 22; // the time, 14 team stats, the energy left of the 22 players, their ratings x10
@@ -2572,9 +2623,11 @@ body.live .tac-status b { background: #d50000; color: #fff; }
   }
   // a live match can be watched again, but only what has happened: never past the live moment (LIVE_T)
   var LIVE_T = 0, REWOUND = false;
+  $("liveBadge").addEventListener("click", function () { if (MODE === "live" && REWOUND) { jump(LIVE_T); setRewound(false); } });
   function setRewound(on) {
     REWOUND = on;
-    var b = $("modeLive"); b.textContent = MODE === "live" && on ? "Back to live" : "Live match"; b.classList.toggle("back", MODE === "live" && on);
+    // the red LIVE badge becomes the way back to the live moment
+    var b = $("liveBadge"); b.textContent = MODE === "live" && on ? "BACK TO LIVE" : "LIVE"; b.classList.toggle("back", MODE === "live" && on);
   }
   function jump(to) {
     if (MODE === "live") { to = Math.min(to, LIVE_T); setRewound(to < LIVE_T - .5); }
@@ -2594,6 +2647,18 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 
   // ---- scoreboard and commentary bar ------------------------------------------------------------------
   var possTeam = -1;
+  // the league cup bar is one drawing: its texts follow the ordinary scoreboard's
+  var lcLast = "";
+  function syncLcup() {
+    var sb = document.querySelector(".sb"); if (!sb.classList.contains("lcup")) return;
+    var key = $("mn").textContent + "|" + $("hn").textContent + "|" + $("sc").textContent + "|" + $("an").textContent + "|" + redCards(0) + redCards(1) + "|" + (R && R.home.kit.primary) + (R && R.away.kit.primary);
+    if (key === lcLast) return; lcLast = key;
+    $("lcClock").textContent = $("mn").textContent; $("lcHome").textContent = $("hn").textContent; $("lcAway").textContent = $("an").textContent;
+    $("lcScore").textContent = $("sc").textContent.replace("-", " - ");
+    if (R) { $("lcHomeBolt").setAttribute("fill", R.home.kit.primary); $("lcAwayBolt").setAttribute("fill", R.away.kit.primary); }
+    var reds = ""; for (var i = 0; i < redCards(0); i++) reds += '<rect x="' + (124 + i * 9) + '" y="3" width="6" height="8" fill="#ed1c24"/>'; for (i = 0; i < redCards(1); i++) reds += '<rect x="' + (366 + i * 9) + '" y="3" width="6" height="8" fill="#ed1c24"/>';
+    $("lcReds").innerHTML = reds;
+  }
   function clockText(c) { var m = Math.floor(c / 60), sec = Math.floor(c % 60); return String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0"); }
   function textOn(hex) { var n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (r * .299 + g * .587 + b * .114) > 160 ? "#111" : "#fff"; }
   function updateBar(S) {
@@ -2620,7 +2685,13 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     if (bar.dataset.bg !== key) { bar.style.background = bg; bar.style.color = fg || textOn(bg); bar.dataset.bg = key; }
     if ($("cbarText").textContent !== text) $("cbarText").textContent = text;
   }
-  function redCards(team) { var n = 0; for (var i = 0; i < E.length && E[i].t <= t; i++) if (E[i].type === "RedCard" && E[i].team === team) n++; return n; }
+  // (counted once per tenth of a second, not on every call of every frame)
+  var redMemo = { key: "", v: [0, 0] };
+  function redCards(team) {
+    var key = Math.floor(t * 10) + ":" + E.length;
+    if (redMemo.key !== key) { var v = [0, 0]; for (var i = 0; i < E.length && E[i].t <= t; i++) if (E[i].type === "RedCard" && E[i].team >= 0) v[E[i].team]++; redMemo = { key: key, v: v }; }
+    return redMemo.v[team];
+  }
   function setReds(el, n) { if (el.childElementCount !== n) { el.textContent = ""; for (var i = 0; i < n; i++) el.appendChild(document.createElement("i")); } }
   document.querySelectorAll("[data-speed]").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -2669,12 +2740,12 @@ body.live .tac-status b { background: #d50000; color: #fff; }
     setText("sc", S.hs + "-" + S.as);
     // extra time and penalties: the break before extra time and between its periods, the shoot-out
     var etBreak = S.half && t > secondHalfT, shootout = S.phase === 5, lastPens = null;
-    for (var pi = E.length - 1; pi >= 0; pi--) if (E[pi].t <= t && E[pi].type === "ShootoutKick") { lastPens = E[pi].s; break; }
+    if (SO_KICKS.length) for (var pi = SO_KICKS.length - 1; pi >= 0; pi--) if (SO_KICKS[pi].t <= t) { lastPens = SO_KICKS[pi].s; break; }
     if ($("pens").hidden !== !lastPens) $("pens").hidden = !lastPens;
     if (lastPens) setText("pens", "PENS " + lastPens);
     var mt = S.half ? (etBreak ? "ET" : "HT") : ended ? "FT" : shootout ? "PENS" : minuteText(S.clock, second);
     setText("mn", S.half ? (etBreak ? "ET" : "HT") : ended ? (R.final && R.final.aet ? "AET" : "FT") : shootout ? "PENS" : clockText(S.clock));
-    setReds($("hr"), redCards(0)); setReds($("ar"), redCards(1));
+    setReds($("hr"), redCards(0)); setReds($("ar"), redCards(1)); syncLcup();
     updateBar(S);
     var inAdded = mt.indexOf("+") > 0;
     if ($("ad").hidden !== !inAdded) $("ad").hidden = !inAdded;

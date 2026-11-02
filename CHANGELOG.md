@@ -33,6 +33,23 @@ Each round of changes is developed on its own branch, named after what it change
   applause; at full time the home crowd cheers a win, boos a defeat and applauds a draw; the shoot-out kicks get their
   reactions.
 - **Tests**: the "faster players cover more ground" check averages six matches instead of three (pace adds about 3-5% of distance).
+- **The league cup scoreboard** is the reference bar redrawn as a vector (the reference is a picture): the clock, white and
+  team-coloured lightning-bolt separators, a light score box, the slanted end - in the page's palette.
+- **High press** locks nothing (it is just pressing high).
+- **Substitutions are planned, then confirmed**: changes show at once as planned; "Confirm" sends them all together, so they
+  are made at the same stoppage and use one opportunity; "Cancel" drops them.
+- **Back to live**: the red LIVE badge itself becomes "BACK TO LIVE" while you watch a replay of the live match.
+- **Shirt numbers as football uses them**: 1 the keeper, 2 right-back, 3 left-back, 4 and 5 centre-backs, 6 holding
+  midfielder, 7 right winger, 8 central midfielder, 9 centre-forward, 10 playmaker or second striker, 11 left winger;
+  the bench from 12 (the reserve keeper) up.
+- **Commentary** names the player only (no shirt number).
+- **Finishing**: at an open goal the player rolls it in - low, inside the posts (84% scored over 40 matches; the rest are
+  blocked or scrambled away); keepers save a little more of the rest (about 10 saves a match, 3.2 goals).
+- **Substitutions on the pitch**: the player coming off walks to the benches at the halfway line, the substitute waits
+  there for a high five, then comes on while the other walks to the bench - no more jumps from one point to another (the
+  replay frames carry the second figure: 4 more numbers).
+- **Smoothness**: the red cards, goals and assists and the shoot-out score are counted once a tenth of a second, not over all
+  the match's events in every frame.
 - **Fix**: the player profile opens again (a slip in the last round broke it).
 - **Names**: the demo squads (and the managers) are named from the name databases (`data/names`: Israeli, Spanish,
   American; duplicates merged; a name may be both a first and a surname), anew for every match. The squads are Israeli with

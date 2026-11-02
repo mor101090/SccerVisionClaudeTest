@@ -76,6 +76,7 @@ namespace SoccerVision.Simulation
             if (Ball.IsShot && type != RestartType.ThrowIn && Ball.Shooter != null)
             {
                 Emit(MatchEventType.ShotOffTarget, Ball.Shooter.Team, Ball.Shooter, null, Ball.Pos);
+                if (CollectDiagnostics && _lastShotOpenGoal) Count("openGoal.wide");
             }
             ReleaseDeadBall(); // (it rolls on beyond the line; the restart is taken with a new ball)
             Ball.Owner = null;
@@ -152,6 +153,7 @@ namespace SoccerVision.Simulation
             if (recentShot && !_shotCountedOnTarget) scoringTeam.Stats.ShotsOnTarget++;
             if (_penaltyKickTime >= 0f && Ball.Shooter != null && Ball.Shooter.Team == scoringTeam) scoringTeam.Stats.PenaltiesScored++;
             if (!ownGoal && scorer != null) scorer.Goals++;
+            if (CollectDiagnostics && recentShot && _lastShotOpenGoal) Count("goal.openGoal");
             int goalKind = !ownGoal && recentShot ? _lastShotKind : 0;
             if (goalKind == 5) scoringTeam.Stats.HeaderGoals++;
             if (goalKind == 1) scoringTeam.Stats.VolleyGoals++;
