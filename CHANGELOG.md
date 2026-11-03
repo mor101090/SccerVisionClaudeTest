@@ -2,6 +2,17 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/card-during-play`
+
+- **Fix: a card was shown while the play went on.** In 40 matches, 34 of 114 cards (30%) were shown with the ball in play - and a red
+  card sent the player off the pitch in the middle of an attack. Two causes:
+  - A foul played on with advantage: the card was given 2.5 seconds later "without stopping play" (the code said it approximated the
+    next stoppage). Now the card waits for the next real stoppage - the ball out, a foul, a goal, the end of the half - and is shown
+    then (before, a goal or the whistle in those 2.5 seconds could lose it altogether).
+  - A booking for simulation (the diver): the card was given with the play going on. Now the referee stops the play, books the
+    diver with the play stopped, and gives an indirect free kick to the other side (Law 12).
+  Over 40 matches: 118 cards, none shown while the play went on. Test: `CardTimingTests`.
+
 ## `feature/key-events-and-keeper`
 
 - **The colours of the lines** (the key moments under the statistics, the commentary, and the line under the pitch): one scheme everywhere.

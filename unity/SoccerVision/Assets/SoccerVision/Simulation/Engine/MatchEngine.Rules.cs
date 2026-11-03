@@ -171,7 +171,7 @@ namespace SoccerVision.Simulation
             ResolvePendingPass(null);
             ClearOffside();
             _penaltyKickTime = -1f;
-            _advantageSanction = null;
+            FlushAdvantageSanction(); // (a goal is a stoppage too: the referee shows the card now)
             Phase = MatchPhase.GoalCelebration;
             _phaseTimer = 0f;
             _celebrationScorer = ownGoal ? null : scorer;
@@ -538,6 +538,19 @@ namespace SoccerVision.Simulation
             }
             float forwardSpeed = Vec2.Dot(victim.Vel, attack.DirToWorld(Vec2.UnitX));
             return goalSide <= 2 && forwardSpeed > 4.5f;
+        }
+
+        /// <summary>
+        /// The card for a foul that was played on with advantage: the referee shows it at the next stoppage - the ball out, a
+        /// foul, a goal, the end of the half - never while the play goes on.
+        /// </summary>
+        private void FlushAdvantageSanction()
+        {
+            var s = _advantageSanction;
+            if (s == null) return;
+            _advantageSanction = null;
+            _advantageTimer = 0f;
+            ApplySanction(s);
         }
 
         private void ApplySanction(PendingSanction s)

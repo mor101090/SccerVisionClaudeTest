@@ -27,6 +27,7 @@ namespace SoccerVision.Simulation
 
         private void BeginRestart(RestartType type, TeamAgent team, Vec2 spot, PlayerAgent taker)
         {
+            FlushAdvantageSanction(); // (play is stopped: a card for a foul that was played on with advantage is shown now)
             if (type != RestartType.CornerKick && type != RestartType.GoalKick && type != RestartType.ThrowIn) _newBallRolls = false;
             // the shot that ended in a goal kick: the man who shot puts his hands on his head
             if (type == RestartType.GoalKick && Ball.Shooter != null && Ball.Shooter.Team != team && SimTime - _lastShotTime < 3f) OnShotWasted(Ball.Shooter, _lastShotXg);

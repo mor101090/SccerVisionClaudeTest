@@ -446,17 +446,8 @@ namespace SoccerVision.Simulation
                 if (o.CardTimer > 0f) { o.CardTimer -= dt; if (o.CardTimer <= 0f) o.CardShown = 0; }
             }
             UpdatePendingRedCard();
-            if (_advantageTimer > 0f)
-            {
-                _advantageTimer -= dt;
-                if (_advantageTimer <= 0f && _advantageSanction != null)
-                {
-                    // Advantage played out: the referee shows the card at the next stoppage, which we
-                    // approximate by showing it now without stopping play.
-                    ApplySanction(_advantageSanction);
-                    _advantageSanction = null;
-                }
-            }
+            // (an advantage played out: the card waits for the next stoppage - see FlushAdvantageSanction)
+            if (_advantageTimer > 0f) _advantageTimer -= dt;
         }
 
         private void StepLive(float dt)
@@ -701,7 +692,7 @@ namespace SoccerVision.Simulation
         {
             _addedTimeExpiredAt = -1f;
             _restart = null;
-            _advantageSanction = null;
+            FlushAdvantageSanction();
             Clock.Running = false;
             Ball.Owner = null;
             Ball.InHands = false;

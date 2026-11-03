@@ -368,7 +368,24 @@ namespace SoccerVision.Simulation
                     return;
                 }
                 if (CollectDiagnostics) Count("dive.booked");
+                // The referee sees through it: he stops the play, books the diver (the card is shown with the play stopped) and
+                // gives an indirect free kick to the other side (Law 12).
+                Whistle(WhistleKind.Short);
+                Ball.Owner = null;
+                Ball.InHands = false;
+                Ball.Stop();
+                Ball.ClearFlight();
+                ResolvePendingPass(null);
+                ClearOffside();
                 ApplySanction(new PendingSanction { Player = carrier, Yellow = true, Reason = "simulation" });
+                {
+                    d.Team.Stats.FreeKicks++;
+                    Vec2 simSpot = Pitch.ClampToField(carrier.Pos, -0.3f);
+                    BeginRestart(RestartType.IndirectFreeKick, d.Team, simSpot, null);
+                    _restart.CountsAsLostTime = true;
+                    _restart.WaitForWhistle = true;
+                    Emit(MatchEventType.FreeKick, d.Team, _restart.Taker, carrier, simSpot, 0f, WhistleKind.Short, 0);
+                }
                 return;
             }
             if (_rng.Chance(pWin))
