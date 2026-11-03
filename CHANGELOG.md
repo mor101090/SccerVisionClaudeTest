@@ -2,6 +2,16 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/teams-api`
+
+**The team generator's new address**: the squads came from `soccer-simulation.onrender.com`, which no longer answers.
+`tools/teams/fetch_teams.py` fetches squads from the new API (<https://soccer-api.dev-spirit.com/docs>, v2 - same seed, same squad)
+in the format `build_teams.py` reads (the skill groups v2 returns as null are left out); `build_teams.py` takes `--dir` and `--out`.
+The squads the game uses now are not changed - that changes every match and the tests' measurements, so it is a separate step
+(`fetch_teams.py --out data/teams red-rovers:SEED blue-falcons:SEED`, then `build_teams.py`, then the full suite). Tried: two squads
+of 23 (seeds 101 and 202) build into 20-man squads. Noted: `GeneratedTeams.cs` in the repository was not made by the present
+`build_teams.py` (it lacks the `Order` list the script writes) - that was so before.
+
 ## `fix/online-connect`
 
 **Online play with a six-digit code, kits of your own, and a connection that comes back.** After two hours of picking line-ups the
