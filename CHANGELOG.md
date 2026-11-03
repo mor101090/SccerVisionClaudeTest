@@ -32,6 +32,8 @@ Each round of changes is developed on its own branch, named after what it change
   rather than the first one he finds; the better placed the man behind, the likelier it is. The flair players (Showboat) do it nearly
   twice as often, a player with no feel for the game hardly at all. About 4.5 a match for both teams (it was 1.7), his own legs drawn
   open while the ball goes through. In the statistics: `Dummies`.
+- The unselfish player shoots a little less than before (the trait's weight on the shot x0.62, was x0.8): the full-suite run showed
+  the effect, small, was lost in the noise of a sample of twelve matches (16.6 shots against 16.8); the test now plays 24.
 - **The keeper goes up for a high ball**: the jump grows with the height of the ball (a ball in the top corner: up to 0.7 m, his cap
   is 0.3 m more than a field player's) and he is drawn larger and higher.
 - **The keeper's dive**: no gloves, no trail, and no jump back to the round disc at the end - the stretch comes on in about a tenth of

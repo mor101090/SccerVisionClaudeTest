@@ -96,8 +96,8 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void UnselfishPlayersShootLess()
         {
-            var plain = Play(() => Red(PlayerTrait.None), 540, 12);
-            var givers = Play(() => Red(PlayerTrait.Unselfish), 540, 12);
+            var plain = Play(() => Red(PlayerTrait.None), 540, 24);
+            var givers = Play(() => Red(PlayerTrait.Unselfish), 540, 24);
             double s0 = plain.Average(e => e.Home.Stats.Shots), s1 = givers.Average(e => e.Home.Stats.Shots);
             Assert.True(s1 < s0, $"shots {s0:0.0} -> {s1:0.0}");
         }
