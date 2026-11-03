@@ -85,12 +85,18 @@ namespace SoccerVision.Simulation.Tests
             });
             double perMatch = both.Average(e => e.Home.Stats.Nutmegs + e.Away.Stats.Nutmegs), won = both.Average(e => e.Home.Stats.NutmegsWon + e.Away.Stats.NutmegsWon);
             Assert.InRange(perMatch, 1.5, 8);
+            // the dummy - opening his legs and leaving the ball to a team-mate in a better spot: at least two a match, some of them
+            // for a better angle at goal
+            double dummies = both.Average(e => e.Home.Stats.Dummies + e.Away.Stats.Dummies);
+            double forShot = both.Average(e => e.Diagnostics.GetValueOrDefault("skill.dummy.forShot"));
+            Assert.True(dummies >= 2.5, $"dummies a match {dummies:0.0}");
+            Assert.True(forShot > 0.15, $"dummies for a shot a match {forShot:0.00}");
             Assert.True(won >= perMatch * 0.3, $"nutmegs {perMatch:0.0} a match, got the ball back {won:0.0}");
             // the flair players do it more: a squad of showboats against a squad that has no special ability
             Func<TeamSetup> flair = () => { var t = DemoTeams.Red(); foreach (var p in t.Starters) { p.Traits = PlayerTrait.Showboat | PlayerTrait.LovesToDribble; p.Attributes.Dribbling = 85; p.Attributes.Creativity = 80; } return t; };
             Func<TeamSetup> plain = () => { var t = DemoTeams.Red(); foreach (var p in t.Starters) { p.Traits = PlayerTrait.None; p.Attributes.Dribbling = 50; p.Attributes.Creativity = 50; } return t; };
             var f = Nutmegs(flair, 12); var q = Nutmegs(plain, 12);
-            _out.WriteLine($"nutmegs a match: both teams {perMatch:0.0} (ball back {won:0.0}); flair squad {f.nutmegs:0.0}, plain squad {q.nutmegs:0.0}");
+            _out.WriteLine($"dummies {dummies:0.0} a match ({forShot:0.00} for a shot); nutmegs a match: both teams {perMatch:0.0} (ball back {won:0.0}); flair squad {f.nutmegs:0.0}, plain squad {q.nutmegs:0.0}");
             Assert.True(f.nutmegs > q.nutmegs * 2 + 0.5, $"flair {f.nutmegs:0.0} v plain {q.nutmegs:0.0}");
         }
     }

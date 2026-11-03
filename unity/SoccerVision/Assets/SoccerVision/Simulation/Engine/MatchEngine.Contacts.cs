@@ -22,18 +22,19 @@ namespace SoccerVision.Simulation
         private float _dummyRolledFor = -1f;
 
         /// <summary>
-        /// A clever receiver with a marker on him and a team-mate free further along the line of the pass lets the ball run
-        /// between his legs: the marker is fooled, the pass reaches the man behind. Decisions and creativity decide.
+        /// The dummy - opening his legs: a receiver with a marker on him and a team-mate further along the line of the pass in a
+        /// better spot (above all a better angle for a shot) lets the ball run between his legs: the marker is fooled, the pass
+        /// reaches the man behind. Decisions and creativity decide; the flair players (the trick-lovers) do it much more.
         /// </summary>
         private bool TryDummy(PlayerAgent p)
         {
             var team = p.Team;
             Vec2 v = Ball.Velocity;
             float speed = v.Length;
-            if (speed < 7f || p.IsGoalkeeper) return false;
+            if (speed < 5.5f || p.IsGoalkeeper) return false;
             Vec2 dir = v / speed;
             PlayerAgent marker = null;
-            float md = 3f;
+            float md = 3.6f;
             foreach (var o in team.Opponent.Players)
             {
                 if (o.SentOff || o.IsGoalkeeper) continue;
@@ -41,7 +42,9 @@ namespace SoccerVision.Simulation
                 if (d < md) { md = d; marker = o; }
             }
             if (marker == null) return false;
-            PlayerAgent mate = null;
+            float f = team.Forward(p.Pos);
+            float ownXg = f > 24f ? EstimateShotXG(p, p.Pos) : 0f;
+            PlayerAgent mate = null; float mateScore = float.NegativeInfinity; bool betterShot = false;
             foreach (var q in team.Players)
             {
                 if (q == p || q.SentOff || q.IsGoalkeeper) continue;
@@ -50,19 +53,25 @@ namespace SoccerVision.Simulation
                 if (along < 3f || along > 20f || off > 3.5f + 0.15f * along) continue;
                 if (NearestOpponentDistance(team, q.Pos) < 2.5f) continue;
                 if (team.Forward(q.Pos) > MathF.Max(MathF.Max(SecondLastDefenderForward(team), team.Forward(Ball.Pos)), 0f)) continue; // (offside)
-                mate = q;
-                break;
+                // the better placed the man behind, the better the dummy: above all a better angle and distance for a shot
+                float theirXg = team.Forward(q.Pos) > 24f ? EstimateShotXG(q, q.Pos) : 0f;
+                float score = theirXg * 4f + 0.02f * team.Forward(q.Pos) - 0.05f * off;
+                if (score > mateScore) { mateScore = score; mate = q; betterShot = theirXg > ownXg * 1.25f + 0.04f; }
             }
             if (mate == null) return false;
             float clever = MathUtil.A((p.Attr.Decisions + p.Attr.Creativity) / 2);
             bool showboat = p.Has(PlayerTrait.Showboat);
             if (showboat) clever = MathF.Min(1f, clever + 0.15f);
-            if (clever < 0.45f || !_rng.Chance((0.6f * (clever - 0.45f) / 0.55f + 0.08f) * (showboat ? 1.5f : 1f))) return false;
+            if (clever < 0.35f) return false;
+            float chance = (0.7f * (clever - 0.35f) / 0.65f + 0.16f) * (showboat ? 1.8f : 1f) * (betterShot ? 1.7f : 1f);
+            if (!_rng.Chance(MathUtil.Clamp(chance, 0f, 0.85f))) return false;
             p.TouchCooldown = 0.7f;
             marker.StunTimer = MathF.Max(marker.StunTimer, 0.5f);
+            p.NutmegVictimUntil = SimTime + 0.6f; // (his own legs are drawn open while the ball runs through)
             Ball.IntendedReceiver = mate;
             Emit(MatchEventType.Skill, team, p, mate, p.Pos, 0f, WhistleKind.Short, 3);
-            if (CollectDiagnostics) Count("skill.dummy");
+            if (CollectDiagnostics) Count(betterShot ? "skill.dummy.forShot" : "skill.dummy");
+            team.Stats.Dummies++;
             return true;
         }
 

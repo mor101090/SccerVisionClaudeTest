@@ -27,6 +27,11 @@ Each round of changes is developed on its own branch, named after what it change
   defender is out of the game for a second with his legs drawn open, and the dribbler is sent after his own ball. In the statistics:
   `Nutmegs` and `NutmegsWon`. Over 60 matches: about 3.4 a match (both teams), 1.8 of them working, 1.3 where the dribbler got the
   ball back; a squad of flair players 8 a match against 0.4 for a squad with no special ability.
+- **Opening the legs - the dummy - is more frequent**: a receiver with a marker on him lets the pass run through his legs to a team-mate
+  further along its line, and now looks for the team-mate in the best spot - above all with a better angle and distance for a shot -
+  rather than the first one he finds; the better placed the man behind, the likelier it is. The flair players (Showboat) do it nearly
+  twice as often, a player with no feel for the game hardly at all. About 4.5 a match for both teams (it was 1.7), his own legs drawn
+  open while the ball goes through. In the statistics: `Dummies`.
 - **The keeper goes up for a high ball**: the jump grows with the height of the ball (a ball in the top corner: up to 0.7 m, his cap
   is 0.3 m more than a field player's) and he is drawn larger and higher.
 - **The keeper's dive**: no gloves, no trail, and no jump back to the round disc at the end - the stretch comes on in about a tenth of
