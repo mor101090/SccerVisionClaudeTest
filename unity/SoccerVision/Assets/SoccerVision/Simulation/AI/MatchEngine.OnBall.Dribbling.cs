@@ -64,6 +64,8 @@ namespace SoccerVision.Simulation
                 float stale = MathF.Max(0f, p.HoldTime - (progressive ? 3f : 1.5f)) * 0.005f;
                 float utility = keep * value - (1f - keep) * (lossNow + _riskPremium) - stale;
                 float like = DribbleFactor(p, progressive);
+                // with a man in front of him it is a take-on: there the instruction (dribble more / less) counts double
+                if (pressure > 0.3f) like *= PlayerAgent.Scale(p.Orders.Dribbling, 0.75f, 1.3f);
                 utility = utility > 0f ? utility * like : utility / like;
                 _options.Add(new KickPlan { Action = BallAction.Dribble, DribbleTarget = target, Utility = utility, Success = keep });
             }

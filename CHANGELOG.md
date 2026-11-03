@@ -79,6 +79,15 @@ pass or from a rebound - the next phases are about that.
 - Foot shots with the keeper under 3 m away: **15% -> 3.5%** (real 3.9%); shots from the six-yard box 4.2 -> **2.2-2.4** a match
   (real 1.7); goals 2.17-2.76 a match (real 2.53); foot goals hit first time 47-53% (real 55%).
 
+**Two tactics made clearer** (they had slipped under their tests with the new attack): parking the bus keeps the back four home
+even with the ball (no full-back overlapping - the bunker is kept for when the ball is lost); and with a man in front of him the
+individual instruction "dribble more / less" counts double (that is a take-on). The default teams play as before (the same seed gives
+the same 100 matches: 2.92 goals, 30.4 shots).
+
+**Phase 5 - the test**: `AttackCalibrationTests` holds the attack against the StatsBomb targets over 24 matches - goals 1.6-3.6, shots
+16-40, six-yard shots under 3.5, outside-box shots over 22% of the shots, foot shots with the keeper under 3 m away under 8%, foot goals
+hit first time over 30%, and 5-45% of decisions going to a near-equal option.
+
 **Phase 4 - natural variation** (200 matches, two seeds):
 - **His own leanings**: every player is a little more of a shooter, a dribbler, a passer or a crosser than the next man with the
   same numbers (x0.88-1.12 on what that option is worth to him, fixed for the match). It is taken from his own make-up - the

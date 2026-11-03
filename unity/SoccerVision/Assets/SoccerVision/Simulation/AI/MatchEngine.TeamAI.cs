@@ -402,6 +402,8 @@ namespace SoccerVision.Simulation
                 // A bunker: nobody ahead of the ball, the midfield on the back line's shoulder, one forward left up.
                 if (!inPossession) f = MathF.Min(f, line + (slot.Line == Line.Midfield ? 9f : slot.Line == Line.Attack ? 17f : 6f));
                 else f = MathF.Min(f, MathF.Max(ballF - 5f, line + 22f));
+                // (and the back four stay home even with the ball: no full-back bombing forward, the bunker is kept for when it is lost)
+                if (inPossession && slot.Line == Line.Defence) f = MathF.Min(f, line + 7f);
             }
             if (style.Special == SpecialTactic.Siege && inPossession && ballF > 14f)
             {
