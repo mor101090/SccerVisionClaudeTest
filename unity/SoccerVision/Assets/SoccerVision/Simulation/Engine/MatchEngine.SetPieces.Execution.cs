@@ -262,12 +262,13 @@ namespace SoccerVision.Simulation
 
         private float _lastRestartAt = -100f;       // (diagnostics: what the last restart was and when)
         private RestartType _lastRestartType;
+        private TeamAgent _lastRestartTeam;
 
         private void ExecuteRestart(Restart r)
         {
             var taker = r.Taker;
             EnforceRestartPositions(r);
-            _lastRestartAt = SimTime; _lastRestartType = r.Type;
+            _lastRestartAt = SimTime; _lastRestartType = r.Type; _lastRestartTeam = r.Team;
             RestartExecuting?.Invoke(r);
             if (r.Team != null && r.Type != RestartType.KickOff && r.Type != RestartType.GoalKick && r.Type != RestartType.DroppedBall && r.Team.Forward(r.Spot) > 0f)
                 r.Team.SetPieceAt = SimTime;

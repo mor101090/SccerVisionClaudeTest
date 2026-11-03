@@ -355,6 +355,22 @@ namespace SoccerVision.Simulation
                     }
                 }
             }
+            // The rebound: a ball that comes back off the keeper, the post or a block, a moment after his team's shot, near goal - the
+            // man who followed it in hits it at once, before the keeper is up (StatsBomb: one rebound in five goes in).
+            if (!p.IsGoalkeeper && _lastShotTeam == p.Team && SimTime - _lastShotTime < 3f && p.FirstTimeUntil <= SimTime)
+            {
+                float dg = Vec2.Distance(Ball.Pos, p.Team.AttackGoal);
+                if (dg < 17f && p.Team.Forward(Ball.Pos) > 36f)
+                {
+                    float ready = 0.55f + 0.3f * MathUtil.A(p.Attr.Finishing) + 0.1f * MathUtil.A(p.Attr.Composure);
+                    if (_rng.Chance(ready))
+                    {
+                        p.FirstTimeUntil = SimTime + 0.4f;
+                        p.DecisionTimer = 0.03f;
+                        if (CollectDiagnostics) Count("shot.rebound.firstTime.set");
+                    }
+                }
+            }
             p.OneTwoUntil = -1f; // (the return ball has arrived, or the run is over)
             p.ThirdManUntil = -1f;
             p.RunCheckUntil = -1f;
@@ -484,6 +500,13 @@ namespace SoccerVision.Simulation
             if (opponentTouch) ClearOffside();
             var team = p.Team;
             float f = team.Forward(Ball.Pos);
+            if (CollectDiagnostics && SimTime - _lastRestartAt < 4f && _lastRestartType == RestartType.CornerKick)
+                Count("header.corner." + (p.Team == Ball.LastTouchTeam ? "own" : p.Team.Opponent == _lastRestartTeam ? "defender" : "attacker") + (contested ? ".contested" : ".free"));
+            if (CollectDiagnostics && SimTime - _lastRestartAt < 4f && _lastRestartType == RestartType.CornerKick && p.Team == _lastRestartTeam)
+            {
+                float nd = 99f; foreach (var o in p.Team.Opponent.Players) if (!o.SentOff && !o.IsGoalkeeper) nd = MathF.Min(nd, Vec2.Distance(o.Pos, p.Pos));
+                Count("header.corner.nearestDefender." + (nd < 1f ? "a<1" : nd < 2f ? "b1-2" : nd < 4f ? "c2-4" : "d4+"));
+            }
             float distGoal = Vec2.Distance(Ball.Pos, team.AttackGoal);
             float heading = MathUtil.A(p.Attr.Heading);
             Ball.LastToucher = p;
