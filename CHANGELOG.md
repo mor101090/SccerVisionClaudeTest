@@ -2,6 +2,65 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/online-connect`
+
+**Online play with a six-digit code, kits of your own, and a connection that comes back.** After two hours of picking line-ups the
+match did not kick off: the direct connection between the two browsers had dropped without a word, and there was no way back
+without a new invite. Now:
+- **Start screen**: "Play the computer" or "Play a friend online". Online, you pick only your own kits - your kit, a second kit (worn
+  if your friend's shirt looks like yours) and your goalkeeper - and then **Create a game** (you get a six-digit code, or a link with
+  it) or **Join a game** (type in your friend's code). The two find each other through the free PeerJS broker (0.peerjs.com): it only
+  passes the handshake; the match goes directly between the two browsers, encrypted.
+- **The kits**: the host keeps his kit; the friend wears his own, or his second kit if his looks like the host's (or, if both do, a
+  shirt that clashes with neither); each keeper takes a colour that clashes with no shirt. Both sides work it out the same way and
+  both see the two kits before the match ("your friend's shirt looked like yours: he wears his second kit").
+- **A connection that drops comes back**: a heartbeat every 2 s; after 10 s of silence a red banner says so ("reconnecting...",
+  "waiting for him to come back"), the friend's page reconnects by itself, and the host sends him everything he missed (the match
+  carries on on the host's engine; the friend catches up and his "ready" and his team are sent again). Tested with two browsers: a
+  15 s silence before the match and a closed connection in the middle of it - the match kicked off and both clocks agree afterwards.
+- If the code service cannot be reached the page falls back to the invite link and reply code.
+
+**Online play: no more endless "Connecting..."**. The two browsers connect directly (WebRTC) and the page said nothing when they could
+not reach each other. Now: the invite and the reply code wait (up to 12 s) for the internet address the STUN server reports - the old
+4 s limit could leave only the home-network address in the code, and a friend elsewhere could then never connect - and warn if there
+is none; four STUN servers instead of one provider; the page says what the connection is doing ("looking for a way through the two
+networks") and, after 30 s or when it fails, why (mobile data, work or school networks) and what to try; a reply code for an invite
+that was already used, or a page that was reloaded, gets its own message; both players are told to keep the page open. A TURN relay
+for networks that cannot connect directly can be given in the address (`?turn=turn:host:3478,user,password`).
+## `feature/player-names`
+
+**Realistic player names from the Onomaverse names datasets** (<https://onomaverse.com/datasets>, CC BY 4.0 - the notice is in
+`THIRD_PARTY_NOTICES.md` and in the code as `NameAttribution`).
+- `tools/names/build_onomaverse_names.py` reads three files of the release (given-name frequency, surname frequency, name gender
+  inference) and writes `Simulation/Names/OnomaverseNameData.cs`: for **37 countries** the most common **male** first names (up to
+  300) and surnames (up to 500) with their frequency weights - Spain, Germany, France, Italy, England, Brazil, Argentina, Portugal,
+  the Netherlands, Croatia, Belgium, Switzerland, Austria, Denmark, Sweden, Norway, Poland, Czechia, Ireland, the USA, Turkey,
+  Mexico, Colombia, Uruguay, Chile, Peru, Bolivia, Costa Rica, Panama, Nigeria, Ghana, Cameroon, Egypt, South Africa, Canada,
+  Finland and Russia. A name recorded for both sexes counts with the share of its bearers that are male (Andrea in Italy: yes; Ana,
+  Maria: no). Names are copied as the dataset writes them, accents and special characters kept (João, Müller, Željko).
+- **Local names only**: a name that is far more at home in another cultural group of countries is left out (Mohamed in Spain, Singh
+  in England, Yilmaz in Germany, Nguyen in the Netherlands) - neighbours that share names keep them (Antonio in Spain, Jan in the
+  Netherlands); the dataset's own origin label (Arabic, Sanskrit, Vietnamese...) is a second check. Women's surname forms become
+  the men's (Kowalska -> Kowalski, Ivanova -> Ivanov), a woman's given name in a surname list is dropped, a surname that is one of
+  the country's common first names is dropped (no Ivan Ivan), the small words are lower case (van der Linden, da Silva), the Irish
+  O' and the Mc spellings are put right (O'Brien, McDonald), the Italian D' (D'Angelo), and the long tail of rare "names" is cut.
+- **Accents checked on the internet**: the dataset writes many names without their accents (Jose, Garcia, Goncalves).
+  `tools/names/restore_accents.py` puts back an accent only where Wikipedia confirms it - English Wikipedia (a redirect from the
+  plain spelling, or an article in a name category of the language) **and** the Wikipedia of the language itself (es / pt / fr / it),
+  plus the spelling rules (a Spanish accent where the stress rule wants one: Hernán yes, Hernándo no; the same for Portuguese) and
+  each language's own letters (no Cantù in Mexico). 216 names: José, García, López, Álvarez, Núñez, Martín, Raúl (Spanish), Antônio,
+  Flávio... (Brazil), Luís, Vítor (Portugal), François, Étienne, Hervé (France), Dessì (Italy). Every change is printed for a read
+  through; four were taken out by hand (Baldé, Florín, Gállego, Chicó). Names Wikipedia does not confirm stay as they are.
+- `NameBank` (the tables by country - ISO code or nationality), `WeightedNameList` (first names and surnames apart, picked in
+  proportion to their frequency), `PlayerNameGenerator` (a full name per player from one country, never the same full name twice in
+  a database, `Reserve` for the players that already exist, never the same first name and surname, the same seed the same names),
+  `NationMix` (`League("ES")`: mostly Spanish, some foreigners), `NameSquad(team, mix)` (names and nationality only).
+- **Nothing existing changed**: the demo squads are still named by `IsraeliNames` (a test fixes the names of a seed).
+- Left out because the dataset's names for them are mostly not their own: Greece, Morocco, Algeria, Japan; too few names: Hungary,
+  Bulgaria, Ecuador, Serbia; not in the dataset at all: Ukraine, Senegal, Ivory Coast, Mali, Romania, Slovakia, Bosnia, Paraguay,
+  Venezuela, Australia, South Korea. Thin countries (Norway, Czechia, Russia, Sweden, Denmark, Finland...) say so in their note.
+  Not Onomaverse: the Croatian surnames (the release's 29 are nearly all not Croatian) - a short list of common Croatian surnames.
+- A sample of 20 names per country: `tools/names/SAMPLE_NAMES.md`. Tests: `NameGenerationTests` (16).
 ## `feature/attack-calibration`
 
 **Phase 0 of the attack redesign: real football as the yardstick.** `tools/calibration` (see its README): `statsbomb_targets.py`

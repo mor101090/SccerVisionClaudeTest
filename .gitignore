@@ -34,3 +34,4 @@ docs/conditions/
 docs/engine/
 __pycache__/
 *.pyc
+tools/names/.accent_cache.json
