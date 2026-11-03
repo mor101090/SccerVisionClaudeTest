@@ -31,7 +31,8 @@ namespace SoccerVision.Simulation.Tests
 
         private static double Energy(MatchEngine e) => e.Home.Players.Where(p => !p.IsGoalkeeper).Average(p => p.Energy) * 100.0;
         private static double Depth(MatchEngine e) => e.HomeLineSum / e.HomeLineSamples;
-        private static double LongShots(MatchEngine e) => e.EventLog.Count(x => x.Type == MatchEventType.Shot && x.Team == 0
+        // (central shots from range: the winger's cut-in shots from the flank are not long shots in this sense)
+        private static double LongShots(MatchEngine e) => e.EventLog.Count(x => x.Type == MatchEventType.Shot && x.Team == 0 && Math.Abs(x.Y) < 15
             && Math.Min(Math.Sqrt((52.5 - x.X) * (52.5 - x.X) + x.Y * x.Y), Math.Sqrt((52.5 + x.X) * (52.5 + x.X) + x.Y * x.Y)) > 18);
 
         [Fact]
@@ -70,7 +71,7 @@ namespace SoccerVision.Simulation.Tests
             // (twelve matches: long shots are a handful a match, six matches were too few to see the style reliably)
             double normal = Avg(null, LongShots, 12), shots = Avg(t => t.Attack = AttackStyle.LongShots, LongShots, 12);
             // (the plain side already takes the winger's cut-in shots from the flank, which are 18 m+ too: the style adds a half on top)
-            Assert.True(shots > normal * 1.3, $"shots from 18 m+: style {shots:0.0} v normal {normal:0.0}");
+            Assert.True(shots > normal * 1.4, $"shots from 18 m+: style {shots:0.0} v normal {normal:0.0}");
         }
 
         [Fact]
