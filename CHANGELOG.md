@@ -79,6 +79,17 @@ pass or from a rebound - the next phases are about that.
 - Foot shots with the keeper under 3 m away: **15% -> 3.5%** (real 3.9%); shots from the six-yard box 4.2 -> **2.2-2.4** a match
   (real 1.7); goals 2.17-2.76 a match (real 2.53); foot goals hit first time 47-53% (real 55%).
 
+**Phase 4 - natural variation** (200 matches, two seeds):
+- **His own leanings**: every player is a little more of a shooter, a dribbler, a passer or a crosser than the next man with the
+  same numbers (x0.88-1.12 on what that option is worth to him, fixed for the match). It is taken from his own make-up - the
+  phases that already give his running its wobble - so it uses no random draw and a replayed match stays the same.
+- **A good decision is not always the same decision**: among the options that are almost as good as the best he chooses with a
+  soft-max - a clear-headed player nearly always the best, a poor decision-maker more loosely, a creative one or a showboat a
+  little more freely. Options that are clearly worse are never chosen this way (only by misreading them, as before). About one
+  decision in four now goes to a near-equal option (most are which way to carry it).
+- Nothing got worse: goals **2.52** a match over the 200 (real 2.53), pass completion 78.5-78.8% (was 79.2%), foot goals hit first
+  time **50-52%** (real 55%), foot shots with the keeper under 3 m away **3.9-4.5%** (real 3.9%).
+
 ## `fix/card-during-play` - cards, goals, the walk off
 
 - **Fix: a card was shown while the play went on.** In 40 matches, 34 of 114 cards (30%) were shown with the ball in play - and a red

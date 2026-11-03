@@ -330,16 +330,34 @@ namespace SoccerVision.Simulation
             float decisions = MathUtil.A(p.Attr.Decisions);
             float composure = MathUtil.A(p.Attr.Composure);
             float sigma = (0.0015f + 0.006f * (1f - decisions)) * (1f + pressure * (1.1f - composure)) * p.FatigueError;
+            // Phase 4 - natural variation. Two players with the same numbers do not play the same way: each has his own
+            // leanings (a little more of a shooter, a dribbler, a passer or a crosser - fixed for the match, from his own
+            // make-up), and a good decision does not mean always the same decision: among the options that are nearly as
+            // good he picks one with a soft-max - a clear-headed player almost always the best, a poor decision-maker
+            // more loosely. The clearly worse options are never picked this way (only through misreading them, above).
+            if (_perceived.Length < _options.Count) _perceived = new float[_options.Count * 2];
+            float top = float.NegativeInfinity;
             int best = 0;
-            float bestScore = float.NegativeInfinity;
             for (int i = 0; i < _options.Count; i++)
             {
                 var o = _options[i];
-                float perceived = o.Utility * (1f + _rng.Gaussian(0f, 0.16f * (1.15f - decisions))) + _rng.Gaussian(0f, sigma);
-                if (perceived > bestScore)
+                float u = o.Utility;
+                if (u > 0f && !(openGoal && o.Action == BallAction.Shoot)) u *= StyleLean(p, o.Action);
+                float perceived = u * (1f + _rng.Gaussian(0f, 0.16f * (1.15f - decisions))) + _rng.Gaussian(0f, sigma);
+                _perceived[i] = perceived;
+                if (perceived > top) { top = perceived; best = i; }
+            }
+            if (!openGoal && _options.Count > 1 && top > 0f)
+            {
+                float temp = (0.0008f + 0.0035f * (1f - decisions)) * (0.8f + 0.4f * MathUtil.A(p.Attr.Creativity)) * (p.Has(PlayerTrait.Showboat) ? 1.3f : 1f) + 0.04f * top * (1f - decisions);
+                float margin = 2.5f * temp, total = 0f;
+                for (int i = 0; i < _options.Count; i++) if (_perceived[i] >= top - margin && _perceived[i] > 0f) total += MathF.Exp((_perceived[i] - top) / temp);
+                float pick = _rng.NextFloat() * total;
+                for (int i = 0; i < _options.Count; i++)
                 {
-                    bestScore = perceived;
-                    best = i;
+                    if (!(_perceived[i] >= top - margin && _perceived[i] > 0f)) continue;
+                    pick -= MathF.Exp((_perceived[i] - top) / temp);
+                    if (pick <= 0f) { if (CollectDiagnostics && i != best) Count("decide.variation"); best = i; break; }
                 }
             }
             var chosen = _options[best];
@@ -364,6 +382,18 @@ namespace SoccerVision.Simulation
             if (chosen.Action == BallAction.Dribble && IsCutInsidePlayer(p) && MathF.Abs(team.Lateral(chosen.DribbleTarget)) < MathF.Abs(l) - 2f && f > 14f && MathF.Abs(l) > 14f)
                 p.CutInUntil = SimTime + 3.5f;
             return chosen;
+        }
+
+        private float[] _perceived = new float[64];
+
+        /// <summary>
+        /// His own leaning for an action (0.88-1.12, fixed for the match): taken from his make-up (the phases that also give
+        /// his movement its wobble), so it costs no random draw and is the same every time the match is replayed.
+        /// </summary>
+        private static float StyleLean(PlayerAgent p, BallAction a)
+        {
+            float k = a == BallAction.Shoot ? 1.3f : a == BallAction.Dribble ? 2.9f : a == BallAction.Cross ? 4.7f : a == BallAction.Pass ? 6.1f : 0f;
+            return k == 0f ? 1f : 1f + 0.12f * MathF.Sin(p.NoisePhaseA * k + p.NoisePhaseB * (k * 0.37f + 1f));
         }
 
         /// <summary>Value the opponent gets if they win the ball here (their xT).</summary>
