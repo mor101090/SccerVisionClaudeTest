@@ -2,6 +2,31 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/player-names`
+
+**Realistic player names from the Onomaverse names datasets** (<https://onomaverse.com/datasets>, CC BY 4.0 - the notice is in
+`THIRD_PARTY_NOTICES.md` and in the code as `NameAttribution`).
+- `tools/names/build_onomaverse_names.py` reads three files of the release (given-name frequency, surname frequency, name gender
+  inference) and writes `Simulation/Names/OnomaverseNameData.cs`: for **32 countries** (Spain, Germany, France, Italy, England,
+  Brazil, Argentina, Portugal, the Netherlands, Croatia and 22 more - Belgium, Switzerland, Austria, the Nordics, Poland, Czechia,
+  Ireland, the USA, Turkey, Mexico, Colombia, Uruguay, Chile, Nigeria, Ghana, Morocco, Algeria, Egypt, Japan, Russia) the most
+  common **male** first names (300) and surnames (500) with frequency weights. A name recorded for both sexes counts with the share
+  of its bearers that are male (Andrea in Italy: yes; Ana: almost never; Maria: never). Only names in the Latin script; names are
+  copied exactly, so accents and special characters (João, Müller, Gonçalves, Željko, Muñoz) are kept.
+- `NameBank`: the tables by country (by ISO code or nationality); first names and surnames are two separate `WeightedNameList`s,
+  picked in proportion to their frequency (cumulative weights and a binary search). A country is added with
+  `NameBank.Register(...)` or with one line in the builder script.
+- `PlayerNameGenerator`: a full name per player (first name and surname of the same country), no full name given out twice in one
+  database (and `Reserve` for the players that already exist), the same seed the same names. `NationMix` picks the nationality
+  (`League("ES")`: mostly Spanish, some Brazilian, French, Argentine...). `NameSquad(team, mix)` names a `TeamSetup` - names and
+  nationality only; abilities, looks and everything else stay as they are.
+- **Nothing existing changed**: the demo squads are still named by `IsraeliNames` (a test fixes the names of a seed); the generator is
+  there to be used where a squad should have names of the world's football nations.
+- Not Onomaverse: the release holds only 29 "Croatian" surnames and nearly all are not Croatian (Zheng, Vasile, Zara), so the
+  Croatian surnames come from a short list of common Croatian surnames of our own - said so in the data, the notices and a test.
+  The dataset also has no accents for some names (Jose, Garcia, Rodriguez for Spain): they stay as the dataset has them.
+- Tests: `NameGenerationTests` (14).
+
 ## `fix/card-during-play` - cards, goals, the walk off
 
 - **Fix: a card was shown while the play went on.** In 40 matches, 34 of 114 cards (30%) were shown with the ball in play - and a red
