@@ -81,3 +81,11 @@ td.l { color: var(--muted); }
 .crest-prev img { width: 100%; height: 100%; object-fit: contain; }
 #crestNote { color: var(--muted); min-height: 1.2em; }
 .lu-crest { height: 2.4em; width: auto; vertical-align: middle; margin-right: .5em; }
+
+/* online: the game code, the two kits, the connection banner */
+.ocode { flex: 1; font: 800 40px/1.1 var(--body); letter-spacing: .22em; color: var(--text); text-align: center; background: #12162a; border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+.okits[hidden] { display: none; }
+.okits { display: flex; gap: 18px; justify-content: center; align-items: center; font: 600 14px var(--body); }
+.okits svg { width: 54px; height: 40px; vertical-align: middle; }
+.netstate[hidden] { display: none; }
+.netstate { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 60; background: #b3261e; color: #fff; font: 700 14px var(--body); padding: 8px 16px; border-radius: 8px; box-shadow: 0 4px 14px #0007; }

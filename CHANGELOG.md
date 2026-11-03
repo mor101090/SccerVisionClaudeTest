@@ -4,6 +4,22 @@ Each round of changes is developed on its own branch, named after what it change
 
 ## `fix/online-connect`
 
+**Online play with a six-digit code, kits of your own, and a connection that comes back.** After two hours of picking line-ups the
+match did not kick off: the direct connection between the two browsers had dropped without a word, and there was no way back
+without a new invite. Now:
+- **Start screen**: "Play the computer" or "Play a friend online". Online, you pick only your own kits - your kit, a second kit (worn
+  if your friend's shirt looks like yours) and your goalkeeper - and then **Create a game** (you get a six-digit code, or a link with
+  it) or **Join a game** (type in your friend's code). The two find each other through the free PeerJS broker (0.peerjs.com): it only
+  passes the handshake; the match goes directly between the two browsers, encrypted.
+- **The kits**: the host keeps his kit; the friend wears his own, or his second kit if his looks like the host's (or, if both do, a
+  shirt that clashes with neither); each keeper takes a colour that clashes with no shirt. Both sides work it out the same way and
+  both see the two kits before the match ("your friend's shirt looked like yours: he wears his second kit").
+- **A connection that drops comes back**: a heartbeat every 2 s; after 10 s of silence a red banner says so ("reconnecting...",
+  "waiting for him to come back"), the friend's page reconnects by itself, and the host sends him everything he missed (the match
+  carries on on the host's engine; the friend catches up and his "ready" and his team are sent again). Tested with two browsers: a
+  15 s silence before the match and a closed connection in the middle of it - the match kicked off and both clocks agree afterwards.
+- If the code service cannot be reached the page falls back to the invite link and reply code.
+
 **Online play: no more endless "Connecting..."**. The two browsers connect directly (WebRTC) and the page said nothing when they could
 not reach each other. Now: the invite and the reply code wait (up to 12 s) for the internet address the STUN server reports - the old
 4 s limit could leave only the home-network address in the code, and a friend elsewhere could then never connect - and warn if there
