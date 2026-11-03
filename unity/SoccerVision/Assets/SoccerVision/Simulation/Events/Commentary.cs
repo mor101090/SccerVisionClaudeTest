@@ -112,6 +112,7 @@ namespace SoccerVision.Simulation
                 case MatchEventType.Skill:
                     if (e.Detail == 1) return P(e.Player) + " shapes to shoot... and fakes it" + (e.OtherPlayer >= 0 ? " - " + P(e.OtherPlayer) + " is sold" : "") + "!";
                     if (e.Detail == 2) return P(e.Player) + " backheels it on";
+                    if (e.Detail == 4) return P(e.Player) + " nutmegs " + P(e.OtherPlayer) + "!";
                     if (e.Detail == 3) return P(e.Player) + " lets it run through his legs" + (e.OtherPlayer >= 0 ? " for " + P(e.OtherPlayer) : "") + " - lovely dummy!";
                     return P(e.Player) + " shows a bit of skill";
                 case MatchEventType.TacticsChanged:

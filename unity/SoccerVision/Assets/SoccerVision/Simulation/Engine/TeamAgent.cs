@@ -237,6 +237,8 @@ namespace SoccerVision.Simulation
         public int ThirdManRuns, ThirdManPasses, ThirdManCompleted;
         /// <summary>Counter-movements: a runner comes short first to drag his marker, then goes in behind.</summary>
         public int CounterMovements;
+        /// <summary>Nutmegs tried (the ball through an opponent's legs) and the ones where the dribbler got the ball back.</summary>
+        public int Nutmegs, NutmegsWon;
         /// <summary>Deep completions: ground passes received within ~20 m of the goal, in front of it or in a half-space.</summary>
         public int DeepCompletions;
         /// <summary>Counter-press: the ball lost, the nearest players swarm it at once; won back inside the window.</summary>

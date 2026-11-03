@@ -20,6 +20,13 @@ Each round of changes is developed on its own branch, named after what it change
 - **A fake shot moves the ball**: the foot swings the whole way as if kicking, the ball is nudged to the side he is about to go (in or
   out, whichever way the fake goes) and carried on, the defender who was sold is out of it for a second (was three quarters), and
   then the player dribbles on or passes. (Over 16 matches with flair players: 57 fake shots, the ball nudged in 35.)
+- **Nutmegs** (the ball through the opponent's legs): a dribbler with a defender coming at him head on, a metre or two away, pushes the
+  ball between his legs and goes round to collect it. Flair players do it far more: the trick-lovers (Showboat), the dribblers
+  (LovesToDribble) and the ones with the touch and the nerve (dribbling, creativity, composure); a player with no special ability
+  hardly tries. It does not always work - a poor touch or a crowd and the ball hits a leg and goes to the defender. When it works the
+  defender is out of the game for a second with his legs drawn open, and the dribbler is sent after his own ball. In the statistics:
+  `Nutmegs` and `NutmegsWon`. Over 60 matches: about 3.4 a match (both teams), 1.8 of them working, 1.3 where the dribbler got the
+  ball back; a squad of flair players 8 a match against 0.4 for a squad with no special ability.
 - **The keeper goes up for a high ball**: the jump grows with the height of the ball (a ball in the top corner: up to 0.7 m, his cap
   is 0.3 m more than a field player's) and he is drawn larger and higher.
 - **The keeper's dive**: no gloves, no trail, and no jump back to the round disc at the end - the stretch comes on in about a tenth of

@@ -234,6 +234,7 @@ namespace SoccerVision.Simulation
                     return new KickPlan { Action = BallAction.Dribble, DribbleTarget = Pitch.ClampToField(pos + across * 3.2f + toGoal * 1.2f, -1f), Utility = chosen.Utility };
                 }
             }
+            if (chosen.Action == BallAction.Dribble && TryNutmeg(p, ref chosen, pos, pressure)) return chosen;
             if (chosen.Action == BallAction.Pass && !chosen.Lofted && chosen.Receiver != null && pressure > 0.25f)
             {
                 Vec2 to = chosen.Target - pos;
@@ -249,6 +250,56 @@ namespace SoccerVision.Simulation
             }
             return chosen;
         }
+
+        /// <summary>
+        /// The nutmeg: a defender closing him down head on, close enough, and a dribbler with the nerve and the touch - he pushes the
+        /// ball through the defender's legs and goes round to collect it. Flair players (the trick-lovers, the dribblers, the
+        /// creative ones) try it far more than the others; it does not always work - the ball can hit a leg and go to the defender.
+        /// </summary>
+        private bool TryNutmeg(PlayerAgent p, ref KickPlan chosen, Vec2 pos, float pressure)
+        {
+            var team = p.Team;
+            if (team.Forward(pos) < -20f || Ball.Owner != p) return false;
+            Vec2 dir = (chosen.DribbleTarget - pos).Normalized;
+            if (dir.LengthSq < 0.01f) dir = p.FacingDir;
+            PlayerAgent v = null; float vd = 99f;
+            foreach (var o in team.Opponent.Players)
+            {
+                if (o.SentOff || o.IsGoalkeeper || o.StunTimer > 0f) continue;
+                Vec2 rel = o.Pos - pos; float d = rel.Length;
+                if (d < 1.1f || d > 2.7f || Vec2.Dot(rel / d, dir) < 0.88f) continue;
+                if (d < vd) { vd = d; v = o; }
+            }
+            if (v == null) return false;
+            float flair = MathUtil.A((p.Attr.Dribbling * 2 + p.Attr.Creativity + p.Attr.Composure) / 4);
+            if (flair < 0.45f && !p.Has(PlayerTrait.Showboat)) return false;
+            float chance = 0.03f + 0.22f * MathUtil.Clamp01((flair - 0.45f) / 0.5f);
+            if (p.Has(PlayerTrait.Showboat)) chance *= 2.2f;
+            if (p.Has(PlayerTrait.LovesToDribble)) chance *= 1.6f;
+            chance *= MathUtil.Lerp(1f, 0.5f, MathUtil.Clamp01(pressure));
+            if (!_rng.Chance(MathUtil.Clamp(chance * _nutmegRate, 0f, 0.6f))) return false;
+            // the ball goes through his legs and on, about two and a half metres beyond him
+            Vec2 landing = Pitch.ClampToField(v.Pos + dir * 2.4f, -1.5f);
+            float dist = Vec2.Distance(pos, landing);
+            float speed = Roll.KickSpeedFor(dist, 2.8f);
+            float pWork = MathUtil.Clamp(0.4f + 0.5f * flair + (p.Has(PlayerTrait.Showboat) ? 0.05f : 0f) - 0.2f * pressure, 0.25f, 0.9f);
+            bool works = _rng.Chance(pWork);
+            KickBall(p, Ball.Pos, dir * speed, 0f, 0f, 0f, KickKind.Nutmeg, null, landing, false, false);
+            Emit(MatchEventType.Skill, team, p, v, pos, 0f, WhistleKind.Short, 4);
+            team.Stats.Nutmegs++;
+            if (CollectDiagnostics) Count("skill.nutmeg" + (works ? ".works" : ".fails"));
+            if (works)
+            {
+                v.StunTimer = MathF.Max(v.StunTimer, 1.1f);     // fooled: he cannot get a foot to it
+                v.NutmegVictimUntil = SimTime + 0.9f;            // (his legs are drawn open)
+                p.NutmegChaseUntil = SimTime + 3f;
+            }
+            // he goes round the defender for his own ball
+            chosen = new KickPlan { Action = BallAction.Dribble, DribbleTarget = landing, Utility = chosen.Utility };
+            return true;
+        }
+
+        private float _nutmegRate = 1f;
 
         /// <summary>A target man with his back to goal in the final third: he holds it up and lays it off.</summary>
         private static bool BackToGoalNow(PlayerAgent p)

@@ -61,5 +61,37 @@ namespace SoccerVision.Simulation.Tests
             Assert.True(fakes >= 3, "no fake shots");
             Assert.True(nudged >= fakes * 0.5, $"the ball does not move with the fake: {nudged} of {fakes}");
         }
+
+        private static (double nutmegs, double won) Nutmegs(Func<TeamSetup> red, int n)
+        {
+            var es = new MatchEngine[n];
+            Parallel.For(0, n, i =>
+            {
+                es[i] = new MatchEngine(red(), DemoTeams.Blue(), 9500 + (ulong)i, MatchConfig.CreateDefault()) { CollectDiagnostics = true };
+                es[i].RunToEnd();
+            });
+            return (es.Average(e => e.Home.Stats.Nutmegs), es.Average(e => e.Home.Stats.NutmegsWon));
+        }
+
+        [Fact]
+        public void NutmegsHappenAMatchAndMoreWithFlairPlayers()
+        {
+            // both teams, plain squads: one or two a match at least, and the dribbler gets his ball back most of the time
+            var both = new MatchEngine[16];
+            Parallel.For(0, both.Length, i =>
+            {
+                both[i] = new MatchEngine(DemoTeams.Red(9400 + (ulong)i), DemoTeams.Blue(9400 + (ulong)i), 9400 + (ulong)i, MatchConfig.CreateDefault()) { CollectDiagnostics = true };
+                both[i].RunToEnd();
+            });
+            double perMatch = both.Average(e => e.Home.Stats.Nutmegs + e.Away.Stats.Nutmegs), won = both.Average(e => e.Home.Stats.NutmegsWon + e.Away.Stats.NutmegsWon);
+            Assert.InRange(perMatch, 1.5, 8);
+            Assert.True(won >= perMatch * 0.3, $"nutmegs {perMatch:0.0} a match, got the ball back {won:0.0}");
+            // the flair players do it more: a squad of showboats against a squad that has no special ability
+            Func<TeamSetup> flair = () => { var t = DemoTeams.Red(); foreach (var p in t.Starters) { p.Traits = PlayerTrait.Showboat | PlayerTrait.LovesToDribble; p.Attributes.Dribbling = 85; p.Attributes.Creativity = 80; } return t; };
+            Func<TeamSetup> plain = () => { var t = DemoTeams.Red(); foreach (var p in t.Starters) { p.Traits = PlayerTrait.None; p.Attributes.Dribbling = 50; p.Attributes.Creativity = 50; } return t; };
+            var f = Nutmegs(flair, 12); var q = Nutmegs(plain, 12);
+            _out.WriteLine($"nutmegs a match: both teams {perMatch:0.0} (ball back {won:0.0}); flair squad {f.nutmegs:0.0}, plain squad {q.nutmegs:0.0}");
+            Assert.True(f.nutmegs > q.nutmegs * 2 + 0.5, $"flair {f.nutmegs:0.0} v plain {q.nutmegs:0.0}");
+        }
     }
 }

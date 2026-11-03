@@ -300,6 +300,7 @@ namespace SoccerVision.Simulation
             if (CollectDiagnostics) ContactCheck(p, Ball.Pos, Ball.Z, "control");
             bool changeOfPossession = Ball.LastTouchTeam != p.Team;
             ResolvePendingPass(p);
+            if (p.NutmegChaseUntil > SimTime) { p.Team.Stats.NutmegsWon++; p.NutmegChaseUntil = -1f; if (CollectDiagnostics) Count("skill.nutmegWon"); }
             if (changeOfPossession) ClearOffside();
             if (changeOfPossession && Ball.LastToucher != null && Ball.LastToucher.Team != p.Team && Ball.PendingPassFrom == null && Ball.IsShot == false)
             {

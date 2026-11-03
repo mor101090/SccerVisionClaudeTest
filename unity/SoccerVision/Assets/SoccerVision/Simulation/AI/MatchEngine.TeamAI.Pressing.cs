@@ -104,6 +104,9 @@ namespace SoccerVision.Simulation
                 {
                     t.Chaser = best;
                 }
+                // a nutmeg that worked: he goes round the defender for his own ball
+                foreach (var q in t.Players)
+                    if (q.NutmegChaseUntil > SimTime && !q.SentOff && !q.IsDown) { UpdateIntercept(q); t.Chaser = q; break; }
             }
             AssignAnticipation();
             AssignShielding();

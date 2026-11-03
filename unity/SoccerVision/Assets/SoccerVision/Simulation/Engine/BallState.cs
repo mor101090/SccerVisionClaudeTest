@@ -13,6 +13,8 @@ namespace SoccerVision.Simulation
         Deflection,
         GoalkeeperDistribution,
         Restart,
+        /// <summary>The ball pushed through an opponent's legs (a nutmeg): not a pass, the dribbler runs round to collect it.</summary>
+        Nutmeg,
     }
 
     /// <summary>The ball: free physics body or attached to a player (feet or goalkeeper's hands).</summary>
