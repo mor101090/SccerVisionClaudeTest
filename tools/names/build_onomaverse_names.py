@@ -35,10 +35,10 @@ COUNTRIES = [
     ("PL", "Poland"), ("CZ", "Czechia"), ("IE", "Ireland"), ("US", "USA"), ("TR", "Turkey"),
     ("MX", "Mexico"), ("CO", "Colombia"), ("UY", "Uruguay"), ("CL", "Chile"),
     ("NG", "Nigeria"), ("GH", "Ghana"), ("EG", "Egypt"), ("RU", "Russia"),
-    ("PE", "Peru"), ("BO", "Bolivia"), ("CR", "Costa Rica"), ("PA", "Panama"), ("FI", "Finland"), ("GR", "Greece"), ("CM", "Cameroon"),
+    ("PE", "Peru"), ("BO", "Bolivia"), ("CR", "Costa Rica"), ("PA", "Panama"), ("FI", "Finland"), ("CM", "Cameroon"),
     ("ZA", "South Africa"), ("CA", "Canada"), ("HU", "Hungary"), ("BG", "Bulgaria"), ("EC", "Ecuador"), ("RS", "Serbia"),
 ]
-# Tried and left out because the release's surnames for them are mostly not surnames: Morocco and Algeria (Ell, Female, Ssa, Setif, Madrid,
+# Tried and left out because the release's names for them are mostly not their own: Greece (Ali, Singh, Gujjar...), Morocco and Algeria (Ell, Female, Ssa, Setif, Madrid,
 # Annaba...) and Japan (a handful of real surnames among Leroux, Zhao, Hassan...). They can be added back above when a later release is better.
 # Where the dataset cannot give a country's names, a supplement stands in - clearly NOT Onomaverse data, and said so in the generated
 # file and in the notices. The Onomaverse release has only 29 "Croatian" surnames and nearly all of them are not Croatian (Zheng, Vasile,
@@ -123,6 +123,12 @@ def foreign(strength, cc, cl):
     return False
 
 
+# The dataset's own label of where a name comes from: in a European or Latin American country a name labelled as one of these is
+# an immigrant's name (the label is only a second check - many names have none).
+FOREIGN_ORIGIN = re.compile(r"^(Arabic|Persian|Turkish|Sanskrit|Hindi|Urdu|Bengali|Punjabi|Indian|Tamil|Chinese|Japanese|Korean|Vietnamese|Thai|Malay|"
+                            r"Indonesian|Igbo|Yoruba|Hausa|Akan|Twi|Ewe|Swahili|Wolof|Soninke|Mande|Fula|Somali|Amharic|Albanian|Kurdish|Pashto)", re.I)
+NOT_FILTERED_BY_ORIGIN = {"TR", "EG", "NG", "GH", "CM", "ZA"}
+
 PARTICLES = {"van", "von", "der", "den", "de", "het", "ter", "ten", "te", "zu", "da", "do", "dos", "das", "del", "la", "los", "las"}
 PARTICLE_COUNTRIES = {"NL", "BE", "DE", "AT", "CH", "PT", "BR", "ES", "AR", "MX", "CO", "UY", "CL"}
 
@@ -154,7 +160,8 @@ def masculine(cc, name, known):
     return name
 
 
-ACCENT_LANGUAGE = {"ES": "es", "AR": "es", "MX": "es", "CO": "es", "UY": "es", "CL": "es", "PT": "pt", "BR": "pt", "FR": "fr", "IT": "it"}
+ACCENT_LANGUAGE = {"ES": "es", "AR": "es", "MX": "es", "CO": "es", "UY": "es", "CL": "es", "PE": "es", "BO": "es", "CR": "es", "PA": "es",
+                   "PT": "pt", "BR": "br", "FR": "fr", "IT": "it"}
 
 
 def load_accents():
@@ -168,6 +175,31 @@ def accentuate(cc, name, accents):
     return "".join(table.get(part, part) for part in re.split(r"([ \-'’.])", name)) if table else name
 
 
+# The dataset writes the Irish O' surnames as one word or two (Obrien, O Sullivan) and the Mc surnames in lower case (Mcdonald). These
+# O' surnames were checked against Wikipedia (each has an article or a family article under the O' spelling); the Mc rule is the
+# standard spelling (McDonald, McLean, McGrath).
+IRISH_O = {n.lower(): "O'" + n for n in ("Brien Byrne Callaghan Connell Connor Doherty Donnell Donovan Dowd Driscoll Dwyer Farrell Flaherty "
+           "Gorman Grady Hagan Halloran Hara Kane Keeffe Leary Mahony Malley Meara Neill Regan Reilly Riordan Rourke Shea Sullivan Toole").split()}
+ENGLISH_SPEAKING = {"GB", "IE", "US", "CA"}
+# Italian surnames with an elided d' (the dataset writes Dangelo): the standard spelling
+ITALIAN_D = {n.lower(): "D'" + n for n in "Addario Agostino Alessandro Alessio Amato Ambrosio Amico Andrea Angelo Anna Antonio Elia Errico Onofrio Orazio Urso".split()}
+
+
+def anglo(cc, name):
+    if cc in ("IT", "CH"):
+        m = re.fullmatch(r"D([aeiou][a-z]+)", name)
+        if m and m.group(1).lower() in ITALIAN_D: return ITALIAN_D[m.group(1).lower()]
+    if cc not in ENGLISH_SPEAKING: return name
+    m = re.fullmatch(r"O ?([A-Za-z]+)", name)
+    if m and m.group(1).lower() in IRISH_O: return IRISH_O[m.group(1).lower()]
+    m = re.fullmatch(r"Mc([a-z])([a-z]+)", name)
+    if m: return "Mc" + m.group(1).upper() + m.group(2)
+    return name
+
+
+def strip_accents(s): return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+
+
 def usable(name): return latin(name) and "|" not in name and ";" not in name and name == name.strip()
 
 
@@ -175,6 +207,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dir", default=os.path.join(os.environ.get("TMPDIR", "/tmp"), "onomaverse-" + RELEASE), help="where the CSV files are (downloaded there if missing)")
     ap.add_argument("--out", default=OUT)
+    ap.add_argument("--no-accents", action="store_true", help="leave the names as the dataset spells them (restore_accents.py reads these)")
     a = ap.parse_args()
     paths = {f: fetch(a.dir, f) for f in FILES}
     codes = {c for c, _ in COUNTRIES}
@@ -192,6 +225,7 @@ def main():
         cc, n = r["country_code"], r["name"]
         if cc not in codes or not usable(n) or len(n) < 2: continue
         if cc in cl and foreign(strength_f[n], cc, cl): dropped[cc][0] += 1; continue
+        if cc not in NOT_FILTERED_BY_ORIGIN and FOREIGN_ORIGIN.match(r.get("origin") or ""): dropped[cc][0] += 1; continue
         g = r["gender"].split(";")
         if "M" not in g: continue
         share = 1.0 if g == ["M"] else p_male.get(n, 0.0)
@@ -200,6 +234,7 @@ def main():
     raw_last = defaultdict(dict)
     for r in csv.DictReader(open(paths["surname-frequency.csv"], encoding="utf-8")):
         cc, n = r["country_code"], r["name"]
+        if cc not in NOT_FILTERED_BY_ORIGIN and FOREIGN_ORIGIN.match(r.get("origin") or ""): continue
         if cc in codes and usable(n) and len(n) >= 3: raw_last[cc][n] = raw_last[cc].get(n, 0.0) + float(r["pct_in_country"])  # (2-letter "surnames" like Ma, Le are fragments)
     for cc, d in raw_last.items():
         known = set(d)
@@ -208,18 +243,36 @@ def main():
             if cc in cl and foreign(strength_l[n], cc, cl): dropped[cc][1] += 1; continue
             m = masculine(cc, n, known)
             if m is None: continue
+            if cc != "CZ" and m.endswith("ová"): continue                # (a Czech woman's surname in another country's list)
             if cc in PARTICLE_COUNTRIES: m = particles(m)
             last[cc][m] += w
 
-    accents = load_accents()
+    accents = {} if a.no_accents else load_accents()
     for cc in list(first):
         merged = defaultdict(float)
         for n, w in first[cc].items(): merged[accentuate(cc, n, accents)] += w
         first[cc] = merged
     for cc in list(last):
         merged = defaultdict(float)
-        for n, w in last[cc].items(): merged[accentuate(cc, n, accents)] += w
+        for n, w in last[cc].items(): merged[anglo(cc, accentuate(cc, n, accents))] += w
         last[cc] = merged
+
+    def fold(d):
+        """Two spellings of one name that differ only in accents (Michele / Michèle, Jose / José): the more common one stays."""
+        best = {}
+        for n, w in d.items():
+            k = strip_accents(n).lower()
+            if k not in best or w > d[best[k]]: best[k] = n
+        out = defaultdict(float)
+        for n, w in d.items(): out[best[strip_accents(n).lower()]] += w
+        return out
+    for cc in list(first): first[cc] = fold(first[cc])
+    for cc in list(last): last[cc] = fold(last[cc])
+    # a surname that is one of the country's own common first names (Ivan Ivan) is left out in Europe and the Americas
+    for cc in list(last):
+        if cc in NOT_FILTERED_BY_ORIGIN: continue
+        top_first = {n for n, _ in sorted(first[cc].items(), key=lambda kv: -kv[1])[:60]}
+        for n in [n for n in last[cc] if n in top_first]: del last[cc][n]
 
     def table(d, top, cover=1.0):
         items = sorted(d.items(), key=lambda kv: (-kv[1], kv[0]))

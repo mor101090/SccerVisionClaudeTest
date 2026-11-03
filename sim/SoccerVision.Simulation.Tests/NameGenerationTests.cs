@@ -32,7 +32,7 @@ namespace SoccerVision.Simulation.Tests
                 Assert.Same(c, NameBank.Get(code.ToLowerInvariant()));
             }
             Assert.Equal("England", NameBank.Get("GB").Nationality);
-            Assert.True(NameBank.Countries.Count >= 25, "other nationalities too: " + NameBank.Countries.Count);
+            Assert.True(NameBank.Countries.Count >= 30, "other nationalities too: " + NameBank.Countries.Count);
             Assert.False(NameBank.TryGet("XX", out _));
         }
 
@@ -45,10 +45,11 @@ namespace SoccerVision.Simulation.Tests
                 ["ES"] = new[] { "Maria", "Carmen", "Ana", "Nuria" }, ["IT"] = new[] { "Maria", "Anna", "Francesca" }, ["BR"] = new[] { "Maria", "Ana" },
                 ["HR"] = new[] { "Ivana", "Marija", "Martina" }, ["PT"] = new[] { "Maria", "Ana" },
             };
+            static string Plain(string s) => new string(s.Normalize(System.Text.NormalizationForm.FormD).Where(ch => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
             foreach (var kv in female)
-                foreach (var n in kv.Value) Assert.DoesNotContain(n, NameBank.Get(kv.Key).FirstNames.Names);
+                foreach (var n in kv.Value) Assert.DoesNotContain(NameBank.Get(kv.Key).FirstNames.Names, x => Plain(x) == n); // (María neither)
             // the common men's names are
-            Assert.Contains("Jose", NameBank.Get("ES").FirstNames.Names);
+            Assert.Contains("José", NameBank.Get("ES").FirstNames.Names);
             Assert.Contains("Giuseppe", NameBank.Get("IT").FirstNames.Names);
             Assert.Contains("Ivan", NameBank.Get("HR").FirstNames.Names);
             Assert.Contains("Andrea", NameBank.Get("IT").FirstNames.Names); // (recorded for both sexes, mostly men's in Italy)
@@ -64,6 +65,16 @@ namespace SoccerVision.Simulation.Tests
             Assert.Contains("Jürgen", All("DE", true));
             Assert.Contains("Sébastien", All("FR", true));
             Assert.Contains("Muñoz", All("ES", false));
+            // the accents the dataset lacks, put back where Wikipedia confirms them (tools/names/restore_accents.py)
+            Assert.Contains("García", NameBank.Get("ES").Surnames.Names);
+            Assert.Contains("López", NameBank.Get("ES").Surnames.Names);
+            Assert.DoesNotContain("Garcia", NameBank.Get("ES").Surnames.Names);
+            Assert.Contains("José", NameBank.Get("BR").FirstNames.Names);
+            Assert.Contains("François", NameBank.Get("FR").FirstNames.Names);
+            // Irish and Scottish spellings
+            Assert.Contains("O'Brien", NameBank.Get("IE").Surnames.Names);
+            Assert.Contains("McDonald", NameBank.Get("GB").Surnames.Names);
+            Assert.DoesNotContain("Obrien", NameBank.Get("IE").Surnames.Names);
             Assert.Contains("Kovačević", All("HR", false));
             Assert.Contains("Željko", All("HR", true));
             // and they come out of the generator as they went in
@@ -88,6 +99,30 @@ namespace SoccerVision.Simulation.Tests
                         Assert.True(n.Any(char.IsLetter));
                     }
                 }
+        }
+
+        [Fact]
+        public void ImmigrantNamesAreFilteredFromTheLocalLists()
+        {
+            foreach (var code in new[] { "ES", "DE", "FR", "IT", "GB", "NL", "PT", "BR", "AR" })
+            {
+                var c = NameBank.Get(code);
+                foreach (var n in new[] { "Mohamed", "Ahmed", "Ali", "Mehmet", "Hassan" }) Assert.DoesNotContain(n, c.FirstNames.Names);
+                foreach (var n in new[] { "Singh", "Ali", "Yilmaz", "Nguyen", "Khan", "Mohamed", "Hassan", "Diallo" }) Assert.DoesNotContain(n, c.Surnames.Names);
+            }
+            // but a name shared by neighbours stays (Antonio in Spain, Jan in the Netherlands)
+            Assert.Contains("Antonio", NameBank.Get("ES").FirstNames.Names);
+            Assert.Contains("Jan", NameBank.Get("NL").FirstNames.Names);
+            // and a man's surname is a man's: no Kowalska in Poland, no Ivanova in Russia
+            Assert.DoesNotContain(NameBank.Get("PL").Surnames.Names, n => n.EndsWith("ska"));
+            Assert.DoesNotContain(NameBank.Get("RU").Surnames.Names, n => n.EndsWith("ova"));
+        }
+
+        [Fact]
+        public void AFirstNameIsNeverAlsoTheSurname()
+        {
+            var g = new PlayerNameGenerator(3);
+            for (int i = 0; i < 3000; i++) { var n = g.Next("BR"); Assert.NotEqual(n.First, n.Last, StringComparer.OrdinalIgnoreCase); }
         }
 
         [Fact]
@@ -245,6 +280,8 @@ namespace SoccerVision.Simulation.Tests
             Assert.Contains("CC BY 4.0", NameAttribution.License);
             Assert.Contains("onomaverse.com/datasets", NameAttribution.Citation);
             Assert.Equal("v2026.10", OnomaverseNameData.Release);
+            // a country with few names says so
+            Assert.Contains(NameBank.Countries, c => c.Note.StartsWith("Thin"));
             // the croatian surnames are said to be a supplement, not Onomaverse data
             Assert.Contains("supplementary", NameBank.Get("HR").Note);
             string dir = AppContext.BaseDirectory;

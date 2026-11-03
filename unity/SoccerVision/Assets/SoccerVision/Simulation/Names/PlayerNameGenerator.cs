@@ -20,6 +20,7 @@ namespace SoccerVision.Simulation
         public int Count => _used.Count;
 
         private static string Key(string first, string last) => first + " " + last;
+        private static bool Same(string first, string last) => string.Equals(first, last, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Marks a name as taken - for the players that already exist, so a new one never repeats theirs.</summary>
         public bool Reserve(string firstName, string lastName) => _used.Add(Key(firstName, lastName));
@@ -34,13 +35,14 @@ namespace SoccerVision.Simulation
             for (int tries = 0; tries < 60; tries++)
             {
                 string f = c.FirstNames.Pick(_rng), l = c.Surnames.Pick(_rng);
+                if (Same(f, l)) continue; // (no Bruno Bruno)
                 if (_used.Add(Key(f, l))) return (f, l);
             }
             int fi = _rng.Range(0, c.FirstNames.Count), li = _rng.Range(0, c.Surnames.Count);
             for (long k = 0; k < c.Combinations; k++)
             {
                 string f = c.FirstNames[(int)((fi + k) % c.FirstNames.Count)], l = c.Surnames[(int)((li + k / c.FirstNames.Count) % c.Surnames.Count)];
-                if (_used.Add(Key(f, l))) return (f, l);
+                if (!Same(f, l) && _used.Add(Key(f, l))) return (f, l);
             }
             throw new InvalidOperationException("All " + c.Combinations + " full names of " + c.Nationality + " are taken.");
         }
