@@ -149,6 +149,7 @@ namespace SoccerVision.Simulation
             scoringTeam.Score++;
             scoringTeam.Stats.Goals++;
             if (CollectDiagnostics && _lastShotKeeperBucket != null) Count("goal.keeper." + _lastShotKeeperBucket);
+            if (CollectDiagnostics && _shotTags != null && SimTime - _lastShotTime < 4f) foreach (var tg in _shotTags) Count("goal." + tg);
             if (SimTime - scoringTeam.SetPieceAt < 10f) scoringTeam.Stats.SetPieceGoals++;
             MomentumGoal(scoringTeam);
             bool recentShot = Ball.Shooter != null && Ball.Shooter.Team == scoringTeam && SimTime - _lastShotTime < 3f;

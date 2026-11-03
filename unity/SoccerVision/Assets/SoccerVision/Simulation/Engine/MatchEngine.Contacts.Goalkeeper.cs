@@ -75,7 +75,7 @@ namespace SoccerVision.Simulation
             float difficulty = 0.42f * MathUtil.Clamp((speed - 12f) / 20f, 0f, 1.2f) + 0.55f * reachNeeded + (Ball.Z > 1.8f ? 0.12f : 0f) + 0.35f * closeRange;
             if (Ball.LastKickKind == KickKind.Header) difficulty += 0.25f; // close-range headers give little time to react
             if (Ball.ShotKnuckle) difficulty += 0.22f; // a ball with no spin moves late in the air
-            float pSave = MathUtil.Clamp(1.13f - difficulty * 0.44f + (skill - 0.5f) * 0.35f, 0.1f, 0.94f); // (a little more for the keepers: more saves, a more watchable match)
+            float pSave = MathUtil.Clamp(0.98f - difficulty * 0.44f + (skill - 0.5f) * 0.35f, 0.1f, 0.94f); // (calibrated with the open goals made honest: about 2.8 goals a match)
             if (_penaltyKickTime >= 0f && shooter != null && SimTime - _penaltyKickTime < 1.5f)
             {
                 pSave = _penaltyGuessCorrect ? MathUtil.Clamp(0.36f + 0.3f * (skill - 0.5f) - reachNeeded * 0.15f, 0.15f, 0.7f) : 0.05f;
@@ -84,6 +84,9 @@ namespace SoccerVision.Simulation
             }
 
             if (shooter != null && shooterGap < 3.5f && reachNeeded < 0.6f && Ball.IsShot) pSave = MathF.Min(0.95f, pSave + 0.3f * (1f - shooterGap / 3.5f)); // (the block)
+            // From range he sees it coming: the further out it was struck, the likelier the save (only one goal in nine comes from
+            // outside the box in the top leagues; ours were one in five).
+            if (Ball.IsShot && _penaltyKickTime < 0f) pSave = MathF.Min(0.94f, pSave + MathUtil.Clamp((shotDistance - 18f) * 0.012f, 0f, 0.12f));
             if (_lastShotOpenGoal && Ball.IsShot) pSave *= 0.25f; // (a keeper scrambling back to an open goal rarely gets there)
             if (!_rng.Chance(pSave))
             {

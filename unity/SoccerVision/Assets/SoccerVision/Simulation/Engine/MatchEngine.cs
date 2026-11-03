@@ -324,6 +324,11 @@ namespace SoccerVision.Simulation
                 StepWalkOut(dt);
                 return;
             }
+            if (WalkingOff)
+            {
+                StepWalkOff(dt);
+                return;
+            }
 
             switch (Phase)
             {
@@ -706,9 +711,14 @@ namespace SoccerVision.Simulation
                 Emit(MatchEventType.Whistle, null, null, null, Ball.Pos, 0f, WhistleKind.HalfTime);
                 Clock.Period = MatchPeriod.HalfTime;
                 Emit(MatchEventType.HalfTime);
-                Phase = MatchPhase.HalfTimeBreak;
-                HalftimeRemaining = Config.HalftimeRealSeconds;
-                if (HalftimeRemaining <= 0f) StartSecondHalf();
+                // the players walk off to the dressing room first; then the break
+                Phase = MatchPhase.Stoppage;
+                BeginWalkOff(WalkOffKind.HalfTime, () =>
+                {
+                    Phase = MatchPhase.HalfTimeBreak;
+                    HalftimeRemaining = Config.HalftimeRealSeconds;
+                    if (HalftimeRemaining <= 0f) StartSecondHalf();
+                });
             }
             else if (Clock.Period == MatchPeriod.ExtraTimeFirstHalf)
             {
@@ -729,9 +739,14 @@ namespace SoccerVision.Simulation
                 if (Clock.Period == MatchPeriod.SecondHalf) SecondHalfRealSeconds = RealTimeElapsed - _periodRealStart;
                 Emit(MatchEventType.Whistle, null, null, null, Ball.Pos, 0f, WhistleKind.FullTime);
                 Clock.Period = MatchPeriod.FullTime;
-                Phase = MatchPhase.FullTime;
                 foreach (var t in Teams) FinaliseStats(t);
-                Emit(MatchEventType.FullTime);
+                // not the end of the picture: the winners celebrate and thank their fans, the losers walk off - then it is over
+                Phase = MatchPhase.Stoppage;
+                BeginWalkOff(WalkOffKind.FullTime, () =>
+                {
+                    Phase = MatchPhase.FullTime;
+                    Emit(MatchEventType.FullTime);
+                });
             }
         }
 
@@ -766,6 +781,7 @@ namespace SoccerVision.Simulation
             Phase = MatchPhase.Stoppage;
             TeleportForKickOff(kickOffTeam);
             BeginRestart(RestartType.KickOff, kickOffTeam, Vec2.Zero, null);
+            BeginComeOut(); // (out of the tunnel and to their places)
             Emit(MatchEventType.SecondHalfStart);
             SavePrevious();
         }

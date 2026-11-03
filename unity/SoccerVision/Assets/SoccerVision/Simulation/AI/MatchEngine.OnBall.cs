@@ -136,7 +136,7 @@ namespace SoccerVision.Simulation
             if (distGoal < 26f && f > 22f)
             {
                 var gk = team.Opponent.Goalkeeper;
-                bool keeperBeaten = gk == null || gk.SentOff || Vec2.DistanceToSegment(gk.Pos, pos, team.AttackGoal, out _) > 2.4f || gk.IsDown;
+                bool keeperBeaten = KeeperCannotGetThere(team, pos, gk);
                 if (keeperBeaten)
                 {
                     openGoal = true;

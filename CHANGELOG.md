@@ -2,7 +2,7 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
-## `fix/card-during-play`
+## `fix/card-during-play` - cards, goals, the walk off
 
 - **Fix: a card was shown while the play went on.** In 40 matches, 34 of 114 cards (30%) were shown with the ball in play - and a red
   card sent the player off the pitch in the middle of an attack. Two causes:
@@ -12,6 +12,25 @@ Each round of changes is developed on its own branch, named after what it change
   - A booking for simulation (the diver): the card was given with the play going on. Now the referee stops the play, books the
     diver with the play stopped, and gives an indirect free kick to the other side (Law 12).
   Over 40 matches: 118 cards, none shown while the play went on. Test: `CardTimingTests`.
+- **Goals that look like football** (researched: in the Premier League 2024-25 11.5% of the goals came from outside the box, the
+  lowest share on record; in the World Cup 2018 about six in ten from open play; headers 13-19%). Measured over 100 matches with a
+  new goal breakdown (zone, finish, the pass before it, a rebound, how far the keeper was):
+  - **The open goal was far too generous**: a keeper more than 2.4 m off the line of the shot counted as beaten - a third of them
+    were standing in their own goal - and the shot was then rolled in and saved only a quarter as often: 0.91 "open-goal" goals a
+    match, 36% of all goals. Now the goal is open only if the keeper cannot get to the line of the shot (with his dive) before the
+    ball does, or he is down: 0.17-0.20 a match.
+  - **Shots from range**: the further out a shot is struck, the likelier the save (up to +12%): goals from outside the box 18% ->
+    7-9%.
+  - **The keepers saved too much once the free goals were gone** (87% of the shots on target, against about 70% in the top leagues):
+    the save is a little less likely across the board. Goals a match 2.77-2.87 over two samples of 100 (the real range 2.7-3.0),
+    headers 18.8%.
+  - Still to do: the shots are too many (35 a match against 26) and the saves with them (11.5 against 5-6).
+- **The walk off**: at half time the players and the officials walk off to the tunnel before the break, and for the second half they
+  come back out of it and jog to their places. At full time the match does not just stop: the winners celebrate together in the
+  middle, go to the far side to applaud their fans and then walk off; the losers trudge off with their heads down; after a draw both
+  walk off. (Only what the viewer sees; the clock has stopped.)
+- **The keeper's gloves are gone for good**: the dive is the stretched disc alone (no arms with round ends), and the keeper's
+  gestures have no "hands" on them (they read as gloves).
 
 ## `feature/key-events-and-keeper`
 

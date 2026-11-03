@@ -233,7 +233,7 @@
     8: { ring: true, col: "#ffd23f", sign: "\u2605", up: true, vee: true },
     9: { ring: true, col: "", sign: "\u2665" }
   };
-  function gestureMark(code, tm, x, y, r, now) {
+  function gestureMark(code, tm, x, y, r, now, gk) {
     var kind = Math.floor(code / 100000), d = GEST[kind]; if (!d) return;
     var fade = Math.floor(code / 1000) % 100 / 99, ang = (code % 1000) * Math.PI / 180, prog = 1 - fade;
     var pop = Math.min(1, prog * 7), al = Math.min(1, fade * 4) * pop, ca = Math.cos(ang), sa = -Math.sin(ang);
@@ -251,14 +251,14 @@
         if (off === null || (ix === 0 && d.arm2)) return;
         var cs = Math.cos(Math.atan2(sa, ca) + off), sn = Math.sin(Math.atan2(sa, ca) + off), L = r * d.arm * (d.up ? .95 : 1);
         ctx.beginPath(); ctx.moveTo(x + cs * r * .9, y + sn * r * .9); ctx.lineTo(x + cs * (r * .9 + L), y + sn * (r * .9 + L)); ctx.stroke();
-        ctx.beginPath(); ctx.arc(x + cs * (r * .9 + L), y + sn * (r * .9 + L), r * .26, 0, Math.PI * 2); ctx.fill();
+        if (!gk) { ctx.beginPath(); ctx.arc(x + cs * (r * .9 + L), y + sn * (r * .9 + L), r * .26, 0, Math.PI * 2); ctx.fill(); } // (the hand - not for the keeper: it reads as a glove)
       });
     }
     if (d.waves) { // the shout
       [1.5, 2.1].forEach(function (rad, ix) { ctx.globalAlpha = al * (ix ? .5 : .9); ctx.beginPath(); ctx.arc(x, y, r * rad, Math.atan2(sa, ca) - .5, Math.atan2(sa, ca) + .5); ctx.stroke(); });
       ctx.globalAlpha = al;
     }
-    if (d.head) { // hands on the head
+    if (d.head && !gk) { // hands on the head (not the keeper's: they read as gloves)
       ctx.beginPath(); ctx.arc(x - r * .55, y - r * .15, r * .24, 0, Math.PI * 2); ctx.arc(x + r * .55, y - r * .15, r * .24, 0, Math.PI * 2); ctx.fill();
     }
     if (d.sign) { // the sign in its bubble, up and to the right of the disc
@@ -271,14 +271,13 @@
     ctx.restore();
   }
   // The keeper's dive: his disc stretches along the line of the dive and squashes a little across it (a stretch with the arms
-  // reaching, no gloves, no trail), and eases back to the round disc as he lands - it does not snap. k: 0 (standing) .. 1 (at full stretch).
+  // no arms, no gloves, no trail), and eases back to the round disc as he lands - it does not snap. k: 0 (standing) .. 1 (at full stretch).
   var diveK = {}, diveAng = {};
   function keeperDive(p, tm, x, y, gy, r, k, ang) {
     var col = tm.kit.gk, trim = tm.kit.gkTrim || tm.kit.secondary;
     ctx.save();
     ctx.globalAlpha = .35 * (.6 + .4 * k); ctx.fillStyle = "#000"; ctx.beginPath(); ctx.ellipse(x + r * .25, gy + r * .35, r * (1 + .5 * k), r * (1 - .3 * k), ang, 0, Math.PI * 2); ctx.fill(); // the shadow stays on the grass
-    ctx.globalAlpha = 1; ctx.lineCap = "round"; ctx.strokeStyle = col; ctx.lineWidth = r * .36;
-    if (k > .2) [-.25, .25].forEach(function (o) { ctx.beginPath(); ctx.moveTo(x + Math.cos(ang + o) * r * .8, y + Math.sin(ang + o) * r * .8); ctx.lineTo(x + Math.cos(ang + o * .4) * r * (.8 + 1.15 * k), y + Math.sin(ang + o * .4) * r * (.8 + 1.15 * k)); ctx.stroke(); }); // the arms, reaching
+    ctx.globalAlpha = 1; // (no arms or gloves: the stretched disc is the dive)
     ctx.fillStyle = col; ctx.strokeStyle = trim; ctx.lineWidth = Math.max(1, r * .12);
     ctx.beginPath(); ctx.ellipse(x, y, r * (1 + .3 * k), r * (1 - .14 * k), ang, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.restore();
@@ -317,7 +316,7 @@
       fillC(String(info.number), x, y);
       if (p.bk) { ctx.fillStyle = "#ffd23f"; ctx.fillRect(x + r * .55, y - r * 1.05, r * .32, r * .45); }
       if (p.inj) injuryMark(x, y, r);
-      if (p.g && SET.gest !== "0") gestureMark(p.g, tm, x, y, r * g, now);
+      if (p.g && SET.gest !== "0") gestureMark(p.g, tm, x, y, r * g, now, p.gk);
       if (inShade(p.x, p.y)) { ctx.fillStyle = "rgba(10,24,40,.3)"; ctx.beginPath(); ctx.arc(x, y, r * g * 1.1, 0, Math.PI * 2); ctx.fill(); }
     });
     if (S.fig) {

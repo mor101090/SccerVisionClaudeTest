@@ -97,6 +97,25 @@ namespace SoccerVision.Simulation
             return gk.Pos + toward / d * MathF.Min(MathF.Max(0f, d - 1.2f), 6.5f * t);
         }
 
+        /// <summary>
+        /// An open goal: the keeper cannot get to the line of the shot before the ball does - he is down, or so far out of
+        /// position that even with his dive he arrives too late. A keeper in his goal a few metres to one side is not beaten: he
+        /// dives (the save model decides). (The old test - two and a half metres off the line of the shot - called a third of the
+        /// keepers standing in their own goal beaten, and those shots were rolled in.)
+        /// </summary>
+        private bool KeeperCannotGetThere(TeamAgent team, Vec2 from, PlayerAgent gk)
+        {
+            if (gk == null || gk.SentOff || gk.IsDown) return true;
+            Vec2 goal = team.AttackGoal;
+            float off = Vec2.DistanceToSegment(gk.Pos, from, goal, out float t);
+            if (off < 2.4f) return false;
+            Vec2 onLine = Vec2.Lerp(from, goal, MathUtil.Clamp01(t));
+            float reach = 1.6f + 0.6f * MathUtil.A(gk.Attr.Reflexes);          // (the dive)
+            float keeperT = 0.2f + MathF.Max(0f, off - reach) / MathF.Max(4f, gk.MaxSpeed);
+            float ballT = Vec2.Distance(from, onLine) / 19f + 0.1f;              // (the strike, then a placed shot's flight)
+            return keeperT > ballT + 0.15f;
+        }
+
         private static bool PointInTriangle(Vec2 p, Vec2 a, Vec2 b, Vec2 c)
         {
             float d1 = Vec2.Cross(b - a, p - a);
@@ -113,6 +132,7 @@ namespace SoccerVision.Simulation
         /// <summary>Shot at goal: aims at a corner away from the keeper, then applies skill-based error.</summary>
         private bool _lastShotOpenGoal;
         private string _lastShotKeeperBucket;
+        private string[] _shotTags;
 
         private void ExecuteShot(PlayerAgent p, bool header, bool penalty, float xg, bool volley = false, bool bicycle = false)
         {
@@ -237,8 +257,7 @@ namespace SoccerVision.Simulation
             }
             // An open goal (the keeper beaten or down, nobody in the lane): he just rolls it in - well inside the posts, low,
             // no curl, no showing off. Nine in ten of these go in.
-            bool openGoal = !penalty && !header && dist < 26f && (keeper == null || keeper.SentOff || keeper.IsDown
-                            || Vec2.DistanceToSegment(keeper.Pos, from, team.AttackGoal, out _) > 2.4f);
+            bool openGoal = !penalty && !header && dist < 26f && KeeperCannotGetThere(team, from, keeper);
             if (openGoal)
                 foreach (var o in team.Opponent.Players)
                     if (!o.SentOff && o != keeper && Vec2.DistanceToSegment(o.Pos, from, team.AttackGoal, out _) < 1.2f) { openGoal = false; break; }
@@ -249,7 +268,12 @@ namespace SoccerVision.Simulation
                 aimZ = 0.35f;
                 curlMag = 0f;
                 power = MathF.Min(power, 18f + 0.4f * dist);
-                if (CollectDiagnostics) Count("shot.openGoal");
+                if (CollectDiagnostics)
+                {
+                    Count("shot.openGoal");
+                    float kd = keeper != null ? Vec2.Distance(keeper.Pos, team.AttackGoal) : 99f;
+                    Count("shot.openGoal." + (keeper == null || keeper.SentOff ? "noKeeper" : keeper.IsDown ? "keeperDown" : kd > 6f ? "keeperOut" : "keeperInGoal"));
+                }
             }
             _lastShotOpenGoal = openGoal;
             if (CollectDiagnostics && !penalty && !header)
@@ -312,6 +336,17 @@ namespace SoccerVision.Simulation
             float curl = header ? 0f : (curlMag > 0f ? curlSign * curlMag + _rng.Gaussian(0f, 2.5f) : _rng.Gaussian(0f, tech == ShotTechnique.Chip ? 1f : tech == ShotTechnique.Knuckleball ? 0.4f : 8f));
             if (CollectDiagnostics) Count("shot.tech." + tech);
             _lastShotTechnique = tech;
+            if (CollectDiagnostics)
+            {
+                // where and how the shot came about (for the goal breakdown in the calibration)
+                float dxG = Pitch.HalfLength - team.Forward(from), lyG = MathF.Abs(team.Lateral(from));
+                string zone = dxG < 5.5f && lyG < 9.2f ? "six" : dxG < 16.5f && lyG < 20.2f ? "box" : "out";
+                string assistKind = Ball.LastPasser != null && Ball.LastPasser.Team == team && Ball.LastPasser != p && SimTime - Ball.LastPassTime < 4f ? Ball.LastKickKind.ToString() : "solo";
+                bool rebound = _lastShotTeam == team && SimTime - _lastShotTime < 3f;
+                string how = penalty ? "penalty" : header ? "header" : volley ? "volley" : p.FirstTimeUntil > SimTime ? "firstTime" : "controlled";
+                _shotTags = new[] { "zone." + zone, "assist." + (rebound ? "rebound" : assistKind), "how." + how };
+                foreach (var tg in _shotTags) Count("shot." + tg);
+            }
 
             KickBall(p, from, v, vz, curl, 0f, header ? KickKind.Header : KickKind.Shot, null, aim, penalty, false, startZ);
             Ball.IsShot = true;
