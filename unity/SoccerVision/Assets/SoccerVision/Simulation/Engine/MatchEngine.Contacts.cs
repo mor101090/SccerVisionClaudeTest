@@ -355,6 +355,22 @@ namespace SoccerVision.Simulation
                     }
                 }
             }
+            // The rebound: a ball that comes back off the keeper, the post or a block, a moment after his team's shot, near goal - the
+            // man who followed it in hits it at once, before the keeper is up (StatsBomb: one rebound in five goes in).
+            if (!p.IsGoalkeeper && _lastShotTeam == p.Team && SimTime - _lastShotTime < 3f && p.FirstTimeUntil <= SimTime)
+            {
+                float dg = Vec2.Distance(Ball.Pos, p.Team.AttackGoal);
+                if (dg < 17f && p.Team.Forward(Ball.Pos) > 36f)
+                {
+                    float ready = 0.55f + 0.3f * MathUtil.A(p.Attr.Finishing) + 0.1f * MathUtil.A(p.Attr.Composure);
+                    if (_rng.Chance(ready))
+                    {
+                        p.FirstTimeUntil = SimTime + 0.4f;
+                        p.DecisionTimer = 0.03f;
+                        if (CollectDiagnostics) Count("shot.rebound.firstTime.set");
+                    }
+                }
+            }
             p.OneTwoUntil = -1f; // (the return ball has arrived, or the run is over)
             p.ThirdManUntil = -1f;
             p.RunCheckUntil = -1f;

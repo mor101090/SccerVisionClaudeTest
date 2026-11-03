@@ -2,6 +2,14 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/attack-rebounds`
+
+**The rebound is hit first time**: a ball that comes back off the keeper, the post or a defender a moment after his team's shot, within
+17 m of goal - the man who followed it in hits it at once (55-95% of the time, by his finishing and composure) instead of taking a touch
+while the keeper gets up. 200 matches, two seeds: goals **2.53** a match (real 2.53), foot goals hit first time **54-58%** (real 55%),
+rebounds converted about **11%** (was about 8%; real 21%), rebounds 5-6% of open-play goals (real 12%). Tried and taken out again: a
+keeper slower to get up after a save (the follow-up shots rarely reach him - most are blocked or miss - and goals fell).
+
 ## `fix/online-connect`
 
 **Online play with a six-digit code, kits of your own, and a connection that comes back.** After two hours of picking line-ups the
