@@ -146,7 +146,9 @@ namespace SoccerVision.Simulation
             _walkOutOfficials = new Vec2[Officials.Length];
             for (int i = 0; i < Officials.Length; i++)
             {
-                _walkOutOfficials[i] = Officials[i].Pos;
+                // (the assistants back to their touchlines, the referee to the middle - not where the break left them, in the tunnel)
+                var o = Officials[i];
+                _walkOutOfficials[i] = o.IsAssistant ? new Vec2(o.CoverSign * 20f, o.TouchlineSign * (Pitch.HalfWidth + 0.45f)) : new Vec2(0f, -8f);
                 Officials[i].Pos = Officials[i].PrevPos = new Vec2((i - 1) * 0.9f, TunnelY);
                 Officials[i].Vel = Vec2.Zero;
             }

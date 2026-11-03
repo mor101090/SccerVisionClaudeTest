@@ -33,7 +33,7 @@ namespace SoccerVision.Simulation.Tests
             while (!e.IsFinished)
             {
                 e.Advance(0.25f);
-                if (e.Phase == MatchPhase.HalfTimeBreak || e.WalkingOut || e.WalkingOff) continue; // (walking to or from the tunnel)
+                if (e.Phase == MatchPhase.HalfTimeBreak || e.IsFinished || e.WalkingOut || e.WalkingOff) continue; // (walking to or from the tunnel)
                 foreach (var a in new[] { e.Assistant1, e.Assistant2 })
                 {
                     Assert.InRange(a.Pos.Y * a.TouchlineSign, Pitch.HalfWidth - 0.1f, Pitch.HalfWidth + 1.3f);

@@ -16,7 +16,7 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void PlayersShootInTheBoxPutAwayOpenGoalsAndKeepersMakeSaves()
         {
-            var es = new MatchEngine[16];
+            var es = new MatchEngine[40];
             Parallel.For(0, es.Length, i =>
             {
                 es[i] = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), 20000 + (ulong)i, MatchConfig.CreateDefault()) { CollectDiagnostics = true };
@@ -27,7 +27,8 @@ namespace SoccerVision.Simulation.Tests
             _out.WriteLine($"dribbles on to the keeper {D("dribble.atKeeper"):0.0}, box shots {D("box.decide.Shoot"):0.0}, box passes {D("box.decide.Pass"):0.0}, open goals {D("shot.openGoal"):0.00} shot / {D("goal.openGoal"):0.00} scored, saves {saves:0.0}, goals {goals:0.00}");
             Assert.True(D("dribble.atKeeper") < 8, "players run on into the keeper instead of shooting");
             Assert.True(D("box.decide.Pass") > 1, "the cut-back to a better-placed team-mate still happens");
-            Assert.True(D("goal.openGoal") >= D("shot.openGoal") * 0.8, "open goals are put away");
+            // (an open goal is now one the keeper cannot get back to: a few in forty matches - 23 of 24 went in over 100 matches)
+            Assert.True(D("goal.openGoal") >= D("shot.openGoal") * 0.6, $"open goals are put away: {D("goal.openGoal"):0.00} of {D("shot.openGoal"):0.00}");
             Assert.True(saves >= 8, "the keepers have saves to make");
             Assert.InRange(goals, 2.0, 4.8);
         }
