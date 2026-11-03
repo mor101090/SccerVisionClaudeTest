@@ -130,7 +130,7 @@ namespace SoccerVision.Simulation
                 float aerialMate = (bestMate.Attr.Jumping + bestMate.Attr.Heading + bestMate.Attr.PhysicalPower) / 3f + (bestMate.Profile.HeightCm - 180) * 0.3f;
                 float aerialOpp = bestOpp != null ? (bestOpp.IsGoalkeeper ? bestOpp.Attr.AerialAbility + 10f : (bestOpp.Attr.Jumping + bestOpp.Attr.Heading + bestOpp.Attr.PhysicalPower) / 3f + (bestOpp.Profile.HeightCm - 180) * 0.3f) : 0f;
                 float pWin = MathUtil.Sigmoid((bestOppT - MathF.Max(bestMateT, flight)) / 0.45f + (aerialMate - aerialOpp) / 35f);
-                float delivery = 0.45f + 0.4f * crossing;
+                float delivery = 0.35f + 0.4f * crossing; // (most crosses in the top leagues do not find a team-mate: about one in five does)
                 float headerXg = ExpectedGoals.FromLocation(target, team.AttackGoalSign) * 0.55f * (0.65f + 0.7f * MathUtil.A(bestMate.Attr.Heading));
                 float utility = pWin * delivery * (headerXg + 0.01f) - (1f - pWin * delivery) * (LossCost(team, target) * 0.25f + _riskPremium * 0.6f);
                 // the manager wants crosses: into the box from everywhere wide (crosses style, relentless pressure)
@@ -139,7 +139,7 @@ namespace SoccerVision.Simulation
                 // the classic winger lives to cross, the inverted one would rather come inside
                 float crosser = p.PlayRole == PlayerRole.ClassicWinger ? 1.3f : p.PlayRole == PlayerRole.WingBack ? 1.15f : p.PlayRole == PlayerRole.InvertedWinger ? 0.8f : 1f;
                 if (p.PlayRole == PlayerRole.Auto && p.Slot.IsWideMidfielder && !IsCutInsidePlayer(p)) crosser *= 1.3f; // (a winger on his strong side goes to the by-line and crosses)
-                if (utility > 0f) utility *= crosser;
+                if (utility > 0f) utility *= crosser * 0.75f; // (a cross is one option among others, not the first thing a wide man thinks of)
                 _options.Add(new KickPlan
                 {
                     Action = BallAction.Cross,

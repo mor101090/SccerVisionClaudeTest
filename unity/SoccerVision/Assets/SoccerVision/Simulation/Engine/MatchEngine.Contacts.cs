@@ -522,7 +522,17 @@ namespace SoccerVision.Simulation
                 Ball.HandlingForbiddenFor = null;
                 return;
             }
-            if (distGoal < 15f && f > 36f)
+            // In the box a header is a shot - unless a defender is all over him (then often only a flick-on or a knock-down), or the
+            // angle and the distance make it no chance (then he heads it down for a team-mate).
+            bool headAtGoal = distGoal < 15f && f > 36f;
+            if (headAtGoal)
+            {
+                float hxg = EstimateShotXG(p, Ball.Pos, header: true);
+                if (contested && !_rng.Chance(0.45f + 0.4f * heading)) headAtGoal = false;
+                else if (hxg < 0.03f && _rng.Chance(0.6f)) headAtGoal = false;
+                if (!headAtGoal && CollectDiagnostics) Count("header.notAtGoal");
+            }
+            if (headAtGoal)
             {
                 float xg = EstimateShotXG(p, Ball.Pos, header: true);
                 // A header shot keeps the ball where it is (no control phase).

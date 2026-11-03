@@ -37,6 +37,22 @@ pass or from a rebound - the next phases are about that.
 - Still to do: too many shots (35 a match, real 25) - from the six-yard box (4.7 against 1.7), after crosses (7.6 against 3.1) and
   after through balls (4.5 against 0.8); rebounds are shot as often as in reality but scored half as often.
 
+**Phases 1-2, second round - fewer, better shots** (200 matches, two seeds, against the same 194 matches):
+- **A shot that does not go in gives the ball away**: that cost is now weighed in the box too (it was only outside it), so a 4%
+  chance from a tight angle is not worth more than keeping the ball for a better one (half the cost when he is set for a first-time
+  finish). Outside the box the cost of a poor shot is higher as well.
+- **The edge of the box is a place to have a go from** (17-30 m: x1.4): shots from outside the box 7.0 -> **9.2** a match (real 9.7).
+- **Running on to a keeper who is coming out**: the shot it leads to is worth about half when the keeper would be within 4.5 m.
+- **The header in the box**: not every header there is at goal - with a defender all over him he may only get a flick-on, and from
+  a hopeless angle he heads it down for a team-mate.
+- **The through ball counted right**: a pass played into space for a runner counts as a ground pass, not a through ball (as
+  StatsBomb counts it); crosses are delivered with the crosser's skill (`0.35 + 0.4 x crossing`), a little less accurately, and are
+  weighed a little lower.
+- Where it stands now: goals **2.45-2.80** a match (real 2.53), shots **30-32** (35.6; real 24.8), shots on target 11.7-12.2 (8.3),
+  headers 15-18% of goals (14%), outside-box goals 7-11% (13%), foot goals hit first time 42-43% (55%). Still to do: shots from the
+  six-yard box (4.3-4.6 a match, real 1.7) and with the keeper under 3 m away (14.5%, real 3.9%) - that is where the forwards stand
+  (phase 3, off-ball positioning) - and rebounds (3-5% of goals, real 12%).
+
 ## `fix/card-during-play` - cards, goals, the walk off
 
 - **Fix: a card was shown while the play went on.** In 40 matches, 34 of 114 cards (30%) were shown with the ball in play - and a red

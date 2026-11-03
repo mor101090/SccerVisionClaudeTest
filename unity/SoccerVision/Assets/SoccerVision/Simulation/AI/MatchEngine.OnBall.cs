@@ -159,6 +159,8 @@ namespace SoccerVision.Simulation
                 tendency *= 1.15f - 0.3f * MathUtil.A(p.Attr.Teamwork); // (a team player looks for the better-placed man; a selfish one has a go)
                 if (IsCutInsidePlayer(p) && MathF.Abs(l) < 24f && f > 24f && p.CutInUntil > SimTime) { tendency *= (p.PlayRole == PlayerRole.InvertedWinger ? 5.4f : 4.4f); xg *= 1.1f; }
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
+                // (real football: four shots in ten come from outside the box - the edge of the box is a place to have a go from)
+                if (distGoal > 17f && distGoal < 30f) tendency *= 1.4f;
                 // long shots: the manager wants a shot on sight - from the edge of the box out to about 30 m
                 if (longShots && distGoal > 12f && distGoal < 33f) tendency *= 2.6f;
                 if (team.Tactics.Special == SpecialTactic.Siege) tendency *= 1.2f;
@@ -175,7 +177,7 @@ namespace SoccerVision.Simulation
                 if (p.FirstTimeUntil > SimTime) tendency *= 2.6f; // (set to hit it first time)
                 if (openGoal) { tendency = MathF.Max(tendency, 3f); if (CollectDiagnostics) Count("shot.openGoal.considered"); }
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
-                float afterShotLoss = 0.006f + 0.25f * _riskPremium;
+                float afterShotLoss = 0.011f + 0.4f * _riskPremium; // (a shot that does not go in hands the ball over: a poor one is a ball given away)
                 _options.Add(new KickPlan
                 {
                     Action = BallAction.Shoot,
@@ -264,7 +266,11 @@ namespace SoccerVision.Simulation
                     if (openGoal) { so.Utility = 10f; _options[shootAt] = so; if (CollectDiagnostics) Count("shot.openGoal.forced"); }
                     else
                     {
-                        so.Utility = MathF.Max(so.Utility, xgNow * (1.05f - 0.15f * MathUtil.A(p.Attr.Composure)) * (p.Has(PlayerTrait.Unselfish) ? 0.8f : 1f)); // (a cool head may wait a beat; the unselfish one looks up first)
+                        // (a cool head may wait a beat; the unselfish one looks up first; and a shot that will not go in still gives
+                        // the ball away - a poor chance in the box is not worth more than keeping the ball for a better one)
+                        float boxShot = xgNow * (1.05f - 0.15f * MathUtil.A(p.Attr.Composure)) * (p.Has(PlayerTrait.Unselfish) ? 0.8f : 1f)
+                                        - (1f - xgNow) * (0.017f + 0.3f * _riskPremium) * (p.FirstTimeUntil > SimTime ? 0.5f : 1f);
+                        so.Utility = MathF.Max(so.Utility, boxShot);
                         _options[shootAt] = so;
                         for (int i = 0; i < _options.Count; i++)
                         {
@@ -274,6 +280,11 @@ namespace SoccerVision.Simulation
                                 if (p.FirstTimeUntil > SimTime) { o.Utility *= 0.4f; _options[i] = o; continue; } // (set to hit it first time: no time to carry it)
                                 if (p.CutInUntil > SimTime) continue; // (the winger cutting inside carries on: his curler comes from the run)
                                 float later = EstimateShotXG(p, o.DribbleTarget, false, KeeperWhenThere(team, pos, o.DribbleTarget)) * MathUtil.Clamp01(o.Success) * 0.72f;
+                                // (into the six-yard box with the keeper there: he smothers it at the feet - a forward hits it before that)
+                                var kp = team.Opponent.Goalkeeper;
+                                if (Pitch.InGoalArea(o.DribbleTarget, team.AttackGoalSign) && kp != null && !kp.SentOff && !kp.IsDown && Vec2.Distance(kp.Pos, o.DribbleTarget) < 6f) later *= 0.5f;
+                                // (running on to a keeper who is coming out: by the time he gets there the keeper is on top of him)
+                                if (kp != null && !kp.SentOff && !kp.IsDown && Vec2.Distance(kp.Pos, o.DribbleTarget) < 4.5f) later *= 0.55f;
                                 // (and in the time it takes the defenders close in: every one near where he would shoot from takes some of it)
                                 foreach (var dq in team.Opponent.Players)
                                     if (!dq.SentOff && !dq.IsGoalkeeper && Vec2.Distance(dq.Pos, o.DribbleTarget) < 4.5f) later *= 0.8f;
@@ -482,7 +493,7 @@ namespace SoccerVision.Simulation
             Ball.LastKickKind = kind;
             if (kind == KickKind.Pass || kind == KickKind.ThroughBall || kind == KickKind.LongPass || kind == KickKind.Cross || kind == KickKind.Restart
                 || kind == KickKind.GoalkeeperDistribution || (kind == KickKind.Header && receiver != null))
-                _lastTeamPassKind[p.Team.Index] = kind.ToString(); // (for the goal breakdown: what the last pass of the move was)
+                _lastTeamPassKind[p.Team.Index] = kind == KickKind.ThroughBall && _pendingIntoSpace ? "Pass" : kind.ToString(); // (for the goal breakdown: what the last pass of the move was; a ball into a running man's path is a pass, as StatsBomb has it)
             Ball.LastKickTime = SimTime;
             restartKick |= _restartKick;
             offsideException |= _restartOffsideException;

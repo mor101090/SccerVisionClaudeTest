@@ -564,6 +564,7 @@ namespace SoccerVision.Simulation
             Vec2 dir = (target - from).Normalized;
             float sigma = (0.02f + 0.08f * (1f - skill)) * (1f + 0.6f * pressure) * p.FatigueError * WeakFootFactor(p, dir);
             if (kind == KickKind.Clearance) sigma *= 1.6f;
+            if (kind == KickKind.Cross) sigma *= 1.3f; // (a ball into a crowded box on the run: hard to put on a head)
             float angle = dir.Angle + _rng.Gaussian(0f, sigma);
             speed *= 1f + _rng.Gaussian(0f, 0.035f + 0.05f * (1f - skill));
             float horizontal = speed * MathF.Cos(launchAngle);

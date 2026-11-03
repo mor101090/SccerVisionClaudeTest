@@ -351,6 +351,7 @@ namespace SoccerVision.Simulation
                 string how = penalty ? "penalty" : header ? "header" : volley ? "volley" : firstTimeShot ? "firstTime" : "controlled";
                 _shotTags = new[] { "zone." + zone, "assist." + (rebound ? "rebound" : assistKind), "how." + how };
                 foreach (var tg in _shotTags) Count("shot." + tg);
+                Count("shot.zh." + zone + "." + how);
             }
 
             KickBall(p, from, v, vz, curl, 0f, header ? KickKind.Header : KickKind.Shot, null, aim, penalty, false, startZ);
