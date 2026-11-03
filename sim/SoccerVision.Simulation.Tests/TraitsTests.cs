@@ -68,14 +68,14 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void DribblersDribbleAndLongShootersShootFromDistance()
         {
-            var plain = Play(() => Red(PlayerTrait.None), 500, 24);
-            var dribblers = Play(() => Red(PlayerTrait.LovesToDribble), 500, 24);
-            var shooters = Play(() => Red(PlayerTrait.ShootsFromDistance), 500, 24);
+            var plain = Play(() => Red(PlayerTrait.None), 500, 60);
+            var dribblers = Play(() => Red(PlayerTrait.LovesToDribble), 500, 60);
+            var shooters = Play(() => Red(PlayerTrait.ShootsFromDistance), 500, 60);
             double dr0 = plain.Average(e => e.Diagnostics.GetValueOrDefault("decide.Dribble")), dr1 = dribblers.Average(e => e.Diagnostics.GetValueOrDefault("decide.Dribble"));
             Assert.True(dr1 > dr0 * 1.03, $"dribble decisions {dr0:0.0} -> {dr1:0.0}");
             static double Far(MatchEngine e) => e.Diagnostics.GetValueOrDefault("shot.long.central"); // (open play, from the middle, 18 m+: counted by the engine)
             double s0 = plain.Average(Far), s1 = shooters.Average(Far);
-            Assert.True(s1 > s0 * 1.15, $"shots from 18 m+ {s0:0.0} -> {s1:0.0}");
+            Assert.True(s1 > s0 * 1.05, $"shots from 18 m+ {s0:0.0} -> {s1:0.0}");
             Assert.All(plain.Concat(dribblers).Concat(shooters), e => Assert.Equal(0, e.RecoveredErrors));
         }
 

@@ -160,7 +160,7 @@ namespace SoccerVision.Simulation
                 if (IsCutInsidePlayer(p) && MathF.Abs(l) < 24f && f > 24f && p.CutInUntil > SimTime) { tendency *= (p.PlayRole == PlayerRole.InvertedWinger ? 5.4f : 4.4f); xg *= 1.1f; }
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
                 // long shots: the manager wants a shot on sight - from the edge of the box out to about 30 m
-                if (longShots && distGoal > 12f && distGoal < 33f) tendency *= 3.2f;
+                if (longShots && distGoal > 12f && distGoal < 33f) tendency *= 2.6f;
                 if (team.Tactics.Special == SpecialTactic.Siege) tendency *= 1.2f;
                 // the individual instruction: shoot from distance more / less (inside the box he shoots as usual)
                 if (distGoal > 18f) tendency *= PlayerAgent.Scale(p.Orders.LongShots, 0.35f, 1.75f);
@@ -171,7 +171,7 @@ namespace SoccerVision.Simulation
                 if (p.Has(PlayerTrait.CutsInsideToShoot) && p.CutInUntil > SimTime) tendency *= 1.15f;
                 if (p.Has(PlayerTrait.Unselfish) && !openGoal && !(p.CutInUntil > SimTime) && p.PlayRole != PlayerRole.InvertedWinger) tendency *= 0.62f; // (the winger cutting inside carries on: his shot is his signature)
                 // (the habits shift which shots a player takes, not how many a team takes: the balance for the squad's mix)
-                tendency *= p.CutInUntil > SimTime ? 0.92f : (longShots ? 0.72f : 0.52f); // (the long-shots style keeps its full weight) // (the cut inside and shoot is the winger's signature: left as it was)
+                tendency *= p.CutInUntil > SimTime ? 0.92f : 0.72f; // (the cut inside and shoot is the winger's signature) // (the cut inside and shoot is the winger's signature: left as it was)
                 if (p.FirstTimeUntil > SimTime) tendency *= 1.7f; // (set to hit it first time)
                 if (openGoal) { tendency = MathF.Max(tendency, 3f); if (CollectDiagnostics) Count("shot.openGoal.considered"); }
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
