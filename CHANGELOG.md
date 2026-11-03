@@ -23,6 +23,20 @@ matches there are) from the **StatsBomb open data** (<https://github.com/hudl/op
 The engine's goals come too often from a player carrying the ball on to the keeper and too seldom from a first-time finish after a
 pass or from a rebound - the next phases are about that.
 
+**Phases 1-2, first round** (measured against the same 194 matches):
+- **The first-time finish**: a pass into the box (now up to 20 m out and 17 m wide of the middle) at a good angle is hit first time
+  far more often - a finisher is set more readily (35-90%, by finishing and composure), the shot is weighed much higher while he is
+  set and carrying it on is not an option then. Foot goals in open play hit first time: 15% -> **46%** (real 55%).
+- **Carrying it on to the keeper is worth less**: the shot a dribble leads to is discounted more (x0.72, was 0.85) and by every
+  defender near where he would shoot from (x0.8 each). Shots with the keeper under 3 m away 18.5% -> 10% of foot shots (real 3.9%).
+- **The spill**: a hard shot, a wet ball or unsure hands - the keeper can only beat it down in front of him (6-34% of his parries),
+  and the man who followed it in has a second chance. Goals from rebounds 2.5% -> 5% (real 12%).
+- **The measurement made fair**: a goal counts as set up by the team's last pass in that possession, however long the scorer carried
+  it after (as StatsBomb counts it; it was only within 4 s), and a first-time finish is counted as one (a flag was cleared before it
+  was read). Open-play goals with no pass before them: **18%** (real 14%); after a ground pass or cut-back 28% (real 30%).
+- Still to do: too many shots (35 a match, real 25) - from the six-yard box (4.7 against 1.7), after crosses (7.6 against 3.1) and
+  after through balls (4.5 against 0.8); rebounds are shot as often as in reality but scored half as often.
+
 ## `fix/card-during-play` - cards, goals, the walk off
 
 - **Fix: a card was shown while the play went on.** In 40 matches, 34 of 114 cards (30%) were shown with the ball in play - and a red

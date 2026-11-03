@@ -341,12 +341,13 @@ namespace SoccerVision.Simulation
             {
                 Vec2 goal = p.Team.AttackGoal;
                 float dg = Vec2.Distance(Ball.Pos, goal);
-                if (dg < 17f && p.Team.Forward(Ball.Pos) > 36f && MathF.Abs(p.Team.Lateral(Ball.Pos)) < 13f)
+                if (dg < 20f && p.Team.Forward(Ball.Pos) > 33f && MathF.Abs(p.Team.Lateral(Ball.Pos)) < 17f)
                 {
+                    // (in the top leagues more than half the goals scored with the foot in open play are hit first time)
                     float xg = EstimateShotXG(p, Ball.Pos);
-                    float ready = 0.2f + 0.45f * MathUtil.A(p.Attr.Finishing) + 0.15f * MathUtil.A(p.Attr.Composure);
+                    float ready = 0.35f + 0.4f * MathUtil.A(p.Attr.Finishing) + 0.15f * MathUtil.A(p.Attr.Composure);
                     if (p.Has(PlayerTrait.Unselfish)) ready *= 0.6f; // (he looks for the pass first)
-                    if (xg > 0.09f && _rng.Chance(ready))
+                    if (xg > 0.06f && _rng.Chance(ready))
                     {
                         p.FirstTimeUntil = SimTime + 0.45f;
                         p.DecisionTimer = 0.04f;

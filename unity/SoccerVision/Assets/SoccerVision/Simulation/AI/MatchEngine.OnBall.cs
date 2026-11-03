@@ -172,7 +172,7 @@ namespace SoccerVision.Simulation
                 if (p.Has(PlayerTrait.Unselfish) && !openGoal && !(p.CutInUntil > SimTime) && p.PlayRole != PlayerRole.InvertedWinger) tendency *= 0.62f; // (the winger cutting inside carries on: his shot is his signature)
                 // (the habits shift which shots a player takes, not how many a team takes: the balance for the squad's mix)
                 tendency *= p.CutInUntil > SimTime ? 0.92f : 0.72f; // (the cut inside and shoot is the winger's signature) // (the cut inside and shoot is the winger's signature: left as it was)
-                if (p.FirstTimeUntil > SimTime) tendency *= 1.7f; // (set to hit it first time)
+                if (p.FirstTimeUntil > SimTime) tendency *= 2.6f; // (set to hit it first time)
                 if (openGoal) { tendency = MathF.Max(tendency, 3f); if (CollectDiagnostics) Count("shot.openGoal.considered"); }
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
                 float afterShotLoss = 0.006f + 0.25f * _riskPremium;
@@ -271,8 +271,12 @@ namespace SoccerVision.Simulation
                             var o = _options[i];
                             if (o.Action == BallAction.Dribble)
                             {
+                                if (p.FirstTimeUntil > SimTime) { o.Utility *= 0.4f; _options[i] = o; continue; } // (set to hit it first time: no time to carry it)
                                 if (p.CutInUntil > SimTime) continue; // (the winger cutting inside carries on: his curler comes from the run)
-                                float later = EstimateShotXG(p, o.DribbleTarget, false, KeeperWhenThere(team, pos, o.DribbleTarget)) * MathUtil.Clamp01(o.Success) * 0.85f;
+                                float later = EstimateShotXG(p, o.DribbleTarget, false, KeeperWhenThere(team, pos, o.DribbleTarget)) * MathUtil.Clamp01(o.Success) * 0.72f;
+                                // (and in the time it takes the defenders close in: every one near where he would shoot from takes some of it)
+                                foreach (var dq in team.Opponent.Players)
+                                    if (!dq.SentOff && !dq.IsGoalkeeper && Vec2.Distance(dq.Pos, o.DribbleTarget) < 4.5f) later *= 0.8f;
                                 if (o.Utility > later) { o.Utility = later; _options[i] = o; }
                             }
                             else if (o.Action == BallAction.Hold && xgNow > 0.06f && o.Utility > xgNow * 0.4f) { o.Utility = xgNow * 0.4f; _options[i] = o; }
@@ -476,6 +480,9 @@ namespace SoccerVision.Simulation
             Ball.LastTouchTeam = p.Team;
             Ball.LastKicker = p;
             Ball.LastKickKind = kind;
+            if (kind == KickKind.Pass || kind == KickKind.ThroughBall || kind == KickKind.LongPass || kind == KickKind.Cross || kind == KickKind.Restart
+                || kind == KickKind.GoalkeeperDistribution || (kind == KickKind.Header && receiver != null))
+                _lastTeamPassKind[p.Team.Index] = kind.ToString(); // (for the goal breakdown: what the last pass of the move was)
             Ball.LastKickTime = SimTime;
             restartKick |= _restartKick;
             offsideException |= _restartOffsideException;

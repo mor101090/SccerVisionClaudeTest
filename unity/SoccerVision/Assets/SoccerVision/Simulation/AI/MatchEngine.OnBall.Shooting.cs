@@ -133,12 +133,16 @@ namespace SoccerVision.Simulation
         private bool _lastShotOpenGoal;
         private string _lastShotKeeperBucket;
         private string[] _shotTags;
+        /// <summary>The kind of the team's last pass (crosses and through balls kept apart from a pass to feet).</summary>
+        private string _lastPassKindForShot(TeamAgent team) => _lastTeamPassKind[team.Index] ?? "Pass";
+        private readonly string[] _lastTeamPassKind = new string[2];
 
         private void ExecuteShot(PlayerAgent p, bool header, bool penalty, float xg, bool volley = false, bool bicycle = false)
         {
             var team = p.Team;
             int goalSign = team.AttackGoalSign;
             Vec2 from = Ball.Pos;
+            bool firstTimeShot = p.FirstTimeUntil > SimTime; // (read before anything clears it)
             float startZ = Ball.Z;
             float dist = Vec2.Distance(from, team.AttackGoal);
             var keeper = team.Opponent.Goalkeeper;
@@ -341,9 +345,10 @@ namespace SoccerVision.Simulation
                 // where and how the shot came about (for the goal breakdown in the calibration)
                 float dxG = Pitch.HalfLength - team.Forward(from), lyG = MathF.Abs(team.Lateral(from));
                 string zone = dxG < 5.5f && lyG < 9.2f ? "six" : dxG < 16.5f && lyG < 20.2f ? "box" : "out";
-                string assistKind = Ball.LastPasser != null && Ball.LastPasser.Team == team && Ball.LastPasser != p && SimTime - Ball.LastPassTime < 4f ? Ball.LastKickKind.ToString() : "solo";
+                // (as StatsBomb counts it: the last pass by a team-mate in this possession, however long he carried it after)
+                string assistKind = Ball.LastPasser != null && Ball.LastPasser.Team == team && Ball.LastPasser != p && Ball.LastPassTime >= team.LastAttackSeconds - 0.01f ? _lastPassKindForShot(team) : "solo";
                 bool rebound = _lastShotTeam == team && SimTime - _lastShotTime < 3f;
-                string how = penalty ? "penalty" : header ? "header" : volley ? "volley" : p.FirstTimeUntil > SimTime ? "firstTime" : "controlled";
+                string how = penalty ? "penalty" : header ? "header" : volley ? "volley" : firstTimeShot ? "firstTime" : "controlled";
                 _shotTags = new[] { "zone." + zone, "assist." + (rebound ? "rebound" : assistKind), "how." + how };
                 foreach (var tg in _shotTags) Count("shot." + tg);
             }

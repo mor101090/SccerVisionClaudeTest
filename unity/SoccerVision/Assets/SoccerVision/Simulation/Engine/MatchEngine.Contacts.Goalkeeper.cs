@@ -124,7 +124,17 @@ namespace SoccerVision.Simulation
             Vec2 lateral = new Vec2(0f, outward.Y >= 0f ? 1f : -1f);
             Vec2 forward = (gk.Team.DirToWorld(Vec2.UnitX));
             Ball.IsShot = false;
-            if (_rng.Chance(0.7f))
+            // A spill: a hard shot, a slippery ball, unsure hands - he can only beat it down in front of him, into the area, and the
+            // man who followed it in has a second chance (in the top leagues one goal in eight in open play is a rebound).
+            float pSpill = MathUtil.Clamp(0.15f + 0.012f * (speed - 18f) - 0.15f * (handling - 0.5f) + (Conditions.IsWet ? 0.06f : 0f), 0.06f, 0.34f);
+            if (_rng.Chance(pSpill))
+            {
+                Emit(MatchEventType.Save, gk.Team, gk, shooter, savePos, 0f, WhistleKind.Short, 3);
+                Vec2 dirS = (forward + lateral * _rng.Range(-0.6f, 0.6f)).Normalized;
+                SetDeflection(gk, dirS * _rng.Range(3f, 7.5f), _rng.Range(0.1f, 0.9f));
+                if (CollectDiagnostics) Count("save.spill");
+            }
+            else if (_rng.Chance(0.7f))
             {
                 // Over the bar or round the post: aim outside the frame so it can never trickle in.
                 bool overBar = Ball.Z > 1.4f;
@@ -142,7 +152,7 @@ namespace SoccerVision.Simulation
             else
             {
                 Emit(MatchEventType.Save, gk.Team, gk, shooter, savePos, 0f, WhistleKind.Short, 3);
-                // Pushed away to the side, low, out of the danger area - a keeper never palms it back into the middle.
+                // Pushed away to the side, low, out of the danger area (a parry; the spill above is the other thing).
                 Vec2 dir = (lateral * _rng.Range(1.0f, 1.6f) + forward * _rng.Range(0.1f, 0.5f)).Normalized;
                 SetDeflection(gk, dir * MathF.Max(5f, speed * _rng.Range(0.3f, 0.5f)), _rng.Range(0.2f, 1.6f));
             }
