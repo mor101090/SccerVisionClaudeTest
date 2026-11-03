@@ -32,7 +32,7 @@ namespace SoccerVision.Simulation.Tests
         private static double Energy(MatchEngine e) => e.Home.Players.Where(p => !p.IsGoalkeeper).Average(p => p.Energy) * 100.0;
         private static double Depth(MatchEngine e) => e.HomeLineSum / e.HomeLineSamples;
         // (the open-play shots from range, taken from the middle: the engine counts them itself - the event log also has the free kicks and the winger's cut-in shots from the flank)
-        private static double LongShots(MatchEngine e) => e.Diagnostics.GetValueOrDefault("shot.long.central");
+        private static double LongShots(MatchEngine e) => e.Diagnostics.GetValueOrDefault("shot.long.nocut");
 
         [Fact]
         public void AHighPressTiresThePlayersFaster()

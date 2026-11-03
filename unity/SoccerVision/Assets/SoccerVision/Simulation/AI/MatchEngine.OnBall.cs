@@ -167,7 +167,7 @@ namespace SoccerVision.Simulation
                 if (p.PlayRole == PlayerRole.ShadowStriker && distGoal < 18f) tendency *= 1.15f;
                 if (p.PlayRole == PlayerRole.Trequartista && distGoal > 15f && distGoal < 25f) tendency *= 1.25f; // the shot from the edge
                 // traits: a shot on sight from range; the cut inside and shoot; the unselfish one looks for a pass first
-                if (p.Has(PlayerTrait.ShootsFromDistance) && distGoal > 18f) tendency *= 1.9f;
+                if (p.Has(PlayerTrait.ShootsFromDistance) && distGoal > 18f) tendency *= 1.35f;
                 if (p.Has(PlayerTrait.CutsInsideToShoot) && p.CutInUntil > SimTime) tendency *= 1.15f;
                 if (p.Has(PlayerTrait.Unselfish) && !openGoal && !(p.CutInUntil > SimTime) && p.PlayRole != PlayerRole.InvertedWinger) tendency *= 0.62f; // (the winger cutting inside carries on: his shot is his signature)
                 // (the habits shift which shots a player takes, not how many a team takes: the balance for the squad's mix)
