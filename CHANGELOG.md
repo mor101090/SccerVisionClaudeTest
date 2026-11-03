@@ -2,6 +2,27 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/attack-calibration`
+
+**Phase 0 of the attack redesign: real football as the yardstick.** `tools/calibration` (see its README): `statsbomb_targets.py`
+reads 194 matches of complete 2015/16 league seasons (Premier League, La Liga, Serie A, Ligue 1 - 40 each - and the 34 Bundesliga
+matches there are) from the **StatsBomb open data** (<https://github.com/hudl/open-data>; data: StatsBomb) and writes
+`targets.json`; `compare.py` puts the engine next to it. Where the engine stands (100 matches) against the real thing:
+
+| | engine | real |
+|---|---|---|
+| goals / shots / on target a match | 2.94 / 35.3 / 14.0 | 2.53 / 24.8 / 8.3 |
+| foot goals in open play hit first time | **15%** | **55%** |
+| open-play goals with no pass before them | **46%** | 14% |
+| open-play goals from a rebound | 2.5% | 12% |
+| open-play goals after a ground pass or cut-back | 17% | 30% |
+| foot shots with the keeper under 3 m away | **18.5%** | 3.9% |
+| goals from the six-yard box / the rest of the box / outside | 26 / 62 / 12% | 21 / 66 / 13% |
+| headers / penalties of all goals | 20 / 8% | 14 / 7% |
+
+The engine's goals come too often from a player carrying the ball on to the keeper and too seldom from a first-time finish after a
+pass or from a rebound - the next phases are about that.
+
 ## `fix/card-during-play` - cards, goals, the walk off
 
 - **Fix: a card was shown while the play went on.** In 40 matches, 34 of 114 cards (30%) were shown with the ball in play - and a red
