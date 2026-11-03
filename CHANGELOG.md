@@ -2,6 +2,22 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/key-events-and-keeper`
+
+- **The colours of the lines** (the key moments under the statistics, the commentary, and the line under the pitch): one scheme everywhere.
+  A goal is green, a yellow card yellow, a red card red, a substitution light blue, the woodwork orange - everything else (fouls,
+  injuries, penalties, offsides, shots) in the plain colour. The engine's `Commentary.ToneOf` follows it, so the React viewer and Unity
+  show the same.
+- **The key moments are the events a coach needs**: goals, cards, penalties, injuries, substitutions, the woodwork, a dangerous free kick,
+  a direct free-kick shot, the shoot-out - and now **the dangerous chances** (a shot the model rated 0.3 or more). Offsides are no
+  longer there. A trick (a fake shot, a heel flick, a dummy) has no line at all, in the moments, the commentary or the bar under the pitch.
+  (The tricks still happen in the match - the fake shot sells the defender and the player goes round him - but the animation is only
+  the swing of the leg, which cannot be told from a shot: a line for it was telling the viewer what he could not see.)
+- **The keeper's dive**: no gloves, no trail, and no jump back to the round disc at the end - the stretch comes on in about a tenth of
+  a second and relaxes over about a quarter of one. The disc stretches along the line of the dive and squashes a little across it (a
+  little less than before), the arms reach as it stretches, the shadow stays on the grass, and a keeper who jumps high for a ball in the
+  top corner is drawn larger and higher.
+
 ## `feature/player-intelligence`
 
 The players read the game better (from tactical analyses of top teams: splitting the press, tempo control, deep completions) -

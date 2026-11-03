@@ -270,21 +270,17 @@
     }
     ctx.restore();
   }
-  // The keeper's dive: stretched out along the line of the dive, low over the grass, arms reaching, with a short trail.
-  function keeperDive(p, tm, x, y, r) {
-    var ang = Math.hypot(p.vx, p.vy) > 0.02 ? Math.atan2(-p.vy, p.vx) : p.f + Math.PI / 2; // (screen y points down)
+  // The keeper's dive: his disc stretches along the line of the dive and squashes a little across it (a stretch with the arms
+  // reaching, no gloves, no trail), and eases back to the round disc as he lands - it does not snap. k: 0 (standing) .. 1 (at full stretch).
+  var diveK = {}, diveAng = {};
+  function keeperDive(p, tm, x, y, gy, r, k, ang) {
     var col = tm.kit.gk, trim = tm.kit.gkTrim || tm.kit.secondary;
     ctx.save();
-    [[-1.3, .18], [-.65, .32]].forEach(function (g) { // the trail
-      ctx.globalAlpha = g[1]; ctx.fillStyle = col; ctx.beginPath();
-      ctx.ellipse(x + Math.cos(ang) * r * g[0], y + Math.sin(ang) * r * g[0], r * 1.35, r * .7, ang, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = .35; ctx.fillStyle = "#000"; ctx.beginPath(); ctx.ellipse(x + r * .25, y + r * .35, r * 1.6, r * .6, ang, 0, Math.PI * 2); ctx.fill(); // the shadow, flat
-    ctx.globalAlpha = 1; ctx.lineCap = "round"; ctx.strokeStyle = col; ctx.lineWidth = r * .42; // the arms, reaching for the ball
-    [-.28, .28].forEach(function (o) { ctx.beginPath(); ctx.moveTo(x + Math.cos(ang + o) * r * .8, y + Math.sin(ang + o) * r * .8); ctx.lineTo(x + Math.cos(ang + o * .4) * r * 2.25, y + Math.sin(ang + o * .4) * r * 2.25); ctx.stroke(); });
-    ctx.fillStyle = "#f3d3b5"; [-.28, .28].forEach(function (o) { ctx.beginPath(); ctx.arc(x + Math.cos(ang + o * .4) * r * 2.3, y + Math.sin(ang + o * .4) * r * 2.3, r * .28, 0, Math.PI * 2); ctx.fill(); }); // (the gloves)
+    ctx.globalAlpha = .35 * (.6 + .4 * k); ctx.fillStyle = "#000"; ctx.beginPath(); ctx.ellipse(x + r * .25, gy + r * .35, r * (1 + .5 * k), r * (1 - .3 * k), ang, 0, Math.PI * 2); ctx.fill(); // the shadow stays on the grass
+    ctx.globalAlpha = 1; ctx.lineCap = "round"; ctx.strokeStyle = col; ctx.lineWidth = r * .36;
+    if (k > .2) [-.25, .25].forEach(function (o) { ctx.beginPath(); ctx.moveTo(x + Math.cos(ang + o) * r * .8, y + Math.sin(ang + o) * r * .8); ctx.lineTo(x + Math.cos(ang + o * .4) * r * (.8 + 1.15 * k), y + Math.sin(ang + o * .4) * r * (.8 + 1.15 * k)); ctx.stroke(); }); // the arms, reaching
     ctx.fillStyle = col; ctx.strokeStyle = trim; ctx.lineWidth = Math.max(1, r * .12);
-    ctx.beginPath(); ctx.ellipse(x, y, r * 1.4, r * .78, ang, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(x, y, r * (1 + .3 * k), r * (1 - .14 * k), ang, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.restore();
   }
   function entities(S, now, dt) {
@@ -306,7 +302,14 @@
       if (p.off && Math.abs(p.y) > 35.5) return;
       var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * 2.2 * s, g = 1 + jh * .1, sh = 1 - jh * .6;
       if (p.sl || p.gr) { downPlayer(p, tm, info, x, gy); if (p.inj) injuryMark(x, gy, r); return; }
-      if (p.dv && p.gk) { keeperDive(p, tm, x, y, r); return; }
+      if (p.gk) {
+        // the stretch comes on quickly and goes off slowly (about a quarter of a second): no snap back to the disc
+        var kk = diveK[i] || 0;
+        if (p.dv) { kk = Math.min(1, kk + dt / .09); if (Math.hypot(p.vx, p.vy) > 0.02) diveAng[i] = Math.atan2(-p.vy, p.vx); else if (diveAng[i] === undefined) diveAng[i] = p.f + Math.PI / 2; }
+        else kk = Math.max(0, kk - dt / .28);
+        diveK[i] = kk;
+        if (kk > .02) { keeperDive(p, tm, x, y, gy, r * g, kk, diveAng[i]); return; }
+      }
       castShadow(p.x, p.y, x, gy, r * 1.05 * sh, r * .95 * sh, .5 * sh);
       playerFeet(x, y, r * g, p.f, p.kp, p.kl, p.gk ? tm.kit.gkBoots || tm.kit.boots : tm.kit.boots);
       playerDisc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary, p.gk ? tm.kit.gkTrim || tm.kit.secondary : tm.kit.secondary);

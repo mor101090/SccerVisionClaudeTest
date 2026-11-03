@@ -194,30 +194,20 @@ namespace SoccerVision.Simulation
             }
         }
 
+        /// <summary>
+        /// The colour of a line: a goal green, a yellow card yellow, a red card red, a substitution light blue, the woodwork orange;
+        /// everything else is the plain colour (the page, the React viewer and Unity all follow it).
+        /// </summary>
         public static CommentaryTone ToneOf(MatchEventType type)
         {
             switch (type)
             {
                 case MatchEventType.Goal: return CommentaryTone.Goal;
-                case MatchEventType.Foul:
-                case MatchEventType.Offside:
-                case MatchEventType.GoalkeeperHoldViolation:
-                case MatchEventType.Injury: return CommentaryTone.Foul;
                 case MatchEventType.Substitution:
-                case MatchEventType.SubstitutionRequest:
-                case MatchEventType.MomentumShift:
-                case MatchEventType.TacticsChanged: return CommentaryTone.Info;
+                case MatchEventType.SubstitutionRequest: return CommentaryTone.Info;
                 case MatchEventType.RedCard: return CommentaryTone.Red;
-                case MatchEventType.YellowCard:
-                case MatchEventType.PenaltyAwarded: return CommentaryTone.Card;
-                case MatchEventType.Shot:
-                case MatchEventType.Save:
+                case MatchEventType.YellowCard: return CommentaryTone.Card;
                 case MatchEventType.HitWoodwork: return CommentaryTone.Chance;
-                case MatchEventType.KickOff:
-                case MatchEventType.HalfTime:
-                case MatchEventType.FullTime:
-                case MatchEventType.AddedTime:
-                case MatchEventType.SecondHalfStart: return CommentaryTone.Info;
                 default: return CommentaryTone.Normal;
             }
         }

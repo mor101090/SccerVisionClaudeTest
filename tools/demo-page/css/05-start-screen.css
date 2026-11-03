@@ -65,13 +65,11 @@ button.badge-live.back { cursor: pointer; box-shadow: 0 0 0 2px rgba(255,255,255
 #feed { height: 260px; overflow-y: auto; display: grid; align-content: start; gap: 2px; font-size: 14px; }
 #feed div { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 6px; }
 #feed .m { color: var(--muted); font-variant-numeric: tabular-nums; }
-.tone-Goal { color: var(--goal); font-weight: 600; }
-.tone-Foul { color: var(--foul); }
-.tone-Card { color: var(--card); }
-.tone-Red { color: #ff4a4a; }
-.tone-Chance { color: var(--chance); }
-.tone-Info { color: #9fd0ff; }
-.pass { color: #b8c6bd; }
+.ln-goal { color: var(--goal); }
+.ln-yellow { color: #ffd23f; }
+.ln-red { color: #ff3b3b; }
+.ln-sub { color: #9fd0ff; }
+.ln-wood { color: var(--chance); }
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 td { padding: 5px 4px; border-bottom: 1px solid var(--rule); text-align: center; }
 td.l { color: var(--muted); }

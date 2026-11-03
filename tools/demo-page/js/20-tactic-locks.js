@@ -158,10 +158,10 @@
     if (last === shown) return;
     feed.textContent = "";
     var lines = [];
-    for (var i = last - 1; i >= 0 && lines.length < 80; i--) { var e = E[i]; if (e.type === "Whistle" || !e.text) continue; lines.push(e); }
+    for (var i = last - 1; i >= 0 && lines.length < 80; i--) { var e = E[i]; if (e.type === "Whistle" || e.type === "Skill" || !e.text) continue; lines.push(e); }
     lines.reverse().forEach(function (e) {
       var d = document.createElement("div"), m = document.createElement("span"), tx = document.createElement("span");
-      m.className = "m"; m.textContent = e.minute; tx.textContent = e.text; tx.className = e.type === "Pass" ? "pass" : "tone-" + e.tone;
+      m.className = "m"; m.textContent = e.minute; tx.textContent = e.text; tx.className = lineClass(e);
       d.appendChild(m); d.appendChild(tx); feed.appendChild(d);
     });
     feed.scrollTop = feed.scrollHeight; shown = last;

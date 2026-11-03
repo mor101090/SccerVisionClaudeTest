@@ -19,7 +19,7 @@
     var lastLine = null, goal = null, card = null;
     for (var i = 0; i < E.length; i++) {
       var e = E[i]; if (e.t > t) break;
-      if (!e.text || e.type === "Whistle" || e.type === "NetHit") continue;
+      if (!e.text || e.type === "Whistle" || e.type === "NetHit" || e.type === "Skill") continue;
       lastLine = e;
       if (e.type === "Goal") goal = e;
       if (e.type === "YellowCard" || e.type === "RedCard") card = e;
