@@ -20,7 +20,7 @@ Male first names: a name the dataset records as "M" counts in full; a name recor
 in Italy and Ana in Portugal) counts with the share of its bearers that are male (name-gender-inference.csv, p_male), and not at
 all below 0.35. So Andrea is a possible name for a man, Ana almost never, Maria never.
 """
-import argparse, csv, os, ssl, sys, unicodedata, urllib.request
+import argparse, csv, json, os, re, ssl, sys, unicodedata, urllib.request
 from collections import defaultdict
 
 RELEASE = "v2026.10"
@@ -35,6 +35,8 @@ COUNTRIES = [
     ("PL", "Poland"), ("CZ", "Czechia"), ("IE", "Ireland"), ("US", "USA"), ("TR", "Turkey"),
     ("MX", "Mexico"), ("CO", "Colombia"), ("UY", "Uruguay"), ("CL", "Chile"),
     ("NG", "Nigeria"), ("GH", "Ghana"), ("EG", "Egypt"), ("RU", "Russia"),
+    ("PE", "Peru"), ("BO", "Bolivia"), ("CR", "Costa Rica"), ("PA", "Panama"), ("FI", "Finland"), ("GR", "Greece"), ("CM", "Cameroon"),
+    ("ZA", "South Africa"), ("CA", "Canada"), ("HU", "Hungary"), ("BG", "Bulgaria"), ("EC", "Ecuador"), ("RS", "Serbia"),
 ]
 # Tried and left out because the release's surnames for them are mostly not surnames: Morocco and Algeria (Ell, Female, Ssa, Setif, Madrid,
 # Annaba...) and Japan (a handful of real surnames among Leroux, Zhao, Hassan...). They can be added back above when a later release is better.
@@ -48,7 +50,7 @@ SUPPLEMENT_LAST = {
            "Katić", "Sertić", "Modrić", "Rakitić"],
 }
 TOP_FIRST, TOP_LAST = 300, 500      # names kept per country
-MIN_FIRST, MIN_LAST = 30, 25        # a country with fewer is left out (too few to make varied names)
+MIN_FIRST, MIN_LAST = 30, 12        # a country with fewer is left out (too few to make varied names)
 MIN_KEEP = 80                      # ...but never fewer than this many
 MIN_P_MALE = 0.35
 SURNAME_COVER = 0.985               # surnames: the names that make up 93% of a country's weight (at least MIN_LAST of them)
@@ -79,6 +81,46 @@ def latin(name):
             if not unicodedata.name(ch, "").startswith("LATIN"): return False
         elif ch not in " '-.’": return False
     return has_letter
+
+
+# Cultural clusters (countries that share naming habits) and the clusters each target country belongs to. A name is dropped from a
+# country if some OTHER cluster has it much more strongly (share in the country's records) than the country's own clusters - that is
+# how a Mohamed in Spain, a Singh in England or a Gashi in Switzerland (immigrant names) are told from the local ones. Only the countries
+# listed here are compared, so the tiny samples of other countries (whose shares are noise) cannot decide.
+CLUSTERS = {
+    "spanish": "ES MX CO AR UY CL PE BO EC CR PA VE PY GT HN SV NI DO CU", "portuguese": "PT BR AO MZ", "italian": "IT", "french": "FR LU",
+    "german": "DE AT LI CH", "dutch": "NL BE", "english": "GB IE US CA AU NZ", "nordic": "DK SE NO FI IS", "west-slavic": "PL CZ SK",
+    "south-slavic": "HR RS SI BA BG MK ME", "east-slavic": "RU UA BY", "turkish": "TR AZ", "arabic": "EG DZ MA TN SA IQ SY JO LB LY SD KW AE QA YE OM BH PS",
+    "african": "NG GH CM SN CI ML GN KE TZ UG ET", "malay": "MY ID", "east-asian": "CN JP KR TW VN", "iranian": "IR AF", "albanian": "AL XK",
+    "greek": "GR CY", "hungarian": "HU", "romanian": "RO MD", "south-asian": "IN PK BD LK NP",
+}
+HOME = {  # target country -> the clusters that are its own
+    "BE": ["french", "dutch", "german"], "CH": ["german", "french", "italian"], "AT": ["german"], "NG": ["african", "english", "arabic"],
+    "GH": ["african", "english"], "TR": ["turkish", "arabic"], "EG": ["arabic"], "IE": ["english"], "GB": ["english"], "US": ["english", "spanish"],
+    "ZA": ["african", "english"],
+}
+# European clusters share many names (Antonio, Jan, Kevin, David, Ivan...), so between them a name is dropped only if it is extreme
+# (25 times as strong in the other cluster; the Portuguese Silva and Ferreira stay in Switzerland - they really are among its commonest surnames); a name that belongs to a non-European cluster
+# (Mohamed, Singh, Yilmaz, Nguyen...) is dropped from a European country as soon as that cluster has it 3 times as strongly.
+EUROPEAN = {"spanish", "portuguese", "italian", "french", "german", "dutch", "english", "nordic", "west-slavic", "south-slavic", "east-slavic", "greek", "hungarian", "romanian"}
+FOREIGN_RATIO, FOREIGN_RATIO_EUROPE = 3.0, 25.0
+
+
+def cluster_of():
+    return {c: k for k, members in CLUSTERS.items() for c in members.split()}
+
+
+def foreign(strength, cc, cl):
+    """strength: {country: share} of one name. True if the name is far more at home in a cluster that is not the country's own."""
+    home_clusters = HOME.get(cc) or [cl[cc]]
+    by = defaultdict(float)
+    for c, v in strength.items():
+        if c in cl: by[cl[c]] = max(by[cl[c]], v)
+    mine = max([by.get(h, 0.0) for h in home_clusters] + [strength.get(cc, 0.0)])
+    for k, v in by.items():
+        if k in home_clusters: continue
+        if v >= (FOREIGN_RATIO_EUROPE if k in EUROPEAN else FOREIGN_RATIO) * mine: return True
+    return False
 
 
 PARTICLES = {"van", "von", "der", "den", "de", "het", "ter", "ten", "te", "zu", "da", "do", "dos", "das", "del", "la", "los", "las"}
@@ -112,6 +154,20 @@ def masculine(cc, name, known):
     return name
 
 
+ACCENT_LANGUAGE = {"ES": "es", "AR": "es", "MX": "es", "CO": "es", "UY": "es", "CL": "es", "PT": "pt", "BR": "pt", "FR": "fr", "IT": "it"}
+
+
+def load_accents():
+    """accents.json, made by restore_accents.py (checked against Wikipedia): {language: {plain word: accented word}}."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "accents.json")
+    return json.load(open(path, encoding="utf-8")) if os.path.exists(path) else {}
+
+
+def accentuate(cc, name, accents):
+    table = accents.get(ACCENT_LANGUAGE.get(cc, ""), {})
+    return "".join(table.get(part, part) for part in re.split(r"([ \-'’.])", name)) if table else name
+
+
 def usable(name): return latin(name) and "|" not in name and ";" not in name and name == name.strip()
 
 
@@ -125,9 +181,17 @@ def main():
 
     p_male = {r["name"]: float(r["p_male"]) for r in csv.DictReader(open(paths["name-gender-inference.csv"], encoding="utf-8"))}
     first, last = defaultdict(lambda: defaultdict(float)), defaultdict(lambda: defaultdict(float))
+    cl = cluster_of()
+    strength_f, strength_l = defaultdict(dict), defaultdict(dict)       # name -> {country: share}, over the clustered countries
+    dropped = defaultdict(lambda: [0, 0])
+    for r in csv.DictReader(open(paths["given-name-frequency.csv"], encoding="utf-8")):
+        if r["country_code"] in cl: strength_f[r["name"]][r["country_code"]] = strength_f[r["name"]].get(r["country_code"], 0.0) + float(r["pct_in_country"])
+    for r in csv.DictReader(open(paths["surname-frequency.csv"], encoding="utf-8")):
+        if r["country_code"] in cl: strength_l[r["name"]][r["country_code"]] = strength_l[r["name"]].get(r["country_code"], 0.0) + float(r["pct_in_country"])
     for r in csv.DictReader(open(paths["given-name-frequency.csv"], encoding="utf-8")):
         cc, n = r["country_code"], r["name"]
         if cc not in codes or not usable(n) or len(n) < 2: continue
+        if cc in cl and foreign(strength_f[n], cc, cl): dropped[cc][0] += 1; continue
         g = r["gender"].split(";")
         if "M" not in g: continue
         share = 1.0 if g == ["M"] else p_male.get(n, 0.0)
@@ -141,10 +205,21 @@ def main():
         known = set(d)
         for n, w in d.items():
             if p_male.get(n, 1.0) < 0.2: continue                 # a woman's given name in the surname list (Eduarda, Fernanda, Sarah)
+            if cc in cl and foreign(strength_l[n], cc, cl): dropped[cc][1] += 1; continue
             m = masculine(cc, n, known)
             if m is None: continue
             if cc in PARTICLE_COUNTRIES: m = particles(m)
             last[cc][m] += w
+
+    accents = load_accents()
+    for cc in list(first):
+        merged = defaultdict(float)
+        for n, w in first[cc].items(): merged[accentuate(cc, n, accents)] += w
+        first[cc] = merged
+    for cc in list(last):
+        merged = defaultdict(float)
+        for n, w in last[cc].items(): merged[accentuate(cc, n, accents)] += w
+        last[cc] = merged
 
     def table(d, top, cover=1.0):
         items = sorted(d.items(), key=lambda kv: (-kv[1], kv[0]))
@@ -159,6 +234,7 @@ def main():
 
     lines = []
     kept, skipped = [], []
+    print("dropped as foreign (first names, surnames):", ", ".join("%s %d/%d" % (c, v[0], v[1]) for c, v in sorted(dropped.items())), file=sys.stderr)
     for cc, nation in COUNTRIES:
         f, nf = table(first[cc], TOP_FIRST)
         note = ""
@@ -168,6 +244,7 @@ def main():
             note = "Surnames: a supplementary list of the most common surnames (the Onomaverse release has too few usable ones for this country); first names: Onomaverse."
         else:
             l, nl = table(last[cc], TOP_LAST, SURNAME_COVER)
+            if nf < 80 or nl < 30: note = "Thin: the dataset has few names for this country (%d male first names, %d surnames) - expect the same names to come up often." % (nf, nl)
         if nf < MIN_FIRST or nl < MIN_LAST:
             skipped.append("%s (%d male first names, %d surnames)" % (cc, nf, nl)); continue
         kept.append((cc, nation, nf, nl))
