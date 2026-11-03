@@ -31,6 +31,8 @@ namespace SoccerVision.Simulation
         public bool OneTwo;
         /// <summary>A third-man lay-off: first time into the run of the man the first passer could not reach.</summary>
         public bool ThirdMan;
+        /// <summary>A heel flick: played with the back of the heel to a team-mate behind or beside him, without turning.</summary>
+        public bool Heel;
     }
 
     /// <summary>Decisions in possession (design doc: pass, through ball, cross, dribble, shoot): the options are evaluated, the best is chosen and executed.</summary>
@@ -39,6 +41,7 @@ namespace SoccerVision.Simulation
         private readonly List<KickPlan> _options = new List<KickPlan>(64);
 
         private float _riskPremium;
+        private bool _nextKickHeel;
 
         private string _lastPassKey;
 
@@ -71,7 +74,7 @@ namespace SoccerVision.Simulation
                     break;
                 default:
                     float turn = MathF.Abs(MathUtil.AngleDiff(p.Facing, plan.Heading));
-                    float delay = turn / MathUtil.Pi * 0.32f;
+                    float delay = plan.Heel ? 0f : turn / MathUtil.Pi * 0.32f; // (a heel flick is played where he stands: he does not turn for it)
                     if (delay < 0.05f)
                     {
                         ExecutePlan(p, plan);
@@ -389,7 +392,11 @@ namespace SoccerVision.Simulation
                         && p.Team.Forward(plan.Target) > 34f && MathF.Abs(p.Team.Lateral(plan.Target)) < 11f && p.Team.Forward(plan.Target) < p.Team.Forward(Ball.Pos) - 2f)
                         p.Team.Stats.CutBacks++;
                     if (plan.Lofted) KickLofted(p, plan.Target, plan.LaunchAngle, plan.Kind, plan.Receiver, pressure, MathUtil.A(p.Attr.Passing), curl: false);
-                    else KickGround(p, plan, pressure);
+                    else
+                    {
+                        if (plan.Heel) { _nextKickHeel = true; p.HeelUntil = SimTime + 0.7f; }
+                        KickGround(p, plan, pressure);
+                    }
                     break;
             }
         }
@@ -447,6 +454,8 @@ namespace SoccerVision.Simulation
                 float cross = Vec2.Cross(p.FacingDir, horizontalVelocity.Normalized);
                 p.KickLeft = cross > 0.15f ? true : cross < -0.15f ? false : p.Attr.StrongFoot == Foot.Left;
                 p.KickTimer = PlayerAgent.KickSwing;
+                p.KickHeel = _nextKickHeel; _nextKickHeel = false;
+                if (p.KickHeel) p.KickLeft = cross < 0f; // (the heel flick goes back with the foot on the far side of the target)
             }
             Ball.Owner = null;
             Ball.InHands = false;

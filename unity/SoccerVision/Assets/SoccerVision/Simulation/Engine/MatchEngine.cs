@@ -561,6 +561,12 @@ namespace SoccerVision.Simulation
             float offset = 0.45f + MathUtil.Clamp(speed * 0.06f, 0f, 0.45f);
             float pulse = speed > 1.5f ? 0.12f * MathF.Sin(SimTime * 9f + owner.Index) : 0f;
             Vec2 pos = owner.Pos + owner.FacingDir * (offset + pulse);
+            // a fake shot: while the foot swings the ball is nudged to the side (and back), then carried on
+            if (owner.FakeUntil > SimTime)
+            {
+                float prog = MathUtil.Clamp01((SimTime - owner.FakeStart) / MathF.Max(0.05f, owner.FakeUntil - owner.FakeStart));
+                pos += owner.FakeDir * (0.5f * MathF.Sin(MathF.PI * prog));
+            }
             Ball.M = new BallMotion { X = pos.X, Y = pos.Y, Z = Pitch.BallRadius, Vx = owner.Vel.X, Vy = owner.Vel.Y };
         }
 

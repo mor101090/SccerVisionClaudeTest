@@ -148,6 +148,7 @@ namespace SoccerVision.Simulation
                 turnRate = 6f;
             }
             if (footing < 1f) turnRate *= 0.55f + 0.45f * footing;
+            if (p.HeelUntil > SimTime) { targetFacing = speed > 1.2f ? p.Vel.Angle : p.Facing; turnRate = 5f; } // (after a heel flick he keeps looking forward, he does not turn to watch it go)
             p.Facing = MathUtil.MoveTowardsAngle(p.Facing, targetFacing, turnRate * dt);
 
             // Jump: ballistic flight of the body (headers, goalkeeper takes, walls, celebrations).
@@ -169,7 +170,7 @@ namespace SoccerVision.Simulation
         private float JumpGravity => Config.Gravity / Config.MotionSpeed;
 
         /// <summary>Highest standing leap of the centre of mass (m) from the Jumping attribute (0.35-0.75 m).</summary>
-        private static float MaxJumpHeight(PlayerAgent p) => 0.35f + 0.4f * MathUtil.A(p.Attr.Jumping);
+        private static float MaxJumpHeight(PlayerAgent p) => 0.35f + 0.4f * MathUtil.A(p.Attr.Jumping) + (p.IsGoalkeeper ? 0.3f : 0f); // (a keeper goes up for a ball in the top corner)
 
         /// <summary>Take off for a leap of <paramref name="height"/> metres: v0 = sqrt(2 g h).</summary>
         private void StartJump(PlayerAgent p, float height)

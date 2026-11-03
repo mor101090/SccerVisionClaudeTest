@@ -69,7 +69,6 @@ button.badge-live.back { cursor: pointer; box-shadow: 0 0 0 2px rgba(255,255,255
 .ln-yellow { color: #ffd23f; }
 .ln-red { color: #ff3b3b; }
 .ln-sub { color: #9fd0ff; }
-.ln-wood { color: var(--chance); }
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 td { padding: 5px 4px; border-bottom: 1px solid var(--rule); text-align: center; }
 td.l { color: var(--muted); }

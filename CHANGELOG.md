@@ -5,7 +5,7 @@ Each round of changes is developed on its own branch, named after what it change
 ## `feature/key-events-and-keeper`
 
 - **The colours of the lines** (the key moments under the statistics, the commentary, and the line under the pitch): one scheme everywhere.
-  A goal is green, a yellow card yellow, a red card red, a substitution light blue, the woodwork orange - everything else (fouls,
+  A goal is green, a yellow card yellow, a red card red, a substitution light blue - everything else (the woodwork too, fouls,
   injuries, penalties, offsides, shots) in the plain colour. The engine's `Commentary.ToneOf` follows it, so the React viewer and Unity
   show the same.
 - **The key moments are the events a coach needs**: goals, cards, penalties, injuries, substitutions, the woodwork, a dangerous free kick,
@@ -13,6 +13,15 @@ Each round of changes is developed on its own branch, named after what it change
   longer there. A trick (a fake shot, a heel flick, a dummy) has no line at all, in the moments, the commentary or the bar under the pitch.
   (The tricks still happen in the match - the fake shot sells the defender and the player goes round him - but the animation is only
   the swing of the leg, which cannot be told from a shot: a line for it was telling the viewer what he could not see.)
+- **A heel flick is a heel flick**: to a team-mate behind him or beside him (it was only behind) he plays it where he stands - he
+  does not turn first - and the foot goes the other way: forward in the windup, back through the ball; he keeps looking forward
+  (and running) for a moment instead of turning to watch it go. (Over 16 matches: 54 heel flicks, all of them with the player
+  looking away from the ball.)
+- **A fake shot moves the ball**: the foot swings the whole way as if kicking, the ball is nudged to the side he is about to go (in or
+  out, whichever way the fake goes) and carried on, the defender who was sold is out of it for a second (was three quarters), and
+  then the player dribbles on or passes. (Over 16 matches with flair players: 57 fake shots, the ball nudged in 35.)
+- **The keeper goes up for a high ball**: the jump grows with the height of the ball (a ball in the top corner: up to 0.7 m, his cap
+  is 0.3 m more than a field player's) and he is drawn larger and higher.
 - **The keeper's dive**: no gloves, no trail, and no jump back to the round disc at the end - the stretch comes on in about a tenth of
   a second and relaxes over about a quarter of one. The disc stretches along the line of the dive and squashes a little across it (a
   little less than before), the arms reach as it stretches, the shadow stays on the grass, and a keeper who jumps high for a ball in the

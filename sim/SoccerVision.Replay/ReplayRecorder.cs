@@ -341,7 +341,7 @@ namespace SoccerVision.Replay
                 f.Add((int)MathF.Round(p.JumpZ * 100f));
                 f.Add((p.SentOff ? 1 : 0) | (p.IsGoalkeeper ? 2 : 0) | (p.YellowCards > 0 ? 4 : 0) | (p.OffsideMarkTimer > 0f ? 8 : 0) | (p.SlideTimer > 0f ? 16 : 0)
                       | (p.IsDown && p.SlideTimer <= 0f ? 32 : 0) | (p.Injury != InjuryLevel.None ? 64 : 0)
-                      | (p.KickPhase << 7) | (p.KickLeft ? 512 : 0) | (p.DiveTimer > 0f ? 1024 : 0)); // (1024: a keeper diving)
+                      | (p.KickPhase << 7) | (p.KickLeft ? 512 : 0) | (p.DiveTimer > 0f ? 1024 : 0) | (p.KickHeel && p.KickTimer > 0f ? 2048 : 0)); // (1024: a keeper diving; 2048: the kick is a heel flick)
             }
             foreach (var o in e.Officials)
             {

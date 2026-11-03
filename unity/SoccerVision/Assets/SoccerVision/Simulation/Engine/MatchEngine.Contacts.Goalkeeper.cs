@@ -101,7 +101,7 @@ namespace SoccerVision.Simulation
                 OnShotWasted(shooter, _lastShotXg);
             }
             Vec2 savePos = Ball.Pos;
-            if (Ball.Z > 1.6f || reachNeeded > 0.5f) StartJump(gk, 0.35f);
+            if (Ball.Z > 1.6f || reachNeeded > 0.5f) StartJump(gk, 0.35f + 0.4f * MathUtil.Clamp(Ball.Z - 1.4f, 0f, 1.2f));
 
             float pCatch = allowCatch ? MathUtil.Clamp(0.25f + 0.6f * handling - (speed - 15f) * 0.025f - difficulty * 0.3f, 0.05f, 0.85f) : 0f;
             if (Conditions.IsWet) pCatch *= 0.85f;

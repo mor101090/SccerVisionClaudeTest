@@ -30,7 +30,7 @@
     for (var p = 0; p < 22; p++) {
       var o = PB + p * PS;
       var ka = KICK_OFF[(a[o + 4] >> 7) & 3], kb = KICK_OFF[(b[o + 4] >> 7) & 3];
-      ps.push({ kp: lerp(ka, kb, k), kl: (a[o + 4] & 512) !== 0, x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, f: lerpA(a[o + 2] / 100, b[o + 2] / 100, k), j: lerp(a[o + 3], b[o + 3], k) / 100, off: (a[o + 4] & 1) !== 0, gk: (a[o + 4] & 2) !== 0, bk: (a[o + 4] & 4) !== 0, os: (a[o + 4] & 8) !== 0, sl: (a[o + 4] & 16) !== 0, gr: (a[o + 4] & 32) !== 0, inj: (a[o + 4] & 64) !== 0, dv: (a[o + 4] & 1024) !== 0, vx: (b[o] - a[o]) / 10, vy: (b[o + 1] - a[o + 1]) / 10, g: a.length > GB + p ? a[GB + p] : 0 });
+      ps.push({ kp: lerp(ka, kb, k), kl: (a[o + 4] & 512) !== 0, kh: (a[o + 4] & 2048) !== 0, x: lerp(a[o], b[o], k) / 10, y: lerp(a[o + 1], b[o + 1], k) / 10, f: lerpA(a[o + 2] / 100, b[o + 2] / 100, k), j: lerp(a[o + 3], b[o + 3], k) / 100, off: (a[o + 4] & 1) !== 0, gk: (a[o + 4] & 2) !== 0, bk: (a[o + 4] & 4) !== 0, os: (a[o + 4] & 8) !== 0, sl: (a[o + 4] & 16) !== 0, gr: (a[o + 4] & 32) !== 0, inj: (a[o + 4] & 64) !== 0, dv: (a[o + 4] & 1024) !== 0, vx: (b[o] - a[o]) / 10, vy: (b[o + 1] - a[o + 1]) / 10, g: a.length > GB + p ? a[GB + p] : 0 });
     }
     var os = [];
     for (var q = 0; q < 3; q++) { var oo = OB + q * 3; os.push({ x: lerp(a[oo], b[oo], k) / 10, y: lerp(a[oo + 1], b[oo + 1], k) / 10, flag: a[oo + 2] === 1 || a[oo + 2] === 4, fdir: a[oo + 2] === 4 ? -1 : 1, card: a[oo + 2] === 2 ? 1 : a[oo + 2] === 3 ? 2 : 0 }); }

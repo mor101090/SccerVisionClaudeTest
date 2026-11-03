@@ -1,9 +1,9 @@
   // ---- panels ----------------------------------------------------------------------------------------
   var feed = $("feed"), KEY = { Goal: 1, YellowCard: 1, RedCard: 1, PenaltyAwarded: 1, HitWoodwork: 1, Injury: 1, Substitution: 1, ExtraTime: 1, PenaltyShootout: 1, ShootoutKick: 1 };
   // The colours of the lines (the same in the key moments and in the commentary): a goal green, a yellow card yellow, a red card red,
-  // a substitution light blue, the woodwork orange - everything else in the plain colour. (A trick - a fake shot, a heel flick -
+  // a substitution light blue - everything else (the woodwork too) in the plain colour. (A trick - a fake shot, a heel flick -
   // is not an event a coach needs: it has no line at all.)
-  var LINE_CLASS = { Goal: "ln-goal", YellowCard: "ln-yellow", RedCard: "ln-red", Substitution: "ln-sub", HitWoodwork: "ln-wood" };
+  var LINE_CLASS = { Goal: "ln-goal", YellowCard: "ln-yellow", RedCard: "ln-red", Substitution: "ln-sub" };
   function lineClass(e) { return LINE_CLASS[e.type] || ""; }
   // a dangerous chance: a shot the model rated well (the model's xG runs high: 0.3 is a clear chance)
   function bigChance(e) { return e.type === "Shot" && e.v >= 0.3 && e.detail !== 4; }

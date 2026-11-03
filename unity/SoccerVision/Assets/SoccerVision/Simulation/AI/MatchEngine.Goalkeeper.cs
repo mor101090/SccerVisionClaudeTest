@@ -32,7 +32,7 @@ namespace SoccerVision.Simulation
                 if (gk.DiveTimer <= 0f && gap > 0.9f && (timeToLine < 0.8f || lateralSpeedNeeded > 4f))
                 {
                     gk.DiveTimer = 0.7f;
-                    if (Ball.Z > 1.2f || gap > 1.5f) StartJump(gk, 0.25f);
+                    if (Ball.Z > 1.2f || gap > 1.5f) StartJump(gk, 0.25f + 0.45f * MathUtil.Clamp(Ball.Z - 1f, 0f, 1.4f)); // (a ball in the top corner: he goes up for it)
                 }
                 gk.Target = target;
                 gk.Urgency = 1f;

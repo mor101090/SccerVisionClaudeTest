@@ -209,11 +209,11 @@
     offFace[i] += d * .25;
     return offFace[i];
   }
-  function playerFeet(x, y, r, facing, kick, kickLeft, boots) {
+  function playerFeet(x, y, r, facing, kick, kickLeft, boots, heel) {
     var a = -facing, c = Math.cos(a), sn = Math.sin(a);
     ctx.fillStyle = boots || BOOTS; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = Math.max(.6, r * .06);
     [-1, 1].forEach(function (side) {
-      var fwd = .8 + ((side < 0) === !!kickLeft ? (kick || 0) : 0), fx = x + c * r * fwd - sn * r * .32 * side, fy = y + sn * r * fwd + c * r * .32 * side;
+      var fwd = .8 + ((side < 0) === !!kickLeft ? (heel ? -(kick || 0) : (kick || 0)) : 0), fx = x + c * r * fwd - sn * r * .32 * side, fy = y + sn * r * fwd + c * r * .32 * side;
       ctx.beginPath(); ctx.ellipse(fx, fy, r * .3, r * .21, a, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     });
   }
@@ -300,7 +300,7 @@
     });
     S.ps.forEach(function (p, i) {
       if (p.off && Math.abs(p.y) > 35.5) return;
-      var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * 2.2 * s, g = 1 + jh * .1, sh = 1 - jh * .6;
+      var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * (p.gk ? 3 : 2.2) * s, g = 1 + jh * (p.gk ? .2 : .1), sh = 1 - jh * .6;
       if (p.sl || p.gr) { downPlayer(p, tm, info, x, gy); if (p.inj) injuryMark(x, gy, r); return; }
       if (p.gk) {
         // the stretch comes on quickly and goes off slowly (about a quarter of a second): no snap back to the disc
@@ -311,7 +311,7 @@
         if (kk > .02) { keeperDive(p, tm, x, y, gy, r * g, kk, diveAng[i]); return; }
       }
       castShadow(p.x, p.y, x, gy, r * 1.05 * sh, r * .95 * sh, .5 * sh);
-      playerFeet(x, y, r * g, p.f, p.kp, p.kl, p.gk ? tm.kit.gkBoots || tm.kit.boots : tm.kit.boots);
+      playerFeet(x, y, r * g, p.f, p.kp, p.kl, p.gk ? tm.kit.gkBoots || tm.kit.boots : tm.kit.boots, p.kh);
       playerDisc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary, p.gk ? tm.kit.gkTrim || tm.kit.secondary : tm.kit.secondary);
       ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * g * 1.05) + "px Barlow, system-ui, sans-serif";
       fillC(String(info.number), x, y);

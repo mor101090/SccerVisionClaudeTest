@@ -223,8 +223,12 @@ namespace SoccerVision.Simulation
                     // the cut: away from the side the defender committed to, still towards goal
                     float side = Vec2.Cross(toGoal, blocker.Pos - pos) > 0f ? -1f : 1f;
                     Vec2 across = new Vec2(-toGoal.Y, toGoal.X) * side;
-                    blocker.StunTimer = MathF.Max(blocker.StunTimer, 0.75f); // sold: committed to the block
-                    p.KickTimer = PlayerAgent.KickSwing * 0.6f;              // (the shooting motion)
+                    blocker.StunTimer = MathF.Max(blocker.StunTimer, 1.0f); // sold: committed to the block, he is a second out of it
+                    // the shooting motion - the whole swing, the foot goes back and through - and the ball moves a little with it:
+                    // nudged to the side he is about to go (in or out), then carried on
+                    p.KickTimer = PlayerAgent.KickSwing;
+                    p.KickLeft = side > 0f;
+                    p.FakeDir = across; p.FakeStart = SimTime; p.FakeUntil = SimTime + 0.55f;
                     Emit(MatchEventType.Skill, team, p, blocker, pos, 0f, WhistleKind.Short, 1);
                     if (CollectDiagnostics) Count("skill.fakeShot");
                     return new KickPlan { Action = BallAction.Dribble, DribbleTarget = Pitch.ClampToField(pos + across * 3.2f + toGoal * 1.2f, -1f), Utility = chosen.Utility };
@@ -235,10 +239,11 @@ namespace SoccerVision.Simulation
                 Vec2 to = chosen.Target - pos;
                 float len = to.Length;
                 float technique = MathUtil.A((p.Attr.BallControl + p.Attr.Creativity) / 2) + (showboat ? 0.2f : 0f);
-                if (len > 3f && len < 14f && Vec2.Dot(to / len, p.FacingDir) < -0.55f && technique > 0.55f
+                if (len > 3f && len < 14f && Vec2.Dot(to / len, p.FacingDir) < -0.15f && technique > 0.55f // (behind him or beside him: a heel flick back or to the side)
                     && _rng.Chance((0.4f * (technique - 0.55f) / 0.45f + 0.03f) * (showboat ? 1.6f : 1f)))
                 {
                     Emit(MatchEventType.Skill, team, p, chosen.Receiver, pos, 0f, WhistleKind.Short, 2);
+                    chosen.Heel = true;
                     if (CollectDiagnostics) Count("skill.backheel");
                 }
             }

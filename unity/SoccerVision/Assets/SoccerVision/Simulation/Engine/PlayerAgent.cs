@@ -161,6 +161,12 @@ namespace SoccerVision.Simulation
         public float KickTimer;
         public bool KickLeft;
         public const float KickSwing = 0.45f;
+        /// <summary>The kick is a heel flick: the foot goes forward first and strikes backwards, and he keeps looking forward until HeelUntil.</summary>
+        public bool KickHeel;
+        public float HeelUntil = -1f;
+        /// <summary>A fake shot: the ball is nudged along FakeDir (sideways, in or out) while the foot swings, until FakeUntil.</summary>
+        public float FakeUntil = -1f, FakeStart = -1f;
+        public Vec2 FakeDir;
         /// <summary>0 none, 1 backswing, 2 strike, 3 follow-through (the swing as the replay records it).</summary>
         public int KickPhase => KickTimer <= 0f ? 0 : KickTimer > 0.30f ? 1 : KickTimer > 0.15f ? 2 : 3;
         /// <summary>Where the one-two run goes (world).</summary>
