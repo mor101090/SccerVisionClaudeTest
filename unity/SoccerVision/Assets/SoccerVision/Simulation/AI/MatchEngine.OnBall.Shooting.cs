@@ -267,7 +267,7 @@ namespace SoccerVision.Simulation
                 aimY = MathUtil.Clamp(-MathF.Sign(kY == 0f ? 1f : kY) * 1.4f, -1.8f, 1.8f); // (away from where the keeper is coming back)
                 aimZ = 0.35f;
                 curlMag = 0f;
-                power = MathF.Min(power, 18f + 0.4f * dist);
+                power = MathF.Min(power, 21f + 0.5f * dist); // (rolled in, but firmly: the keeper scrambling back must not get there)
                 if (CollectDiagnostics)
                 {
                     Count("shot.openGoal");

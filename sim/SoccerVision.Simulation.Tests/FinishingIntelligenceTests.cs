@@ -37,7 +37,7 @@ namespace SoccerVision.Simulation.Tests
             Assert.True(firstTime > 0.5, "nobody hits it first time");
             Assert.True(ftGoals > 0, "a first-time finish never goes in");
             // the square ball for a tap-in happens, but a keeper does not leave his goal to every free forward
-            Assert.InRange(openGoals, 0.1, 1.5);
+            Assert.InRange(openGoals, 0.03, 1.5); // (an open goal is now one the keeper cannot get back to: rarer)
             Assert.All(es, e => Assert.Equal(0, e.RecoveredErrors));
         }
     }

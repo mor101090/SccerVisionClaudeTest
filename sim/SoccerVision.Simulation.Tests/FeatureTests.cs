@@ -309,7 +309,7 @@ namespace SoccerVision.Simulation.Tests
                 while (!e.IsFinished)
                 {
                     e.Advance(0.1f);
-                    if (e.Phase == MatchPhase.HalfTimeBreak || e.Phase == MatchPhase.FullTime) continue;
+                    if (e.Phase == MatchPhase.HalfTimeBreak || e.Phase == MatchPhase.FullTime || e.WalkingOut || e.WalkingOff) continue; // (walking to or from the tunnel)
                     var r = e.CurrentRestart;
                     bool setUp = e.Phase == MatchPhase.Stoppage && r != null;
                     if (setUp && r.Type == RestartType.CornerKick) Interlocked.Increment(ref corners);
