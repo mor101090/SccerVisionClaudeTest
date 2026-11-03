@@ -500,6 +500,13 @@ namespace SoccerVision.Simulation
             if (opponentTouch) ClearOffside();
             var team = p.Team;
             float f = team.Forward(Ball.Pos);
+            if (CollectDiagnostics && SimTime - _lastRestartAt < 4f && _lastRestartType == RestartType.CornerKick)
+                Count("header.corner." + (p.Team == Ball.LastTouchTeam ? "own" : p.Team.Opponent == _lastRestartTeam ? "defender" : "attacker") + (contested ? ".contested" : ".free"));
+            if (CollectDiagnostics && SimTime - _lastRestartAt < 4f && _lastRestartType == RestartType.CornerKick && p.Team == _lastRestartTeam)
+            {
+                float nd = 99f; foreach (var o in p.Team.Opponent.Players) if (!o.SentOff && !o.IsGoalkeeper) nd = MathF.Min(nd, Vec2.Distance(o.Pos, p.Pos));
+                Count("header.corner.nearestDefender." + (nd < 1f ? "a<1" : nd < 2f ? "b1-2" : nd < 4f ? "c2-4" : "d4+"));
+            }
             float distGoal = Vec2.Distance(Ball.Pos, team.AttackGoal);
             float heading = MathUtil.A(p.Attr.Heading);
             Ball.LastToucher = p;

@@ -10,6 +10,15 @@ while the keeper gets up. 200 matches, two seeds: goals **2.53** a match (real 2
 rebounds converted about **11%** (was about 8%; real 21%), rebounds 5-6% of open-play goals (real 12%). Tried and taken out again: a
 keeper slower to get up after a save (the follow-up shots rarely reach him - most are blocked or miss - and goals fell).
 
+**Corners, looked into (and left as they are)**: new counters (`header.corner.*`, `header.corner.nearestDefender.*`) show that at a
+corner nearly every header is a free one (7.5 a match free, 0.3 contested) although a defender is within 2 m of the header two times in
+three. Three changes were tried and taken out again because they changed nothing measurable (200 matches each): a stronger defender in
+his own box in the air, markers tight between their man and the landing point, a defender at the shoulder making it a contested
+header. The corner problem is in how the delivery and the runs meet (the ball reaches the attacker before any defender can), not in the
+duel - the next thing to look at. Also still open: shots, about 30 a match against 25 in reality - a higher price on a missed shot
+barely changed them (30.6 -> 29.7); the engine's attacks reach the box more often than real ones (it plays far more directly: about
+410 passes a match, real 850-1000).
+
 ## `fix/online-connect`
 
 **Online play with a six-digit code, kits of your own, and a connection that comes back.** After two hours of picking line-ups the
