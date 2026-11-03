@@ -169,7 +169,7 @@ namespace SoccerVision.Simulation
                 // traits: a shot on sight from range; the cut inside and shoot; the unselfish one looks for a pass first
                 if (p.Has(PlayerTrait.ShootsFromDistance) && distGoal > 18f) tendency *= 1.35f;
                 if (p.Has(PlayerTrait.CutsInsideToShoot) && p.CutInUntil > SimTime) tendency *= 1.15f;
-                if (p.Has(PlayerTrait.Unselfish) && !openGoal) tendency *= 0.62f;
+                if (p.Has(PlayerTrait.Unselfish) && !openGoal && !(p.CutInUntil > SimTime)) tendency *= 0.62f; // (the winger cutting inside carries on: his shot is his signature)
                 // (the habits shift which shots a player takes, not how many a team takes: the balance for the squad's mix)
                 tendency *= p.CutInUntil > SimTime ? 0.92f : 0.72f; // (the cut inside and shoot is the winger's signature: left as it was)
                 if (p.FirstTimeUntil > SimTime) tendency *= 1.7f; // (set to hit it first time)

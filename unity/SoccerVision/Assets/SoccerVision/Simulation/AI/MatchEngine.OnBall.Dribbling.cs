@@ -240,8 +240,8 @@ namespace SoccerVision.Simulation
                 Vec2 to = chosen.Target - pos;
                 float len = to.Length;
                 float technique = MathUtil.A((p.Attr.BallControl + p.Attr.Creativity) / 2) + (showboat ? 0.2f : 0f);
-                if (len > 3f && len < 14f && Vec2.Dot(to / len, p.FacingDir) < -0.15f && technique > 0.55f // (behind him or beside him: a heel flick back or to the side)
-                    && _rng.Chance((0.4f * (technique - 0.55f) / 0.45f + 0.03f) * (showboat ? 1.6f : 1f)))
+                if (len > 3f && len < 14f && Vec2.Dot(to / len, p.FacingDir) < -0.15f && technique > 0.55f // (behind him, or beside him and a little back: a heel flick)
+                    && _rng.Chance((0.4f * (technique - 0.55f) / 0.45f + 0.03f) * (showboat ? 1.6f : 1f) * (Vec2.Dot(to / len, p.FacingDir) < -0.55f ? 1f : 0.3f))) // (to the side: much rarer than straight back)
                 {
                     Emit(MatchEventType.Skill, team, p, chosen.Receiver, pos, 0f, WhistleKind.Short, 2);
                     chosen.Heel = true;

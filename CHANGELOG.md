@@ -34,6 +34,9 @@ Each round of changes is developed on its own branch, named after what it change
   open while the ball goes through. In the statistics: `Dummies`.
 - The unselfish player shoots a little less than before (the trait's weight on the shot x0.62, was x0.8): the full-suite run showed
   the effect, small, was lost in the noise of a sample of twelve matches (16.6 shots against 16.8); the test now plays 24.
+  Not while he cuts inside: the winger's curler is his signature (bisecting a drop in the cut-inside curlers from 0.7 to 0.15 a match
+  found this very change: the home winger has the trait). A heel flick to the side is three times rarer than one straight back
+  (4.4 a match, was 6.3). The cut-inside test plays 36 matches.
 - **The keeper goes up for a high ball**: the jump grows with the height of the ball (a ball in the top corner: up to 0.7 m, his cap
   is 0.3 m more than a field player's) and he is drawn larger and higher.
 - **The keeper's dive**: no gloves, no trail, and no jump back to the round disc at the end - the stretch comes on in about a tenth of
