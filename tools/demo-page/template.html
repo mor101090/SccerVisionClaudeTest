@@ -23,7 +23,8 @@
     <img alt="SoccerVision" class="wlogo">
     <h2 id="wTitle">How do you want to play?</h2>
     <div class="wopts">
-      <button type="button" id="asUser" class="main"><b>User</b><span>Pick your home, away and keeper kits and your eleven - then play a live match against the computer.</span></button>
+      <button type="button" id="asUser" class="main"><b>Play the computer</b><span>Pick your home, away and keeper kits and your eleven - then play a live match against the computer.</span></button>
+      <button type="button" id="asOnline" class="main"><b>Play a friend online</b><span>Pick your kit, then create a game (you get a six-digit code for your friend) or join one with his code.</span></button>
       <button type="button" id="asDev"><b>Developer</b><span>Everything there is: the staged, random and live matches and every setting.</span></button>
     </div>
   </div>
@@ -39,10 +40,12 @@
       <small id="crestNote"></small>
     </div>
     <p id="kRefs"></p>
-    <p>Next: your eleven, the formation and the instructions - then start the match.</p>
+    <p id="kitNext">Next: your eleven, the formation and the instructions - then start the match.</p>
     <div class="wopts" id="kitButtons">
       <button type="button" id="kitGo" class="main"><b>Play the computer</b><span>Your eleven next, then a live match against the computer.</span></button>
-      <button type="button" id="kitInvite"><b>Invite a friend</b><span>Online: you send a link, your friend sends back a reply code - then you play each other.</span></button>
+      <button type="button" id="kitHost" class="main" hidden><b>Create a game</b><span>You get a six-digit code - tell it to your friend.</span></button>
+      <button type="button" id="kitJoin" class="main" hidden><b>Join a game</b><span>Type in the six-digit code your friend gives you.</span></button>
+      <button type="button" id="kitInvite" hidden><b>Invite a friend</b><span>Online: you send a link, your friend sends back a reply code - then you play each other.</span></button>
     </div>
   </div>
 </div>
@@ -51,6 +54,9 @@
     <img alt="SoccerVision" class="wlogo">
     <h2 id="oTitle">Play a friend</h2>
     <p id="oText"></p>
+    <div class="ostep" id="oCodeBox" hidden><label>Your game code - tell it to your friend</label><div class="orow ocoderow"><output id="oCode" class="ocode"></output><button type="button" id="oCopyCode">Copy</button></div><small id="oCodeLink"></small></div>
+    <div class="ostep" id="oJoinBox" hidden><label for="oJoinCode">Your friend's game code</label><div class="orow"><input id="oJoinCode" inputmode="numeric" maxlength="7" placeholder="six digits" autocomplete="off"><button type="button" id="oJoinGo">Join</button></div></div>
+    <div class="okits" id="oKits" hidden></div>
     <div class="ostep" id="oLinkBox" hidden><label for="oLink">1. Send this link to your friend</label><div class="orow"><input id="oLink" readonly><button type="button" id="oCopyLink">Copy</button></div></div>
     <div class="ostep" id="oReplyBox" hidden><label for="oReply">2. Paste the reply code your friend sends back</label><div class="orow"><input id="oReply" placeholder="the reply code" autocomplete="off"><button type="button" id="oConnect">Connect</button></div></div>
     <div class="ostep" id="oAnswerBox" hidden><label for="oAnswer">Send this reply code back to your friend</label><div class="orow"><input id="oAnswer" readonly><button type="button" id="oCopyAnswer">Copy</button></div></div>
@@ -58,6 +64,7 @@
     <button type="button" id="oCancel">Cancel</button>
   </div>
 </div>
+<div class="netstate" id="netState" role="status" hidden></div>
 <div class="wrap">
   <div class="top">
     <div>

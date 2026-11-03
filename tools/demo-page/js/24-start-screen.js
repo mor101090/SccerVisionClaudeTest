@@ -33,12 +33,16 @@
   }
   // what a part may not be: the shirt clashes with no other shirt on the pitch, a keeper with neither team, the number is readable on the shirt
   function forbidden(team, part) {
+    if (part === "base" && KIT_MODE === "online") return team === "home" ? [KIT.away.base] : team === "away" ? [KIT.home.base] : [KIT.home.base]; // (your two kits differ; your keeper is not dressed like your team)
     if (part === "base") return team === "home" ? [KIT.away.base].concat(OTHER_GK ? [OTHER_GK.base] : []) : team === "away" ? [KIT.home.base] : [KIT.home.base, KIT.away.base].concat(OTHER_GK ? [OTHER_GK.base] : []); // (a team may take its own keeper's colour: the keeper changes)
     if (part === "num") return [KIT[team].base];
     return [];
   }
+  var KIT_MODE = "computer"; // (the kit picker for a match against the computer, or for an online game: then only your own kits)
   function drawKitPicker() {
-    var names = ONLINE === "guest" ? { home: "Your kit", away: "Your friend's kit", gk: "Your goalkeeper" } : { home: "Home kit", away: "Away kit", gk: "Goalkeeper" };
+    var names = ONLINE === "guest" ? { home: "Your kit", away: "Your friend's kit", gk: "Your goalkeeper" }
+      : KIT_MODE === "online" ? { home: "Your kit", away: "Your second kit (worn if your friend's looks like yours)", gk: "Your goalkeeper" }
+      : { home: "Home kit", away: "Away kit", gk: "Goalkeeper" };
     $("kitBlocks").innerHTML = ["home", "away", "gk"].map(function (t) {
       var k = KIT[t];
       var shirt = '<svg viewBox="0 0 60 44" aria-hidden="true"><path d="M18 6 L24 3 Q30 8 36 3 L42 6 L52 13 L47 21 L42 18 L42 42 L18 42 L18 18 L13 21 L8 13 Z" fill="' + k.base + '" stroke="' + k.trim + '" stroke-width="2.4"/><rect x="21" y="40" width="7" height="4" fill="' + k.socks + '"/><rect x="32" y="40" width="7" height="4" fill="' + k.socks + '"/><text x="30" y="31" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="800" font-size="15" fill="' + k.num + '">' + (t === "gk" ? 1 : 10) + '</text></svg>';
@@ -58,7 +62,8 @@
     KIT[t][part] = b.getAttribute("data-c");
     // keep the rest legal: a number that became unreadable, a keeper that now clashes with a team
     ["home", "away", "gk"].forEach(function (x) { if (clash(KIT[x].num, KIT[x].base)) KIT[x].num = textOn(KIT[x].base) === "#111" ? "#1b1b1b" : "#f2f2f2"; });
-    if (clashAny(KIT.gk.base, [KIT.home.base, KIT.away.base])) KIT.gk.base = KEEPER_PICKS.filter(function (c) { return !clashAny(c, [KIT.home.base, KIT.away.base]); })[0];
+    var gkAvoid = KIT_MODE === "online" ? [KIT.home.base] : [KIT.home.base, KIT.away.base];
+    if (clashAny(KIT.gk.base, gkAvoid)) KIT.gk.base = KEEPER_PICKS.filter(function (c) { return !clashAny(c, gkAvoid); })[0];
     drawKitPicker();
     var again = document.querySelector('#kitBlocks [data-team="' + t + '"][data-part="' + part + '"] button[aria-pressed="true"]'); if (again) again.focus();
   });
@@ -87,10 +92,19 @@
     ROLE = "dev"; document.body.classList.remove("user"); $("welcome").hidden = true;
     startMatch("staged", STAGED_SEED);
   });
-  $("asUser").addEventListener("click", function () {
+  function openKits(mode) {
     ROLE = "user"; document.body.classList.add("user");
     SET = userSettings(); syncSettingsUi();
-    $("welcome").hidden = true; drawKitPicker(); $("kitSetup").hidden = false; $("kitGo").focus();
+    KIT_MODE = mode;
+    $("kTitle").textContent = mode === "online" ? "Your kits for the online game" : "Your kits";
+    $("kitGo").hidden = mode === "online"; $("kitHost").hidden = $("kitJoin").hidden = mode !== "online"; $("kitInvite").hidden = true;
+    $("kitNext").textContent = mode === "online" ? "Your friend picks his own kits. If his shirt looks like yours, one of you wears the second kit - you both see it before the match." : "Next: your eleven, the formation and the instructions - then start the match.";
+    $("welcome").hidden = true; drawKitPicker(); $("kitSetup").hidden = false; (mode === "online" ? $("kitHost") : $("kitGo")).focus();
+  }
+  $("asUser").addEventListener("click", function () { openKits("computer"); });
+  $("asOnline").addEventListener("click", function () {
+    if (!window.RTCPeerConnection) { toast("This browser cannot play online"); return; }
+    openKits("online");
   });
   $("kitGo").addEventListener("click", function () {
     if (ONLINE === "guest") {
@@ -98,7 +112,7 @@
       $("oText").textContent = "Preparing your reply code...";
       NET.answer({ home: KIT.home, gk: KIT.gk }).then(function (code) {
         $("oText").textContent = "Send this code back to your friend. The match opens here as soon as he connects.";
-        $("oAnswer").value = code; $("oAnswerBox").hidden = false; NET.status("Waiting for your friend...");
+        $("oAnswer").value = code; $("oAnswerBox").hidden = false; NET.status("Waiting for your friend... keep this page open until the match starts.");
       }, function (e) { $("oText").textContent = "Could not make the reply code: " + e.message; });
       return;
     }
@@ -130,17 +144,77 @@
     $("kitSetup").hidden = true; $("online").hidden = false;
     $("oText").textContent = "Preparing your invite...";
     NET.invite({ home: KIT.home, gk: KIT.gk }).then(function (link) {
-      $("oText").textContent = "Your friend opens the link, picks his kit and sends you back a reply code.";
+      $("oText").textContent = "Your friend opens the link, picks his kit and sends you back a reply code. Keep this page open (a new page needs a new invite).";
       $("oLink").value = link; $("oLinkBox").hidden = false; $("oReplyBox").hidden = false;
     }, function (e) { $("oText").textContent = "Could not prepare the invite: " + e.message; });
   });
+  // ---- online with a game code: the kits of both, worked out the same way on both sides ----
+  function kitShirt(k) { return '<svg viewBox="0 0 60 44" aria-hidden="true"><path d="M18 6 L24 3 Q30 8 36 3 L42 6 L52 13 L47 21 L42 18 L42 42 L18 42 L18 18 L13 21 L8 13 Z" fill="' + k.base + '" stroke="' + k.trim + '" stroke-width="2.4"/><rect x="21" y="40" width="7" height="4" fill="' + k.socks + '"/><rect x="32" y="40" width="7" height="4" fill="' + k.socks + '"/></svg>'; }
+  function readable(k) { var c = JSON.parse(JSON.stringify(k)); if (clash(c.num, c.base)) c.num = textOn(c.base) === "#111" ? "#1b1b1b" : "#f2f2f2"; return c; }
+  // The host keeps his kit. The friend wears his own kit - or his second kit if his looks like the host's (or the host's
+  // keeper's) - or, if both do, a shirt that clashes with neither. Each keeper takes a colour that clashes with no shirt.
+  function onlineKits(h, g) {
+    var hostKit = h.home, hostGk = h.gk, used;
+    var guestKit = !clashAny(g.home.base, [hostKit.base, hostGk.base]) ? g.home : !clashAny(g.away.base, [hostKit.base, hostGk.base]) ? g.away
+      : (function () { var k = JSON.parse(JSON.stringify(g.away)); k.base = COLS.map(function (c) { return c[1]; }).filter(function (c) { return !clashAny(c, [hostKit.base, hostGk.base]); })[0]; return readable(k); })();
+    var second = guestKit === g.away;
+    used = [hostKit.base, guestKit.base];
+    var guestGk = g.gk;
+    if (clashAny(guestGk.base, used.concat([hostGk.base]))) { guestGk = JSON.parse(JSON.stringify(g.gk)); guestGk.base = KEEPER_PICKS.filter(function (c) { return !clashAny(c, used.concat([hostGk.base])); })[0]; guestGk = readable(guestGk); }
+    var hostGk2 = hostGk;
+    if (clashAny(hostGk.base, [guestKit.base])) { hostGk2 = JSON.parse(JSON.stringify(hostGk)); hostGk2.base = KEEPER_PICKS.filter(function (c) { return !clashAny(c, used.concat([guestGk.base])); })[0]; hostGk2 = readable(hostGk2); }
+    return { host: { kit: hostKit, gk: hostGk2 }, guest: { kit: guestKit, gk: guestGk, second: second } };
+  }
+  NET.onKits(function (theirs) {
+    var mine = { home: KIT.home, away: KIT.away, gk: KIT.gk };
+    var k = ONLINE === "host" ? onlineKits(mine, theirs) : onlineKits(theirs, mine);
+    var me = ONLINE === "host" ? k.host : k.guest, him = ONLINE === "host" ? k.guest : k.host;
+    KIT.home = me.kit; KIT.gk = me.gk; KIT.away = him.kit; OTHER_GK = him.gk;
+    $("oKits").innerHTML = '<span>' + kitShirt(me.kit) + ' You</span><b>v</b><span>' + kitShirt(him.kit) + ' Your friend</span>';
+    $("oKits").hidden = false;
+    var note = k.guest.second ? (ONLINE === "guest" ? "Your shirt looked like your friend's: you wear your second kit." : "Your friend's shirt looked like yours: he wears his second kit.") : "";
+    NET.status("Connected! " + note);
+    setTimeout(startOnline, note ? 2200 : 900);
+  });
+  function onlineKitsMine() { try { localStorage.setItem("sv-user-kits", JSON.stringify(KIT)); } catch (e) {} return { home: KIT.home, away: KIT.away, gk: KIT.gk }; }
+  $("kitHost").addEventListener("click", function () {
+    var kits = onlineKitsMine();
+    $("kitSetup").hidden = true; $("online").hidden = false;
+    $("oText").textContent = "Creating your game...";
+    NET.hostGame(kits, function (code) {
+      $("oText").textContent = "Tell your friend this code. He opens SoccerVision, picks his kit, chooses \"Join a game\" and types it in. Keep this page open.";
+      $("oCode").textContent = code.slice(0, 3) + " " + code.slice(3); $("oCodeBox").hidden = false;
+      $("oCodeLink").textContent = "Or send him this link: " + location.origin + location.pathname + "#game=" + code;
+      NET.status("Waiting for your friend to join...");
+    }, function () { legacyInvite(); }).catch(function () { legacyInvite(); });
+  });
+  // (without the game-code service: the old way, a link and a reply code)
+  function legacyInvite() { toast("The game-code service is not reachable - using an invite link instead"); $("online").hidden = true; $("kitSetup").hidden = false; $("kitInvite").click(); }
+  $("oCopyCode").addEventListener("click", function () {
+    var code = $("oCode").textContent.replace(/\s/g, "");
+    try { navigator.clipboard.writeText(code).then(function () { toast("Copied"); }); } catch (e) {}
+  });
+  $("kitJoin").addEventListener("click", function () {
+    $("kitSetup").hidden = true; $("online").hidden = false;
+    $("oText").textContent = "Type in the six-digit code your friend gives you.";
+    $("oJoinBox").hidden = false; $("oJoinCode").focus();
+    var pre = /#game=(\d{6})/.exec(location.hash); if (pre) { $("oJoinCode").value = pre[1]; }
+  });
+  function joinNow() {
+    var code = $("oJoinCode").value.replace(/\D/g, "");
+    if (code.length !== 6) { NET.status("The code has six digits."); return; }
+    $("oJoinGo").disabled = true; NET.status("Connecting...");
+    NET.joinGame(code, onlineKitsMine(), function (e) { $("oJoinGo").disabled = false; NET.status(e.message); }).catch(function (e) { $("oJoinGo").disabled = false; NET.status("Could not join: " + e.message); });
+  }
+  $("oJoinGo").addEventListener("click", joinNow);
+  $("oJoinCode").addEventListener("keydown", function (ev) { if (ev.key === "Enter") joinNow(); });
   $("oConnect").addEventListener("click", function () {
     var code = $("oReply").value; if (!code.trim()) return;
     NET.status("Connecting...");
     NET.accept(code).then(function (kit) {
       // the friend's colours are the away kit (his keeper gets a colour that clashes with nothing)
       KIT.away = kit.home; OTHER_GK = kit.gk; NET.status("Connecting...");
-    }, function () { NET.status("That reply code does not work - copy it again from your friend."); });
+    }, function (e) { NET.status(e && /already used/.test(e.message) ? "This invite was already used - press Cancel and make a new one." : "That reply code does not work - copy it again from your friend (the whole code)."); });
   });
   NET.onOpen(function () { startOnline(); });
   // online - the friend: the link brought him here
@@ -165,6 +239,12 @@
   function syncSoundRow() { $("sndOn").setAttribute("aria-pressed", String(soundOn)); $("sndOff").setAttribute("aria-pressed", String(!soundOn)); }
   $("sndOn").addEventListener("click", function () { if (!soundOn) $("sound").click(); syncSoundRow(); });
   $("sndOff").addEventListener("click", function () { if (soundOn) $("sound").click(); syncSoundRow(); });
-  if (!joinFromLink()) $("asUser").focus();
+  function gameFromLink() {
+    if (!/#game=\d{6}/.test(location.hash)) return false;
+    if (!window.RTCPeerConnection) return false;
+    openKits("online"); $("kitHost").hidden = true; $("kitJoin").focus();
+    return true;
+  }
+  if (!joinFromLink() && !gameFromLink()) $("asUser").focus();
   requestAnimationFrame(frame);
 })();
