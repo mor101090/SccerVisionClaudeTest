@@ -375,7 +375,7 @@ namespace SoccerVision.Simulation
             if (cutIn && tech == ShotTechnique.Curler && CollectDiagnostics) Count("shot.cutin.curl");
             if (volley) team.Stats.Volleys++;
             if (tech == ShotTechnique.Knuckleball) team.Stats.Knuckleballs++;
-            if (cutIn) team.Stats.CutInShots++;
+            if (cutIn) { team.Stats.CutInShots++; if (CollectDiagnostics) Count("cutin.T" + team.Index + ".N" + p.Number); }
             if (header) team.Stats.Headers++;
             p.CutInUntil = -1f;
             // (a cut inside and a drive or a placed shot is its own kind; a curler, a chip, a knuckleball, a trivela or a backheel keeps its name)

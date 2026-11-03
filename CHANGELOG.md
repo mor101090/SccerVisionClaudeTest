@@ -37,6 +37,15 @@ Each round of changes is developed on its own branch, named after what it change
   Not while he cuts inside: the winger's curler is his signature (bisecting a drop in the cut-inside curlers from 0.7 to 0.15 a match
   found this very change: the home winger has the trait). A heel flick to the side is three times rarer than one straight back
   (4.4 a match, was 6.3). The cut-inside test plays 36 matches.
+- **The inverted winger cuts in and shoots - at least three times a match** (a winger with his strong foot on the inside: a
+  right-footer on the left, a left-footer on the right). He was at about half a shot a match. The run in towards goal is worth much
+  more to him, and once he is cutting in the shot is what he goes for (from the flank, up to 24 m wide of the posts and from the edge
+  of the box); the others' shots from range are rarer to make room. Over 100 matches the home winger takes 4.5 shots after a cut
+  inside a match, the away one 2.9; there are about 7.5 for both teams, against 2.2 before. Goals per match 2.45 (they were 2.6-2.7):
+  these shots are mostly saved - the finishing and the keepers want another look.
+- **The manager's instruction beats the trait**: a winger with the inverted-winger role cuts in and shoots whatever his skill and
+  whatever his traits (an unselfish one too; before he needed a skill of 45), and the unselfish trait does not hold his shot back.
+  (Test: two unselfish wingers with the instruction take 9.6 cut-in shots a match between them.)
 - **The keeper goes up for a high ball**: the jump grows with the height of the ball (a ball in the top corner: up to 0.7 m, his cap
   is 0.3 m more than a field player's) and he is drawn larger and higher.
 - **The keeper's dive**: no gloves, no trail, and no jump back to the round disc at the end - the stretch comes on in about a tenth of

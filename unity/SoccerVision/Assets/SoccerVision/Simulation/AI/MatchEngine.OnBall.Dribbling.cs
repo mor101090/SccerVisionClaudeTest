@@ -51,7 +51,7 @@ namespace SoccerVision.Simulation
                 keep *= MathF.Pow(0.82f, crowd); // dribbling into a crowd rarely works
                 float value = ExpectedThreat.At(team, target);
                 bool inward = MathF.Abs(team.Lateral(target)) < MathF.Abs(team.Lateral(pos)) - 2f;
-                if (cutIn && inward && f > 14f && MathF.Abs(team.Lateral(pos)) > 14f) value += (p.Has(PlayerTrait.CutsInsideToShoot) ? 0.06f : 0.05f) * cutInSkill;
+                if (cutIn && inward && f > 14f && MathF.Abs(team.Lateral(pos)) > 14f) value += (p.Has(PlayerTrait.CutsInsideToShoot) || p.PlayRole == PlayerRole.InvertedWinger ? 0.14f : 0.11f) * (0.4f + 0.6f * cutInSkill); // (the winger with his strong foot inside: the run in towards goal is what he is for)
                 else if (inverted && team.Forward(pos) > 15f && inward) value += 0.003f;
                 // Wide players (wingers, attacking full-backs) love to take it down the line towards the by-line,
                 // where they can deliver; the ones who cut in (strong foot inside) prefer to come inside instead.
@@ -321,7 +321,7 @@ namespace SoccerVision.Simulation
             // (the trait: a winger with his strong foot inside, or a two-footed one, always looks to come in)
             if (p.Has(PlayerTrait.CutsInsideToShoot) && (inverted || p.Attr.WeakFootRating >= 2)) return true;
             float skill = (p.Attr.Dribbling + p.Attr.LongShots + p.Attr.Finishing + p.Attr.BallControl) / 4f;
-            if (role == PlayerRole.InvertedWinger) return skill >= 45f; // the manager asked him to come inside
+            if (role == PlayerRole.InvertedWinger) return true; // the manager asked him to come inside: he does, whatever his skill (that only decides how well)
             if (!inverted) return skill >= 62f && p.Attr.WeakFootRating >= 2; // a good two-footed winger cuts in too
             return skill >= 50f;
         }

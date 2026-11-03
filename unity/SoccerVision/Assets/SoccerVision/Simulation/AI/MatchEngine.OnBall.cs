@@ -157,7 +157,7 @@ namespace SoccerVision.Simulation
                 if (p.Slot.IsFullBack && f > 30f) tendency *= 1.3f + 0.4f * MathUtil.A(p.Attr.LongShots); // an attacking full-back at the edge of the box has a go
                 tendency *= 0.9f + 0.4f * team.Eff.Mentality;
                 tendency *= 1.15f - 0.3f * MathUtil.A(p.Attr.Teamwork); // (a team player looks for the better-placed man; a selfish one has a go)
-                if (IsCutInsidePlayer(p) && MathF.Abs(l) < 21f && f > 27f && p.CutInUntil > SimTime) { tendency *= 1.7f; xg *= 1.1f; }
+                if (IsCutInsidePlayer(p) && MathF.Abs(l) < 24f && f > 24f && p.CutInUntil > SimTime) { tendency *= (p.PlayRole == PlayerRole.InvertedWinger ? 5.4f : 4.4f); xg *= 1.1f; }
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
                 // long shots: the manager wants a shot on sight - from the edge of the box out to about 30 m
                 if (longShots && distGoal > 12f && distGoal < 33f) tendency *= 2.6f;
@@ -169,9 +169,9 @@ namespace SoccerVision.Simulation
                 // traits: a shot on sight from range; the cut inside and shoot; the unselfish one looks for a pass first
                 if (p.Has(PlayerTrait.ShootsFromDistance) && distGoal > 18f) tendency *= 1.35f;
                 if (p.Has(PlayerTrait.CutsInsideToShoot) && p.CutInUntil > SimTime) tendency *= 1.15f;
-                if (p.Has(PlayerTrait.Unselfish) && !openGoal && !(p.CutInUntil > SimTime)) tendency *= 0.62f; // (the winger cutting inside carries on: his shot is his signature)
+                if (p.Has(PlayerTrait.Unselfish) && !openGoal && !(p.CutInUntil > SimTime) && p.PlayRole != PlayerRole.InvertedWinger) tendency *= 0.62f; // (the winger cutting inside carries on: his shot is his signature)
                 // (the habits shift which shots a player takes, not how many a team takes: the balance for the squad's mix)
-                tendency *= p.CutInUntil > SimTime ? 0.92f : 0.72f; // (the cut inside and shoot is the winger's signature: left as it was)
+                tendency *= p.CutInUntil > SimTime ? 0.92f : 0.52f; // (the cut inside and shoot is the winger's signature: left as it was)
                 if (p.FirstTimeUntil > SimTime) tendency *= 1.7f; // (set to hit it first time)
                 if (openGoal) { tendency = MathF.Max(tendency, 3f); if (CollectDiagnostics) Count("shot.openGoal.considered"); }
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
