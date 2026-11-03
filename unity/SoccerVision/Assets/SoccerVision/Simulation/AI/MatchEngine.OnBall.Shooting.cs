@@ -375,6 +375,7 @@ namespace SoccerVision.Simulation
             if (cutIn && tech == ShotTechnique.Curler && CollectDiagnostics) Count("shot.cutin.curl");
             if (volley) team.Stats.Volleys++;
             if (tech == ShotTechnique.Knuckleball) team.Stats.Knuckleballs++;
+            if (CollectDiagnostics && team.Index == 0 && !header && !penalty && dist > 18f && MathF.Abs(from.Y) < 15f) Count("shot.long.central");
             if (cutIn) { team.Stats.CutInShots++; if (CollectDiagnostics) Count("cutin.T" + team.Index + ".N" + p.Number); }
             if (header) team.Stats.Headers++;
             p.CutInUntil = -1f;

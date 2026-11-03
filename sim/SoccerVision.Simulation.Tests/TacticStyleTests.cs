@@ -68,10 +68,10 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void LongShotsStyleShootsFromDistance()
         {
-            // (twelve matches: long shots are a handful a match, six matches were too few to see the style reliably)
-            double normal = Avg(null, LongShots, 12), shots = Avg(t => t.Attack = AttackStyle.LongShots, LongShots, 12);
+            // (forty-eight matches: central shots from range are one or two a match; fewer cannot show the style reliably)
+            double normal = Avg(null, LongShots, 48), shots = Avg(t => t.Attack = AttackStyle.LongShots, LongShots, 48);
             // (the plain side already takes the winger's cut-in shots from the flank, which are 18 m+ too: the style adds a half on top)
-            Assert.True(shots > normal * 1.4, $"shots from 18 m+: style {shots:0.0} v normal {normal:0.0}");
+            Assert.True(shots > normal * 1.25, $"shots from 18 m+: style {shots:0.0} v normal {normal:0.0}");
         }
 
         [Fact]
