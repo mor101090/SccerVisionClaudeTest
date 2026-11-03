@@ -7,9 +7,9 @@ Each round of changes is developed on its own branch, named after what it change
 **Realistic player names from the Onomaverse names datasets** (<https://onomaverse.com/datasets>, CC BY 4.0 - the notice is in
 `THIRD_PARTY_NOTICES.md` and in the code as `NameAttribution`).
 - `tools/names/build_onomaverse_names.py` reads three files of the release (given-name frequency, surname frequency, name gender
-  inference) and writes `Simulation/Names/OnomaverseNameData.cs`: for **32 countries** (Spain, Germany, France, Italy, England,
-  Brazil, Argentina, Portugal, the Netherlands, Croatia and 22 more - Belgium, Switzerland, Austria, the Nordics, Poland, Czechia,
-  Ireland, the USA, Turkey, Mexico, Colombia, Uruguay, Chile, Nigeria, Ghana, Morocco, Algeria, Egypt, Japan, Russia) the most
+  inference) and writes `Simulation/Names/OnomaverseNameData.cs`: for **29 countries** (Spain, Germany, France, Italy, England,
+  Brazil, Argentina, Portugal, the Netherlands, Croatia and 19 more - Belgium, Switzerland, Austria, the Nordics, Poland, Czechia,
+  Ireland, the USA, Turkey, Mexico, Colombia, Uruguay, Chile, Nigeria, Ghana, Egypt, Russia) the most
   common **male** first names (300) and surnames (500) with frequency weights. A name recorded for both sexes counts with the share
   of its bearers that are male (Andrea in Italy: yes; Ana: almost never; Maria: never). Only names in the Latin script; names are
   copied exactly, so accents and special characters (João, Müller, Gonçalves, Željko, Muñoz) are kept.
@@ -25,6 +25,11 @@ Each round of changes is developed on its own branch, named after what it change
 - Not Onomaverse: the release holds only 29 "Croatian" surnames and nearly all are not Croatian (Zheng, Vasile, Zara), so the
   Croatian surnames come from a short list of common Croatian surnames of our own - said so in the data, the notices and a test.
   The dataset also has no accents for some names (Jose, Garcia, Rodriguez for Spain): they stay as the dataset has them.
+- Cleaned in the builder: the women's forms of Polish, Czech and Russian surnames become the men's (Kowalska -> Kowalski, Ivanova ->
+  Ivanov; those with no men's form are dropped), a woman's given name in the surname list (Eduarda, Fernanda, Sarah) is dropped,
+  the small words of a surname are lower case (`van der Linden`, `da Silva`, `de Vos`), and the long tail of rare "surnames" is cut.
+  Morocco, Algeria and Japan were tried and left out: the release's surnames for them are mostly not surnames.
+- A sample of 20 names per country: `tools/names/SAMPLE_NAMES.md`.
 - Tests: `NameGenerationTests` (14).
 
 ## `fix/card-during-play` - cards, goals, the walk off
