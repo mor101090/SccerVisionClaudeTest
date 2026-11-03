@@ -43,6 +43,9 @@ Each round of changes is developed on its own branch, named after what it change
   of the box); the others' shots from range are rarer to make room. Over 100 matches the home winger takes 4.5 shots after a cut
   inside a match, the away one 2.9; there are about 7.5 for both teams, against 2.2 before. Goals per match 2.45 (they were 2.6-2.7):
   these shots are mostly saved - the finishing and the keepers want another look.
+- The long-shots style keeps its weight against the cut-in change (x3.2 on the shot from range, and it is spared the general
+  reduction of other shots): over 60 matches 9.8 shots from 18 m+ against 6.3 for normal play (which includes the winger's own
+  cut-in shots from the flank). The two tests that count them play more matches (24) and ask for a third more, not a half.
 - **The manager's instruction beats the trait**: a winger with the inverted-winger role cuts in and shoots whatever his skill and
   whatever his traits (an unselfish one too; before he needed a skill of 45), and the unselfish trait does not hold his shot back.
   (Test: two unselfish wingers with the instruction take 9.6 cut-in shots a match between them.)
