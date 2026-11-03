@@ -6,7 +6,15 @@
   var ONLINE = null;
   var NET = (function () {
     var pc = null, dc = null, guestReady = false, readyWaiters = [], parts = {}, onOpen = null;
-    var RTC = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
+    // several STUN servers (some networks block one port or another). A TURN relay - for the networks where two browsers cannot
+    // reach each other directly (mobile data, some work and university networks) - can be given in the address:
+    // ?turn=turn:host:3478,user,password (both players need the same one). The data channel is encrypted end to end either way.
+    var RTC = { iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }, { urls: "stun:stun.cloudflare.com:3478" }, { urls: "stun:global.stun.twilio.com:3478" }] };
+    (function () {
+      var m = /[?&]turn=([^&#]+)/.exec(location.search); if (!m) return;
+      var p = decodeURIComponent(m[1]).split(","); RTC.iceServers.push({ urls: p[0], username: p[1] || "", credential: p[2] || "" });
+    })();
+    var connectTimer = 0;
     function b64(bytes) { var s = ""; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
     function unb64(t) { t = t.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "="; var s = atob(t), a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
     function pack(obj) {
@@ -20,12 +28,35 @@
       return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).text().then(JSON.parse);
     }
     function gathered() { // the offer / answer with all the addresses in it (no trickle: it goes by hand)
+      // It waits for the internet address the STUN server reports (a "srflx" candidate) - without it the code holds only the
+      // address inside the home network, and a friend elsewhere can never connect (the old 4 s limit cut it off on slow networks).
       return new Promise(function (res) {
         if (pc.iceGatheringState === "complete") return res();
         var done = false, fin = function () { if (!done) { done = true; res(); } };
         pc.addEventListener("icegatheringstatechange", function () { if (pc.iceGatheringState === "complete") fin(); });
-        setTimeout(fin, 4000);
+        pc.addEventListener("icecandidate", function (ev) { if (ev.candidate && / typ (srflx|relay)/.test(ev.candidate.candidate)) setTimeout(fin, 1500); });
+        setTimeout(fin, 12000);
       });
+    }
+    function reachable(sdp) { return / typ (srflx|relay)/.test(sdp); }
+    // what the connection is doing, in words - and what to try when it cannot get through
+    function watch() {
+      pc.addEventListener("iceconnectionstatechange", function () {
+        var s = pc.iceConnectionState;
+        if (s === "checking") status("Connecting... (looking for a way through the two networks)");
+        else if (s === "connected" || s === "completed") status("Connected - starting...");
+        else if (s === "failed") failed();
+        else if (s === "disconnected" && dc && dc.readyState === "open") toast("The connection to your friend is unsteady...");
+      });
+    }
+    function failed() {
+      clearTimeout(connectTimer);
+      status("Could not connect. Your two networks do not let the browsers reach each other directly (this happens on mobile data and on some work or school networks). "
+        + "Try both on home Wi-Fi, keep both pages open, and make a new invite (Cancel, then invite again).");
+    }
+    function startTimer() {
+      clearTimeout(connectTimer);
+      connectTimer = setTimeout(function () { if (!dc || dc.readyState !== "open") failed(); }, 30000);
     }
     function status(t) { $("oStatus").textContent = t; }
     // a message larger than the channel takes goes in pieces
@@ -53,7 +84,7 @@
       }
     }
     function wire() {
-      dc.onopen = function () { status("Connected!"); if (onOpen) onOpen(); };
+      dc.onopen = function () { clearTimeout(connectTimer); status("Connected!"); if (onOpen) onOpen(); };
       dc.onclose = function () { if (ONLINE) toast("The connection to your friend was lost"); };
       dc.onmessage = function (ev) { receive(ev.data); };
     }
@@ -88,13 +119,19 @@
       // the host: the invite link
       invite: function (kit) {
         ONLINE = "host";
-        pc = new RTCPeerConnection(RTC); dc = pc.createDataChannel("soccervision", { ordered: true }); wire();
+        pc = new RTCPeerConnection(RTC); dc = pc.createDataChannel("soccervision", { ordered: true }); wire(); watch();
         return pc.createOffer().then(function (o) { return pc.setLocalDescription(o); }).then(gathered).then(function () {
+          if (!reachable(pc.localDescription.sdp)) toast("Your network did not report its internet address - a friend outside your home network may not be able to connect");
           return pack({ sdp: pc.localDescription.sdp, kit: kit });
         }).then(function (code) { return location.origin + location.pathname + "#join=" + code; });
       },
       accept: function (reply) {
-        return unpack(reply).then(function (r) { return pc.setRemoteDescription({ type: "answer", sdp: r.sdp }).then(function () { return r.kit; }); });
+        return unpack(reply).then(function (r) {
+          if (!r || !r.sdp) throw new Error("not a reply code");
+          if (pc.signalingState !== "have-local-offer") throw new Error("this invite was already used - make a new one");
+          startTimer();
+          return pc.setRemoteDescription({ type: "answer", sdp: r.sdp }).then(function () { return r.kit; });
+        });
       },
       // the friend: the reply code
       join: function (offerCode) {
@@ -102,6 +139,7 @@
         return unpack(offerCode).then(function (o) {
           pc = new RTCPeerConnection(RTC);
           pc.ondatachannel = function (ev) { dc = ev.channel; wire(); };
+          watch();
           return pc.setRemoteDescription({ type: "offer", sdp: o.sdp }).then(function () { return o.kit; });
         });
       },

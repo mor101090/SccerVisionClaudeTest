@@ -2,6 +2,16 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/online-connect`
+
+**Online play: no more endless "Connecting..."**. The two browsers connect directly (WebRTC) and the page said nothing when they could
+not reach each other. Now: the invite and the reply code wait (up to 12 s) for the internet address the STUN server reports - the old
+4 s limit could leave only the home-network address in the code, and a friend elsewhere could then never connect - and warn if there
+is none; four STUN servers instead of one provider; the page says what the connection is doing ("looking for a way through the two
+networks") and, after 30 s or when it fails, why (mobile data, work or school networks) and what to try; a reply code for an invite
+that was already used, or a page that was reloaded, gets its own message; both players are told to keep the page open. A TURN relay
+for networks that cannot connect directly can be given in the address (`?turn=turn:host:3478,user,password`).
+
 ## `fix/card-during-play` - cards, goals, the walk off
 
 - **Fix: a card was shown while the play went on.** In 40 matches, 34 of 114 cards (30%) were shown with the ball in play - and a red

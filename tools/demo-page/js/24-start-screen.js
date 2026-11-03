@@ -98,7 +98,7 @@
       $("oText").textContent = "Preparing your reply code...";
       NET.answer({ home: KIT.home, gk: KIT.gk }).then(function (code) {
         $("oText").textContent = "Send this code back to your friend. The match opens here as soon as he connects.";
-        $("oAnswer").value = code; $("oAnswerBox").hidden = false; NET.status("Waiting for your friend...");
+        $("oAnswer").value = code; $("oAnswerBox").hidden = false; NET.status("Waiting for your friend... keep this page open until the match starts.");
       }, function (e) { $("oText").textContent = "Could not make the reply code: " + e.message; });
       return;
     }
@@ -130,7 +130,7 @@
     $("kitSetup").hidden = true; $("online").hidden = false;
     $("oText").textContent = "Preparing your invite...";
     NET.invite({ home: KIT.home, gk: KIT.gk }).then(function (link) {
-      $("oText").textContent = "Your friend opens the link, picks his kit and sends you back a reply code.";
+      $("oText").textContent = "Your friend opens the link, picks his kit and sends you back a reply code. Keep this page open (a new page needs a new invite).";
       $("oLink").value = link; $("oLinkBox").hidden = false; $("oReplyBox").hidden = false;
     }, function (e) { $("oText").textContent = "Could not prepare the invite: " + e.message; });
   });
@@ -140,7 +140,7 @@
     NET.accept(code).then(function (kit) {
       // the friend's colours are the away kit (his keeper gets a colour that clashes with nothing)
       KIT.away = kit.home; OTHER_GK = kit.gk; NET.status("Connecting...");
-    }, function () { NET.status("That reply code does not work - copy it again from your friend."); });
+    }, function (e) { NET.status(e && /already used/.test(e.message) ? "This invite was already used - press Cancel and make a new one." : "That reply code does not work - copy it again from your friend (the whole code)."); });
   });
   NET.onOpen(function () { startOnline(); });
   // online - the friend: the link brought him here
