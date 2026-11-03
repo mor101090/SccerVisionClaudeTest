@@ -70,6 +70,15 @@ pass or from a rebound - the next phases are about that.
   goals (12%). Next: corners (5.2 shots a match within 7 s of one - real about 4 in the whole possession), the carry into the six-yard
   box, and the second ball after a save.
 
+**Phase 3, second round - not on to the keeper** (200 matches, two seeds):
+- New counters (`shot.k3.*`) showed what the shots with the keeper under 3 m away were: two in three against a keeper standing
+  still on his line - the forward had carried it right up to him (from the side of the six-yard box, along the by-line), or took a
+  touch on to him after a pass.
+- **A carry that ends beside the keeper** (within 5 m of where he will be, and nearer to him than now) is weighed at an eighth to a
+  quarter of its worth (a good dribbler goes round him a little more often): the man that close shoots or squares it now.
+- Foot shots with the keeper under 3 m away: **15% -> 3.5%** (real 3.9%); shots from the six-yard box 4.2 -> **2.2-2.4** a match
+  (real 1.7); goals 2.17-2.76 a match (real 2.53); foot goals hit first time 47-53% (real 55%).
+
 ## `fix/card-during-play` - cards, goals, the walk off
 
 - **Fix: a card was shown while the play went on.** In 40 matches, 34 of 114 cards (30%) were shown with the ball in play - and a red

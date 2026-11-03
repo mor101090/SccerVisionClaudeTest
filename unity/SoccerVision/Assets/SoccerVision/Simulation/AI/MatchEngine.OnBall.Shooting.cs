@@ -352,6 +352,13 @@ namespace SoccerVision.Simulation
                 _shotTags = new[] { "zone." + zone, "assist." + (rebound ? "rebound" : assistKind), "how." + how };
                 foreach (var tg in _shotTags) Count("shot." + tg);
                 Count("shot.zh." + zone + "." + how);
+                if (!header && !penalty && _lastShotKeeperBucket != null && _lastShotKeeperBucket.StartsWith("a<3"))
+                {
+                    Count("shot.k3." + (rebound ? "rebound" : assistKind) + "." + how);
+                    Count("shot.k3.zone." + zone);
+                    var kq = team.Opponent.Goalkeeper;
+                    if (kq != null) Count("shot.k3.keeper" + (Vec2.Dot(kq.Vel, from - kq.Pos) > 1f ? "Charging" : "Still") + (Vec2.Distance(kq.Pos, team.AttackGoal) > 5f ? "Out" : "Line"));
+                }
                 if (SimTime - _lastRestartAt < 7f) Count("shot.after." + _lastRestartType + "." + zone);
                 if (zone == "six") { Count("shot.six." + (rebound ? "rebound" : assistKind) + "." + how); if (SimTime - _lastRestartAt < 7f) Count("shot.six.after." + _lastRestartType); }
             }

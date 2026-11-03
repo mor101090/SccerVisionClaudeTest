@@ -302,6 +302,30 @@ namespace SoccerVision.Simulation
                 }
             }
 
+            // Do not take the ball on to the keeper. Real forwards shoot before the keeper is on them: only about one foot shot
+            // in 25 is struck with the keeper within 3 m (StatsBomb). A carry that ends beside a keeper who is set on his line
+            // or coming out is a ball he smothers - it is weighed very low (going round him is still possible, rarely), and
+            // a man already that close to him and the goal hits it or squares it now.
+            {
+                var kp = team.Opponent.Goalkeeper;
+                if (kp != null && !kp.SentOff && !kp.IsDown && f > 30f)
+                {
+                    float kNow = Vec2.Distance(kp.Pos, pos);
+                    for (int i = 0; i < _options.Count; i++)
+                    {
+                        var o = _options[i];
+                        if (o.Action != BallAction.Dribble || o.Utility <= 0f) continue;
+                        float kThen = Vec2.Distance(kp.Pos + kp.Vel * 0.5f, o.DribbleTarget);
+                        if (kThen < 5f && kThen < kNow)
+                        {
+                            o.Utility *= 0.12f + 0.12f * MathUtil.A(p.Attr.Dribbling) * MathUtil.Clamp01((kThen - 1.5f) / 3.5f);
+                            _options[i] = o;
+                            if (CollectDiagnostics) Count("dribble.ontoKeeper.cut");
+                        }
+                    }
+                }
+            }
+
             // Weighted randomness: perception noise grows with poor decisions and pressure on low composure.
             float decisions = MathUtil.A(p.Attr.Decisions);
             float composure = MathUtil.A(p.Attr.Composure);
