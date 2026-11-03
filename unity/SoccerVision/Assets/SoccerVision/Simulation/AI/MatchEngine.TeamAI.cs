@@ -332,29 +332,50 @@ namespace SoccerVision.Simulation
                     break;
             }
 
-            // Box presence when a cross is on (ball wide in the final third).
+            // Box roles when a cross is on (ball wide in the final third). Real goals from crosses and cut-backs are scored
+            // round the penalty spot far more than on the keeper's toes, so each man attacks his own zone and nobody stands
+            // in the six-yard box waiting: the near post (just outside the six-yard box, to get across the first defender),
+            // the far post, the penalty spot (the late arrival - he only goes when the cross is about to come), the cut-back
+            // zone at the edge of the box and the second ball behind it. (StatsBomb: 7% of shots from the six-yard box.)
             bool crossy = team.Tactics.Attack == AttackStyle.CrossesIntoBox || team.Tactics.Special == SpecialTactic.Siege;
             if (inPossession && ballF > (crossy ? 18f : 24f) && MathF.Abs(ballL) > (crossy ? 9f : 12f) && Ball.Owner != null && Ball.Owner.Team == team && Ball.Owner != p)
             {
                 float side = MathF.Sign(ballL);
+                bool late = ballF > 36f; // (the carrier is near the by-line: the cross or the cut-back is coming now)
+                string role = null;
                 if (slot.Line == Line.Attack)
                 {
-                    bool near = MathF.Sign(slot.BaseLateral) == side;
-                    f = near ? 46.5f : 43f;
-                    l = near ? side * 3f : -side * 2f;
+                    int forwards = 0;
+                    foreach (var q in team.Players) if (!q.SentOff && q.Slot.Line == Line.Attack && q != Ball.Owner) forwards++;
+                    bool near = MathF.Sign(slot.BaseLateral) == side || slot.BaseLateral == 0f;
+                    if (forwards <= 1) { f = 44f; l = side * 1.5f; role = "lone"; }        // (one forward: between the near post and the spot)
+                    else if (near) { f = 45f; l = side * 2.5f; role = "nearPost"; }
+                    else { f = 42.5f; l = -side * 4.5f; role = "farPost"; }
                     f = MathF.Min(f, offsideLine - 0.6f);
                 }
                 else if (slot.IsWideMidfielder && MathF.Sign(slot.BaseLateral) != side)
                 {
-                    f = MathF.Min(46f, offsideLine - 0.6f);
-                    l = -side * 5f;
+                    f = MathF.Min(41.5f, offsideLine - 0.6f); // (beyond the far post, for the ball that clears everyone)
+                    l = -side * 8f;
+                    role = "backPost";
                 }
-                else if (slot.IsCentralMidfielder && MathF.Sign(slot.BaseLateral) == side)
+                else if (slot.IsCentralMidfielder && p != team.Anchor && MathF.Sign(slot.BaseLateral) == side)
                 {
-                    f = 34f;
-                    l = side * 4f;
+                    f = 36.5f; // the cut-back: the edge of the box, level with the near post
+                    l = side * 6f;
+                    role = "cutBack";
                 }
+                else if ((slot.IsCentralMidfielder || p.Kind == PositionKind.AttackingMidfielder) && p != team.Anchor)
+                {
+                    // the late run: waits at the edge (and picks up the second ball) until the delivery is on, then arrives
+                    // at the penalty spot - the man nobody has picked up
+                    if (late) { f = MathF.Min(40.5f, offsideLine - 0.6f); l = -side * 1f; role = "lateRun"; }
+                    else { f = 31f; l = -side * 2f; role = "edge"; }
+                }
+                if (role != null && CollectDiagnostics && p.Number % 4 == 0) Count("box.role." + role);
             }
+            else if (inPossession && slot.Line == Line.Attack && p.RunTimer <= 0f)
+                f = MathF.Min(f, 44.5f); // (a forward does not stand on the keeper: he waits where the ball can find him)
 
             // Wide overload: with the ball on a flank the ball-side central midfielder joins the full-back and the winger in
             // the half-space (3 v 2 there, the third man for combinations), while the far winger holds the far touchline

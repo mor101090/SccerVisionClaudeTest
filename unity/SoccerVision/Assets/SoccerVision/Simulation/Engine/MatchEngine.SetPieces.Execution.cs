@@ -260,10 +260,14 @@ namespace SoccerVision.Simulation
             }
         }
 
+        private float _lastRestartAt = -100f;       // (diagnostics: what the last restart was and when)
+        private RestartType _lastRestartType;
+
         private void ExecuteRestart(Restart r)
         {
             var taker = r.Taker;
             EnforceRestartPositions(r);
+            _lastRestartAt = SimTime; _lastRestartType = r.Type;
             RestartExecuting?.Invoke(r);
             if (r.Team != null && r.Type != RestartType.KickOff && r.Type != RestartType.GoalKick && r.Type != RestartType.DroppedBall && r.Team.Forward(r.Spot) > 0f)
                 r.Team.SetPieceAt = SimTime;
@@ -453,7 +457,8 @@ namespace SoccerVision.Simulation
             }
             float side = MathF.Sign(team.Lateral(Ball.Pos));
             // Near post, far post, the penalty spot, or a lower ball back to the players waiting at the edge of the box.
-            Vec2 zone = routine == 1 ? new Vec2(46.8f, side * 2.6f) : routine == 2 ? new Vec2(47.4f, -side * 3.2f)
+            // (near and far post just in front of the six-yard box: inside it the keeper comes and claims it)
+            Vec2 zone = routine == 1 ? new Vec2(45.8f, side * 2.6f) : routine == 2 ? new Vec2(46f, -side * 3.6f)
                       : routine == 4 ? new Vec2(36.5f, -side * 1.5f) : new Vec2(42f, side * 0.5f);
             Vec2 target = team.ToWorld(zone.X, zone.Y);
             PlayerAgent receiver = null;

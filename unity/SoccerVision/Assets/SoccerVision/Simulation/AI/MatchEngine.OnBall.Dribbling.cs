@@ -93,9 +93,12 @@ namespace SoccerVision.Simulation
             float side = MathF.Sign(team.Lateral(pos));
             var zones = new[]
             {
-                new Vec2(46.5f, side * 3f),   // near post
-                new Vec2(41.5f, 0f),          // penalty spot
-                new Vec2(47f, -side * 3.5f),  // far post
+                // (to the zones the runners attack - see the box roles in ComputeShapeTarget - in front of the six-yard box,
+                // where the keeper cannot come and claim it)
+                new Vec2(45f, side * 2.5f),   // near post
+                new Vec2(41f, 0f),            // penalty spot
+                new Vec2(43f, -side * 4.5f),  // far post
+                new Vec2(41.5f, -side * 8f),  // beyond the far post
             };
             float crossing = MathUtil.A(p.Attr.Crossing);
             var keeper = team.Opponent.Goalkeeper;

@@ -53,6 +53,23 @@ pass or from a rebound - the next phases are about that.
   six-yard box (4.3-4.6 a match, real 1.7) and with the keeper under 3 m away (14.5%, real 3.9%) - that is where the forwards stand
   (phase 3, off-ball positioning) - and rebounds (3-5% of goals, real 12%).
 
+**Phase 3, first round - where the attackers stand** (100 matches):
+- **Box roles when the cross is on**: each man attacks his own zone - the near post just outside the six-yard box, the far post,
+  beyond the far post (the far winger), the cut-back zone at the edge of the box (the ball-side midfielder), and the **late run**:
+  the other midfielder waits at the edge for the second ball and only arrives at the penalty spot when the carrier is near the
+  by-line. A lone forward goes between the near post and the spot. Before, the forwards stood 6 m out, on the keeper.
+- **Crosses go to those zones** (near post, spot, far post, beyond the far post - in front of the six-yard box, not into it); the
+  near- and far-post corners land a metre further out, where the keeper cannot just come and take them.
+- **A forward does not stand on the keeper**: in open play he waits at most 8 m from the line (a run in behind still goes further).
+- **Space**: attackers in the last third keep 4.5 m from each other - two men in one spot are marked by one defender.
+- **Following the shot in**: more of the attackers read the rebound (30-80% by off the ball, was 20-60%).
+- New counters to find out where the six-yard shots come from (`shot.six.<assist>.<how>`, `shot.after.<restart>.<zone>`): a third
+  of them come from corners, a quarter are headers from open-play crosses, a fifth are a player carrying it into the six-yard box.
+- Honest result: the shape changed and headers came down to **14.5%** of goals (real 14.3%), but the totals barely moved - shots
+  32 a match (real 24.8), from the six-yard box 4.2 (1.7), with the keeper under 3 m 15% of foot shots (3.9%), rebounds 3.6% of
+  goals (12%). Next: corners (5.2 shots a match within 7 s of one - real about 4 in the whole possession), the carry into the six-yard
+  box, and the second ball after a save.
+
 ## `fix/card-during-play` - cards, goals, the walk off
 
 - **Fix: a card was shown while the play went on.** In 40 matches, 34 of 114 cards (30%) were shown with the ball in play - and a red

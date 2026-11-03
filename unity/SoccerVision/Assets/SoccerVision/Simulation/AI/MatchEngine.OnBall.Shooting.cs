@@ -352,6 +352,8 @@ namespace SoccerVision.Simulation
                 _shotTags = new[] { "zone." + zone, "assist." + (rebound ? "rebound" : assistKind), "how." + how };
                 foreach (var tg in _shotTags) Count("shot." + tg);
                 Count("shot.zh." + zone + "." + how);
+                if (SimTime - _lastRestartAt < 7f) Count("shot.after." + _lastRestartType + "." + zone);
+                if (zone == "six") { Count("shot.six." + (rebound ? "rebound" : assistKind) + "." + how); if (SimTime - _lastRestartAt < 7f) Count("shot.six.after." + _lastRestartType); }
             }
 
             KickBall(p, from, v, vz, curl, 0f, header ? KickKind.Header : KickKind.Shot, null, aim, penalty, false, startZ);

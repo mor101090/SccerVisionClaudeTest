@@ -134,7 +134,7 @@ namespace SoccerVision.Simulation
                     float myF = st.Forward(p.Pos), myL = st.Lateral(p.Pos);
                     float lat = MathUtil.Clamp(0.5f * st.Lateral(Ball.Pos) + 0.5f * myL, -9f, 9f);
                     // (not everyone gambles on it: the ones who read it - the better off the ball, the more often)
-                    bool gambles = ((p.Number * 7 + (int)(_lastShotTime * 10f)) % 10) < 2 + (int)(4f * MathUtil.A(p.Attr.OffTheBall));
+                    bool gambles = ((p.Number * 7 + (int)(_lastShotTime * 10f)) % 10) < 3 + (int)(5f * MathUtil.A(p.Attr.OffTheBall));
                     if (team == st && p.Slot.Line != Line.Defence && gambles && Vec2.Distance(p.Pos, goal) < 22f)
                     {
                         // (not offside-blind: from where he is, on towards the six-yard box)
@@ -344,6 +344,24 @@ namespace SoccerVision.Simulation
                 // Recovery runs: players caught ahead of the ball sprint back.
                 // How hard he works back for his team-mates is his teamwork.
                 if (team.Forward(p.Pos) > ballF + 5f && p.Slot.Line != Line.Attack) urgency = 0.78f + 0.2f * MathUtil.A(p.Attr.Teamwork);
+            }
+
+            // Space: attackers in the last third do not stand on top of each other - two men in one spot mark themselves
+            // (one defender covers both) and leave a hole elsewhere. He moves off the team-mate who is already there.
+            if (inPossession && p.Task == PlayerTask.Shape && team.Forward(target) > 24f)
+            {
+                foreach (var q in team.Players)
+                {
+                    if (q == p || q.SentOff || q.IsGoalkeeper || q == Ball.Owner) continue;
+                    Vec2 d = target - q.Target;
+                    float dd = d.Length;
+                    if (dd < 4.5f && (q.Task != PlayerTask.Shape || q.Index < p.Index))
+                    {
+                        Vec2 away = dd > 0.1f ? d / dd : team.DirToWorld(new Vec2(0f, p.Index % 2 == 0 ? 1f : -1f));
+                        target += away * (4.5f - dd);
+                        if (CollectDiagnostics) Count("box.spaceOut");
+                    }
+                }
             }
 
             float dist = Vec2.Distance(p.Pos, target);
