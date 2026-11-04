@@ -77,7 +77,8 @@ namespace SoccerVision.Simulation.Tests
         public void NutmegsHappenAMatchAndMoreWithFlairPlayers()
         {
             // both teams, plain squads: one or two a match at least, and the dribbler gets his ball back most of the time
-            var both = new MatchEngine[16];
+            // (48 matches: the dummy for a shot is a rare thing - 0.06 to 0.19 a match on 16, 0.31 on 64)
+            var both = new MatchEngine[48];
             Parallel.For(0, both.Length, i =>
             {
                 both[i] = new MatchEngine(DemoTeams.Red(9400 + (ulong)i), DemoTeams.Blue(9400 + (ulong)i), 9400 + (ulong)i, MatchConfig.CreateDefault()) { CollectDiagnostics = true };

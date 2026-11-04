@@ -9,6 +9,9 @@ Each round of changes is developed on its own branch, named after what it change
   running pace) and shows it a metre and a half from him, and stays with him while he holds it up; the restart waits for him. Over 60 matches 186 of 203 cards were shown beside
   the player; the rest he showed after about 8 seconds of walking (the player kept moving away) - a longer walk made the red after a second yellow come too late. The red after a second yellow comes the usual interval after he has shown the yellow (if he is still walking to the player, it waits for him).
   Tests changed: `ContactAndOfficialsTests` checked the card was up at the very moment of the foul - it now accepts "shown, or the referee on his way to the player with it";
+  `ManagerTests.TheChosenCornerTaker...` and `RatingsAndSkillsTests.TheManagersCornerSetUp...` played one match (seed 7) and needed a home corner in it - since the referee change
+  all of seed 7's corners go the other way, so they take the first match from seed 7 that has one; `SkillMovesTests.Nutmegs...` counted the rare dummy for a shot on 16 matches
+  (0.06-0.19 a match depending on tiny changes; 0.31 on 64, 0.44 before these rounds) - it now plays 48.
   `TacticStyleTests.ParkingTheBus...` measured the back line on 6 matches and landed on its 8 m edge (26 v 34); over 60 matches the gap is 10 m (24 v 34), so it now takes 12 matches.
 - **At a goal kick (or the keeper holding the ball) the referee waits in midfield**, about 42 m from the kicking side's goal and 11 m off the middle on his diagonal, where the long ball
   comes down - not on the edge of the box. IFAB's guidance: the referee should be "close enough to see play without interfering with play" and "usually use a wide diagonal system"

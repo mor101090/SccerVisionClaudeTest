@@ -63,10 +63,15 @@ namespace SoccerVision.Simulation.Tests
             var red = DemoTeams.Red();
             int taker = red.Starters[3].ShirtNumber; // a centre-back, who would never be picked otherwise
             TeamPlan.Parse("takers=" + taker + ",0,0").ApplyBeforeKickOff(red);
-            var e = new MatchEngine(red, DemoTeams.Blue(), 7, MatchConfig.CreateDefault());
             int corners = 0, byHim = 0;
-            e.RestartExecuting += r => { if (r.Type == RestartType.CornerKick && r.Team == e.Home) { corners++; if (r.Taker != null && r.Taker.Number == taker) byHim++; } };
-            e.RunToEnd();
+            // (a match where the home side wins corners: seed 7, or the next one - in seed 7 all its corners went the other way since the referee round)
+            for (ulong seed = 7; seed < 13 && corners == 0; seed++)
+            {
+                var r0 = DemoTeams.Red(); TeamPlan.Parse("takers=" + taker + ",0,0").ApplyBeforeKickOff(r0);
+                var e = new MatchEngine(r0, DemoTeams.Blue(), seed, MatchConfig.CreateDefault());
+                e.RestartExecuting += r => { if (r.Type == RestartType.CornerKick && r.Team == e.Home) { corners++; if (r.Taker != null && r.Taker.Number == taker) byHim++; } };
+                e.RunToEnd();
+            }
             Assert.True(corners > 0, "no corners");
             Assert.Equal(corners, byHim);
         }

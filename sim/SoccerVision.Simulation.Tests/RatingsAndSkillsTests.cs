@@ -94,19 +94,23 @@ namespace SoccerVision.Simulation.Tests
         {
             var red = DemoTeams.Red();
             int cb = red.Starters[3].ShirtNumber;
-            var e = Engine(7, homePlan: "cpa=" + cb + ":40.0:6.0");
             int checkedCorners = 0;
-            e.RestartExecuting += r =>
+            // (a match where the home side wins corners: seed 7, or the next one)
+            for (ulong seed = 7; seed < 13 && checkedCorners == 0; seed++)
             {
-                if (r.Type != RestartType.CornerKick || r.Team != e.Home) return;
-                var p = e.Home.Players.FirstOrDefault(q => q.Number == cb && !q.SentOff);
-                if (p == null || p == r.Taker) return;
-                float side = MathF.Sign(e.Home.Lateral(r.Spot));
-                Vec2 want = e.Home.ToWorld(40f, 6f * side);
-                Assert.True(Vec2.Distance(p.ShapeTarget, want) < 0.6f, $"spot {p.ShapeTarget} v {want}");
-                checkedCorners++;
-            };
-            e.RunToEnd();
+                var e = Engine(seed, homePlan: "cpa=" + cb + ":40.0:6.0");
+                e.RestartExecuting += r =>
+                {
+                    if (r.Type != RestartType.CornerKick || r.Team != e.Home) return;
+                    var p = e.Home.Players.FirstOrDefault(q => q.Number == cb && !q.SentOff);
+                    if (p == null || p == r.Taker) return;
+                    float side = MathF.Sign(e.Home.Lateral(r.Spot));
+                    Vec2 want = e.Home.ToWorld(40f, 6f * side);
+                    Assert.True(Vec2.Distance(p.ShapeTarget, want) < 0.6f, $"spot {p.ShapeTarget} v {want}");
+                    checkedCorners++;
+                };
+                e.RunToEnd();
+            }
             Assert.True(checkedCorners > 0, "no home corners");
         }
 
