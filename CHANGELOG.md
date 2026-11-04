@@ -21,23 +21,27 @@ Each round of changes is developed on its own branch, named after what it change
 - **Are France and the Netherlands different?** Mostly not. The champion of a season: wins 72-80% of its matches, 2.35-2.54 points a game, in every league (Premier League 75%,
   Ligue 1 74%, Eredivisie 77%, Primeira Liga 80%); the bottom three win 15-22%. Single clubs over ten seasons: Paris SG 73% (goals 2.52 - 0.85), Ajax 71%, PSV 72%, Man City 70%,
   Celtic 75%, Benfica 75%. A little more top-heavy in the Netherlands, Portugal and Scotland, not in France.
-- **The three tiers, from the table** (strong = the top two, medium = 7th-14th, weak = the bottom three; the stronger side's result, both seats):
+- **The three tiers, from the table** (strong = the top two, medium = 7th-14th, weak = the bottom three; the stronger side's win / draw / loss %, both seats; counted by
+  `tools/calibration/real_leagues.py`, which anyone can run again):
 
   | | strong v weak | strong v medium | medium v weak |
   |---|---|---|---|
   | Premier League | 89 / 8 / 3 | 72 / 16 / 11 | 61 / 24 / 15 |
-  | Ligue 1 | 81 / 14 / 5 | 67 / 20 / 13 | 55 / 25 / 20 |
-  | Eredivisie | 88 / 8 / 4 | 76 / 15 / 8 | 56 / 26 / 18 |
-  | Bundesliga | 78 / 16 / 7 | 70 / 18 / 12 | 53 / 29 / 18 |
+  | Ligue 1 | 81 / 14 / 5 | 68 / 20 / 12 | 55 / 25 / 21 |
+  | Eredivisie | 88 / 8 / 4 | 78 / 15 / 7 | 53 / 27 / 20 |
+  | Bundesliga | 78 / 16 / 7 | 71 / 17 / 12 | 50 / 29 / 20 |
   | La Liga | 84 / 12 / 3 | 69 / 18 / 13 | 54 / 29 / 16 |
   | Serie A | 83 / 13 / 3 | 70 / 20 / 10 | 58 / 25 / 18 |
-  | Primeira Liga | 90 / 8 / 2 | 80 / 13 / 7 | 48 / 33 / 19 |
-  | **about** | **84 / 12 / 4, goals 2.8 - 0.65** | **71 / 18 / 11, 2.3 - 0.87** | **55 / 26 / 18, 1.7 - 0.97** |
+  | Primeira Liga | 90 / 8 / 2 | 82 / 13 / 5 | 47 / 31 / 22 |
+  | **all seven (counted)** | **85 / 11 / 4, goals 2.82 - 0.63** | **73 / 17 / 10, 2.31 - 0.84** | **54 / 27 / 19, 1.69 - 0.98** |
+
+  (An earlier version of this table was made with a slightly different "medium" for the 18-team leagues, and its last row was averaged by hand, not counted: it said 84 / 71 / 55. The
+  numbers above are the counted ones; the changes are 1-3 points.)
 
   The gap is not symmetric: the top is further above the middle than the middle is above the bottom. With one spread for both (0.8) the engine had 82 / 62 / 64. Now the strong squads go
   120% of the way from the medium one to the generator's excellent squad and the weak ones 50% (`TeamStrengthScaling.StrongSpread / WeakSpread`, attributes capped at 99):
-  strong v weak 79%, strong v medium 63%, medium v weak 56% (150 matches a seat, both seats pooled). The middle is now right; the top two are a little under (the stronger side
-  also scores fewer goals than in real matches: 1.8 against 2.3 for strong v medium - the engine is low-scoring when a team has the ball for long, not changed here).
+  strong v weak 79%, strong v medium 63%, medium v weak 56% (150 matches a seat, both seats pooled; real: 85 / 73 / 54). The middle is right; the top two are under (the engine's
+  strong squad also scores fewer goals than a real top side: 1.8 against 2.3 for strong v medium - not changed here).
 - Not built, offered: a league setting (Premier League, Ligue 1, Eredivisie, ...) that sets these gaps from the table above - the differences between the leagues are small (the table).
 
 ## `feature/possession-realism`
@@ -149,7 +153,7 @@ a high press moved it by 2-5 points. Real football: the most possession-heavy si
   | strong v medium | 2.25 - 0.39 | 25.3 - 8.3 | 81 / 13 / 7 |
   | strong v strong | 1.62 - 0.82 | 19.6 - 15.2 | 55 / 29 / 17 |
 
-  Possession stays near 50% in every pairing (it is the shots that move, as in real football). **Correction (see `feature/league-calibration`)**: the note that stood here - that the home edge between equal teams was bigger than the real one - was wrong. 58 / 25 / 17 was Team A's own edge over Team B (zonal v man-to-man marking, a better squad), not home advantage; with the two squads swapped between the seats the home edge is the real size (+12 points of win share, +0.2 to +0.3 goals).
+  Possession stayed near 50% in every pairing - which is **not** how real football works (a team's share of the ball follows its style and its quality; see the possession round, which changes it). It was written here as if it were realistic; it was a limit of the engine. **Correction (see `feature/league-calibration`)**: the note that stood here - that the home edge between equal teams was bigger than the real one - was wrong. 58 / 25 / 17 was Team A's own edge over Team B (zonal v man-to-man marking, a better squad), not home advantage; with the two squads swapped between the seats the home edge is the real size (+12 points of win share, +0.2 to +0.3 goals).
 - Tests: `TeamStrengthTests` (valid squads at every strength; medium unchanged; each step at least 5 attribute points; the stronger side scores more and wins more than it loses, 48
   matches per pairing, both seats; the biggest mismatch stays between 62% and 92%, not a massacre). Verified in the browser: choosing the strengths in the page reaches the engine and the squads that
   come back differ (speed 84 v 50 with strong at home and weak away).
