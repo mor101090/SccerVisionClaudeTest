@@ -170,7 +170,7 @@ namespace SoccerVision.Simulation
                 tendency *= 1.15f - 0.3f * MathUtil.A(p.Attr.Teamwork); // (a team player looks for the better-placed man; a selfish one has a go)
                 if (IsCutInsidePlayer(p) && MathF.Abs(l) < 24f && f > 24f && p.CutInUntil > SimTime) { tendency *= (p.PlayRole == PlayerRole.InvertedWinger ? 5.4f : 4.4f); xg *= 1.1f; }
                 if (distGoal < 17f) tendency *= BoxShotAppetite; // (inside the box: see BoxShotAppetite)
-                if (distGoal >= 11f && distGoal < 22f) tendency *= MidRangeShotAppetite;
+                if (distGoal >= 11f && distGoal < 18f) tendency *= MidRangeShotAppetite; // (beyond 18 m the long-shot instruction decides)
                 // The keeper rushing out at him from 6-11 m: now is the moment to shoot (or chip) - another two touches and he is on top of him and the angle is gone.
                 {
                     var rk = team.Opponent.Goalkeeper;

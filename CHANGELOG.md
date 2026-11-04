@@ -2,6 +2,27 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/feedback-ui-ref-switch`
+
+**The referee, the long ball to a free man, and the phone.**
+- **The referee shows a card in front of the player.** He used to hold it up from wherever he was. Now, with play stopped, he goes to the player (a little faster than his
+  running pace) and shows it a metre and a half from him, and stays with him while he holds it up; the restart waits for him. Over 60 matches 205 of 211 cards were shown beside
+  the player (the rest: he had not reached him after 20 seconds and showed it anyway). The red after a second yellow follows where he already is.
+- **At a goal kick (or the keeper holding the ball) the referee waits in midfield**, about 42 m from the kicking side's goal and 11 m off the middle on his diagonal, where the long ball
+  comes down - not on the edge of the box. IFAB's guidance: the referee should be "close enough to see play without interfering with play" and "usually use a wide diagonal system"
+  ([IFAB, Positioning, movement and teamwork](https://www.theifab.com/laws/latest/guidelines/positioning-movement-and-teamwork/); the guidance gives no position for the referee at a
+  goal kick - this one is ours). Tests: `RefereeTests` (cards beside the player, 90%+; the referee within 25 m of halfway at goal kicks, 80%+).
+- **A switch of play to a free man is taken down, not headed away.** A lofted pass from a team-mate, with no opponent within 2.5 m, is now controlled (chest, thigh, or a step back to let
+  it drop) instead of headed on; before, 10.4 switches a match reached the man and were headed (and usually lost), now 1.1 (the ones where somebody was on him) - 9.4 are taken down
+  (`ChestControlHeight = 2.4`, diagnostics `control.chest*`, `switch.headed`).
+- **Phone: a finger can drag players.** Before, dragging was mouse and pen only (a finger had to tap twice). Now on the formation board a finger drags at once (the board does not scroll);
+  on a card or a row of the squad table the finger rests a moment (about a quarter of a second) and then drags - a quick swipe still scrolls the cards or the page. Checked in a phone
+  browser (touch events): a board swap, a sheet-row drag, and a swipe that moves nothing.
+- **No odd artefacts**: a double tap or long press no longer selects text or pops up the copy menu, images do not drag, a tap leaves no grey flash, the page does not zoom on a double
+  tap (pinch zoom still works); the game code, the links and the inputs stay selectable.
+- The keeper-distance work: the extra appetite for shots in the box now stops at 18 m (`MidRangeShotAppetite` for 11-18 m), so the "long shots more / less" instruction still makes
+  a player shoot from distance about twice as often as the other (the test asked for that and failed with 11-22 m). Keeper 3-6 m from the shooter on 10.9% of foot shots (real 8.6).
+
 ## `feature/match-stats`
 
 **The match statistics, checked against ten Premier League seasons (counted) and StatsBomb (shot mechanics).** 200 matches on each of two seeds (4242 and 9001); real

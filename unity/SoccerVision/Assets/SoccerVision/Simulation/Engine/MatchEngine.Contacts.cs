@@ -126,6 +126,15 @@ namespace SoccerVision.Simulation
                 else if (z <= (blocker || IsCrossBlock(p) ? 1.5f : 1.05f) && d <= footReach) kind = ContactKind.Feet;
                 else if (z > 1.05f && z <= p.HeadReach && d <= (surprised ? 0.4f : 0.62f)) kind = ContactKind.Head;
                 else if (z <= 1.9f && d <= 0.33f) kind = ContactKind.Body;
+                // A lofted ball to him from a team-mate, nobody on him, at chest height: he does not head it on into nowhere, he takes it down
+                // (chest or thigh) and plays on - the switch of play that reaches the far winger is kept, not given away.
+                if (kind == ContactKind.Head && Ball.IntendedReceiver == p && !Ball.IsShot && Ball.LastTouchTeam == p.Team && z <= ChestControlHeight
+                    && !p.IsGoalkeeper && NearestOpponentDistance(p.Team, p.Pos) > 2.5f)
+                {
+                    kind = ContactKind.Feet;
+                    if (CollectDiagnostics) Count(_pendingSwitch ? "control.chest.switch" : "control.chest");
+                }
+                if (kind == ContactKind.Head && CollectDiagnostics && _pendingSwitch && Ball.IntendedReceiver == p) Count("switch.headed");
                 if (kind == ContactKind.None) continue;
 
                 // Team-mates of the passer leave the ball for the intended receiver (or let a shot through).
@@ -238,6 +247,9 @@ namespace SoccerVision.Simulation
                     return;
             }
         }
+
+        /// <summary>The highest ball (m) a free player takes down - chest, thigh, or a step back to let it drop - instead of heading it (a lofted pass to him, nobody within 2.5 m). 2.4 m: any ball he could head.</summary>
+        public static float ChestControlHeight = 2.4f;
 
         private void FootTouch(PlayerAgent p, bool contested, bool opponentTouch)
         {
