@@ -40,9 +40,20 @@
 .lu-right .fm { font: 800 clamp(20px, 3.6cqi, 44px)/1 var(--display); letter-spacing: .08em; color: var(--accent-hi); }
 .lu-right .cmp { font: 600 clamp(10px, 1.2cqi, 14px)/1.2 var(--body); color: var(--muted); letter-spacing: .12em; text-transform: uppercase; }
 .lu-bar { position: absolute; left: 3%; right: 3%; bottom: 3%; height: 3px; background: rgba(255,255,255,.12); border-radius: 2px; overflow: hidden; z-index: 2; } .lu-bar b { display: block; height: 100%; width: 0; background: var(--amber); }
-@media (max-width: 640px) { .lu-team { grid-template-columns: 1fr; grid-template-rows: auto 1fr; } .lu-right { display: none; } }
 .modes button.back { background: #e2372f; color: #fff; }
 .lineups { position: absolute; inset: 0; z-index: 40; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: rgba(20, 23, 33, .94); color: var(--text); padding: 12px 14px 10px; gap: 10px; overflow: auto; }
 .lineups[hidden] { display: none; }
 .lu-team { background: #1f2331; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; display: grid; grid-template-rows: auto auto auto; align-content: start; min-height: 0; }
-.lu-bar { height: 3px; background: #2a2f40; border-radius: 2px; overflow: hidden; } .lu-bar b { display: block; height: 100%; width: 0; background: var(--amber); }
+.lu-bar { height: 3px; background: #2a2f40; border-radius: 2px; overflow: hidden; } .lu-bar b { display: block; height: 100%; width: 0; background: var(--amber); }/* A narrow pitch box (a phone held upright): the list on the left, the little pitch on the right, nothing on top of anything.
+   (The box is the container, not the screen, so this also holds in a small window.) Substitutes and coach are on the full-size card. */
+@container (max-width: 560px) {
+  .lu-top img { height: 1.7em; }
+  .lu-comp { display: none; }
+  .lu-stage { inset: 14% 3% 6%; }
+  .lu-team { grid-template-columns: minmax(0, 1fr) minmax(0, 40%); grid-template-rows: minmax(0, 1fr); gap: 3%; }
+  .lu-right { display: none; }
+  .lu-col { font-size: 10.5px; line-height: 1.2; gap: 0; border-right: 0; padding: 4px 0 0 8px; overflow: hidden; }
+  .lu-col h4, .lu-col .r.sub, .lu-col .coach { display: none; }
+  .lu-name { font-size: 16px; margin: 0 0 .25em; padding-bottom: .15em; }
+  .lu-mid { padding: 6px 8px 6px 0; }
+}

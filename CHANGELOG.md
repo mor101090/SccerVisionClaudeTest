@@ -2,6 +2,16 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/layout-responsive`
+
+**The page checked at four sizes (phone upright / on its side, tablet, desktop) and the ugly parts fixed.**
+- **Line-up card on an upright phone**: the logo sat on top of the team name, the title wrapped into the logo, the little pitch lay over the list
+  and the list was cut off. Now (in any narrow pitch box): list on the left, little pitch on the right, all eleven names visible, nothing overlaps.
+- **Phone on its side**: the pitch was taller than the screen. It now fits the screen height (title shrinks to one slim line).
+- **Manager panel on a phone**: "THE MANAGER'S PICK" no longer breaks into three lines; the text goes under it.
+- Tablet and desktop are unchanged. CSS only - no engine change.
+- Full suite on the integrated preview branch (before this round): Passed 229 / 229.
+
 ## `fix/player-size-by-height`
 
 **Smaller player circles, sized by the player's height.**
