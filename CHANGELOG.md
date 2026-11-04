@@ -2,6 +2,13 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/board-drag-circle`
+
+**Dragging a player on the formation board**: the circle now comes along under the mouse - his shirt colours, his number and his name, the
+size it has on the board, centred on the pointer - so it is plain that he is really being carried (it used to be a small grey label
+hanging off the cursor). The place he left shows a faint, dashed circle (it was a half-faded dot with its label). Checked in a browser:
+the carried circle is centred on the pointer to the pixel, the left-behind dot is at 30% with a dashed outline, and it is gone on release.
+
 ## `fix/online-connect`
 
 **Online play with a six-digit code, kits of your own, and a connection that comes back.** After two hours of picking line-ups the
