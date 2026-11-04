@@ -616,6 +616,8 @@ namespace SoccerVision.Simulation
         private void UpdatePendingRedCard()
         {
             if (_secondYellowRed == null || SimTime < _secondYellowRedAt) return;
+            // (the referee is still on his way to the player with the yellow: the red comes the same interval after he has shown it)
+            if (Referee.PendingCard != 0) { _secondYellowRedAt = SimTime + SecondCardDelay; return; }
             var p = _secondYellowRed;
             _secondYellowRed = null;
             if (p.SentOff) return;

@@ -44,7 +44,8 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void ParkingTheBusSitsDeepAndSavesTheLegs()
         {
-            double depthNormal = Avg(null, Depth), depthBus = Avg(t => t.Defence = DefenceStyle.ParkTheBus, Depth);
+            // (12 matches: over 60 the gap is about 10 m - 34 v 24 - and on 6 it can land on the 8 m edge)
+            double depthNormal = Avg(null, Depth, 12), depthBus = Avg(t => t.Defence = DefenceStyle.ParkTheBus, Depth, 12);
             double energyNormal = Avg(null, Energy), energyBus = Avg(t => t.Defence = DefenceStyle.ParkTheBus, Energy);
             Assert.True(depthBus < depthNormal - 8, $"back line {depthBus:0} m v {depthNormal:0} m from own goal");
             Assert.True(energyBus > energyNormal + 8, $"stamina left: bus {energyBus:0} v {energyNormal:0}");
