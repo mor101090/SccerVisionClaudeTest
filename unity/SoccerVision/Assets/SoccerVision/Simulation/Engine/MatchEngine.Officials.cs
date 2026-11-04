@@ -67,7 +67,7 @@ namespace SoccerVision.Simulation
                 if (Referee.PendingCard != 0)
                 {
                     Referee.CardWalk += dt;
-                    if (pl == null || Vec2.Distance(Referee.Pos, pl.Pos) <= CardDistance || Referee.CardWalk > 10f * Config.MotionSpeed)
+                    if (pl == null || Vec2.Distance(Referee.Pos, pl.Pos) <= CardDistance || Referee.CardWalk > 4f * Config.MotionSpeed)
                     {
                         if (CollectDiagnostics) { Count(pl != null && Vec2.Distance(Referee.Pos, pl.Pos) <= CardDistance + 0.2f ? "card.shownBeside" : "card.shownFar"); Count("card.walkTenths" ); for (int k = 0; k < (int)(Referee.CardWalk * 10f); k++) Count("card.walkTenths"); }
                         Referee.CardShown = Referee.PendingCard;
