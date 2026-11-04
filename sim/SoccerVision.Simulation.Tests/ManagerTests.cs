@@ -98,7 +98,16 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void FiveChangesInThreeOpportunitiesHalfTimeIsFree()
         {
-            var e = Engine(12);
+            // (the rules, not a particular match: a match where no injury forced a change before half-time - the first such seed from 12;
+            // with more fouls since the match-statistics round, seed 12 itself has a first-half injury substitution)
+            ulong seed = 12;
+            for (; seed < 60; seed++)
+            {
+                var probe = Engine(seed);
+                PlayUntil(probe, () => probe.Phase == MatchPhase.HalfTimeBreak);
+                if (probe.Home.SubstitutionsUsed == 0) break;
+            }
+            var e = Engine(seed);
             int Changes() => e.Home.SubstitutionsUsed;
             // at half-time: two changes, no opportunity used
             PlayUntil(e, () => e.Phase == MatchPhase.HalfTimeBreak);

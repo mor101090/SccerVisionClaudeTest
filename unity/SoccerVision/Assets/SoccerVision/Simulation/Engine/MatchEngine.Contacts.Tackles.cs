@@ -204,6 +204,7 @@ namespace SoccerVision.Simulation
             float pFoul = 0.14f + 0.14f * MathUtil.A(da.Aggression) + (fromBehind ? 0.3f : 0.05f) - 0.1f * MathUtil.A(da.Tackling)
                           + (1f - d.Energy) * 0.08f;
             pFoul = MathUtil.Clamp(pFoul * (d.Has(PlayerTrait.HardTackler) && !Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign) ? 1.15f : 1f) * FoulStyleFactor(d.Team) * PlayerAgent.Scale(d.Orders.Aggression, 0.65f, 1.35f), 0.05f, 0.7f);
+            if (!Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign)) pFoul = MathF.Min(0.85f, pFoul * FoulRate); // (see FoulRate)
             float pWin = MathUtil.Clamp(0.62f + (defend - attack) / 100f * 0.9f - (fromBehind ? 0.12f : 0f), 0.2f, 0.9f);
             if (_rng.Chance(pFoul))
             {
@@ -351,6 +352,7 @@ namespace SoccerVision.Simulation
             if (IsDenyingObviousGoalScoringOpportunity(carrier, d)) pFoul *= 0.4f; // tries to stay clean
             if (Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign)) pFoul *= 0.12f; // careful in the box
             pFoul = MathUtil.Clamp(pFoul, 0.02f, 0.5f);
+            if (!Pitch.InPenaltyArea(carrier.Pos, d.Team.OwnGoalSign)) pFoul = MathF.Min(0.6f, pFoul * FoulRate); // (see FoulRate)
 
             if (_rng.Chance(pFoul))
             {

@@ -29,7 +29,9 @@ namespace SoccerVision.Simulation.Tests
             Assert.True(D("box.decide.Pass") > 1, "the cut-back to a better-placed team-mate still happens");
             // (an open goal is now one the keeper cannot get back to: a few in forty matches - 23 of 24 went in over 100 matches)
             Assert.True(D("goal.openGoal") >= D("shot.openGoal") * 0.6, $"open goals are put away: {D("goal.openGoal"):0.00} of {D("shot.openGoal"):0.00}");
-            Assert.True(saves >= 8, "the keepers have saves to make");
+            // (real: about 6 a match - the Premier League's 8.8 shots on target less its 2.83 goals, ten seasons counted by tools/calibration/real_leagues.py;
+            // the old floor of 8 was the engine's own number, not the real one)
+            Assert.True(saves >= 5 && saves <= 8.5, $"the keepers have saves to make, as many as real ones: {saves:0.0}");
             Assert.InRange(goals, 2.0, 4.8);
         }
 

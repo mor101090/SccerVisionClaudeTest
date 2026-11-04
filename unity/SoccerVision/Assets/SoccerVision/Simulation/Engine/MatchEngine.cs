@@ -912,6 +912,7 @@ namespace SoccerVision.Simulation
         {
             if (type != MatchEventType.Save && type != MatchEventType.ShotBlocked && type != MatchEventType.HitWoodwork && type != MatchEventType.ShotOffTarget && type != MatchEventType.Goal) return;
             if (_reboundPending && SimTime - _reboundAt < 5f) { Count("rebound.result." + type); _reboundPending = false; }
+            if (CollectDiagnostics && _shotZoneTag != null && SimTime - _lastShotTime < 4f) Count("outcome." + _shotZoneTag + "." + type);
             if (type != MatchEventType.Goal) { _lastOutcome = type.ToString(); _lastOutcomeAt = SimTime; }
         }
 
