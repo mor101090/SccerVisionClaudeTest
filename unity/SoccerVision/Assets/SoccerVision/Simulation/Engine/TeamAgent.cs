@@ -44,6 +44,8 @@ namespace SoccerVision.Simulation
         public int AttackDir; // +1 attacks the goal at +X
         public int Score;
         public readonly TeamStats Stats = new TeamStats();
+        /// <summary>The starting eleven's mean passing quality (0-100), worked out on first use (-1 = not yet); see MatchEngine.PassingQuality.</summary>
+        public float PassingQualityValue = -1f;
         public TeamAgent Opponent;
 
         // Tactical state maintained by the team AI

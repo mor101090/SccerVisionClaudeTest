@@ -134,6 +134,7 @@ static TeamSetup WithTactics(TeamSetup t, string spec)
 
 if (args.Contains("--poss"))
 {
+    foreach (var tt in new[] { Home(), Away() }) Console.WriteLine($"tactics: press {tt.Tactics.PressingIntensity} defence {tt.Tactics.Defence} passing {tt.Tactics.Passing} special {tt.Tactics.Special} line {tt.Tactics.DefensiveLine} tempo {tt.Tactics.Tempo}");
     // how the ball is shared: per team, per match - possession, passes, pass completion, tackles won, interceptions (so a change that should move possession can be seen)
     double[] secs = new double[2], spells = new double[2], pos = new double[2], ps = new double[2], pc = new double[2], tw = new double[2], ic = new double[2], sh = new double[2];
     var spread = new List<double>();

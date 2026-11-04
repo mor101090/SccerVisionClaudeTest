@@ -33,6 +33,39 @@ namespace SoccerVision.Simulation
             return MathUtil.Clamp01(0.5f + (gkT - runnerArrives + misjudge) / 0.7f);
         }
 
+        /// <summary>
+        /// How much a team wants to keep the ball (the possession round): its style (+1 possession, +0.5 short passing, -0.5 direct passing, -0.5 counter-attack,
+        /// -0.5 park the bus), how much better its passers are than the other team's (up to +-1.8; nothing for a gap of less than 4 points), and how hard the other team
+        /// presses it (a high press -0.6, and -2 for every point of pressing intensity above the default). A team at 0 plays as the engine always did.
+        /// <paramref name="style"/> is the style part alone.
+        /// </summary>
+        /// <summary>What a safe pass is worth to a team at patience 1, in its own half (fading to nothing at the halfway line; in the other half the chance decides). Measured: 0.025 takes a
+        /// possession-style team to about two thirds of the ball against an ordinary one.</summary>
+        private const float RetainValue = 0.025f;
+        /// <summary>A team that works the ball patiently takes its chances: the shot tendency is multiplied by 1 + this x the team's style patience.</summary>
+        private const float PatientShotBoost = 1.2f;
+
+        private static float Patience(TeamAgent team, out float style)
+        {
+            var t = team.Tactics;
+            style = (t.Special == SpecialTactic.Possession ? 1f : 0f) + (t.Passing == PassingStyle.Short ? 0.5f : t.Passing == PassingStyle.Direct ? -0.5f : 0f)
+                    + (t.Special == SpecialTactic.CounterAttack ? -0.5f : 0f) + (t.Defence == DefenceStyle.ParkTheBus ? -0.5f : 0f);
+            float gap = PassingQuality(team) - PassingQuality(team.Opponent);
+            float quality = MathUtil.Clamp(MathF.Sign(gap) * MathF.Max(0f, MathF.Abs(gap) - 4f) / 6f, -1.8f, 1.8f);
+            var o = team.Opponent.Tactics; // (what the manager chose, not the moment's adjustments: a team on its defaults is at 0)
+            float pressed = MathUtil.Clamp((o.Defence == DefenceStyle.HighPress ? 0.6f : 0f) + 2f * (o.PressingIntensity - 0.5f), -0.4f, 1f);
+            return style + quality - pressed;
+        }
+
+        /// <summary>The starting eleven's mean of passing, ball control, composure and decisions (0-100), worked out once per match (a red card or an injury does not change a team's character).</summary>
+        private static float PassingQuality(TeamAgent team)
+        {
+            if (team.PassingQualityValue >= 0f) return team.PassingQualityValue;
+            float sum = 0f; int n = 0;
+            foreach (var q in team.Players) { var a = q.Attr; sum += (a.Passing + a.BallControl + a.Composure + a.Decisions) * 0.25f; n++; }
+            return team.PassingQualityValue = n == 0 ? 50f : sum / n;
+        }
+
         private float PassAngleSigma(PlayerAgent p, float pressure, bool lofted)
         {
             float skill = MathUtil.A(p.Attr.Passing);
@@ -244,6 +277,7 @@ namespace SoccerVision.Simulation
             if (p.Slot.IsCentralMidfielder && progress > 5f) value *= 1.12f;
             // ...and the build-up goes through them: defenders look for the midfielder first.
             if (q.Slot.IsCentralMidfielder && p.Slot.Line == Line.Defence && kind == KickKind.Pass) value *= 1.15f;
+            if (kind == KickKind.Pass) { float pat = Patience(team, out _); if (pat != 0f) value += RetainValue * (pat > 0f ? pat : pat * 0.5f) * MathUtil.Clamp01(-team.Forward(from) / 25f); } // (recycling in the middle of the pitch; in the final third the chance decides)
             value += MathF.Max(0f, progress) * 0.00022f * (0.6f + 0.8f * TempoNow(team));
             if (progress < -5f) value -= 0.0006f * (TempoNow(team) - 0.3f) * (-progress / 10f);
             float loss = LossCost(team, pIntercept > 0.3f ? riskPoint : target) + _riskPremium;
