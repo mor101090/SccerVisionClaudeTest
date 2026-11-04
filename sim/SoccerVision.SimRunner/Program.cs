@@ -54,6 +54,7 @@ for (int i = 0; i < args.Length; i++)
         case "--momentum": momentumStrength = float.Parse(args[++i]); break;
         case "--home": homeTactics = args[++i]; break;
         case "--away": awayTactics = args[++i]; break;
+        case "--spread": TeamStrengthScaling.Spread = float.Parse(args[++i]); break; // how far weak / strong squads are from the medium one: 0..1 (see TeamStrengthScaling)
         case "--home-strength": homeStrength = Enum.Parse<TeamStrength>(args[++i], true); break;
         case "--away-strength": awayStrength = Enum.Parse<TeamStrength>(args[++i], true); break;
         case "--script": if (args[++i] == "staged") script = MatchScript.Staged(); break;

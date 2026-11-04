@@ -88,7 +88,7 @@ namespace SoccerVision.Simulation
                 Number = "#FFFFFF",
                 GoalkeeperPrimary = "#F9D71C",
                 GoalkeeperNumber = "#1A1A1A",
-            }, GeneratedTeamLevels.Red(strength));
+            }, TeamStrengthScaling.Red(strength));
             IsraeliNames.Name(t, seed, 0);
             NumberByPosition(t);
             PlayerTraits.Assign(t, (int)(seed % 100000) * 2);
@@ -108,7 +108,7 @@ namespace SoccerVision.Simulation
                 Number = "#FFFFFF",
                 GoalkeeperPrimary = "#2E9E4F",
                 GoalkeeperNumber = "#FFFFFF",
-            }, GeneratedTeamLevels.Blue(strength));
+            }, TeamStrengthScaling.Blue(strength));
             IsraeliNames.Name(t, seed, 1);
             NumberByPosition(t);
             PlayerTraits.Assign(t, (int)(seed % 100000) * 2 + 1);
