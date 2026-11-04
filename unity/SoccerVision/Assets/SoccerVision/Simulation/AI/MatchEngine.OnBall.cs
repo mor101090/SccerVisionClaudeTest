@@ -47,7 +47,9 @@ namespace SoccerVision.Simulation
         /// outside the six-yard box and 1.7 from inside it; the engine had 17 and 2.6.</summary>
         public static float BoxShotAppetite = 1f;
         /// <summary>How readily a player shoots from 11-22 m (1 = as before). Real shots (StatsBomb): 47% of open-play shots come from 11-22 m; the engine's foot shots, 35%.</summary>
-        public static float MidRangeShotAppetite = 3f; // (tried 0.5-0.8: no effect - a shot in the box is chosen on its chance, not this; left at 1)
+        public static float MidRangeShotAppetite = 3f;
+        /// <summary>How much more readily a player shoots when the keeper is rushing at him from 6-11 m (1 = as before).</summary>
+        public static float ShootBeforeKeeper = 2f; // (tried 0.5-0.8: no effect - a shot in the box is chosen on its chance, not this; left at 1)
         private bool _nextKickHeel;
 
         private string _lastPassKey;
@@ -168,7 +170,16 @@ namespace SoccerVision.Simulation
                 tendency *= 1.15f - 0.3f * MathUtil.A(p.Attr.Teamwork); // (a team player looks for the better-placed man; a selfish one has a go)
                 if (IsCutInsidePlayer(p) && MathF.Abs(l) < 24f && f > 24f && p.CutInUntil > SimTime) { tendency *= (p.PlayRole == PlayerRole.InvertedWinger ? 5.4f : 4.4f); xg *= 1.1f; }
                 if (distGoal < 17f) tendency *= BoxShotAppetite; // (inside the box: see BoxShotAppetite)
-                if (distGoal >= 11f && distGoal < 22f) tendency *= MidRangeShotAppetite; // (the edge of the box and just inside it: see MidRangeShotAppetite)
+                if (distGoal >= 11f && distGoal < 18f) tendency *= MidRangeShotAppetite; // (beyond 18 m the long-shot instruction decides)
+                // The keeper rushing out at him from 6-11 m: now is the moment to shoot (or chip) - another two touches and he is on top of him and the angle is gone.
+                {
+                    var rk = team.Opponent.Goalkeeper;
+                    if (rk != null && !rk.SentOff && !rk.IsDown)
+                    {
+                        float rkd = Vec2.Distance(rk.Pos, pos);
+                        if (rkd > 6f && rkd < 11f && Vec2.Dot(rk.Vel, (pos - rk.Pos) / rkd) > 1f) tendency *= ShootBeforeKeeper;
+                    }
+                } // (the edge of the box and just inside it: see MidRangeShotAppetite)
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
                 // (real football: four shots in ten come from outside the box - the edge of the box is a place to have a go from)
                 if (distGoal > 17f && distGoal < 30f) tendency *= 1.4f;

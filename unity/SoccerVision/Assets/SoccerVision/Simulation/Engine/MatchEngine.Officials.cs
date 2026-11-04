@@ -45,7 +45,39 @@ namespace SoccerVision.Simulation
                     }
                 }
             }
-            MoveOfficial(Referee, target, 7.2f, dt, ball);
+            // Goal kick (or the keeper holding the ball): the long ball will come down in midfield - he waits for it there, a little to the side
+            // on his diagonal, not on the edge of the box (IFAB: as close as he needs to see play, without being in its way).
+            if ((Phase == MatchPhase.Stoppage && _restart != null && _restart.Type == RestartType.GoalKick) || (Ball.InHands && Ball.Owner != null && Ball.Owner.IsGoalkeeper))
+            {
+                var kicker = Phase == MatchPhase.Stoppage && _restart != null && _restart.Type == RestartType.GoalKick ? _restart.Team : Ball.Owner.Team;
+                float gx = kicker.OwnGoalSign * (Pitch.HalfLength - 42f);
+                target = new Vec2(gx, (MathF.Abs(gx) < 1f ? 1f : MathF.Sign(gx)) * 11f);
+            }
+            float refSpeed = 7.2f;
+            // A card: he goes to the player first and shows it in front of him (play waits for it); then he stays with him while he holds it up.
+            if (Referee.PendingCard != 0 || (Referee.CardShown != 0 && Referee.CardFor != null && !Referee.CardFor.SentOff))
+            {
+                var pl = Referee.CardFor;
+                if (pl != null)
+                {
+                    Vec2 away = Referee.Pos - pl.Pos; float ad = away.Length;
+                    target = pl.Pos + (ad > 0.1f ? away / ad : new Vec2(0f, 1f)) * 1.6f;
+                    refSpeed = 9f;
+                }
+                if (Referee.PendingCard != 0)
+                {
+                    Referee.CardWalk += dt;
+                    if (pl == null || Vec2.Distance(Referee.Pos, pl.Pos) <= CardDistance || Referee.CardWalk > 10f * Config.MotionSpeed)
+                    {
+                        if (CollectDiagnostics) { Count(pl != null && Vec2.Distance(Referee.Pos, pl.Pos) <= CardDistance + 0.2f ? "card.shownBeside" : "card.shownFar"); Count("card.walkTenths" ); for (int k = 0; k < (int)(Referee.CardWalk * 10f); k++) Count("card.walkTenths"); }
+                        Referee.CardShown = Referee.PendingCard;
+                        Referee.CardTimer = (Referee.PendingCard == 2 ? 3f : 2.2f) * Config.MotionSpeed;
+                        Referee.PendingCard = 0;
+                    }
+                    if (Phase == MatchPhase.Stoppage && _restart != null) _restart.PauseLeft = MathF.Max(_restart.PauseLeft, 0.4f);
+                }
+            }
+            MoveOfficial(Referee, target, refSpeed, dt, ball);
 
             UpdateAssistant(Assistant1, dt, ball);
             UpdateAssistant(Assistant2, dt, ball);

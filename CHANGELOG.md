@@ -13,6 +13,27 @@ Each round of changes is developed on its own branch, named after what it change
   show that they go on.
 - Tablet and desktop are unchanged (the tab rows are hidden above 760 px). CSS, template and a few lines of JS - no engine change.
   Measured on a 390 px screen: the manager view is about 3,000 px, the commentary view about 1,300 px.
+## `feature/feedback-ui-ref-switch`
+
+**The referee, the long ball to a free man, and the phone.**
+- **The referee shows a card in front of the player.** He used to hold it up from wherever he was. Now, with play stopped, he goes to the player (a little faster than his
+  running pace) and shows it a metre and a half from him, and stays with him while he holds it up; the restart waits for him. Over 60 matches 205 of 211 cards were shown beside
+  the player (the rest: he had not reached him after 20 seconds and showed it anyway). The red after a second yellow follows where he already is.
+- **At a goal kick (or the keeper holding the ball) the referee waits in midfield**, about 42 m from the kicking side's goal and 11 m off the middle on his diagonal, where the long ball
+  comes down - not on the edge of the box. IFAB's guidance: the referee should be "close enough to see play without interfering with play" and "usually use a wide diagonal system"
+  ([IFAB, Positioning, movement and teamwork](https://www.theifab.com/laws/latest/guidelines/positioning-movement-and-teamwork/); the guidance gives no position for the referee at a
+  goal kick - this one is ours). Tests: `RefereeTests` (cards beside the player, 90%+; the referee within 25 m of halfway at goal kicks, 80%+).
+- **A switch of play to a free man is taken down, not headed away.** A lofted pass from a team-mate, with no opponent within 2.5 m, is now controlled (chest, thigh, or a step back to let
+  it drop) instead of headed on; before, 10.4 switches a match reached the man and were headed (and usually lost), now 1.1 (the ones where somebody was on him) - 9.4 are taken down
+  (`ChestControlHeight = 2.4`, diagnostics `control.chest*`, `switch.headed`).
+- **Phone: a finger can drag players.** Before, dragging was mouse and pen only (a finger had to tap twice). Now on the formation board a finger drags at once (the board does not scroll);
+  on a card or a row of the squad table the finger rests a moment (about a quarter of a second) and then drags - a quick swipe still scrolls the cards or the page. Checked in a phone
+  browser (touch events): a board swap, a sheet-row drag, and a swipe that moves nothing.
+- **No odd artefacts**: a double tap or long press no longer selects text or pops up the copy menu, images do not drag, a tap leaves no grey flash, the page does not zoom on a double
+  tap (pinch zoom still works); the game code, the links and the inputs stay selectable.
+- The keeper-distance work: the extra appetite for shots in the box now stops at 18 m (`MidRangeShotAppetite` for 11-18 m), so the "long shots more / less" instruction still makes
+  a player shoot from distance about twice as often as the other (the test asked for that and failed with 11-22 m). Keeper 3-6 m from the shooter on 10.9% of foot shots (real 8.6).
+
 ## `feature/match-stats`
 
 **The match statistics, checked against ten Premier League seasons (counted) and StatsBomb (shot mechanics).** 200 matches on each of two seeds (4242 and 9001); real
@@ -51,6 +72,12 @@ range, 4+ m off only on 5% of close shots). Players reached 6-8 m and shot from 
 distance 3.7 / 11.7 / 15.3 / 69.4% (real 3.9 / 8.6 / 16.4 / 71.1); goals from outside the box 9-12% (real 13%); goals 2.8-3.0; shots 28.4 (**up** from 26.3 in the first pass; real 25.4).
 The 3-6 m share is still above the real one. **Correction**: the first pass said the xG statistic "matches the goals" - it did because the scaled estimate was being summed; the statistic
 (and the momentum and commentary values) now use the unscaled chance, which was always about 20-30% above the goals in this engine (3.4-3.7 against 2.8-3.0): it is not a calibrated xG.
+
+**Keepers 3-6 m from the shooter (third pass).** What was left of the 3-6 m shots: two thirds came after the shooter had carried the ball more than 6 m (new diagnostic
+`shot.k36.*`: how he got there, how far he carried it, whether the keeper was charging) - he ran on at the keeper until the keeper was on top of him. Making a run towards the keeper
+worth less changed nothing (the keeper is far when the run starts and comes out during it; tried and taken out). What works: when the keeper rushes out at him from 6-11 m, a player
+shoots twice as readily (`ShootBeforeKeeper = 2`) - he shoots or chips before the angle is gone. Three seeds, 200 matches each: keeper 3-6 m away on 9.2 / 10.7 / 10.2% of foot shots
+(real 8.6%; first 17.2%, then 11.7%); under 3 m 3.1-3.5% (real 3.9); 6-10 m 18.4% (real 16.4); 10 m+ 68-69% (real 71). Goals 2.83-2.95; shots 28.7-29.0 (real 25.4: still 13% too many).
 
 **Still off, not changed here**: red cards 0.22-0.28 a match (Premier League 0.12; Ligue 1, La Liga, Serie A 0.23-0.30) - more fouls brought more second yellows; goals from outside
 the box 9% (real 13%) and fewer shots from there (6.5 against 9.7); headed goals 18% (real 14%); keepers still stand 3-6 m from the shooter twice as often as real ones.

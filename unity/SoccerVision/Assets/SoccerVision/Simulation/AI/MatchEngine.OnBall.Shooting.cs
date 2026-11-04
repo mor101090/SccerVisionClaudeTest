@@ -389,6 +389,14 @@ namespace SoccerVision.Simulation
                     var kq = team.Opponent.Goalkeeper;
                     if (kq != null) Count("shot.k3.keeper" + (Vec2.Dot(kq.Vel, from - kq.Pos) > 1f ? "Charging" : "Still") + (Vec2.Distance(kq.Pos, team.AttackGoal) > 5f ? "Out" : "Line"));
                 }
+                if (!header && !penalty && _lastShotKeeperBucket != null && _lastShotKeeperBucket.StartsWith("b3-6"))
+                {
+                    // (the keeper 3-6 m away: how the shooter got there - carried it in, or struck the pass first time)
+                    Count("shot.k36." + (rebound ? "rebound" : assistKind) + "." + how);
+                    float carried = Vec2.Distance(p.ControlStart, from); Count("shot.k36.carried." + (carried > 6f ? "far" : carried > 2f ? "some" : "none"));
+                    var kq = team.Opponent.Goalkeeper;
+                    if (kq != null) Count("shot.k36.keeper" + (Vec2.Dot(kq.Vel, from - kq.Pos) > 1f ? "Charging" : "Still") + (Vec2.Distance(kq.Pos, team.AttackGoal) > 5f ? "Out" : "Line"));
+                }
                 if (SimTime - _lastRestartAt < 7f) Count("shot.after." + _lastRestartType + "." + zone);
                 if (zone == "six") { Count("shot.six." + (rebound ? "rebound" : assistKind) + "." + how); if (SimTime - _lastRestartAt < 7f) Count("shot.six.after." + _lastRestartType); }
             }

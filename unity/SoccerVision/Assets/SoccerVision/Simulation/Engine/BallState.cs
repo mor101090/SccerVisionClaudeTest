@@ -104,5 +104,9 @@ namespace SoccerVision.Simulation
         /// <summary>Referee: the card he is holding up (0 none, 1 yellow, 2 red) and for how long (sim seconds).</summary>
         public int CardShown;
         public float CardTimer;
+        /// <summary>Referee: a card he is on his way to show (0 none), to whom, and how long he has been walking to him.</summary>
+        public int PendingCard;
+        public PlayerAgent CardFor;
+        public float CardWalk;
     }
 }
