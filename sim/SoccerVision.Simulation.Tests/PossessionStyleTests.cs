@@ -49,9 +49,9 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void ACounterAttackingSideGivesTheBallAway()
         {
-            // the same two teams, the home side playing the counter: it has the ball for about a quarter
+            // the same two teams, the home side playing the counter, against a possession side: it has the ball for a quarter to a third (home advantage lifts it a little)
             var r = Play(Counter, Possession);
-            Assert.InRange(r.Poss, 15, 35);
+            Assert.InRange(r.Poss, 20, 40);
         }
 
         [Fact]

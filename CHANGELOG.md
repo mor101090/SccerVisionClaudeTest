@@ -2,25 +2,57 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
-## `feature/possession-realism` (measuring only so far - no behaviour change)
+## `feature/possession-realism`
 
-**Why possession stays near 50-50 whatever the tactics.** A measuring tool, `SimRunner --poss` (per team: possession, passes, completion, tackles won,
-interceptions, shots, how many times the team got the ball, seconds per possession, and the spread of possession from match to match), and a counter
-of possessions (`TeamStats.PossessionSpells`; nothing reads it). The same 60 matches, seed 500:
+**Possession now follows the style, the quality of the passers and the press.** Before: both teams got the ball the same number of times (about 85 each) and kept it
+about 10 seconds, whoever they were - a park-the-bus team had 50% of the ball, a strong team against a weak one 52%, and the possession style, short passing and
+a high press moved it by 2-5 points. Real football: the most possession-heavy side of a Premier League season has about 64-70% of the ball, and a match above
+80% has happened only a handful of times (Liverpool 83.1% against Sheffield United in 2024 is the record,
+[StatMuse](https://statmuse.com/fc/ask/most-possession-in-a-premier-league-game-by-a-team), [Khel Now](https://khelnow.com/football/top-five-instances-teams-ball-possession)).
+- **Patience** (`Patience()` in `MatchEngine.OnBall.Passing.cs`): how much a team wants to keep the ball = its style (+1 possession, +0.5 short passing, -0.5 direct
+  passing, -0.5 counter-attack, -0.5 park the bus) + how much better its passers are than the other team's (the starting eleven's mean of passing, ball control, composure
+  and decisions; nothing for a gap under 4 points, up to +-1.8) - how hard the other side presses (a high press -0.6, and -2 for every point of pressing intensity above the
+  default). A safe pass in a team's own half is worth `0.025 x patience` more (fading to nothing at the halfway line; negative patience counts half): the ball is
+  recycled in the back and the middle, and in the other half the chance decides. A team on its defaults is at 0, so **ordinary matches are exactly as before** (the same 100
+  matches, seed 500: goals 1.86 - 0.90, shots 18.61 - 12.16, possession 50.94%, before and after, to the last digit).
+- **A possession side still shoots**: its risk premium used to make shots cost more as well as passes ("keeping the ball: no gambles"); a shot now costs what it always did, and
+  the shot tendency of a patient team is raised by 1.2 x its style patience.
+- **Read from the articles** ([FIFA research: possession and winning](https://www.fifatrainingcentre.com/en/environment/fifa-research/high-performance/possession-analysis/part-1-1-the-relationship-between-possession-and-winning.php),
+  [why possession stats mislead](https://the-footballanalyst.com/why-possession-stats-might-be-the-most-misleading-metric-in-soccer/),
+  [possession value](https://the-footballanalyst.com/possession-value-pv-measuring-the-real-impact-of-every-action/),
+  [verticality](https://the-footballanalyst.com/verticality-in-possession-football-tactics-explained/),
+  [possession style](https://www.soccerhelp.com/terms/soccer-possession-style.shtml)): possession is not winning (at the 2022 men's World Cup the teams with less of the ball won 26
+  games to 23 and took 1.45 points a game to 1.31; Spain had 82% and lost to Japan, Leicester won the league on 42%) - so a possession side here gets **no better chances** than the
+  others (xG 1.5 to 1.4 against a default side, 1.5 to 1.4 against a counter-attacking one), only the ball; a safe sideways or backward pass has almost no *value* (PV) - the retention
+  bonus is the style's, a deliberate price for control, and it stops at the halfway line; vertical play is faster and riskier (the direct and counter styles lose the ball sooner);
+  and a possession style is played "only as far up the field as the skill allows" - the quality term.
+- **What it does** (80 matches, seed 900, medium squads; home v away):
 
-| home v away | home possession | possessions each | seconds per possession (home / away) | match to match (min - max) |
-|---|---|---|---|---|
-| medium v medium, default tactics | 50.6% | 85 | 10.0 / 9.8 | 47 - 56 |
-| away park the bus | 49.8% | 73 | 11.5 / 11.6 | 45 - 57 |
-| strong v weak | 51.8% | 86 | 10.2 / 9.5 | 46 - 64 |
-| home possession + short passing + high press + aggression, away bus + counter + direct | 55.4% | 76 | 11.9 / 9.6 | 48 - 63 |
+  | home v away | home possession | passes (home / away) | pass completion | shots | xG | goals | possession match to match (min - max) |
+  |---|---|---|---|---|---|---|---|
+  | default v default | 50.7% | 210 / 197 | 80% / 77% | 18.2 / 11.8 | 2.6 / 1.2 | 2.0 / 0.7 | 44 - 57 |
+  | possession + short passing v default | **65.4%** | 588 / 147 | 93% / 74% | 13.8 / 12.4 | 1.5 / 1.4 | 1.1 / 0.8 | 58 - 73 |
+  | possession + short v counter-attack + direct | **71.4%** | 695 / 115 | 94% / 70% | 13.8 / 11.2 | 1.5 / 1.4 | 1.0 / 1.3 | 63 - 80 |
+  | possession + short + high press + aggression v park the bus + counter + direct | 60.9% | 339 / 116 | 89% / 75% | 28.3 / 4.9 | 3.0 / 0.5 | 2.3 / 0.5 | 53 - 71 |
+  | default v possession + short + high press + aggression | 40.7% | 129 / 364 | 70% / 87% | 18.4 / 16.7 | 2.9 / 0.8 | 1.8 / 0.5 | 28 - 47 |
+  | high press (aggression 0.8) v default | 53.8% | 209 / 148 | 79% / 71% | 19.3 / 11.6 | 2.6 / 1.4 | 2.2 / 0.9 | 49 - 59 |
 
-Real football (Premier League): a season's most possession-heavy side averages about 64-70%, and a match above 80% has happened only a handful of times
-(Liverpool 83.1% v Sheffield United 2024 is the record; see the sources in the round's message). Here **both teams get the ball the same number of times and
-keep it about 10 seconds each, whoever they are**: a park-the-bus team still has the ball 50% of the time, a strong team against a weak one 52%.
-The levers that exist (possession style, short passing, press) move it by 2-5 points. To make possession follow the style and the quality the
-spells themselves have to differ - the possession side keeping it longer (patient recycling, fewer forward gambles), the other side losing it sooner (direct,
-pressed) - and that changes the heart of the engine's decisions, so it is a round of its own with its own targets.
+  A top possession side now passes 600-700 times and completes 93-94% (a top real side: 700-900 passes, about 90%). Matches reach 80% possession (the tail), a typical
+  possession side 65-72%. A park-the-bus team still keeps the ball more than a real one would (time wasting is part of that style in the engine; not changed).
+  **Not changed but seen**: the counter-attack style is strong in the engine - against a default side it takes 2.6 xG to 1.4 on 45% of the ball; that was so before this round.
+- **Quality**: strong and weak squads (see the team strength round) now also differ in how much of the ball they have: strong v weak 61%, medium v weak 61%, strong v medium 54%
+  (both seats, 200 matches each; real football: top v bottom roughly 60-65%). Because keeping the ball costs the stronger side some attacks, the strong and weak squads are
+  moved 80% of the way from the medium one instead of 60% (`TeamStrengthScaling.Spread = 0.8`) and the results stay where the real data are:
+
+  | stronger v weaker (both seats, 200 matches each) | stronger wins | draw | loses | goals | real football |
+  |---|---|---|---|---|---|
+  | strong v weak | 82% | 14% | 4% | 2.55 - 0.32 | top four v bottom three 80%, 2.6 - 0.6; top two 89% |
+  | medium v weak | 64% | 21% | 15% | 1.91 - 0.62 | big favourite 68%, 2.14 - 0.86 |
+  | strong v medium | 62% | 19% | 19% | 1.88 - 0.78 | clear favourite 57%, 1.84 - 1.04 |
+- **Tests** (`PossessionStyleTests`): two ordinary teams share the ball (46-55%); a possession side keeps it (60-78%) and shoots at least 80% as often as its opponent; a counter side
+  against a possession side has 20-40%; a high press takes the ball back (more than 1.5 points above the plain side); a strong team has more than 54% against a weak one with no
+  tactic. `SimRunner --poss` prints all of this (per team: possession, passes, completion, tackles won, interceptions, shots, goals, xG, possessions, seconds per possession,
+  the spread of possession).
 
 ## `feature/team-strength`
 
@@ -57,7 +89,7 @@ pressed) - and that changes the heart of the engine's decisions, so it is a roun
 
   So each weak / strong squad is moved only **60%** of the way from the medium squad towards the generator's (`TeamStrengthScaling.Spread = 0.6`, the same
   player in the same slot; tried 0.3 / 0.45 / 0.6 over 100 matches per pairing and both seats). The stronger side's results, both seats pooled
-  (150 matches per seat, seed 500; the home edge cancels out):
+  (150 matches per seat, seed 500; the home edge cancels out; with Spread 0.6, before the possession round - see that round for the final 0.8 table):
 
   | stronger v weaker | stronger wins | draw | loses | goals stronger - weaker | real football |
   |---|---|---|---|---|---|
