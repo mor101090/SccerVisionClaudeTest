@@ -286,6 +286,8 @@ namespace SoccerVision.Simulation
         public int WoodworkHits;
         public float ExpectedGoals;
         public float PossessionSeconds;
+        /// <summary>How many times the team got the ball (a change of possession in live play; a measuring counter, nothing reads it).</summary>
+        public int PossessionSpells;
         public float DistanceCoveredKm;
 
         public TeamStats Clone() => (TeamStats)MemberwiseClone();

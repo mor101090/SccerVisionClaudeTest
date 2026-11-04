@@ -114,6 +114,7 @@ namespace SoccerVision.Simulation
 
         public MatchPhase Phase { get; private set; }
         public TeamAgent PossessionTeam { get; private set; }
+        private TeamAgent _lastPossessionTeam;
         public Restart CurrentRestart => _restart;
 
         /// <summary>Sim seconds since the engine was created.</summary>
@@ -515,6 +516,7 @@ namespace SoccerVision.Simulation
             if (Phase != MatchPhase.Live) return;
 
             if (PossessionTeam != null) PossessionTeam.Stats.PossessionSeconds += dt;
+            if (PossessionTeam != _lastPossessionTeam) { if (PossessionTeam != null) PossessionTeam.Stats.PossessionSpells++; _lastPossessionTeam = PossessionTeam; }
             if (_penaltyKickTime >= 0f && SimTime - _penaltyKickTime > 2.5f) _penaltyKickTime = -1f;
 
             CheckEndOfHalfLive();

@@ -2,6 +2,26 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/possession-realism` (measuring only so far - no behaviour change)
+
+**Why possession stays near 50-50 whatever the tactics.** A measuring tool, `SimRunner --poss` (per team: possession, passes, completion, tackles won,
+interceptions, shots, how many times the team got the ball, seconds per possession, and the spread of possession from match to match), and a counter
+of possessions (`TeamStats.PossessionSpells`; nothing reads it). The same 60 matches, seed 500:
+
+| home v away | home possession | possessions each | seconds per possession (home / away) | match to match (min - max) |
+|---|---|---|---|---|
+| medium v medium, default tactics | 50.6% | 85 | 10.0 / 9.8 | 47 - 56 |
+| away park the bus | 49.8% | 73 | 11.5 / 11.6 | 45 - 57 |
+| strong v weak | 51.8% | 86 | 10.2 / 9.5 | 46 - 64 |
+| home possession + short passing + high press + aggression, away bus + counter + direct | 55.4% | 76 | 11.9 / 9.6 | 48 - 63 |
+
+Real football (Premier League): a season's most possession-heavy side averages about 64-70%, and a match above 80% has happened only a handful of times
+(Liverpool 83.1% v Sheffield United 2024 is the record; see the sources in the round's message). Here **both teams get the ball the same number of times and
+keep it about 10 seconds each, whoever they are**: a park-the-bus team still has the ball 50% of the time, a strong team against a weak one 52%.
+The levers that exist (possession style, short passing, press) move it by 2-5 points. To make possession follow the style and the quality the
+spells themselves have to differ - the possession side keeping it longer (patient recycling, fewer forward gambles), the other side losing it sooner (direct,
+pressed) - and that changes the heart of the engine's decisions, so it is a round of its own with its own targets.
+
 ## `feature/team-strength`
 
 **Weak, medium and strong teams** (squads from the team generator API, <https://soccer-api.dev-spirit.com/docs>, v2).
