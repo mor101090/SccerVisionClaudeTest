@@ -7,12 +7,14 @@ namespace SoccerVision.Simulation
     /// How far the weak and strong squads are from the medium one. The generator's weaker / excellent squads are 12-14 attribute points from
     /// the medium one, which makes the stronger side win 94% of the time - real football's biggest mismatches (a top-two side against a bottom-three
     /// side) end 89% / 8% / 3%, and a clear favourite (60-70% in the betting odds) wins about 68%. So each attribute of a weak or strong squad is
-    /// moved only <see cref="Spread"/> of the way from the medium squad towards the generator's squad (the same player in the same slot).
+    /// moved only <see cref="StrongSpread"/> / <see cref="WeakSpread"/> of the way from the medium squad towards the generator's squad (the same player in the same slot).
     /// </summary>
     public static class TeamStrengthScaling
     {
         /// <summary>0 = every squad is the medium one, 1 = the generator's weaker / excellent squads as they are. 0.8 matches the real Premier League together with the possession round (see CHANGELOG).</summary>
-        public static float Spread = 0.8f;
+        public static float StrongSpread = 0.8f;
+        /// <summary>The same for the weak squads.</summary>
+        public static float WeakSpread = 0.8f;
 
         public static (List<PlayerProfile> Starters, List<PlayerProfile> Bench) Red(TeamStrength s) => Make(s, GeneratedTeams.Red(), GeneratedTeamLevels.Red(s));
         public static (List<PlayerProfile> Starters, List<PlayerProfile> Bench) Blue(TeamStrength s) => Make(s, GeneratedTeams.Blue(), GeneratedTeamLevels.Blue(s));
@@ -20,13 +22,14 @@ namespace SoccerVision.Simulation
         private static (List<PlayerProfile> Starters, List<PlayerProfile> Bench) Make(TeamStrength s,
             (List<PlayerProfile> Starters, List<PlayerProfile> Bench) medium, (List<PlayerProfile> Starters, List<PlayerProfile> Bench) level)
         {
-            if (s == TeamStrength.Medium || Spread >= 1f) return level;
-            for (int i = 0; i < level.Starters.Count; i++) Blend(level.Starters[i].Attributes, medium.Starters[i].Attributes, Spread);
-            for (int i = 0; i < level.Bench.Count; i++) Blend(level.Bench[i].Attributes, medium.Bench[i].Attributes, Spread);
+            float spread = s == TeamStrength.Strong ? StrongSpread : WeakSpread;
+            if (s == TeamStrength.Medium || spread == 1f) return level;
+            for (int i = 0; i < level.Starters.Count; i++) Blend(level.Starters[i].Attributes, medium.Starters[i].Attributes, spread);
+            for (int i = 0; i < level.Bench.Count; i++) Blend(level.Bench[i].Attributes, medium.Bench[i].Attributes, spread);
             return level;
         }
 
-        private static int B(int level, int medium, float k) => (int)Math.Round(medium + (level - medium) * k);
+        private static int B(int level, int medium, float k) => Math.Max(1, Math.Min(99, (int)Math.Round(medium + (level - medium) * k)));
 
         private static void Blend(PlayerAttributes a, PlayerAttributes m, float k)
         {

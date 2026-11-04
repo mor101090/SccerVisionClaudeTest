@@ -32,6 +32,7 @@ bool golden = false;
 int exportRoster = 0;
 // --home-strength / --away-strength weak|medium|strong: how good each demo squad is (medium: the squads the game always had)
 TeamStrength homeStrength = TeamStrength.Medium, awayStrength = TeamStrength.Medium;
+bool swap = false;
 for (int i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -54,7 +55,10 @@ for (int i = 0; i < args.Length; i++)
         case "--momentum": momentumStrength = float.Parse(args[++i]); break;
         case "--home": homeTactics = args[++i]; break;
         case "--away": awayTactics = args[++i]; break;
-        case "--spread": TeamStrengthScaling.Spread = float.Parse(args[++i]); break; // how far weak / strong squads are from the medium one: 0..1 (see TeamStrengthScaling)
+        case "--spread": TeamStrengthScaling.StrongSpread = TeamStrengthScaling.WeakSpread = float.Parse(args[++i]); break;
+        case "--strong-spread": TeamStrengthScaling.StrongSpread = float.Parse(args[++i]); break;
+        case "--weak-spread": TeamStrengthScaling.WeakSpread = float.Parse(args[++i]); break; // how far weak / strong squads are from the medium one: 0..1 (see TeamStrengthScaling)
+        case "--swap": swap = true; break;
         case "--home-strength": homeStrength = Enum.Parse<TeamStrength>(args[++i], true); break;
         case "--away-strength": awayStrength = Enum.Parse<TeamStrength>(args[++i], true); break;
         case "--script": if (args[++i] == "staged") script = MatchScript.Staged(); break;
@@ -102,8 +106,9 @@ MatchConfig MakeConfig()
     return c;
 }
 
-TeamSetup Home() => WithTactics(DemoTeams.Red(1001, homeStrength), homeTactics);
-TeamSetup Away() => WithTactics(DemoTeams.Blue(1001, awayStrength), awayTactics);
+// --swap: Team B (the blue squad) plays at home and Team A away - the same two squads in the other seats, to tell a home edge from a difference between the squads
+TeamSetup Home() => WithTactics(swap ? DemoTeams.Blue(1001, homeStrength) : DemoTeams.Red(1001, homeStrength), homeTactics);
+TeamSetup Away() => WithTactics(swap ? DemoTeams.Red(1001, awayStrength) : DemoTeams.Blue(1001, awayStrength), awayTactics);
 
 static TeamSetup WithTactics(TeamSetup t, string spec)
 {
@@ -121,6 +126,8 @@ static TeamSetup WithTactics(TeamSetup t, string spec)
             case "defence": t.Tactics.Defence = v == "press" ? DefenceStyle.HighPress : v == "trap" ? DefenceStyle.OffsideTrap : v == "bus" ? DefenceStyle.ParkTheBus : v == "highline" ? DefenceStyle.HighBackline : v == "inverted" ? DefenceStyle.InvertedFullBacks : DefenceStyle.Balanced; break;
             case "attack": t.Tactics.Attack = v == "crosses" ? AttackStyle.CrossesIntoBox : v == "runs" ? AttackStyle.RunsInBehind : v == "long" ? AttackStyle.LongShots : AttackStyle.Mixed; break;
             case "special": t.Tactics.Special = v == "possession" ? SpecialTactic.Possession : v == "waste" ? SpecialTactic.TimeWasting : v == "counter" ? SpecialTactic.CounterAttack : v == "siege" ? SpecialTactic.Siege : SpecialTactic.None; break;
+            case "marking": t.Tactics.Marking = v == "man" ? MarkingStyle.ManToMan : MarkingStyle.Zonal; break;
+            case "tackle": t.Tactics.Tackling = v == "stay" ? TacklingStyle.StayOnFeet : v == "stuck" ? TacklingStyle.GetStuckIn : TacklingStyle.Normal; break;
             case "formation": TeamPlan.Parse("formation=" + v).ApplyBeforeKickOff(t); break;
             case "aggression":
                 float a = float.Parse(v);
