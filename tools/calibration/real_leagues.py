@@ -75,6 +75,14 @@ def main():
     for lg in a.leagues:
         rows = load(a.dir, lg); n = len(rows); h = sum(r["FTR"] == "H" for r in rows); d = sum(r["FTR"] == "D" for r in rows)
         print("  %-22s n=%-5d %2.0f / %2.0f / %2.0f   %.2f - %.2f" % (NAMES[lg], n, 100 * h / n, 100 * d / n, 100 * (n - h - d) / n, st.mean(int(r["FTHG"]) for r in rows), st.mean(int(r["FTAG"]) for r in rows)))
+    print("\nPER MATCH (both teams): goals, shots, on target, fouls, corners, yellow cards, red cards")
+    for lg in a.leagues:
+        rows = load(a.dir, lg)
+        def m(*cols):
+            vals = [sum(int(r[c]) for c in cols) for r in rows if all(r.get(c, "").strip().isdigit() for c in cols)]
+            return (st.mean(vals), len(vals)) if vals else (float("nan"), 0)
+        g = m("FTHG", "FTAG"); sh = m("HS", "AS"); so = m("HST", "AST"); fo = m("HF", "AF"); co = m("HC", "AC"); y = m("HY", "AY"); rc = m("HR", "AR")
+        print("  %-22s goals %.2f  shots %.1f  on target %.1f  fouls %.1f  corners %.1f  yellows %.2f  reds %.3f   (n %d)" % (NAMES[lg], g[0], sh[0], so[0], fo[0], co[0], y[0], rc[0], sh[1]))
     print("\nBY SEASON, Premier League (2020/21: no spectators)")
     rows = load(a.dir, "E0")
     for s in sorted(set(r["season"] for r in rows)):
