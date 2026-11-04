@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
+    "check:audio": "node --experimental-strip-types src/audio/crowdReactions.check.ts",
     "preview": "vite preview",
     "replay": "dotnet run --project ../sim/SoccerVision.SimRunner -c Release -- --replay public/replays/demo.json --fps 8"
   },
