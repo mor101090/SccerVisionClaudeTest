@@ -35,3 +35,7 @@ docs/engine/
 __pycache__/
 *.pyc
 tools/names/.accent_cache.json
+
+# Vercel (the site tools/demo-page/vercel-build.sh writes)
+/public/
+.vercel
