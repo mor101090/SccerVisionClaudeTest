@@ -700,6 +700,7 @@ namespace SoccerVision.Simulation
             _addedTimeExpiredAt = -1f;
             _restart = null;
             FlushAdvantageSanction();
+            ResolveCardsBeforeTheWhistle(); // (after the advantage's card: that one is given at the whistle too)
             Clock.Running = false;
             Ball.Owner = null;
             Ball.InHands = false;

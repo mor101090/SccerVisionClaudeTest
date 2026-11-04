@@ -35,6 +35,14 @@ fixed for style and quality in the possession round; this round checks what was 
   medium v medium 60 / 19 / 21 -> 63 / 23 / 14. Win rates within the noise of 150 matches (about 4 points); goals a match 2.75-4.08 -> 2.91-3.29.
 - **Not done**: the pass share. A side's share of the passes runs far ahead of its share of the time (strong v weak 78% of the passes, 62% of the time; real: the two agree), because the
   engine's matches have about 410 passes - the weaker side hardly strings passes together. That is the pass count, a separate round.
+- **The high press against the score**: with the score in play a high press takes the ball back less: +1.1 / +1.3 points of possession over the same side without it
+  (120 matches, seeds 3000 and 3100; about +1.8 before) - the side behind now pushes up as well. Tried and not kept: a pressing side keeping its press when in front (no difference),
+  more weight for the opposing press in a team's patience (no difference with the test's press, which is at the cap). The press itself is unchanged. Test changed:
+  `PossessionStyleTests.AHighPressTakesTheBallBack` asked for +1.5 points on 24 matches (52.0 v 50.7 now); it asks for +0.8. The size of the press's effect is our design, not a measured number.
+- **Fix: a card at the final whistle.** A second yellow given at the whistle (the card for a foul where the referee had played the advantage) left the player on the pitch with no red:
+  the referee was still walking to him with the card when the match ended (seed 6301, 93rd minute). At the end of every period a card on its way is now shown at once, and the red after a second
+  yellow follows straight away (`ResolveCardsBeforeTheWhistle`). Test changed: `InjuryAndShotTests.DirectRedCards...` asked for the red to come strictly later on the clock than the
+  second yellow - at the whistle the clock is stopped, so it now accepts the same second (the red still comes after the yellow in the match's events).
 - **Tests**: `ScoreEffectTests` - a side a goal up plays deeper and presses less, a goal down the other way, level again as before; a side a goal down has 52-63% of the ball
   (24 matches); the computer manager keeps a counter-attacking plan 20 minutes in.
 

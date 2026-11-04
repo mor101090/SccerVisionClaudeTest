@@ -59,7 +59,8 @@ namespace SoccerVision.Simulation.Tests
         {
             var plain = Play(null, null, matches: 24).Poss;
             var press = Play(HighPress, null, matches: 24).Poss;
-            Assert.True(press > plain + 1.5, $"high press {press:0.0}% v {plain:0.0}%");
+            // (+0.8: since the score round the side behind pushes up too, and a press gains 1.1-1.3 points over 120 matches, two seeds - it was +1.5 before)
+            Assert.True(press > plain + 0.8, $"high press {press:0.0}% v {plain:0.0}%");
         }
 
         [Fact]

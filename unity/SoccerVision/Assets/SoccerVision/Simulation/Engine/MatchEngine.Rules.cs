@@ -630,6 +630,28 @@ namespace SoccerVision.Simulation
             SendOff(p);
         }
 
+        /// <summary>
+        /// The whistle for the end of a period while the referee is still on his way to a player with a card (or the red after a second yellow
+        /// is still to come): he shows it where he is and the player is off - a card given is never lost (a second yellow in the last seconds of a
+        /// match used to leave the player on the pitch with no red card).
+        /// </summary>
+        private void ResolveCardsBeforeTheWhistle()
+        {
+            if (Referee.PendingCard != 0)
+            {
+                if (CollectDiagnostics) Count("card.shownAtWhistle");
+                Referee.CardShown = Referee.PendingCard;
+                Referee.CardTimer = (Referee.PendingCard == 2 ? 3f : 2.2f) * Config.MotionSpeed;
+                Referee.PendingCard = 0;
+            }
+            if (_secondYellowRed != null)
+            {
+                _secondYellowRedAt = SimTime;
+                UpdatePendingRedCard();
+                if (Referee.PendingCard != 0) { Referee.CardShown = Referee.PendingCard; Referee.CardTimer = 3f * Config.MotionSpeed; Referee.PendingCard = 0; }
+            }
+        }
+
         /// <summary>A sent-off player leaves and cannot be replaced (design doc); the team re-shapes with ten.</summary>
         private void SendOff(PlayerAgent p)
         {

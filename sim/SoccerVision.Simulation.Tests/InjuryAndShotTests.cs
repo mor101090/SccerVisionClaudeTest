@@ -122,7 +122,8 @@ namespace SoccerVision.Simulation.Tests
                         Assert.NotNull(red);
                         Assert.True(red.Value > 0.5f);
                         float gap = red.ClockSeconds - log[i].ClockSeconds;
-                        Assert.True(gap > 0f && gap < 30f, "red card " + gap + " clock s after the second yellow");
+                        // (>= 0: a second yellow given at the final whistle - the advantage's card - is followed by the red at once, the clock stopped)
+                        Assert.True(gap >= 0f && gap < 30f, "red card " + gap + " clock s after the second yellow");
                     }
             }
         }
