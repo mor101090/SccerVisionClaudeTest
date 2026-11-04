@@ -28,6 +28,9 @@ namespace SoccerVision.Simulation
 
         private bool _shotCountedOnTarget;
 
+        /// <summary>The chance a player sees in a shot, made to match how often such shots score in this engine (1 = as before this round).</summary>
+        public static float XgScale = 0.72f;
+
         private float EstimateShotXG(PlayerAgent p, Vec2 pos, bool header = false, Vec2? keeperAt = null)
         {
             var team = p.Team;
@@ -56,7 +59,7 @@ namespace SoccerVision.Simulation
                 if (PointInTriangle(o.Pos, pos, postA, postB)) xg *= d < 3f ? 0.62f : 0.8f;
                 else if (d < 1.6f) xg *= 0.8f;
             }
-            return xg;
+            return xg * XgScale;
         }
 
         /// <summary>
@@ -140,6 +143,7 @@ namespace SoccerVision.Simulation
         private bool _lastShotOpenGoal;
         private string _lastShotKeeperBucket;
         private string[] _shotTags;
+        private string _shotZoneTag;
         /// <summary>The kind of the team's last pass (crosses and through balls kept apart from a pass to feet).</summary>
         private string _lastPassKindForShot(TeamAgent team) => _lastTeamPassKind[team.Index] ?? "Pass";
         private readonly string[] _lastTeamPassKind = new string[2];
@@ -362,9 +366,9 @@ namespace SoccerVision.Simulation
                 string assistKind = Ball.LastPasser != null && Ball.LastPasser.Team == team && Ball.LastPasser != p && Ball.LastPassTime >= team.LastAttackSeconds - 0.01f ? _lastPassKindForShot(team) : "solo";
                 bool rebound = _lastShotTeam == team && SimTime - _lastShotTime < 3f;
                 string how = penalty ? "penalty" : header ? "header" : volley ? "volley" : firstTimeShot ? "firstTime" : "controlled";
-                _shotTags = new[] { "zone." + zone, "assist." + (rebound ? "rebound" : assistKind), "how." + how };
+                _shotTags = new[] { "zone." + zone, "assist." + (rebound ? "rebound" : assistKind), "how." + how, "zh." + zone + "." + how };
+                _shotZoneTag = zone;
                 foreach (var tg in _shotTags) Count("shot." + tg);
-                Count("shot.zh." + zone + "." + how);
                 if (rebound)
                 {
                     Count("rebound.after." + LastOutcome); Count("rebound.zone." + zone); Count("rebound.how." + how);

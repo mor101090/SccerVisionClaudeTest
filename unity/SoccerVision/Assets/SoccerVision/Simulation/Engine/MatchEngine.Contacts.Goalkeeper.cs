@@ -56,6 +56,14 @@ namespace SoccerVision.Simulation
             gk.TouchCooldown = 0.5f;
         }
 
+        /// <summary>The share of his full reach (3.2 m) a keeper has when the shot is on him at once (a quarter of a second or less).</summary>
+        public static float CloseReachBase = 0.2f;
+        /// <summary>How much easier a shot from range is to save (1 = as before this round: +1.2 points a metre beyond 18 m, at most +12).</summary>
+        public static float RangeSaveScale = 0.3f;
+        /// <summary>How often a challenge outside the box is a foul (1 = as before this round). Real (Premier League, ten seasons, counted): 21.5 fouls a match; the engine had 16.5.
+        /// Inside the box it is left as it was (the penalties were already right).</summary>
+        public static float FoulRate = 1.4f;
+
         private void SaveAttempt(PlayerAgent gk, bool allowCatch)
         {
             var shooter = Ball.Shooter;
@@ -65,11 +73,15 @@ namespace SoccerVision.Simulation
             bool close = shooter != null && Vec2.Distance(shooter.Pos, gk.Pos) < 12f;
             float positioning = close ? MathUtil.A(gk.Attr.OneOnOne) : MathUtil.A((gk.Attr.Positioning + gk.Attr.OneOnOne) / 2);
             float skill = 0.5f * reflex + 0.2f * handling + 0.3f * positioning + (gk.PlayRole == PlayerRole.ShotStopper ? 0.05f : 0f); // (a shot-stopper lives on his line)
-            float reachNeeded = MathUtil.Clamp(Ball.ShotGoalkeeperDistance / 3.2f, 0f, 1.4f);
             float shotDistance = shooter != null ? Vec2.Distance(shooter.Pos, gk.Team.OwnGoal) : 20f;
             // Little time to react from close range - unless he is right on the shooter: then he is a wall, spread in
             // front of the ball, and a shot that is not past his body hits him.
             float shooterGap = shooter != null ? Vec2.Distance(shooter.Pos, gk.Pos) : 20f;
+            // How far he can get to depends on the time he has: a shot from 5 m at 20 m/s is on him in a quarter of a second - about his reaction time -
+            // and then he reaches little more than what his body covers; from 15 m he has the time for a full dive (3.2 m).
+            float reactTime = shooterGap / MathF.Max(5f, speed);
+            float reach = 3.2f * MathUtil.Clamp(CloseReachBase + (1f - CloseReachBase) * (reactTime - 0.15f) / 0.45f, CloseReachBase, 1f);
+            float reachNeeded = MathUtil.Clamp(Ball.ShotGoalkeeperDistance / reach, 0f, 1.4f);
             float smother = MathUtil.Clamp01((shooterGap - 1.2f) / 2.8f);
             float closeRange = MathUtil.Clamp01((15f - shotDistance) / 10f) * smother;
             float difficulty = 0.42f * MathUtil.Clamp((speed - 12f) / 20f, 0f, 1.2f) + 0.55f * reachNeeded + (Ball.Z > 1.8f ? 0.12f : 0f) + 0.35f * closeRange;
@@ -86,7 +98,7 @@ namespace SoccerVision.Simulation
             if (shooter != null && shooterGap < 3.5f && reachNeeded < 0.6f && Ball.IsShot) pSave = MathF.Min(0.95f, pSave + 0.3f * (1f - shooterGap / 3.5f)); // (the block)
             // From range he sees it coming: the further out it was struck, the likelier the save (only one goal in nine comes from
             // outside the box in the top leagues; ours were one in five).
-            if (Ball.IsShot && _penaltyKickTime < 0f) pSave = MathF.Min(0.94f, pSave + MathUtil.Clamp((shotDistance - 18f) * 0.012f, 0f, 0.12f));
+            if (Ball.IsShot && _penaltyKickTime < 0f) pSave = MathF.Min(0.94f, pSave + MathUtil.Clamp((shotDistance - 18f) * 0.012f * RangeSaveScale, 0f, 0.12f * RangeSaveScale));
             if (_lastShotOpenGoal && Ball.IsShot) pSave *= 0.25f; // (a keeper scrambling back to an open goal rarely gets there)
             if (_shotIsFollowUp && Ball.IsShot && _penaltyKickTime < 0f) { pSave *= FollowUpSaveFactor; if (CollectDiagnostics) Count("save.followUp"); }
             if (!_rng.Chance(pSave))
