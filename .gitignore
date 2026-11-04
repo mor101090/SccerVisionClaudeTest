@@ -35,3 +35,8 @@ docs/engine/
 __pycache__/
 *.pyc
 tools/names/.accent_cache.json
+
+# Vercel build output and local link
+public/
+.vercel/
+.env*.local
