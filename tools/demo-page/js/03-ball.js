@@ -137,7 +137,7 @@
   // A player on the ground (slide tackle, then getting up): the body lies stretched along the slide, with a streak of
   // churned-up grass behind him while he is still sliding.
   function downPlayer(p, tm, info, x, y) {
-    var r = discR(), a = -p.f, c = Math.cos(a), sn = Math.sin(a);
+    var r = discR(info.height), a = -p.f, c = Math.cos(a), sn = Math.sin(a);
     if (p.sl) {
       var g = ctx.createLinearGradient(x - c * r * 2.4, y - sn * r * 2.4, x, y);
       g.addColorStop(0, "rgba(225,240,205,0)"); g.addColorStop(1, "rgba(225,240,205,.3)");
@@ -284,7 +284,9 @@
   }
   // A player's radius: .95 m on the pitch, but never smaller than 6.2 CSS pixels (about 12 px across) - on a phone the whole pitch is ~400 px wide,
   // so the true size is a 7 px speck with a number that cannot be read. Players overlap a little more there; they can be read.
-  function discR() { return Math.max(.95 * view.s, 6.2 * (view.dpr || 1)); }
+  // A touch smaller than before (5.4 px, about 11 px across) and it follows the player's height: 180 cm = the base size,
+  // every 10 cm more or less is about 6% bigger or smaller (a 165 cm winger 91%, a 195 cm centre-back 109%; capped 88%..112%).
+  function discR(cm) { return Math.max(.95 * view.s, 5.4 * (view.dpr || 1)) * Math.max(.88, Math.min(1.12, 1 + ((cm || 180) - 180) * .006)); }
   // The shirt number's size: fitted to the disc (a three-digit number is narrower than a two-digit one, it must not spill over the edge)
   function numFont(r, text) { return Math.max(3, Math.min(r * 1.05, r * 2.1 / (Math.max(1, String(text).length) * .6))); }
   function entities(S, now, dt) {
@@ -304,7 +306,7 @@
     });
     S.ps.forEach(function (p, i) {
       if (p.off && Math.abs(p.y) > 35.5) return;
-      var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * (p.gk ? 3 : 2.2) * s, g = 1 + jh * (p.gk ? .2 : .1), sh = 1 - jh * .6;
+      var tm = teams[i < 11 ? 0 : 1], info = infoAt(i), r = discR(info.height), x = X(p.x), gy = Y(p.y), jh = Math.min(1, Math.max(0, p.j)), y = gy - jh * (p.gk ? 3 : 2.2) * s, g = 1 + jh * (p.gk ? .2 : .1), sh = 1 - jh * .6;
       if (p.sl || p.gr) { downPlayer(p, tm, info, x, gy); if (p.inj) injuryMark(x, gy, r); return; }
       if (p.gk) {
         // the stretch comes on quickly and goes off slowly (about a quarter of a second): no snap back to the disc

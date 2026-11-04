@@ -2,6 +2,13 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/player-size-by-height`
+
+**Smaller player circles, sized by the player's height.**
+- The minimum player circle is a little smaller (5.4 CSS px radius instead of 6.2), so they crowd each other less on a phone.
+- A player's circle now follows his height: 180 cm is the base size, each 10 cm more or less is about 6% bigger or smaller (165 cm: 91%,
+  195 cm: 109%, capped at 88%..112%). Numbers are fitted to the circle as before. Drawing only - no engine change, no effect on results.
+
 ## `fix/mobile-pitch-resolution`
 
 **A sharp pitch on a phone, and shirt numbers that fit their circle.**
