@@ -38,10 +38,16 @@ body { font: 15px/1.5 var(--body); }
 h1 { margin: 2px 0 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--display); letter-spacing: .01em; text-wrap: balance; }
 .meta { color: var(--muted); font-size: 14px; }
 .stage { position: relative; width: 100%; max-width: 100%; aspect-ratio: 115 / 87; border-radius: 10px; overflow: hidden; background: #557f30; container-type: inline-size; }
-/* A short window (a phone on its side, a small laptop): the whole pitch fits on the screen instead of being taller than it, and the title is one slim line */
+/* A short window (a phone on its side, a small laptop): the pitch is the whole height of the screen, with the controls in a rail beside it, not a small pitch in
+   the middle with the controls below the fold. The title goes (the scoreboard on the pitch already says who plays); the manager's panels follow below, full width. */
 @media (max-height: 640px) and (orientation: landscape) {
-  .wrap { padding-block: 8px 20px; gap: 10px; }
-  .kicker, .meta { display: none; }
-  h1 { font-size: 20px; }
-  .stage { max-height: calc(100svh - 56px); width: min(100%, calc((100svh - 56px) * 115 / 87)); margin-inline: auto; }
+  .wrap { padding-block: 8px 20px; gap: 10px 16px; grid-template-columns: minmax(0, min(calc((100svh - 24px) * 115 / 87), 64vw)) minmax(180px, 1fr); }
+  .top { display: none; }
+  .wrap > * { grid-column: 1 / -1; }
+  .wrap > .stage { grid-column: 1; grid-row: 1; }
+  .wrap > .controls { grid-column: 2; grid-row: 1; flex-direction: column; flex-wrap: nowrap; align-items: stretch; align-self: center; gap: 10px; }
+  .controls .modes, .controls .speeds { flex-wrap: wrap; }
+  .controls #seek { flex: none; width: 100%; margin: 0; }
+  .controls .badge-live, .controls #sound { align-self: flex-start; }
+  .controls .time { text-align: left; min-width: 0; }
 }

@@ -2,6 +2,14 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/landscape-layout`
+
+**A phone on its side: the pitch fills the screen's height and the controls sit beside it.** Before (a live match in a 1000 x 375 frame): a small pitch in the middle with big empty
+margins, the title cut off at the top and the controls (speed, LIVE, the slider) below the fold. Now, in a short landscape window (640 px or less): the pitch takes the full height
+(left column), the controls are a rail on the right (mode buttons, sound, speed, the LIVE badge and who plays, the slider, the clock), the title is gone (the scoreboard on the pitch
+already says who plays) and the manager's panels follow below at full width. Checked at 1000 x 375, 844 x 390 and 1280 x 600 (a small laptop window); portrait, tablet and desktop are
+unchanged. CSS only.
+
 ## `fix/layout-responsive`
 
 **The page checked at four sizes (phone upright / on its side, tablet, desktop) and the ugly parts fixed.**
