@@ -88,6 +88,7 @@ namespace SoccerVision.Simulation
             // outside the box in the top leagues; ours were one in five).
             if (Ball.IsShot && _penaltyKickTime < 0f) pSave = MathF.Min(0.94f, pSave + MathUtil.Clamp((shotDistance - 18f) * 0.012f, 0f, 0.12f));
             if (_lastShotOpenGoal && Ball.IsShot) pSave *= 0.25f; // (a keeper scrambling back to an open goal rarely gets there)
+            if (_shotIsFollowUp && Ball.IsShot && _penaltyKickTime < 0f) { pSave *= FollowUpSaveFactor; if (CollectDiagnostics) Count("save.followUp"); }
             if (!_rng.Chance(pSave))
             {
                 gk.TouchCooldown = 1f; // beaten

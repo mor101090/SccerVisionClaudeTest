@@ -2,6 +2,21 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/attack-rebounds-2`
+
+**Rebounds, the second round - a rebound shot now converts as often as a real one.** The engine takes as many rebound shots as reality (1.1 a
+match against 1.34) but scored half as many (about 10% against 21%). New counters (`rebound.*`) showed why, over 150 matches: the follow-up
+shots **died in the crowd** - 54% were blocked (22% of all shots are) and 35% missed - and the keeper saved three in four of those on target
+(reality: about three in five), although their xG (0.18) said they should convert at 18%. Three changes, all for the follow-up shot only
+(the same team's shot within 3 s, within 14 m of goal):
+- **A gap through the defenders**: each defender is, 55% of the time, caught moving or unsighted for a follow-up shot, so he does not get a leg
+  in the way (decided once per shot and per defender, from a hash - no random numbers drawn). Blocked: 54% -> about 30% of rebound shots.
+- **A cleaner finish**: the aim error is 35% smaller (he is already set, the keeper and the defenders are still recovering). Misses 35% -> 27%.
+- **The keeper is still getting up**: his chance to stop it is x0.7 (he has just made a save).
+200-plus matches on three seeds: rebound goals **0.14 -> 0.23-0.27 a match** (real 0.28), rebound conversion **10% -> 20-26%** (real 21%),
+share of open-play goals 5% -> 9-10% (real 12%); goals 2.64-2.79 a match (was 2.6-2.7), shots 29.7-30.2 (unchanged), first-time goals 53-56%.
+Tried first: only the gap (blocks fell, but the shots were saved or missed instead - goals did not move); only the sharper finish (same).
+
 ## `feature/attack-rebounds`
 
 **The rebound is hit first time**: a ball that comes back off the keeper, the post or a defender a moment after his team's shot, within

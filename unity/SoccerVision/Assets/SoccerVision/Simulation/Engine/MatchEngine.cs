@@ -816,6 +816,7 @@ namespace SoccerVision.Simulation
                 Whistle = whistle,
                 Detail = detail,
             };
+            if (CollectDiagnostics) TrackShotOutcome(type);
             e.Text = Commentary.Describe(e, this);
             RateEvent(e, player, other);
             EventLog.Add(e);
@@ -898,6 +899,17 @@ namespace SoccerVision.Simulation
         {
             RuleViolations++;
             Count("violation." + what);
+        }
+
+        // ---- diagnostics: what happened to a shot, and what became of the shot that followed it up (the rebounds) ----
+        private string _lastOutcome = "none"; private float _lastOutcomeAt = -100f; private bool _reboundPending; private float _reboundAt = -100f;
+        internal string LastOutcome => SimTime - _lastOutcomeAt < 3f ? _lastOutcome : "none";
+        internal void MarkRebound(float xg) { _reboundPending = true; _reboundAt = SimTime; Diagnostics.TryGetValue("rebound.xgMilli", out int v); Diagnostics["rebound.xgMilli"] = v + (int)(xg * 1000f); }
+        private void TrackShotOutcome(MatchEventType type)
+        {
+            if (type != MatchEventType.Save && type != MatchEventType.ShotBlocked && type != MatchEventType.HitWoodwork && type != MatchEventType.ShotOffTarget && type != MatchEventType.Goal) return;
+            if (_reboundPending && SimTime - _reboundAt < 5f) { Count("rebound.result." + type); _reboundPending = false; }
+            if (type != MatchEventType.Goal) { _lastOutcome = type.ToString(); _lastOutcomeAt = SimTime; }
         }
 
         internal void Count(string key)
