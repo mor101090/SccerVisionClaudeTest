@@ -737,7 +737,8 @@ namespace SoccerVision.Simulation
             else
             {
                 if (Clock.Period == MatchPeriod.SecondHalf) SecondHalfRealSeconds = RealTimeElapsed - _periodRealStart;
-                Emit(MatchEventType.Whistle, null, null, null, Ball.Pos, 0f, WhistleKind.FullTime);
+                // (Detail 1: the final whistle - the crowd reacts to the result now, not when the walk-off is over)
+                Emit(MatchEventType.Whistle, null, null, null, Ball.Pos, 0f, WhistleKind.FullTime, 1);
                 Clock.Period = MatchPeriod.FullTime;
                 foreach (var t in Teams) FinaliseStats(t);
                 // not the end of the picture: the winners celebrate and thank their fans, the losers walk off - then it is over

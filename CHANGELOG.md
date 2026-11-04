@@ -2,6 +2,25 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/crowd-sounds`
+
+**The crowd, properly.** What the crowd does for each event now lives in one place, `web/src/audio/crowdReactions.ts`, and is checked
+without a browser (`npm run check:audio` in `web/`: 26 scenarios, plus a loudness check for every reaction).
+- **The applause could not be heard at all**: the recording is very quiet (peak 0.12, a thirteenth of the others) and played at a
+  further-reduced level. It is now lifted (x10) - every reaction that uses it was silent before: a saved shot, a shot turned round the
+  post, the woodwork, a blocked shot, a draw at full time.
+- **The visitors score**: their fans celebrate loudly but **from one side only** (hard to one side, dull and far, gain 0.1 -> 0.55; it
+  was inaudible) and the whole rest of the ground boos (louder than the celebration), then the crowd goes quiet.
+- **The opponent fouls / is carded**: a foul on our player is jeered, a card for the visitors is applauded, a red card for them is a
+  roar and jeers; a card or free kick against us still angers the home end.
+- **A shot by the visitors**: the crowd swells (holds its breath); our keeper's save, a block by our defender, a shot turned round the
+  post for a corner and a shot off the woodwork get applause (relief); a home penalty is cheered.
+- **The final whistle**: a home win is cheered, a defeat booed, a draw applauded - **at the whistle**. Before, the reaction was tied to the
+  FullTime event, which the engine emits after the whole walk-off (30-40 seconds later). The engine now marks the final whistle (Detail
+  1; a whistle after ninety minutes that is followed by extra time or penalties is not marked; a shoot-out result still comes with the
+  FullTime event). `FinalWhistleTests` checks that the crowd is told the result exactly once, in league, cup and league cup.
+- Checked in a real browser (Playwright): all seven recordings decode, nine events in a row produce the expected reactions, no errors.
+  I cannot listen to it myself - the levels were checked by measurement (`MEASURED_LEVEL`), not by ear.
 ## `feature/attack-rebounds-2`
 
 **Rebounds, the second round - a rebound shot now converts as often as a real one.** The engine takes as many rebound shots as reality (1.1 a
