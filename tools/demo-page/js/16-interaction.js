@@ -36,23 +36,30 @@
   ["cardsIn", "cardsOut", "fDots"].forEach(function (id) {
     $(id).addEventListener("click", function (ev) { var el = ev.target.closest(".pcard2, .fd, #sheet tr"); if (el) pickEl(el); });
   });
-  // drag and drop (mouse and pen; on a touch screen the two clicks do the same)
+  // drag and drop - mouse, pen and finger (on a touch screen two taps still do the same)
   (function () {
     var drag = null, ghost = null, over = null;
     function clearOver() { if (over) { over.classList.remove("drop"); over = null; } }
     function targetAt(x, y, except) { var els = document.elementsFromPoint(x, y); for (var i = 0; i < els.length; i++) { var t = els[i].closest && els[i].closest(".pcard2, .fd, #sheet tr"); if (t && t !== except) return t; } return null; }
     ["cardsIn", "cardsOut", "fDots", "sheet"].forEach(function (id) {
       $(id).addEventListener("pointerdown", function (ev) {
-        if (ev.pointerType === "touch" || (ev.pointerType === "mouse" && ev.button !== 0)) return;
+        if (ev.pointerType === "mouse" && ev.button !== 0) return;
         var el = ev.target.closest(".pcard2, .fd, #sheet tr"); if (!el) return;
         var d = descr(el); if (!d || d.locked || d.gone) return;
-        drag = { el: el, d: d, x0: ev.clientX, y0: ev.clientY, on: false };
+        drag = { el: el, d: d, x0: ev.clientX, y0: ev.clientY, on: false, touch: ev.pointerType === "touch", armed: ev.pointerType !== "touch" };
+        // a finger: on the formation board it is a drag at once (the board does not scroll); on a card or a row of the sheet the finger
+        // must rest a moment first (a quick swipe there still scrolls the cards or the page)
+        if (drag.touch) {
+          if (el.classList.contains("fd")) drag.armed = true;
+          else { var dr = drag; dr.timer = setTimeout(function () { if (drag === dr) { dr.armed = true; document.body.classList.add("dragging-touch"); if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {} } }, 280); }
+        }
       });
     });
     document.addEventListener("pointermove", function (ev) {
       if (!drag) return;
+      if (!drag.armed) { if (Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) > 8) { clearTimeout(drag.timer); drag = null; } return; } // (a swipe: let it scroll)
       if (!drag.on) {
-        if (Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 7) return;
+        if (Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < (drag.touch ? 4 : 7)) return;
         drag.on = true; DRAGGING = true; SEL = null;
         ghost = drag.el.cloneNode(true); ghost.classList.add("ghost"); ghost.removeAttribute("id");
         if (drag.el.classList.contains("fd")) {
@@ -71,9 +78,12 @@
       var t = targetAt(ev.clientX, ev.clientY, drag.el);
       if (t !== over) { clearOver(); if (t) { var td = descr(t); if (td && !td.locked && !td.gone) { over = t; t.classList.add("drop"); } } }
     });
+    // (while a finger carries a player the page must not scroll under it)
+    document.addEventListener("touchmove", function (ev) { if (drag && drag.armed) ev.preventDefault(); }, { passive: false });
     function end(ev, drop) {
       if (!drag) return;
       var d = drag; drag = null;
+      clearTimeout(d.timer); document.body.classList.remove("dragging-touch");
       if (!d.on) return;
       DRAGGING = false;
       dragEndAt = performance.now();
