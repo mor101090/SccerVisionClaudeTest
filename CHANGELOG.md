@@ -29,6 +29,9 @@ numbers from `tools/calibration/real_leagues.py` (football-data.co.uk, 3,800 mat
 - **Fouls**: a challenge outside the box is a foul 1.4 times as often (`FoulRate = 1.4`); inside the box it is unchanged (the penalties were already right).
 - Tried and left: a lower appetite for shots inside the box (0.5-0.8 of it) changed nothing - a shot there is chosen on its chance, not on the appetite (`BoxShotAppetite` stays 1).
 
+**Tests changed**: `FinishingTests` asked for at least 8 saves a match - the engine's own old number, not the real one; it now asks for 5-8.5 (real: about 6). `ManagerTests.FiveChanges...`
+assumed no injury substitution before half-time in the match it plays (seed 12); with more fouls there is one, so it now takes the first match from seed 12 that has none (the rules it tests are unchanged).
+
 **Still off, not changed here**: red cards 0.22-0.28 a match (Premier League 0.12; Ligue 1, La Liga, Serie A 0.23-0.30) - more fouls brought more second yellows; goals from outside
 the box 9% (real 13%) and fewer shots from there (6.5 against 9.7); headed goals 18% (real 14%); keepers still stand 3-6 m from the shooter twice as often as real ones.
 
