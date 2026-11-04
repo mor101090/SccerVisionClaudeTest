@@ -2,6 +2,36 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/match-stats`
+
+**The match statistics, checked against ten Premier League seasons (counted) and StatsBomb (shot mechanics).** 200 matches on each of two seeds (4242 and 9001); real
+numbers from `tools/calibration/real_leagues.py` (football-data.co.uk, 3,800 matches) and `tools/calibration/compare.py` (StatsBomb open data, 194 matches).
+
+| per match | before | now (seed 4242 / 9001) | real |
+|---|---|---|---|
+| goals | 2.70 | 2.91 / 2.91 | 2.83 |
+| shots | 30.1 | 26.3 / 26.6 | 25.4 |
+| shots on target | 11.0 | 9.4 / 9.6 | 8.8 |
+| saves | 8.4 | 6.6 / 6.8 | about 6 (on target minus goals) |
+| xG (what the shots were worth) | 3.81 | 2.65 / 2.82 | about the goals |
+| fouls | 16.5 | 21.2 / 21.3 | 21.5 |
+| yellow cards | 2.6 | 3.4 / 3.6 | 3.44 |
+| penalties | 0.27 | 0.27 / 0.33 | 0.26 (StatsBomb) |
+| goals from the six-yard box | 11% | 20% | 21% (StatsBomb) |
+
+**Why, and what changed** (each found by measuring first; the diagnostics now count shots and their outcome by zone and kind - `shot.zh.*`, `goal.zh.*`, `outcome.*`):
+- **Tap-ins were saved.** A shot from inside the six-yard box scored 11% of the time (real: 31%), and keepers saved 44% of them. A keeper reached as far (3.2 m) against a shot
+  from 4 m as against one from 20 m. Now his reach follows the time he has: a shot that is on him in a quarter of a second or less (about his reaction time) leaves him 20% of
+  his reach (what his body covers), rising to his full dive at 0.6 s (`CloseReachBase = 0.2`).
+- **Players saw chances that were not there.** The chance a player weighs before shooting added up to 3.8 goals a match while 2.7 went in: he shot 40% too often. His estimate is
+  now scaled to what such shots actually score in the engine (`XgScale = 0.72`): fewer shots, and the shown xG matches the goals.
+- **Long shots**: the extra save chance for a shot from range (up to +12 points) was cut to 30% of it (`RangeSaveScale = 0.3`).
+- **Fouls**: a challenge outside the box is a foul 1.4 times as often (`FoulRate = 1.4`); inside the box it is unchanged (the penalties were already right).
+- Tried and left: a lower appetite for shots inside the box (0.5-0.8 of it) changed nothing - a shot there is chosen on its chance, not on the appetite (`BoxShotAppetite` stays 1).
+
+**Still off, not changed here**: red cards 0.22-0.28 a match (Premier League 0.12; Ligue 1, La Liga, Serie A 0.23-0.30) - more fouls brought more second yellows; goals from outside
+the box 9% (real 13%) and fewer shots from there (6.5 against 9.7); headed goals 18% (real 14%); keepers still stand 3-6 m from the shooter twice as often as real ones.
+
 ## `feature/league-calibration`
 
 **Checked against eight real leagues, and the home advantage measured properly.** Real results, 10 seasons (2015/16 - 2024/25) of
