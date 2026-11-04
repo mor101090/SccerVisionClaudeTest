@@ -132,6 +132,29 @@ static TeamSetup WithTactics(TeamSetup t, string spec)
     return t;
 }
 
+if (args.Contains("--poss"))
+{
+    foreach (var tt in new[] { Home(), Away() }) Console.WriteLine($"tactics: press {tt.Tactics.PressingIntensity} defence {tt.Tactics.Defence} passing {tt.Tactics.Passing} special {tt.Tactics.Special} line {tt.Tactics.DefensiveLine} tempo {tt.Tactics.Tempo}");
+    // how the ball is shared: per team, per match - possession, passes, pass completion, tackles won, interceptions (so a change that should move possession can be seen)
+    double[] xgs = new double[2], gls = new double[2], secs = new double[2], spells = new double[2], pos = new double[2], ps = new double[2], pc = new double[2], tw = new double[2], ic = new double[2], sh = new double[2];
+    var spread = new List<double>();
+    for (int m = 0; m < matches; m++)
+    {
+        var e = new MatchEngine(Home(), Away(), seed + (ulong)m, MakeConfig());
+        e.RunToEnd(0.25f);
+        var st = new[] { e.Home.Stats, e.Away.Stats };
+        double tot = st[0].PossessionSeconds + st[1].PossessionSeconds;
+        spread.Add(100.0 * st[0].PossessionSeconds / tot);
+        for (int i = 0; i < 2; i++) { xgs[i] += st[i].ExpectedGoals; gls[i] += st[i].Goals; secs[i] += st[i].PossessionSeconds; spells[i] += st[i].PossessionSpells; pos[i] += 100.0 * st[i].PossessionSeconds / tot; ps[i] += st[i].Passes; pc[i] += st[i].PassesCompleted; tw[i] += st[i].TacklesWon; ic[i] += st[i].Interceptions; sh[i] += st[i].Shots; }
+    }
+    spread.Sort();
+    string P(double[] a, int i) => (a[i] / matches).ToString("0.0");
+    Console.WriteLine($"home: possession {P(pos, 0)}%  passes {P(ps, 0)}  completion {(100 * pc[0] / ps[0]):0}%  tackles won {P(tw, 0)}  interceptions {P(ic, 0)}  shots {P(sh, 0)}  goals {P(gls, 0)}  xG {P(xgs, 0)}  possessions {P(spells, 0)}  s/possession {(secs[0] / Math.Max(1, spells[0])):0.0}");
+    Console.WriteLine($"away: possession {P(pos, 1)}%  passes {P(ps, 1)}  completion {(100 * pc[1] / ps[1]):0}%  tackles won {P(tw, 1)}  interceptions {P(ic, 1)}  shots {P(sh, 1)}  goals {P(gls, 1)}  xG {P(xgs, 1)}  possessions {P(spells, 1)}  s/possession {(secs[1] / Math.Max(1, spells[1])):0.0}");
+    Console.WriteLine($"home possession per match: min {spread[0]:0}  10% {spread[matches / 10]:0}  median {spread[matches / 2]:0}  90% {spread[matches * 9 / 10]:0}  max {spread[^1]:0}");
+    return;
+}
+
 if (args.Contains("--shotorigins"))
 {
     var origins = new Dictionary<string, int>();
