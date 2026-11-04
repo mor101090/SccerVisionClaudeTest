@@ -79,7 +79,7 @@ namespace SoccerVision.Simulation
 
         /// <summary>Team A defend zonally and tackle normally. <paramref name="seed"/> names the players (the same seed for
         /// both teams of a match keeps their surnames apart).</summary>
-        public static TeamSetup Red(ulong seed = 1001)
+        public static TeamSetup Red(ulong seed = 1001, TeamStrength strength = TeamStrength.Medium)
         {
             var t = FromGenerated("Team A", "Team A", new KitColors
             {
@@ -88,7 +88,7 @@ namespace SoccerVision.Simulation
                 Number = "#FFFFFF",
                 GoalkeeperPrimary = "#F9D71C",
                 GoalkeeperNumber = "#1A1A1A",
-            }, GeneratedTeams.Red());
+            }, GeneratedTeamLevels.Red(strength));
             IsraeliNames.Name(t, seed, 0);
             NumberByPosition(t);
             PlayerTraits.Assign(t, (int)(seed % 100000) * 2);
@@ -99,7 +99,7 @@ namespace SoccerVision.Simulation
         }
 
         /// <summary>Team B mark man-to-man and get stuck in (more slide tackles).</summary>
-        public static TeamSetup Blue(ulong seed = 1001)
+        public static TeamSetup Blue(ulong seed = 1001, TeamStrength strength = TeamStrength.Medium)
         {
             var t = FromGenerated("Team B", "Team B", new KitColors
             {
@@ -108,7 +108,7 @@ namespace SoccerVision.Simulation
                 Number = "#FFFFFF",
                 GoalkeeperPrimary = "#2E9E4F",
                 GoalkeeperNumber = "#FFFFFF",
-            }, GeneratedTeams.Blue());
+            }, GeneratedTeamLevels.Blue(strength));
             IsraeliNames.Name(t, seed, 1);
             NumberByPosition(t);
             PlayerTraits.Assign(t, (int)(seed % 100000) * 2 + 1);

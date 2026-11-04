@@ -13,6 +13,47 @@ Each round of changes is developed on its own branch, named after what it change
   show that they go on.
 - Tablet and desktop are unchanged (the tab rows are hidden above 760 px). CSS, template and a few lines of JS - no engine change.
   Measured on a 390 px screen: the manager view is about 3,000 px, the commentary view about 1,300 px.
+## `feature/team-strength`
+
+**Weak, medium and strong teams** (squads from the team generator API, <https://soccer-api.dev-spirit.com/docs>, v2).
+- **Medium is the squad the game always had** - nothing measured before changes (`GeneratedTeams.cs` is untouched except one word: its player helper is
+  now `internal`). **Weak** and **Strong** are the same two teams (seeds 101 and 202) made at the API's `weaker` and `excellent` level
+  (`data/teams/api/`, built into `GeneratedTeamLevels.cs` with `build_teams.py --levels-dir data/teams/api`). The same builder picks the eleven and
+  the bench exactly as it did for the medium squads. The API's own `normal` level is not used: it is the same as ours (below).
+- **Where to choose**: "Play the computer" asks *Your team* and *Opponent* (weak / medium / strong); in the developer view the gear has *Home squad* and
+  *Away squad* (changing one replays the match). Online games are always medium. SimRunner: `--home-strength weak|medium|strong --away-strength ...`;
+  the engine: `DemoTeams.Red(seed, TeamStrength)`, the WASM `Start(..., homeStrength, awayStrength)`. SimRunner also prints home win / draw / away win %.
+- **How the squads compare** (the eleven that start, mean attribute out of 100; speed; finishing of midfielders and forwards):
+
+  | squad | all | defenders | midfielders | forwards | keeper | speed | finishing |
+  |---|---|---|---|---|---|---|---|
+  | weak (API *weaker*) | 44.8 | 43.4 | 45.5 | 44.7 | 47.5 | 52 | 48 |
+  | **medium (ours)** | **57.1** | 55.7 | 59.0 | 55.8 | 57.5 | 67 | 65 |
+  | medium (API *normal*, for comparison) | 56.1 | 55.5 | 56.4 | 55.1 | 59.7 | 64 | 64 |
+  | strong (API *excellent*) | 71.2 | 68.8 | 73.0 | 70.5 | 74.6 | 85 | 83 |
+
+  Our own squads are within about 1 point of the API's normal level everywhere, so "medium" is what the API calls normal.
+- **What each pairing does to the game** (150 matches each, seed 500, default tactics: Team A zonal at home, Team B man-to-man away; so the medium v medium
+  row is the baseline, with its existing home edge):
+
+  | home v away | goals home - away | shots home - away | home win / draw / away win % |
+  |---|---|---|---|
+  | weak v weak | 1.59 - 0.66 | 15.0 - 5.7 | 57 / 31 / 12 |
+  | weak v medium | 0.59 - 1.86 | 5.7 - 19.6 | 12 / 19 / 69 |
+  | weak v strong | 0.29 - 2.76 | 3.0 - 23.8 | 5 / 15 / 81 |
+  | medium v weak | 3.93 - 0.23 | 30.1 - 2.8 | 94 / 5 / 1 |
+  | **medium v medium** | **1.89 - 0.87** | **18.4 - 12.4** | **58 / 25 / 17** |
+  | medium v strong | 1.03 - 1.42 | 12.4 - 18.6 | 31 / 22 / 47 |
+  | strong v weak | 4.50 - 0.11 | 36.9 - 1.2 | 95 / 5 / 0 |
+  | strong v medium | 2.43 - 0.39 | 27.4 - 7.2 | 86 / 11 / 3 |
+  | strong v strong | 1.47 - 0.75 | 20.5 - 15.1 | 53 / 28 / 19 |
+
+  Read: the steps are real and in the right order, both ways round. They are large: a medium team beats a weak one 94% of the time and a strong
+  team beats a medium one 86% (at home) - larger than I would expect from real football, even for the biggest mismatches (a judgement, not a measured target). Possession stays near 50% in every pairing (it is the
+  shots that move, as in real football). The home edge is smaller against a strong team (31% wins) and larger against a weak one.
+- Tests: `TeamStrengthTests` (valid squads at every strength; medium unchanged; each step at least 8 attribute points; the stronger side wins more and
+  scores more in either seat, 16 matches per pairing). Verified in the browser: choosing the strengths in the page reaches the engine and the squads that
+  come back differ (speed 84 v 50 with strong at home and weak away).
 
 ## `fix/layout-responsive`
 
@@ -96,6 +137,15 @@ Tests: the full suite passed 227 of 228; the one failure, `IndividualInstruction
 it needs more than 4.1), averaged only four matches - too few for something this rare, so any change in the engine could tip it. It now
 averages sixteen and passes.
 
+## `feature/teams-api`
+
+**The team generator's new address**: the squads came from `soccer-simulation.onrender.com`, which no longer answers.
+`tools/teams/fetch_teams.py` fetches squads from the new API (<https://soccer-api.dev-spirit.com/docs>, v2 - same seed, same squad)
+in the format `build_teams.py` reads (the skill groups v2 returns as null are left out); `build_teams.py` takes `--dir` and `--out`.
+The squads the game uses now are not changed - that changes every match and the tests' measurements, so it is a separate step
+(`fetch_teams.py --out data/teams red-rovers:SEED blue-falcons:SEED`, then `build_teams.py`, then the full suite). Tried: two squads
+of 23 (seeds 101 and 202) build into 20-man squads. Noted: `GeneratedTeams.cs` in the repository was not made by the present
+`build_teams.py` (it lacks the `Order` list the script writes) - that was so before.
 ## `feature/attack-rebounds`
 
 **The rebound is hit first time**: a ball that comes back off the keeper, the post or a defender a moment after his team's shot, within

@@ -39,6 +39,7 @@
       <div class="orow"><input id="crestPrompt" maxlength="200" placeholder="Describe your crest: a red falcon on a blue shield" autocomplete="off"><button type="button" id="crestGo">Create</button><button type="button" id="crestClear" hidden>Remove</button></div>
       <small id="crestNote"></small>
     </div>
+    <div class="kstr" id="kitStrength"><span class="l">Your team</span><div class="seg" data-str="hstr"><button type="button" data-v="weak">Weak</button><button type="button" data-v="medium">Medium</button><button type="button" data-v="strong">Strong</button></div><span class="l">Opponent</span><div class="seg" data-str="astr"><button type="button" data-v="weak">Weak</button><button type="button" data-v="medium">Medium</button><button type="button" data-v="strong">Strong</button></div></div>
     <p id="kRefs"></p>
     <p id="kitNext">Next: your eleven, the formation and the instructions - then start the match.</p>
     <div class="wopts" id="kitButtons">
@@ -125,6 +126,8 @@
       <div class="srow dev-only"><span class="l">Wind</span><div class="seg" data-set="wind"><button type="button" data-v="0">Calm</button><button type="button" data-v="1">Strong</button></div></div>
       <div class="srow dev-only"><span class="l">Stadium</span><div class="seg" data-set="stadium"><button type="button" data-v="open">Open</button><button type="button" data-v="stand">Main stand</button><button type="button" data-v="bowl">Bowl</button></div></div>
       <div class="srow dev-only"><span class="l">Competition</span><div class="seg" data-set="comp"><button type="button" data-v="League">League</button><button type="button" data-v="Cup">Cup</button><button type="button" data-v="LeagueCup">League Cup</button></div></div>
+      <div class="srow dev-only"><span class="l">Home squad</span><div class="seg" data-set="hstr"><button type="button" data-v="weak">Weak</button><button type="button" data-v="medium">Medium</button><button type="button" data-v="strong">Strong</button></div></div>
+      <div class="srow dev-only"><span class="l">Away squad</span><div class="seg" data-set="astr"><button type="button" data-v="weak">Weak</button><button type="button" data-v="medium">Medium</button><button type="button" data-v="strong">Strong</button></div></div>
       <div class="srow dev-only"><span class="l">Kick-off</span><div class="seg" data-set="night"><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div></div>
       <h3>Team colours</h3>
       <div class="srow"><span class="l">Gestures and emotions</span><div class="seg" data-set="gest"><button type="button" data-v="0">Off</button><button type="button" data-v="1">On</button></div></div>

@@ -18,9 +18,11 @@ public static partial class LiveEngine
 
     /// <summary>Starts a match; returns the replay header (teams, conditions, mud map...) as JSON object text.</summary>
     /// <param name="mode">staged (the scripted incidents) | random | live</param>
+    /// <param name="homeStrength">weak | medium | strong: how good the home squad is (medium: the squads the game always had).</param>
+    /// <param name="awayStrength">the same for the away squad.</param>
     /// <param name="homePlan">Live only: your plan for the home team (see TeamPlan): formation, starting eleven, roles, instructions, takers, tactics. The staged match plays the squads as they are; in a random match both managers pick their own.</param>
     [JSExport]
-    public static string Start(int seed, string mode, string weather, double maintenance, double wind, double windAngle, bool night, string homePlan, string competition)
+    public static string Start(int seed, string mode, string weather, double maintenance, double wind, double windAngle, bool night, string homePlan, string competition, string homeStrength, string awayStrength)
     {
         var config = MatchConfig.CreateDefault();
         // league match, cup tie (level: penalties) or league cup tie (level: extra time, then penalties)
@@ -37,8 +39,9 @@ public static partial class LiveEngine
         config.WalkOut = true; // (the teams and the officials come out of the tunnel first)
         // the players' names are drawn anew for every match (from the Israeli name database)
         ulong names = (ulong)seed * 2654435761UL + 17UL;
-        var home = DemoTeams.Red(names);
-        var away = DemoTeams.Blue(names);
+        // how good each team is: weak | medium | strong (anything else: medium, the squads the game always had)
+        var home = DemoTeams.Red(names, ParseStrength(homeStrength));
+        var away = DemoTeams.Blue(names, ParseStrength(awayStrength));
         if (mode == "random")
         {
             // a random match: both managers pick a random formation, eleven, roles and instructions
@@ -55,6 +58,8 @@ public static partial class LiveEngine
         _last = null;
         return "{" + _rec.Header(false) + "}";
     }
+
+    private static TeamStrength ParseStrength(string s) => Enum.TryParse<TeamStrength>(s, true, out var v) ? v : TeamStrength.Medium;
 
     /// <summary>Plays up to <paramref name="frames"/> frames; returns them (FrameLength numbers each). Events and stats: see below.</summary>
     [JSExport]
