@@ -68,11 +68,11 @@ namespace SoccerVision.Simulation.Tests
                     e.Advance(0.05f);
                     foreach (var ev in e.DrainEvents())
                     {
-                        if (ev.Type == MatchEventType.YellowCard) { Assert.Equal(1, e.Referee.CardShown); shown++; }
+                        if (ev.Type == MatchEventType.YellowCard) { Assert.True(e.Referee.CardShown == 1 || e.Referee.PendingCard == 1, "the yellow is shown (or the referee is on his way to the player with it)"); shown++; }
                         if (ev.Type == MatchEventType.YellowCard && ev.Value >= 2f) { secondYellowAt = e.RealTimeElapsed; sawYellowAfter = false; }
                         if (ev.Type == MatchEventType.RedCard)
                         {
-                            Assert.Equal(2, e.Referee.CardShown);
+                            Assert.True(e.Referee.CardShown == 2 || e.Referee.PendingCard == 2, "the red is shown (or on its way)");
                             Assert.Equal(CommentaryTone.Red, Commentary.ToneOf(ev.Type));
                             if (ev.Value > 0.5f)
                             {

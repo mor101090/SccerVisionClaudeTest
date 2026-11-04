@@ -18,7 +18,9 @@ Each round of changes is developed on its own branch, named after what it change
 **The referee, the long ball to a free man, and the phone.**
 - **The referee shows a card in front of the player.** He used to hold it up from wherever he was. Now, with play stopped, he goes to the player (a little faster than his
   running pace) and shows it a metre and a half from him, and stays with him while he holds it up; the restart waits for him. Over 60 matches 205 of 211 cards were shown beside
-  the player (the rest: he had not reached him after 20 seconds and showed it anyway). The red after a second yellow follows where he already is.
+  the player (the rest: he had not reached him after 20 seconds and showed it anyway). The red after a second yellow comes the usual interval after he has shown the yellow (if he is still walking to the player, it waits for him).
+  Tests changed: `ContactAndOfficialsTests` checked the card was up at the very moment of the foul - it now accepts "shown, or the referee on his way to the player with it";
+  `TacticStyleTests.ParkingTheBus...` measured the back line on 6 matches and landed on its 8 m edge (26 v 34); over 60 matches the gap is 10 m (24 v 34), so it now takes 12 matches.
 - **At a goal kick (or the keeper holding the ball) the referee waits in midfield**, about 42 m from the kicking side's goal and 11 m off the middle on his diagonal, where the long ball
   comes down - not on the edge of the box. IFAB's guidance: the referee should be "close enough to see play without interfering with play" and "usually use a wide diagonal system"
   ([IFAB, Positioning, movement and teamwork](https://www.theifab.com/laws/latest/guidelines/positioning-movement-and-teamwork/); the guidance gives no position for the referee at a
