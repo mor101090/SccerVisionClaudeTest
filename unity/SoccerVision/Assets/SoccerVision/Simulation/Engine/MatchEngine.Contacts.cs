@@ -319,6 +319,7 @@ namespace SoccerVision.Simulation
                 // Loose ball won (no pass pending) - nothing extra to record.
             }
             Ball.Owner = p;
+            p.ControlStart = p.Pos;
             Ball.InHands = false;
             Ball.ClearFlight();
             Ball.KickerMustWait = false;

@@ -41,6 +41,12 @@ distance 3.7 / 11.7 / 15.3 / 69.4% (real 3.9 / 8.6 / 16.4 / 71.1); goals from ou
 The 3-6 m share is still above the real one. **Correction**: the first pass said the xG statistic "matches the goals" - it did because the scaled estimate was being summed; the statistic
 (and the momentum and commentary values) now use the unscaled chance, which was always about 20-30% above the goals in this engine (3.4-3.7 against 2.8-3.0): it is not a calibrated xG.
 
+**Keepers 3-6 m from the shooter (third pass).** What was left of the 3-6 m shots: two thirds came after the shooter had carried the ball more than 6 m (new diagnostic
+`shot.k36.*`: how he got there, how far he carried it, whether the keeper was charging) - he ran on at the keeper until the keeper was on top of him. Making a run towards the keeper
+worth less changed nothing (the keeper is far when the run starts and comes out during it; tried and taken out). What works: when the keeper rushes out at him from 6-11 m, a player
+shoots twice as readily (`ShootBeforeKeeper = 2`) - he shoots or chips before the angle is gone. Three seeds, 200 matches each: keeper 3-6 m away on 9.2 / 10.7 / 10.2% of foot shots
+(real 8.6%; first 17.2%, then 11.7%); under 3 m 3.1-3.5% (real 3.9); 6-10 m 18.4% (real 16.4); 10 m+ 68-69% (real 71). Goals 2.83-2.95; shots 28.7-29.0 (real 25.4: still 13% too many).
+
 **Still off, not changed here**: red cards 0.22-0.28 a match (Premier League 0.12; Ligue 1, La Liga, Serie A 0.23-0.30) - more fouls brought more second yellows; goals from outside
 the box 9% (real 13%) and fewer shots from there (6.5 against 9.7); headed goals 18% (real 14%); keepers still stand 3-6 m from the shooter twice as often as real ones.
 
