@@ -24,11 +24,20 @@
 .pcard2 .flag i.inj::after { content: ""; position: absolute; left: 1px; top: 3.5px; width: 7px; height: 2px; background: #e2372f; }
 .pcard2.gone { opacity: .38; }
 .pcard2.drop { border-color: var(--good); box-shadow: 0 0 0 3px rgba(60,200,75,.4); }
-.pcard2.dragging, .fboard .fd.dragging { opacity: .35; }
+.pcard2.dragging { opacity: .35; }
+/* the board dot that is being carried: what it leaves behind is a faint, dashed circle (its label gone) */
+.fboard .fd.dragging { opacity: .3; }
+.fboard .fd.dragging circle { stroke-dasharray: 1.4 1; stroke: rgba(255,255,255,.9); stroke-width: .5; }
+.fboard .fd.dragging rect, .fboard .fd.dragging text.l { display: none; }
 .fboard .fd.drop circle { stroke: #3cc84b; stroke-width: 1.4; }
 .squad.anim .cards { overflow: visible; }
 .ghost { position: fixed; z-index: 60; pointer-events: none; opacity: .92; box-shadow: 0 8px 22px rgba(0,0,0,.5); transform: rotate(-3deg); }
-.fdghost { background: #ececef; color: #1b1f2b; border-radius: 6px; padding: 5px 9px; font: 700 12px var(--body); }
+/* the circle that comes with the mouse: the player's own shirt colours, centred on the pointer */
+.fdghost { box-sizing: border-box; border-radius: 50%; background: var(--kit-home, #fff); color: var(--kitn-home, #0e3a1d); border: 1.5px solid rgba(0,0,0,.5);
+  display: flex; align-items: center; justify-content: center; transform: none; opacity: .97; box-shadow: 0 6px 16px rgba(0,0,0,.55), 0 0 0 3px rgba(255,255,255,.35); }
+.fdghost.gk { background: var(--gk-home, #f2d22e); }
+.fdghost b { font: 800 14px var(--body); }
+.fdghost i { position: absolute; top: 100%; margin-top: 3px; font: 700 11px var(--body); font-style: normal; background: rgba(14,19,32,.85); color: #fff; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
 .sheet tr.gone td { text-decoration: line-through; opacity: .55; }
 .sheet small { text-decoration: none; }
 .pcard2 .rt { position: absolute; top: 3px; left: 3px; min-width: 22px; padding: 0 3px; border-radius: 4px; font: 800 10px/14px var(--body); color: #111; text-align: center; }

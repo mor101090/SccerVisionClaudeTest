@@ -55,11 +55,19 @@
         if (Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 7) return;
         drag.on = true; DRAGGING = true; SEL = null;
         ghost = drag.el.cloneNode(true); ghost.classList.add("ghost"); ghost.removeAttribute("id");
-        if (drag.el.classList.contains("fd")) { ghost = document.createElement("div"); ghost.className = "ghost fdghost"; ghost.textContent = (byNum(drag.d.num) || {}).shortName || ""; }
+        if (drag.el.classList.contains("fd")) {
+          // a board dot: the same circle (his shirt, his number, his name) comes along under the mouse, centred on it, at the size it has on the
+          // board - so it is plain that he is being carried; the dot he left behind stays as a faint, dashed circle
+          var pl = byNum(drag.d.num) || {}, m = $("fBoard").getScreenCTM(), dia = Math.max(30, 7.2 * (m ? m.a : 6));
+          ghost = document.createElement("div"); ghost.className = "ghost fdghost" + (drag.el.classList.contains("gk") ? " gk" : "");
+          ghost.style.width = ghost.style.height = dia + "px"; ghost.dataset.r = String(dia / 2);
+          ghost.innerHTML = "<b>" + esc(pl.number) + "</b><i>" + esc(pl.shortName || "") + "</i>";
+        }
         else ghost.style.width = drag.el.offsetWidth + "px";
         document.body.appendChild(ghost); drag.el.classList.add("dragging"); $("tip").hidden = true;
       }
-      ghost.style.left = (ev.clientX + 8) + "px"; ghost.style.top = (ev.clientY + 8) + "px";
+      var r = +ghost.dataset.r || 0; // (a board circle is centred on the mouse; a card hangs a little off it)
+      ghost.style.left = (ev.clientX + (r ? -r : 8)) + "px"; ghost.style.top = (ev.clientY + (r ? -r : 8)) + "px";
       var t = targetAt(ev.clientX, ev.clientY, drag.el);
       if (t !== over) { clearOver(); if (t) { var td = descr(t); if (td && !td.locked && !td.gone) { over = t; t.classList.add("drop"); } } }
     });
