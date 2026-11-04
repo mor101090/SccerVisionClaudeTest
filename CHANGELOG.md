@@ -2,6 +2,222 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/phone-tabs`
+
+**On a phone the page is no longer one endless scroll (it was about 4,950 px).** A narrow screen (760 px or less) shows one part at a time:
+- **Page tabs** under the pitch: *Manager* / *Commentary* / *Match facts*.
+- **Team Tactics** has its own three tabs: *Formation* / *Squad* / *Instructions* (the formation board, the whole squad table, the sliders and style
+  buttons - they were stacked one under the other).
+- The manager's own tab row (Team Tactics, Player Instruction, Corners, ...) is one scrolling row instead of three lines.
+- The squad table fits the screen width, so the Rating column is no longer behind a sideways scroll; the IN / OUT cards fade out at the right edge to
+  show that they go on.
+- Tablet and desktop are unchanged (the tab rows are hidden above 760 px). CSS, template and a few lines of JS - no engine change.
+  Measured on a 390 px screen: the manager view is about 3,000 px, the commentary view about 1,300 px.
+## `feature/possession-realism`
+
+**Possession now follows the style, the quality of the passers and the press.** Before: both teams got the ball the same number of times (about 85 each) and kept it
+about 10 seconds, whoever they were - a park-the-bus team had 50% of the ball, a strong team against a weak one 52%, and the possession style, short passing and
+a high press moved it by 2-5 points. Real football: the most possession-heavy side of a Premier League season has about 64-70% of the ball, and a match above
+80% has happened only a handful of times (Liverpool 83.1% against Sheffield United in 2024 is the record,
+[StatMuse](https://statmuse.com/fc/ask/most-possession-in-a-premier-league-game-by-a-team), [Khel Now](https://khelnow.com/football/top-five-instances-teams-ball-possession)).
+- **Patience** (`Patience()` in `MatchEngine.OnBall.Passing.cs`): how much a team wants to keep the ball = its style (+1 possession, +0.5 short passing, -0.5 direct
+  passing, -0.5 counter-attack, -0.5 park the bus) + how much better its passers are than the other team's (the starting eleven's mean of passing, ball control, composure
+  and decisions; nothing for a gap under 4 points, up to +-1.8) - how hard the other side presses (a high press -0.6, and -2 for every point of pressing intensity above the
+  default). A safe pass in a team's own half is worth `0.025 x patience` more (fading to nothing at the halfway line; negative patience counts half): the ball is
+  recycled in the back and the middle, and in the other half the chance decides. A team on its defaults is at 0, so **ordinary matches are exactly as before** (the same 100
+  matches, seed 500: goals 1.86 - 0.90, shots 18.61 - 12.16, possession 50.94%, before and after, to the last digit).
+- **A possession side still shoots**: its risk premium used to make shots cost more as well as passes ("keeping the ball: no gambles"); a shot now costs what it always did, and
+  the shot tendency of a patient team is raised by 1.2 x its style patience.
+- **Read from the articles** ([FIFA research: possession and winning](https://www.fifatrainingcentre.com/en/environment/fifa-research/high-performance/possession-analysis/part-1-1-the-relationship-between-possession-and-winning.php),
+  [why possession stats mislead](https://the-footballanalyst.com/why-possession-stats-might-be-the-most-misleading-metric-in-soccer/),
+  [possession value](https://the-footballanalyst.com/possession-value-pv-measuring-the-real-impact-of-every-action/),
+  [verticality](https://the-footballanalyst.com/verticality-in-possession-football-tactics-explained/),
+  [possession style](https://www.soccerhelp.com/terms/soccer-possession-style.shtml)): possession is not winning (at the 2022 men's World Cup the teams with less of the ball won 26
+  games to 23 and took 1.45 points a game to 1.31; Spain had 82% and lost to Japan, Leicester won the league on 42%) - so a possession side here gets **no better chances** than the
+  others (xG 1.5 to 1.4 against a default side, 1.5 to 1.4 against a counter-attacking one), only the ball; a safe sideways or backward pass has almost no *value* (PV) - the retention
+  bonus is the style's, a deliberate price for control, and it stops at the halfway line; vertical play is faster and riskier (the direct and counter styles lose the ball sooner);
+  and a possession style is played "only as far up the field as the skill allows" - the quality term.
+- **What it does** (80 matches, seed 900, medium squads; home v away):
+
+  | home v away | home possession | passes (home / away) | pass completion | shots | xG | goals | possession match to match (min - max) |
+  |---|---|---|---|---|---|---|---|
+  | default v default | 50.7% | 210 / 197 | 80% / 77% | 18.2 / 11.8 | 2.6 / 1.2 | 2.0 / 0.7 | 44 - 57 |
+  | possession + short passing v default | **65.4%** | 588 / 147 | 93% / 74% | 13.8 / 12.4 | 1.5 / 1.4 | 1.1 / 0.8 | 58 - 73 |
+  | possession + short v counter-attack + direct | **71.4%** | 695 / 115 | 94% / 70% | 13.8 / 11.2 | 1.5 / 1.4 | 1.0 / 1.3 | 63 - 80 |
+  | possession + short + high press + aggression v park the bus + counter + direct | 60.9% | 339 / 116 | 89% / 75% | 28.3 / 4.9 | 3.0 / 0.5 | 2.3 / 0.5 | 53 - 71 |
+  | default v possession + short + high press + aggression | 40.7% | 129 / 364 | 70% / 87% | 18.4 / 16.7 | 2.9 / 0.8 | 1.8 / 0.5 | 28 - 47 |
+  | high press (aggression 0.8) v default | 53.8% | 209 / 148 | 79% / 71% | 19.3 / 11.6 | 2.6 / 1.4 | 2.2 / 0.9 | 49 - 59 |
+
+  A top possession side now passes 600-700 times and completes 93-94% (a top real side: 700-900 passes, about 90%). Matches reach 80% possession (the tail), a typical
+  possession side 65-72%. A park-the-bus team still keeps the ball more than a real one would (time wasting is part of that style in the engine; not changed).
+  **Not changed but seen**: the counter-attack style is strong in the engine - against a default side it takes 2.6 xG to 1.4 on 45% of the ball; that was so before this round.
+- **Quality**: strong and weak squads (see the team strength round) now also differ in how much of the ball they have: strong v weak 61%, medium v weak 61%, strong v medium 54%
+  (both seats, 200 matches each; real football: top v bottom roughly 60-65%). Because keeping the ball costs the stronger side some attacks, the strong and weak squads are
+  moved 80% of the way from the medium one instead of 60% (`TeamStrengthScaling.Spread = 0.8`) and the results stay where the real data are:
+
+  | stronger v weaker (both seats, 200 matches each) | stronger wins | draw | loses | goals | real football |
+  |---|---|---|---|---|---|
+  | strong v weak | 82% | 14% | 4% | 2.55 - 0.32 | top four v bottom three 80%, 2.6 - 0.6; top two 89% |
+  | medium v weak | 64% | 21% | 15% | 1.91 - 0.62 | big favourite 68%, 2.14 - 0.86 |
+  | strong v medium | 62% | 19% | 19% | 1.88 - 0.78 | clear favourite 57%, 1.84 - 1.04 |
+- **Tests** (`PossessionStyleTests`): two ordinary teams share the ball (46-55%); a possession side keeps it (60-78%) and shoots at least 80% as often as its opponent; a counter side
+  against a possession side has 20-40%; a high press takes the ball back (more than 1.5 points above the plain side); a strong team has more than 54% against a weak one with no
+  tactic. `SimRunner --poss` prints all of this (per team: possession, passes, completion, tackles won, interceptions, shots, goals, xG, possessions, seconds per possession,
+  the spread of possession).
+
+## `feature/team-strength`
+
+**Weak, medium and strong teams** (squads from the team generator API, <https://soccer-api.dev-spirit.com/docs>, v2).
+- **Medium is the squad the game always had** - nothing measured before changes (`GeneratedTeams.cs` is untouched except one word: its player helper is
+  now `internal`). **Weak** and **Strong** are the same two teams (seeds 101 and 202) made at the API's `weaker` and `excellent` level
+  (`data/teams/api/`, built into `GeneratedTeamLevels.cs` with `build_teams.py --levels-dir data/teams/api`). The same builder picks the eleven and
+  the bench exactly as it did for the medium squads. The API's own `normal` level is not used: it is the same as ours (below).
+- **Where to choose**: "Play the computer" asks *Your team* and *Opponent* (weak / medium / strong); in the developer view the gear has *Home squad* and
+  *Away squad* (changing one replays the match). Online games are always medium. SimRunner: `--home-strength weak|medium|strong --away-strength ...`;
+  the engine: `DemoTeams.Red(seed, TeamStrength)`, the WASM `Start(..., homeStrength, awayStrength)`. SimRunner also prints home win / draw / away win %.
+- **How the squads compare** (the eleven that start, mean attribute out of 100; speed; finishing of midfielders and forwards):
+
+  | squad | all | defenders | midfielders | forwards | keeper | speed | finishing |
+  |---|---|---|---|---|---|---|---|
+  | weak (API *weaker*) | 44.8 | 43.4 | 45.5 | 44.7 | 47.5 | 52 | 48 |
+  | **medium (ours)** | **57.1** | 55.7 | 59.0 | 55.8 | 57.5 | 67 | 65 |
+  | medium (API *normal*, for comparison) | 56.1 | 55.5 | 56.4 | 55.1 | 59.7 | 64 | 64 |
+  | strong (API *excellent*) | 71.2 | 68.8 | 73.0 | 70.5 | 74.6 | 85 | 83 |
+
+  Our own squads are within about 1 point of the API's normal level everywhere, so "medium" is what the API calls normal.
+- **How far apart the teams are - checked against real football.** The generator's weaker / excellent squads, used as they are, made the stronger side win
+  94% of the time (a medium team against a weak one) - far more than the real game. Real numbers, from 10 Premier League seasons (3,800 matches,
+  <https://www.football-data.co.uk/englandm.php>, results and Pinnacle closing odds with the margin taken out):
+
+  | real Premier League, 2015/16 - 2024/25 | favourite wins | draw | favourite loses | goals fav - underdog |
+  |---|---|---|---|---|
+  | all matches | home 44% | 23% | away 32% | 1.55 - 1.28 (home - away) |
+  | clear favourite (55-60% in the odds) | 57% | 22% | 21% | 1.84 - 1.04 |
+  | big favourite (60-70%) | 68% | 19% | 12% | 2.14 - 0.86 |
+  | huge favourite (80%+) | 88% | 7% | 5% | 2.93 - 0.60 |
+  | top four at home v bottom three | 80% | 14% | 6% | 2.59 - 0.62 |
+  | top two (either seat) v bottom three | 89% | 8% | 3% | |
+
+  So each weak / strong squad is moved only **60%** of the way from the medium squad towards the generator's (`TeamStrengthScaling.Spread = 0.6`, the same
+  player in the same slot; tried 0.3 / 0.45 / 0.6 over 100 matches per pairing and both seats). The stronger side's results, both seats pooled
+  (150 matches per seat, seed 500; the home edge cancels out; with Spread 0.6, before the possession round - see that round for the final 0.8 table):
+
+  | stronger v weaker | stronger wins | draw | loses | goals stronger - weaker | real football |
+  |---|---|---|---|---|---|
+  | strong v weak | 81% | 12% | 6% | 2.57 - 0.42 | top four v bottom three 80%, 2.6 - 0.6; top two 89% |
+  | medium v weak | 69% | 17% | 14% | 2.25 - 0.68 | big favourite 68%, 2.14 - 0.86 |
+  | strong v medium | 60% | 18% | 22% | 1.78 - 0.81 | clear favourite 57%, 1.84 - 1.04 |
+
+  All nine pairings (home v away; goals home - away; shots home - away; home win / draw / away win %):
+
+  | home v away | goals | shots | result % |
+  |---|---|---|---|
+  | weak v weak | 1.58 - 0.75 | 12.9 - 6.4 | 59 / 23 / 18 |
+  | weak v medium | 0.89 - 1.49 | 8.2 - 15.6 | 25 / 25 / 51 |
+  | weak v strong | 0.69 - 1.83 | 5.4 - 21.3 | 13 / 21 / 66 |
+  | medium v weak | 3.00 - 0.46 | 24.9 - 4.6 | 87 / 9 / 3 |
+  | **medium v medium (baseline, unchanged)** | **1.89 - 0.87** | **18.4 - 12.4** | **58 / 25 / 17** |
+  | medium v strong | 1.23 - 1.31 | 14.5 - 17.6 | 37 / 23 / 40 |
+  | strong v weak | 3.30 - 0.15 | 31.4 - 2.2 | 95 / 4 / 1 |
+  | strong v medium | 2.25 - 0.39 | 25.3 - 8.3 | 81 / 13 / 7 |
+  | strong v strong | 1.62 - 0.82 | 19.6 - 15.2 | 55 / 29 / 17 |
+
+  Possession stays near 50% in every pairing (it is the shots that move, as in real football). **Not changed, but noticed**: the home edge between equal
+  teams is bigger than the real one (medium v medium 58 / 25 / 17 and 1.89 - 0.87, real 44 / 23 / 32 and 1.55 - 1.28). Team A (home) is also the zonal team and
+  Team B the man-to-man one, so part of it may be the tactics and not home advantage; it was like that before this branch.
+- Tests: `TeamStrengthTests` (valid squads at every strength; medium unchanged; each step at least 5 attribute points; the stronger side scores more and wins more than it loses, 48
+  matches per pairing, both seats; the biggest mismatch stays between 62% and 92%, not a massacre). Verified in the browser: choosing the strengths in the page reaches the engine and the squads that
+  come back differ (speed 84 v 50 with strong at home and weak away).
+## `fix/landscape-layout`
+
+**A phone on its side: the pitch fills the screen's height and the controls sit beside it.** Before (a live match in a 1000 x 375 frame): a small pitch in the middle with big empty
+margins, the title cut off at the top and the controls (speed, LIVE, the slider) below the fold. Now, in a short landscape window (640 px or less): the pitch takes the full height
+(left column), the controls are a rail on the right (mode buttons, sound, speed, the LIVE badge and who plays, the slider, the clock), the title is gone (the scoreboard on the pitch
+already says who plays) and the manager's panels follow below at full width. Checked at 1000 x 375, 844 x 390 and 1280 x 600 (a small laptop window); portrait, tablet and desktop are
+unchanged. CSS only.
+
+## `fix/layout-responsive`
+
+**The page checked at four sizes (phone upright / on its side, tablet, desktop) and the ugly parts fixed.**
+- **Line-up card on an upright phone**: the logo sat on top of the team name, the title wrapped into the logo, the little pitch lay over the list
+  and the list was cut off. Now (in any narrow pitch box): list on the left, little pitch on the right, all eleven names visible, nothing overlaps.
+- **Phone on its side**: the pitch was taller than the screen. It now fits the screen height (title shrinks to one slim line).
+- **Manager panel on a phone**: "THE MANAGER'S PICK" no longer breaks into three lines; the text goes under it.
+- Tablet and desktop are unchanged. CSS only - no engine change.
+- Full suite on the integrated preview branch (before this round): Passed 229 / 229.
+
+## `fix/player-size-by-height`
+
+**Smaller player circles, sized by the player's height.**
+- The minimum player circle is a little smaller (5.4 CSS px radius instead of 6.2), so they crowd each other less on a phone.
+- A player's circle now follows his height: 180 cm is the base size, each 10 cm more or less is about 6% bigger or smaller (165 cm: 91%,
+  195 cm: 109%, capped at 88%..112%). Numbers are fitted to the circle as before. Drawing only - no engine change, no effect on results.
+
+## `fix/mobile-pitch-resolution`
+
+**A sharp pitch on a phone, and shirt numbers that fit their circle.**
+- **The blur**: the page lowers its drawing quality when it thinks the device is slow, and it judged that by the time *between* frames. A phone
+  in low-power mode (or a busy browser) shows 30 frames a second, which looked like "slow" - so the pitch was drawn at 1x pixel density on a 3x
+  screen. It now judges by how long *the page* takes to draw a frame (a real slowdown still reduces effects and frame rate), and the pitch never
+  drops below 1.5x pixel density.
+- **The numbers**: a shirt number had a minimum size of 8 canvas pixels, while a player is a 3 px speck on a phone-width pitch (the whole pitch is
+  ~370 px wide), so the number spilled out of the circle. Now a player is never smaller than 6.2 CSS pixels in radius (about 12 px across - they
+  overlap a little more on a phone, but can be read), and the number is sized to fit inside the circle (a three-digit number is narrower).
+- **Correction**: the first diagnosis (low-power mode) was a guess from the colour of the battery icon, and it was wrong for the phone in question.
+  The cause on that phone is not confirmed, so the resolution no longer depends on the speed ladder at all: it stays at the device's pixel density
+  (up to 2x) always; a slow device sheds effects and frame rate instead. The developer view (or `#perf` in the address) shows a status line with
+  what the pitch is really drawn at: `pitch 744x563 (2x) · quality 0 · 20 fps · 2.2 ms`.
+- Checked at 420 px wide, 3x density, with 30 frames a second forced: before, the pitch canvas had 1 pixel per CSS pixel and the numbers were
+  unreadable; now it has 2 per CSS pixel and each number is inside its circle.
+## `feature/corner-routine-attack-tab`
+
+**The corner routine is in the Attack tab.** The right- and left-side routine choosers (varied, near post, far post, penalty spot, pulled
+back, short) were in Corners -> Takers, with the list of who takes them; the routine is where the corner is aimed, so it now sits in
+Corners -> Attack, above the set-up of who stands where. Takers keeps the taker lists and the zones. Checked in a browser: both
+selectors are in the Attack tab, none is left in Takers, and a changed routine is kept after the redraw.
+## `feature/board-drag-circle`
+
+**Dragging a player on the formation board**: the circle now comes along under the mouse - his shirt colours, his number and his name, the
+size it has on the board, centred on the pointer - so it is plain that he is really being carried (it used to be a small grey label
+hanging off the cursor). The place he left shows a faint, dashed circle (it was a half-faded dot with its label). Checked in a browser:
+the carried circle is centred on the pointer to the pixel, the left-behind dot is at 30% with a dashed outline, and it is gone on release.
+## `feature/crowd-sounds`
+
+**The crowd, properly.** What the crowd does for each event now lives in one place, `web/src/audio/crowdReactions.ts`, and is checked
+without a browser (`npm run check:audio` in `web/`: 26 scenarios, plus a loudness check for every reaction).
+- **The applause could not be heard at all**: the recording is very quiet (peak 0.12, a thirteenth of the others) and played at a
+  further-reduced level. It is now lifted (x10) - every reaction that uses it was silent before: a saved shot, a shot turned round the
+  post, the woodwork, a blocked shot, a draw at full time.
+- **The visitors score**: their fans celebrate loudly but **from one side only** (hard to one side, dull and far, gain 0.1 -> 0.55; it
+  was inaudible) and the whole rest of the ground boos (louder than the celebration), then the crowd goes quiet.
+- **The opponent fouls / is carded**: a foul on our player is jeered, a card for the visitors is applauded, a red card for them is a
+  roar and jeers; a card or free kick against us still angers the home end.
+- **A shot by the visitors**: the crowd swells (holds its breath); our keeper's save, a block by our defender, a shot turned round the
+  post for a corner and a shot off the woodwork get applause (relief); a home penalty is cheered.
+- **The final whistle**: a home win is cheered, a defeat booed, a draw applauded - **at the whistle**. Before, the reaction was tied to the
+  FullTime event, which the engine emits after the whole walk-off (30-40 seconds later). The engine now marks the final whistle (Detail
+  1; a whistle after ninety minutes that is followed by extra time or penalties is not marked; a shoot-out result still comes with the
+  FullTime event). `FinalWhistleTests` checks that the crowd is told the result exactly once, in league, cup and league cup.
+- Checked in a real browser (Playwright): all seven recordings decode, nine events in a row produce the expected reactions, no errors.
+  I cannot listen to it myself - the levels were checked by measurement (`MEASURED_LEVEL`), not by ear.
+## `feature/attack-rebounds-2`
+
+**Rebounds, the second round - a rebound shot now converts as often as a real one.** The engine takes as many rebound shots as reality (1.1 a
+match against 1.34) but scored half as many (about 10% against 21%). New counters (`rebound.*`) showed why, over 150 matches: the follow-up
+shots **died in the crowd** - 54% were blocked (22% of all shots are) and 35% missed - and the keeper saved three in four of those on target
+(reality: about three in five), although their xG (0.18) said they should convert at 18%. Three changes, all for the follow-up shot only
+(the same team's shot within 3 s, within 14 m of goal):
+- **A gap through the defenders**: each defender is, 55% of the time, caught moving or unsighted for a follow-up shot, so he does not get a leg
+  in the way (decided once per shot and per defender, from a hash - no random numbers drawn). Blocked: 54% -> about 30% of rebound shots.
+- **A cleaner finish**: the aim error is 35% smaller (he is already set, the keeper and the defenders are still recovering). Misses 35% -> 27%.
+- **The keeper is still getting up**: his chance to stop it is x0.7 (he has just made a save).
+200-plus matches on three seeds: rebound goals **0.14 -> 0.23-0.27 a match** (real 0.28), rebound conversion **10% -> 20-26%** (real 21%),
+share of open-play goals 5% -> 9-10% (real 12%); goals 2.64-2.79 a match (was 2.6-2.7), shots 29.7-30.2 (unchanged), first-time goals 53-56%.
+Tried first: only the gap (blocks fell, but the shots were saved or missed instead - goals did not move); only the sharper finish (same).
+Tests: the full suite passed 227 of 228; the one failure, `IndividualInstructionsChangeHowAPlayerPlays` (one player's long shots, 3.8 against 1.8 where
+it needs more than 4.1), averaged only four matches - too few for something this rare, so any change in the engine could tip it. It now
+averages sixteen and passes.
+
 ## `feature/teams-api`
 
 **The team generator's new address**: the squads came from `soccer-simulation.onrender.com`, which no longer answers.

@@ -24,11 +24,20 @@
 .pcard2 .flag i.inj::after { content: ""; position: absolute; left: 1px; top: 3.5px; width: 7px; height: 2px; background: #e2372f; }
 .pcard2.gone { opacity: .38; }
 .pcard2.drop { border-color: var(--good); box-shadow: 0 0 0 3px rgba(60,200,75,.4); }
-.pcard2.dragging, .fboard .fd.dragging { opacity: .35; }
+.pcard2.dragging { opacity: .35; }
+/* the board dot that is being carried: what it leaves behind is a faint, dashed circle (its label gone) */
+.fboard .fd.dragging { opacity: .3; }
+.fboard .fd.dragging circle { stroke-dasharray: 1.4 1; stroke: rgba(255,255,255,.9); stroke-width: .5; }
+.fboard .fd.dragging rect, .fboard .fd.dragging text.l { display: none; }
 .fboard .fd.drop circle { stroke: #3cc84b; stroke-width: 1.4; }
 .squad.anim .cards { overflow: visible; }
 .ghost { position: fixed; z-index: 60; pointer-events: none; opacity: .92; box-shadow: 0 8px 22px rgba(0,0,0,.5); transform: rotate(-3deg); }
-.fdghost { background: #ececef; color: #1b1f2b; border-radius: 6px; padding: 5px 9px; font: 700 12px var(--body); }
+/* the circle that comes with the mouse: the player's own shirt colours, centred on the pointer */
+.fdghost { box-sizing: border-box; border-radius: 50%; background: var(--kit-home, #fff); color: var(--kitn-home, #0e3a1d); border: 1.5px solid rgba(0,0,0,.5);
+  display: flex; align-items: center; justify-content: center; transform: none; opacity: .97; box-shadow: 0 6px 16px rgba(0,0,0,.55), 0 0 0 3px rgba(255,255,255,.35); }
+.fdghost.gk { background: var(--gk-home, #f2d22e); }
+.fdghost b { font: 800 14px var(--body); }
+.fdghost i { position: absolute; top: 100%; margin-top: 3px; font: 700 11px var(--body); font-style: normal; background: rgba(14,19,32,.85); color: #fff; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
 .sheet tr.gone td { text-decoration: line-through; opacity: .55; }
 .sheet small { text-decoration: none; }
 .pcard2 .rt { position: absolute; top: 3px; left: 3px; min-width: 22px; padding: 0 3px; border-radius: 4px; font: 800 10px/14px var(--body); color: #111; text-align: center; }
@@ -77,6 +86,7 @@
 .sheet tr.bench td { color: var(--muted); }
 .sheet tr.bench td.fit-Peak { color: var(--good); } .sheet tr.bench td.fit-Moderate { color: var(--ok); } .sheet tr.bench td.fit-Low { color: var(--bad); }
 .sheet tr.drop td { background: rgba(60,200,75,.28); }
+.perfnote { font: 600 11px var(--body); color: var(--muted); margin-left: 10px; white-space: nowrap; }
 .sheet tr.dragging td { opacity: .4; }
 .sheet tbody tr { user-select: none; }
 .sheet tr.sel td { background: rgba(111,128,170,.28); }
@@ -138,3 +148,27 @@
 .takers button[aria-pressed="true"] { background: var(--amber); color: #fff; }
 .takers .v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
 .takers .note { color: var(--muted); font-size: 13px; margin: 0 0 6px; }
+/* A phone (narrow screen): one part of the page at a time, so it is not one endless scroll */
+.ptabs, .svtabs { display: none; }
+@media (max-width: 760px) {
+  .ptabs, .svtabs { display: flex; gap: 4px; background: #1f2331; border-radius: 6px; padding: 4px; }
+  .ptabs button, .svtabs button { flex: 1; background: transparent; border: 0; color: #fff; padding: 10px 6px; border-radius: 4px; font: 600 14px/1 var(--body); }
+  .ptabs button[aria-selected="true"], .svtabs button[aria-selected="true"] { background: var(--amber); }
+  .svtabs { margin-bottom: 10px; }
+  /* the manager's own tabs: one scrolling row, not three lines */
+  .mtabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .mtabs::-webkit-scrollbar { display: none; }
+  .mtabs button { flex: none; white-space: nowrap; }
+  body[data-pv="story"] #tactics, body[data-pv="story"] #panFacts,
+  body[data-pv="facts"] #tactics, body[data-pv="facts"] #panStory { display: none; }
+  .mtab[data-pane="team"][data-sv="board"] .sheet-wrap, .mtab[data-pane="team"][data-sv="board"] .mtab-h, .mtab[data-pane="team"][data-sv="board"] .tac-grid,
+  .mtab[data-pane="team"][data-sv="squad"] .fboard-wrap, .mtab[data-pane="team"][data-sv="squad"] .mtab-h, .mtab[data-pane="team"][data-sv="squad"] .tac-grid,
+  .mtab[data-pane="team"][data-sv="tactics"] .team-grid { display: none; }
+  .mtab[data-pane="team"][data-sv="tactics"] .mtab-h { margin-top: 4px; }
+  /* the squad table fits the width: tighter cells, so the Rating column is on the screen and not behind a scroll */
+  .sheet th, .sheet td { padding: 7px 4px; font-size: 12.5px; }
+  .sheet td:nth-child(2) { min-width: 5.5em; }
+  .sheet .hon { display: none; }
+  /* a hint that the cards go on: they fade out at the right edge */
+  .cards { -webkit-mask-image: linear-gradient(90deg, #000 90%, transparent); mask-image: linear-gradient(90deg, #000 90%, transparent); }
+}

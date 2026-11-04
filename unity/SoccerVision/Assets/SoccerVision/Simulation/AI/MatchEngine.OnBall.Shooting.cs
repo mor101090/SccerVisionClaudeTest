@@ -13,6 +13,13 @@ namespace SoccerVision.Simulation
         private TeamAgent _lastShotTeam;
 
         private float _lastShotXg;
+        private bool _shotIsFollowUp;
+        private int _shotSerial;
+        /// <summary>How many defenders, of a hundred, do not get a leg in the way of a follow-up shot (caught moving, or the view is blocked).</summary>
+        private const int FollowUpGapPercent = 55;
+        private const float FollowUpRange = 14f, FollowUpSharpness = 0.65f;
+        /// <summary>The keeper's chance of stopping a follow-up shot, against the same shot as a first one (he has just made a save: he is getting up, off balance).</summary>
+        private const float FollowUpSaveFactor = 0.7f;
 
         /// <summary>How the last shot was struck: 0 foot, 1 volley, 2 cut inside, 3 direct free kick, 4 penalty, 5 header.</summary>
         private int _lastShotKind;
@@ -324,6 +331,11 @@ namespace SoccerVision.Simulation
             sigmaA *= accuracy;
             if (keeper != null && !penalty && Vec2.Distance(keeper.Pos, from) < 14f) sigmaA *= 1f + 0.5f * (1f - composure); // (cool in front of the keeper)
             if (openGoal) sigmaA *= 0.2f;
+            // The follow-up from close range (a rebound off the keeper, the post or a block): he is already set, the ball is at his feet or
+            // dropping into his stride, and the keeper and the defenders are still recovering from the first shot - the finish is cleaner
+            // (the real thing: one rebound in five is scored, twice the rate of any other shot from there).
+            bool followUp = _lastShotTeam == team && SimTime - _lastShotTime < 3f && !penalty && dist < FollowUpRange;
+            if (followUp) { sigmaA *= FollowUpSharpness; if (CollectDiagnostics) Count("shot.followUpSharp"); }
             float sigmaZ = (0.6f + 1.8f * (1f - skill)) * (1f + 0.5f * pressure) * p.FatigueError;
             if (openGoal) sigmaZ *= 0.3f;
             if (penalty) sigmaZ *= 0.35f;
@@ -334,6 +346,7 @@ namespace SoccerVision.Simulation
             float fixedLateral = (penalty ? 0.15f : openGoal ? 0.25f : 1.0f) * (1.3f - skill) * (1f + pressure);
             float fixedHeight = (penalty ? 0.15f : openGoal ? 0.2f : 0.55f + 1.0f * (1f - skill)) * (1f + 0.6f * pressure);
             if (tech == ShotTechnique.Chip) fixedHeight *= 0.3f;
+            if (followUp) { fixedLateral *= FollowUpSharpness; fixedHeight *= FollowUpSharpness; }
             float angle = dir.Angle + _rng.Gaussian(0f, sigmaA) + _rng.Gaussian(0f, fixedLateral / MathF.Max(3f, distToAim));
             vz += _rng.Gaussian(0f, sigmaZ) + _rng.Gaussian(0f, fixedHeight / flight);
             Vec2 v = Vec2.FromAngle(angle) * power;
@@ -352,6 +365,13 @@ namespace SoccerVision.Simulation
                 _shotTags = new[] { "zone." + zone, "assist." + (rebound ? "rebound" : assistKind), "how." + how };
                 foreach (var tg in _shotTags) Count("shot." + tg);
                 Count("shot.zh." + zone + "." + how);
+                if (rebound)
+                {
+                    Count("rebound.after." + LastOutcome); Count("rebound.zone." + zone); Count("rebound.how." + how);
+                    var kr = team.Opponent.Goalkeeper; float kd = kr != null ? Vec2.Distance(kr.Pos, from) : 99f;
+                    Count("rebound.keeper." + (kr == null || kr.SentOff ? "none" : kr.IsDown ? "down" : kd < 3f ? "a<3" : kd < 6f ? "b3-6" : "c6+"));
+                    MarkRebound(xg);
+                }
                 if (!header && !penalty && _lastShotKeeperBucket != null && _lastShotKeeperBucket.StartsWith("a<3"))
                 {
                     Count("shot.k3." + (rebound ? "rebound" : assistKind) + "." + how);
@@ -368,6 +388,9 @@ namespace SoccerVision.Simulation
             Ball.ShotKnuckle = knuckle;
             Ball.Shooter = p;
             Ball.ShotSpeed = power;
+            // a follow-up shot (the same team shot a moment ago): the defenders are still recovering from the first one
+            _shotIsFollowUp = followUp;
+            _shotSerial++;
             _lastShotTime = SimTime;
             _lastShotTeam = team;
             _lastShotXg = xg;

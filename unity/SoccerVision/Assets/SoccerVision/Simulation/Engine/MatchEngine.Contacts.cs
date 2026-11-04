@@ -115,6 +115,9 @@ namespace SoccerVision.Simulation
                     // Defenders expect shots: a set defender in the lane gets a sliding block in.
                     surprised = false;
                     footReach = 0.95f;
+                    // ...but not to the second shot, the rebound: he is still turning from the first one, or the man in front of him blocks his view
+                    // (decided once per shot and per defender, not at every step the ball is near him)
+                    if (_shotIsFollowUp && ((p.Index * 37 + _shotSerial * 11) % 100) < FollowUpGapPercent) { if (CollectDiagnostics) Count("block.followUpGap"); continue; }
                 }
                 ContactKind kind = ContactKind.None;
                 bool handsAllowed = p.IsGoalkeeper && Ball.HandlingForbiddenFor != p.Team

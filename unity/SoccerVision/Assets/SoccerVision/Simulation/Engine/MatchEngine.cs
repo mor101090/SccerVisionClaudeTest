@@ -114,6 +114,7 @@ namespace SoccerVision.Simulation
 
         public MatchPhase Phase { get; private set; }
         public TeamAgent PossessionTeam { get; private set; }
+        private TeamAgent _lastPossessionTeam;
         public Restart CurrentRestart => _restart;
 
         /// <summary>Sim seconds since the engine was created.</summary>
@@ -515,6 +516,7 @@ namespace SoccerVision.Simulation
             if (Phase != MatchPhase.Live) return;
 
             if (PossessionTeam != null) PossessionTeam.Stats.PossessionSeconds += dt;
+            if (PossessionTeam != _lastPossessionTeam) { if (PossessionTeam != null) PossessionTeam.Stats.PossessionSpells++; _lastPossessionTeam = PossessionTeam; }
             if (_penaltyKickTime >= 0f && SimTime - _penaltyKickTime > 2.5f) _penaltyKickTime = -1f;
 
             CheckEndOfHalfLive();
@@ -737,7 +739,8 @@ namespace SoccerVision.Simulation
             else
             {
                 if (Clock.Period == MatchPeriod.SecondHalf) SecondHalfRealSeconds = RealTimeElapsed - _periodRealStart;
-                Emit(MatchEventType.Whistle, null, null, null, Ball.Pos, 0f, WhistleKind.FullTime);
+                // (Detail 1: the final whistle - the crowd reacts to the result now, not when the walk-off is over)
+                Emit(MatchEventType.Whistle, null, null, null, Ball.Pos, 0f, WhistleKind.FullTime, 1);
                 Clock.Period = MatchPeriod.FullTime;
                 foreach (var t in Teams) FinaliseStats(t);
                 // not the end of the picture: the winners celebrate and thank their fans, the losers walk off - then it is over
@@ -816,6 +819,7 @@ namespace SoccerVision.Simulation
                 Whistle = whistle,
                 Detail = detail,
             };
+            if (CollectDiagnostics) TrackShotOutcome(type);
             e.Text = Commentary.Describe(e, this);
             RateEvent(e, player, other);
             EventLog.Add(e);
@@ -898,6 +902,17 @@ namespace SoccerVision.Simulation
         {
             RuleViolations++;
             Count("violation." + what);
+        }
+
+        // ---- diagnostics: what happened to a shot, and what became of the shot that followed it up (the rebounds) ----
+        private string _lastOutcome = "none"; private float _lastOutcomeAt = -100f; private bool _reboundPending; private float _reboundAt = -100f;
+        internal string LastOutcome => SimTime - _lastOutcomeAt < 3f ? _lastOutcome : "none";
+        internal void MarkRebound(float xg) { _reboundPending = true; _reboundAt = SimTime; Diagnostics.TryGetValue("rebound.xgMilli", out int v); Diagnostics["rebound.xgMilli"] = v + (int)(xg * 1000f); }
+        private void TrackShotOutcome(MatchEventType type)
+        {
+            if (type != MatchEventType.Save && type != MatchEventType.ShotBlocked && type != MatchEventType.HitWoodwork && type != MatchEventType.ShotOffTarget && type != MatchEventType.Goal) return;
+            if (_reboundPending && SimTime - _reboundAt < 5f) { Count("rebound.result." + type); _reboundPending = false; }
+            if (type != MatchEventType.Goal) { _lastOutcome = type.ToString(); _lastOutcomeAt = SimTime; }
         }
 
         internal void Count(string key)

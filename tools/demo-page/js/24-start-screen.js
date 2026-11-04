@@ -17,6 +17,15 @@
   var REF_PICKS = ["#1b1b1b", "#f9d71c", "#e05aa0", "#18c6c6", "#2e9e4f", "#f57c00", "#7d8796", "#6a3fb5"];
   function awayKeeper() { var used = [KIT.home.base, KIT.away.base, KIT.gk.base]; return KEEPER_PICKS.filter(function (c) { return !clashAny(c, used); })[0] || "#2e9e4f"; }
   function refShirt() { var used = [KIT.home.base, KIT.away.base, KIT.gk.base, OTHER_GK ? OTHER_GK.base : awayKeeper()]; return REF_PICKS.filter(function (c) { return !clashAny(c, used); })[0] || "#1b1b1b"; }
+  // How good your team and the opponent are (weak / medium / strong squads): only sets the choice - the match that follows uses it
+  function syncStrength() {
+    document.querySelectorAll(".seg[data-str]").forEach(function (g) {
+      g.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === SET[g.getAttribute("data-str")])); });
+    });
+  }
+  document.querySelectorAll(".seg[data-str]").forEach(function (g) {
+    g.addEventListener("click", function (ev) { var b = ev.target.closest("button"); if (!b) return; SET[g.getAttribute("data-str")] = b.getAttribute("data-v"); syncStrength(); });
+  });
   function userSettings() {
     var o = {}; for (var k in DEFAULTS) o[k] = DEFAULTS[k];
     o.grass = "across"; o.weather = "Sunny"; o.night = false; // (sunny, day, stripes across - the rest as it comes)
@@ -97,6 +106,7 @@
     SET = userSettings(); syncSettingsUi();
     KIT_MODE = mode;
     $("kTitle").textContent = mode === "online" ? "Your kits for the online game" : "Your kits";
+    $("kitStrength").hidden = mode === "online"; syncStrength();
     $("kitGo").hidden = mode === "online"; $("kitHost").hidden = $("kitJoin").hidden = mode !== "online"; $("kitInvite").hidden = true;
     $("kitNext").textContent = mode === "online" ? "Your friend picks his own kits. If his shirt looks like yours, one of you wears the second kit - you both see it before the match." : "Next: your eleven, the formation and the instructions - then start the match.";
     $("welcome").hidden = true; drawKitPicker(); $("kitSetup").hidden = false; (mode === "online" ? $("kitHost") : $("kitGo")).focus();
@@ -247,4 +257,18 @@
   }
   if (!joinFromLink() && !gameFromLink()) $("asUser").focus();
   requestAnimationFrame(frame);
+  // ---- a phone: one thing at a time ---------------------------------------------------------------------------------
+  // On a narrow screen the page is a very long scroll (manager, formation, the whole squad table, instructions, commentary, facts).
+  // These two tab rows show one part at a time; on a wide screen they are hidden (CSS) and everything shows as before.
+  function pickTab(rowId, attr, apply) {
+    var row = $(rowId); if (!row) return;
+    row.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      var v = b.getAttribute(attr);
+      row.querySelectorAll("button").forEach(function (o) { o.setAttribute("aria-selected", String(o === b)); });
+      apply(v);
+    });
+  }
+  pickTab("ptabs", "data-pv", function (v) { document.body.setAttribute("data-pv", v); });
+  pickTab("svtabs", "data-sv", function (v) { var pane = document.querySelector('.mtab[data-pane="team"]'); if (pane) pane.setAttribute("data-sv", v); });
 })();

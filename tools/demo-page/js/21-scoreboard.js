@@ -66,16 +66,34 @@
   function setText(id, v) { if (shownText[id] !== v) { shownText[id] = v; $(id).textContent = v; } }
   // Adaptive quality: when frames take too long (a weak device), first the resolution and the amount of rain / snow
   // drop, then the picture is drawn at 30 frames a second (an even, smooth pace) instead of stuttering below 60.
-  var QUALITY = 0, frameAvg = 16, slowFor = 0, skip = false;
-  function adaptQuality(ms) {
-    frameAvg = frameAvg * .95 + ms * .05;
-    slowFor = frameAvg > (QUALITY >= 2 ? 36 : 20) ? slowFor + 1 : 0;
-    if (slowFor > 90 && QUALITY < 3) { QUALITY++; slowFor = 0; frameAvg = 16; resize(); }
+  var QUALITY = 0, frameAvg = 6, slowFor = 0, skip = false;
+  // How long THIS page takes to draw a frame decides whether the device is slow - not the time between frames: a phone in low-power mode
+  // (30 frames a second) or a busy browser stretches that without the page being slow, and the pitch used to be blurred for it.
+  function adaptQuality(workMs) {
+    frameAvg = frameAvg * .95 + workMs * .05;
+    slowFor = frameAvg > (QUALITY >= 2 ? 26 : 14) ? slowFor + 1 : 0;
+    if (slowFor > 90 && QUALITY < 3) { QUALITY++; slowFor = 0; frameAvg = 6; resize(); }
   }
+  var perfFrames = 0, perfAt = 0, perfWork = 0;
   function frame(now) {
     requestAnimationFrame(frame);
-    if (QUALITY >= 3) { skip = !skip; if (skip) return; } // 30 frames a second
-    var dt = Math.max(0, Math.min(.25, (now - last) / 1000)); adaptQuality((now - last) / (QUALITY >= 3 ? 2 : 1)); last = now;
+    var t0 = performance.now(), ran = frameBody(now), work = performance.now() - t0;
+    if (ran) adaptQuality(work);
+    // a status line for the developer view (or #perf): what the pitch is really drawn at, so a blurred pitch can be explained, not guessed at
+    perfFrames++; perfWork += work;
+    if (now - perfAt > 1000) {
+      var el = $("perf");
+      if (el) {
+        var show = ROLE === "dev" || /perf/.test(location.hash);
+        if (el.hidden === show) el.hidden = !show;
+        if (show) el.textContent = "pitch " + cv.width + "x" + cv.height + " (" + (view.dpr || 1) + "x) · quality " + QUALITY + " · " + Math.round(perfFrames * 1000 / Math.max(1, now - perfAt)) + " fps · " + (perfWork / Math.max(1, perfFrames)).toFixed(1) + " ms";
+      }
+      perfAt = now; perfFrames = 0; perfWork = 0;
+    }
+  }
+  function frameBody(now) { // (true if it drew a frame)
+    if (QUALITY >= 3) { skip = !skip; if (skip) return false; } // 30 frames a second
+    var dt = Math.max(0, Math.min(.25, (now - last) / 1000)); last = now;
     if (!R) return;
     if (!F || !F.length) { if (!cv.width) resize(); pitch(); return; }
     if (now - (frame.mgrAt || 0) > 1000) { frame.mgrAt = now; drawCards(); if (!document.querySelector('.mtab[data-pane="team"]').hidden) drawSheet(); }
@@ -119,4 +137,5 @@
     if (Math.abs(+seek.value - t) > .4) seek.value = t;
     setText("rt", mmss(t - t0) + " / " + mmss(tEnd - t0));
     rebuildFeed();
+    return true;
   }

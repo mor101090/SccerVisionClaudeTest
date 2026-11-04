@@ -41,6 +41,8 @@ namespace SoccerVision.Simulation
         private readonly List<KickPlan> _options = new List<KickPlan>(64);
 
         private float _riskPremium;
+        /// <summary>The risk premium before a team's style (possession) or a player's role (tempo setter) made it larger: what a shot costs. Keeping the ball does not make a team shoot less.</summary>
+        private float _shotRiskPremium;
         private bool _nextKickHeel;
 
         private string _lastPassKey;
@@ -101,9 +103,11 @@ namespace SoccerVision.Simulation
             float lossNow = LossCost(team, pos);
             // Losing the ball also forfeits what we have now; cautious teams weigh that more.
             _riskPremium = xtNow * (0.6f + 0.8f * (1f - team.Eff.Mentality)) * (f < -17.5f ? 1.3f : 1f);
-            if (team.Tactics.Special == SpecialTactic.Possession) _riskPremium *= 1.65f; // keeping the ball: no gambles
+            float keepingTheBall = team.Tactics.Special == SpecialTactic.Possession ? 1.65f : 1f;
+            _riskPremium *= keepingTheBall; // keeping the ball: no gambles
             if (p.PlayRole == PlayerRole.TempoSetter) _riskPremium *= 1.3f;             // he keeps it moving, safely
             else if (p.PlayRole == PlayerRole.DeepLyingPlaymaker || p.PlayRole == PlayerRole.Regista) _riskPremium *= 1.15f;
+            _shotRiskPremium = _riskPremium / keepingTheBall; // (a shot costs what it always did: keeping the ball does not make a team shoot less)
             _options.Clear();
 
             // HOLD / shield
@@ -176,8 +180,9 @@ namespace SoccerVision.Simulation
                 tendency *= p.CutInUntil > SimTime ? 0.92f : 0.72f; // (the cut inside and shoot is the winger's signature) // (the cut inside and shoot is the winger's signature: left as it was)
                 if (p.FirstTimeUntil > SimTime) tendency *= 2.6f; // (set to hit it first time)
                 if (openGoal) { tendency = MathF.Max(tendency, 3f); if (CollectDiagnostics) Count("shot.openGoal.considered"); }
+                { Patience(team, out float styleOnly); if (styleOnly > 0f) tendency *= 1f + PatientShotBoost * styleOnly; } // (a team that has worked the ball into the box takes its chances)
                 // A shot that does not score usually hands the ball over (goal kick, keeper, block).
-                float afterShotLoss = 0.011f + 0.4f * _riskPremium; // (a shot that does not go in hands the ball over: a poor one is a ball given away)
+                float afterShotLoss = 0.011f + 0.4f * _shotRiskPremium; // (a shot that does not go in hands the ball over: a poor one is a ball given away)
                 _options.Add(new KickPlan
                 {
                     Action = BallAction.Shoot,
@@ -269,7 +274,7 @@ namespace SoccerVision.Simulation
                         // (a cool head may wait a beat; the unselfish one looks up first; and a shot that will not go in still gives
                         // the ball away - a poor chance in the box is not worth more than keeping the ball for a better one)
                         float boxShot = xgNow * (1.05f - 0.15f * MathUtil.A(p.Attr.Composure)) * (p.Has(PlayerTrait.Unselfish) ? 0.8f : 1f)
-                                        - (1f - xgNow) * (0.017f + 0.3f * _riskPremium) * (p.FirstTimeUntil > SimTime ? 0.5f : 1f);
+                                        - (1f - xgNow) * (0.017f + 0.3f * _shotRiskPremium) * (p.FirstTimeUntil > SimTime ? 0.5f : 1f);
                         so.Utility = MathF.Max(so.Utility, boxShot);
                         _options[shootAt] = so;
                         for (int i = 0; i < _options.Count; i++)

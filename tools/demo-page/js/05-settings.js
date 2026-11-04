@@ -1,5 +1,5 @@
   // ---- developer settings ----------------------------------------------------------------------------
-  var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null, refs: null, snowLines: "yellow", snowCover: "cleared", cb: "0", gest: "1", comp: "League", stadium: "stand" };
+  var DEFAULTS = { pace: 100, grass: "along", maint: "2", weather: "Sunny", wind: "0", night: "0", net: "#ebf0eb", home: null, away: null, refs: null, snowLines: "yellow", snowCover: "cleared", cb: "0", gest: "1", comp: "League", hstr: "medium", astr: "medium", stadium: "stand" };
   var SET = (function () { var o = {}; for (var k in DEFAULTS) o[k] = DEFAULTS[k]; try { var st = JSON.parse(localStorage.getItem("sv-dev-settings") || "{}"); for (var k2 in st) if (k2 in DEFAULTS) o[k2] = st[k2]; } catch (e) {} return o; })();
   SET.night = SET.night === true || SET.night === "1";
   function saveSettings() {
@@ -9,7 +9,7 @@
     } catch (e) {}
   }
   // Which recording fits the chosen conditions: d(ry)/r(ain)/s(now) + upkeep 2/1/0 + wind 0/1 ("d20" is the normal one).
-  function condCode() { return (SET.weather === "Rain" ? "r" : SET.weather === "Snow" ? "s" : "d") + SET.maint + SET.wind + (SET.comp || "League"); }
+  function condCode() { return (SET.weather === "Rain" ? "r" : SET.weather === "Snow" ? "s" : "d") + SET.maint + SET.wind + (SET.comp || "League") + SET.hstr + SET.astr; }
   function syncSettingsUi() {
     $("pace").value = SET.pace; $("paceText").textContent = SET.pace + "%";
     document.querySelectorAll(".seg[data-set]").forEach(function (g) {

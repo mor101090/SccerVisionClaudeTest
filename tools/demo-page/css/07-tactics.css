@@ -39,3 +39,4 @@ body.live .tac-status b { background: #d50000; color: #fff; }
 .cpu-note { margin: 0; font-size: 12px; color: var(--muted); }
 .tac-toast { position: absolute; left: 50%; top: 13%; transform: translate(-50%, -6px); background: rgba(30,34,48,.94); border: 1px solid var(--amber); color: #fff; padding: 7px 14px; border-radius: 999px; font: 600 clamp(11px, 1.4cqi, 14px)/1.2 var(--body); opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; white-space: nowrap; }
 .tac-toast.show { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 520px) { .tac-status { flex-wrap: wrap; } .tac-status b { white-space: nowrap; } }

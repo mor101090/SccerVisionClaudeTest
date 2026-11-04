@@ -1,0 +1,1513 @@
+[
+ {
+  "id": "8a0ac984-f71a-4247-a88b-759131db6e32",
+  "name": "Mateo Novak",
+  "shirt_number": 1,
+  "position": "goalkeeper",
+  "side": "C",
+  "role": "shot_stopper",
+  "level": "Normal",
+  "age": 27,
+  "height": 182,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 2,
+   "weak_foot_stars": 3
+  },
+  "weak_foot_stars": 3,
+  "stamina": 57,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "overall": 68,
+  "potential": null,
+  "squad_role": "starter",
+  "stats": {
+   "mental": {
+    "aggression": 19,
+    "teamwork": 69,
+    "decisions": 73,
+    "composure": 54
+   },
+   "athletic": {
+    "physical_power": 63,
+    "ball_control": 55,
+    "dribbling": 38,
+    "jumping": 71,
+    "acceleration": 51,
+    "speed": 59,
+    "heading": 74
+   },
+   "set_pieces": {
+    "free_kicks": 37,
+    "penalty": 36
+   },
+   "goalkeeping": {
+    "aerial_ability": 66,
+    "handling": 69,
+    "kicking": 57,
+    "one_on_one": 71,
+    "reflexes": 74
+   }
+  },
+  "averages": {
+   "mental": 54,
+   "athletic": 59,
+   "set_pieces": 36,
+   "goalkeeping": 67
+  }
+ },
+ {
+  "id": "df302b04-01ab-43e5-ab1e-97e7ab3f55c3",
+  "name": "Leo Jackson",
+  "shirt_number": 3,
+  "position": "fullback",
+  "side": "L",
+  "role": "defensive",
+  "level": "Normal",
+  "age": 25,
+  "height": 178,
+  "preferred_foot": {
+   "dominant_foot": "Left",
+   "weak_foot_level": 1,
+   "weak_foot_stars": 1
+  },
+  "weak_foot_stars": 1,
+  "stamina": 72,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "overall": 65,
+  "potential": null,
+  "squad_role": "starter",
+  "stats": {
+   "mental": {
+    "aggression": 10,
+    "teamwork": 31,
+    "decisions": 55,
+    "composure": 44
+   },
+   "athletic": {
+    "physical_power": 59,
+    "ball_control": 60,
+    "dribbling": 57,
+    "jumping": 49,
+    "acceleration": 86,
+    "speed": 81,
+    "heading": 50
+   },
+   "set_pieces": {
+    "free_kicks": 66,
+    "penalty": 75
+   },
+   "defense": {
+    "tackling": 70,
+    "marking": 75,
+    "positioning": 62
+   },
+   "attack": {
+    "finishing": 33,
+    "long_shots": 39,
+    "off_the_ball": 40
+   },
+   "playmaking": {
+    "creative": 53,
+    "passing": 46,
+    "crossing": 64
+   }
+  },
+  "averages": {
+   "mental": 35,
+   "defense": 69,
+   "attack": 37,
+   "playmaking": 54,
+   "athletic": 63,
+   "set_pieces": 70
+  }
+ },
+ {
+  "id": "eca61503-2dc7-4552-af8e-80a223ebbd09",
+  "name": "Daniel Haddad",
+  "shirt_number": 4,
+  "position": "defender",
+  "side": "L",
+  "role": "ball_playing",
+  "level": "Normal",
+  "age": 30,
+  "height": 180,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 3,
+   "weak_foot_stars": 4
+  },
+  "weak_foot_stars": 4,
+  "stamina": 67,
+  "fitness": "Low",
+  "nationality": "CountryB",
+  "overall": 68,
+  "potential": null,
+  "squad_role": "starter",
+  "stats": {
+   "mental": {
+    "aggression": 21,
+    "teamwork": 10,
+    "decisions": 52,
+    "composure": 51
+   },
+   "athletic": {
+    "physical_power": 64,
+    "ball_control": 50,
+    "dribbling": 48,
+    "jumping": 79,
+    "acceleration": 60,
+    "speed": 59,
+    "heading": 78
+   },
+   "set_pieces": {
+    "free_kicks": 34,
+    "penalty": 73
+   },
+   "defense": {
+    "tackling": 73,
+    "marking": 73,
+    "positioning": 67
+   },
+   "attack": {
+    "finishing": 28,
+    "long_shots": 30,
+    "off_the_ball": 26
+   },
+   "playmaking": {
+    "creative": 56,
+    "passing": 53,
+    "crossing": 49
+   }
+  },
+  "averages": {
+   "mental": 34,
+   "defense": 71,
+   "attack": 28,
+   "playmaking": 53,
+   "athletic": 63,
+   "set_pieces": 54
+  }
+ },
+ {
+  "id": "a9108154-78a4-4c16-85f3-7924ca751389",
+  "name": "Daniel Haddad",
+  "shirt_number": 5,
+  "position": "defender",
+  "side": "R",
+  "role": "ball_playing",
+  "level": "Normal",
+  "age": 25,
+  "height": 186,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 3,
+   "weak_foot_stars": 4
+  },
+  "weak_foot_stars": 4,
+  "stamina": 61,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "overall": 67,
+  "potential": null,
+  "squad_role": "starter",
+  "stats": {
+   "mental": {
+    "aggression": 6,
+    "teamwork": 35,
+    "decisions": 24,
+    "composure": 54
+   },
+   "athletic": {
+    "physical_power": 55,
+    "ball_control": 55,
+    "dribbling": 52,
+    "jumping": 71,
+    "acceleration": 64,
+    "speed": 82,
+    "heading": 68
+   },
+   "set_pieces": {
+    "free_kicks": 61,
+    "penalty": 59
+   },
+   "defense": {
+    "tackling": 73,
+    "marking": 79,
+    "positioning": 68
+   },
+   "attack": {
+    "finishing": 30,
+    "long_shots": 34,
+    "off_the_ball": 31
+   },
+   "playmaking": {
+    "creative": 50,
+    "passing": 57,
+    "crossing": 48
+   }
+  },
+  "averages": {
+   "mental": 30,
+   "defense": 73,
+   "attack": 32,
+   "playmaking": 52,
+   "athletic": 64,
+   "set_pieces": 60
+  }
+ },
+ {
+  "id": "7052ab73-e0fc-4397-bd6c-2bb657b5b183",
+  "name": "Leo Johnson",
+  "shirt_number": 2,
+  "position": "fullback",
+  "side": "R",
+  "role": "wing_back",
+  "level": "Normal",
+  "age": 27,
+  "height": 176,
+  "preferred_foot": {
+   "dominant_foot": "Left",
+   "weak_foot_level": 3,
+   "weak_foot_stars": 4
+  },
+  "weak_foot_stars": 4,
+  "stamina": 73,
+  "fitness": "Peak",
+  "nationality": "CountryC",
+  "overall": 67,
+  "potential": null,
+  "squad_role": "starter",
+  "stats": {
+   "mental": {
+    "aggression": 28,
+    "teamwork": 46,
+    "decisions": 92,
+    "composure": 52
+   },
+   "athletic": {
+    "physical_power": 65,
+    "ball_control": 67,
+    "dribbling": 67,
+    "jumping": 66,
+    "acceleration": 73,
+    "speed": 85,
+    "heading": 61
+   },
+   "set_pieces": {
+    "free_kicks": 51,
+    "penalty": 49
+   },
+   "defense": {
+    "tackling": 72,
+    "marking": 59,
+    "positioning": 67
+   },
+   "attack": {
+    "finishing": 40,
+    "long_shots": 41,
+    "off_the_ball": 56
+   },
+   "playmaking": {
+    "creative": 55,
+    "passing": 53,
+    "crossing": 71
+   }
+  },
+  "averages": {
+   "mental": 54,
+   "defense": 66,
+   "attack": 46,
+   "playmaking": 60,
+   "athletic": 69,
+   "set_pieces": 50
+  }
+ },
+ {
+  "id": "28764923-a6b7-4f66-b139-d05dbbc8f16f",
+  "name": "Robert Kowalski",
+  "shirt_number": 11,
+  "position": "winger",
+  "side": "L",
+  "role": "traditional",
+  "level": "Normal",
+  "age": 34,
+  "height": 177,
+  "preferred_foot": {
+   "dominant_foot": "Left",
+   "weak_foot_level": 1,
+   "weak_foot_stars": 2
+  },
+  "weak_foot_stars": 2,
+  "stamina": 53,
+  "fitness": "Peak",
+  "nationality": "CountryC",
+  "overall": 68,
+  "potential": null,
+  "squad_role": "starter",
+  "stats": {
+   "mental": {
+    "aggression": 77,
+    "teamwork": 75,
+    "decisions": 5,
+    "composure": 68
+   },
+   "athletic": {
+    "physical_power": 50,
+    "ball_control": 69,
+    "dribbling": 70,
+    "jumping": 56,
+    "acceleration": 63,
+    "speed": 63,
+    "heading": 56
+   },
+   "set_pieces": {
+    "free_kicks": 65,
+    "penalty": 75
+   },
+   "defense": {
+    "tackling": 33,
+    "marking": 27,
+    "positioning": 49
+   },
+   "attack": {
+    "finishing": 58,
+    "long_shots": 63,
+    "off_the_ball": 72
+   },
+   "playmaking": {
+    "creative": 58,
+    "passing": 63,
+    "crossing": 84
+   }
+  },
+  "averages": {
+   "mental": 56,
+   "defense": 36,
+   "attack": 64,
+   "playmaking": 68,
+   "athletic": 61,
+   "set_pieces": 70
+  }
+ },
+ {
+  "id": "a7e11fc6-636f-43e3-93f2-4370b9261396",
+  "name": "Kofi Rossi",
+  "shirt_number": 8,
+  "position": "midfielder",
+  "side": "C",
+  "role": "box_to_box",
+  "level": "Normal",
+  "age": 23,
+  "height": 186,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 2,
+   "weak_foot_stars": 3
+  },
+  "weak_foot_stars": 3,
+  "stamina": 91,
+  "fitness": "Peak",
+  "nationality": "CountryB",
+  "overall": 61,
+  "potential": 69,
+  "squad_role": "starter",
+  "stats": {
+   "mental": {
+    "aggression": 14,
+    "teamwork": 50,
+    "decisions": 65,
+    "composure": 52
+   },
+   "athletic": {
+    "physical_power": 60,
+    "ball_control": 60,
+    "dribbling": 68,
+    "jumping": 54,
+    "acceleration": 64,
+    "speed": 67,
+    "heading": 55
+   },
+   "set_pieces": {
+    "free_kicks": 68,
+    "penalty": 51
+   },
+   "defense": {
+    "tackling": 49,
+    "marking": 48,
+    "positioning": 48
+   },
+   "attack": {
+    "finishing": 53,
+    "long_shots": 63,
+    "off_the_ball": 57
+   },
+   "playmaking": {
+    "creative": 71,
+    "passing": 68,
+    "crossing": 71
+   }
+  },
+  "averages": {
+   "mental": 45,
+   "defense": 48,
+   "attack": 58,
+   "playmaking": 70,
+   "athletic": 61,
+   "set_pieces": 60
+  }
+ },
+ {
+  "id": "0e377336-faed-4354-998f-46864389eab4",
+  "name": "Leo Martin",
+  "shirt_number": 10,
+  "position": "midfielder",
+  "side": "C",
+  "role": "playmaker",
+  "level": "Normal",
+  "age": 32,
+  "height": 166,
+  "preferred_foot": {
+   "dominant_foot": "Left",
+   "weak_foot_level": 2,
+   "weak_foot_stars": 3
+  },
+  "weak_foot_stars": 3,
+  "stamina": 69,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "overall": 59,
+  "potential": null,
+  "squad_role": "starter",
+  "stats": {
+   "mental": {
+    "aggression": 14,
+    "teamwork": 55,
+    "decisions": 31,
+    "composure": 45
+   },
+   "athletic": {
+    "physical_power": 51,
+    "ball_control": 64,
+    "dribbling": 64,
+    "jumping": 46,
+    "acceleration": 64,
+    "speed": 65,
+    "heading": 50
+   },
+   "set_pieces": {
+    "free_kicks": 51,
+    "penalty": 69
+   },
+   "defense": {
+    "tackling": 44,
+    "marking": 51,
+    "positioning": 50
+   },
+   "attack": {
+    "finishing": 44,
+    "long_shots": 62,
+    "off_the_ball": 56
+   },
+   "playmaking": {
+    "creative": 73,
+    "passing": 72,
+    "crossing": 74
+   }
+  },
+  "averages": {
+   "mental": 36,
+   "defense": 48,
+   "attack": 54,
+   "playmaking": 73,
+   "athletic": 58,
+   "set_pieces": 60
+  }
+ },
+ {
+  "id": "02bd8813-b53f-42ba-b687-344e1b7ae40e",
+  "name": "Omar Martin",
+  "shirt_number": 7,
+  "position": "winger",
+  "side": "R",
+  "role": "traditional",
+  "level": "Normal",
+  "age": 20,
+  "height": 171,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1,
+   "weak_foot_stars": 2
+  },
+  "weak_foot_stars": 2,
+  "stamina": 62,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "overall": 61,
+  "potential": 68,
+  "squad_role": "starter",
+  "stats": {
+   "mental": {
+    "aggression": 70,
+    "teamwork": 13,
+    "decisions": 65,
+    "composure": 53
+   },
+   "athletic": {
+    "physical_power": 52,
+    "ball_control": 55,
+    "dribbling": 56,
+    "jumping": 49,
+    "acceleration": 67,
+    "speed": 57,
+    "heading": 49
+   },
+   "set_pieces": {
+    "free_kicks": 50,
+    "penalty": 52
+   },
+   "defense": {
+    "tackling": 30,
+    "marking": 29,
+    "positioning": 41
+   },
+   "attack": {
+    "finishing": 58,
+    "long_shots": 53,
+    "off_the_ball": 62
+   },
+   "playmaking": {
+    "creative": 61,
+    "passing": 66,
+    "crossing": 69
+   }
+  },
+  "averages": {
+   "mental": 50,
+   "defense": 33,
+   "attack": 58,
+   "playmaking": 65,
+   "athletic": 55,
+   "set_pieces": 51
+  }
+ },
+ {
+  "id": "205187a0-8773-43fc-a886-e646b74cf5ad",
+  "name": "Kofi Martin",
+  "shirt_number": 9,
+  "position": "striker",
+  "side": "C",
+  "role": "target_man",
+  "level": "Normal",
+  "age": 24,
+  "height": 174,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 2,
+   "weak_foot_stars": 3
+  },
+  "weak_foot_stars": 3,
+  "stamina": 70,
+  "fitness": "Moderate",
+  "nationality": "CountryC",
+  "overall": 66,
+  "potential": null,
+  "squad_role": "starter",
+  "stats": {
+   "mental": {
+    "aggression": 27,
+    "teamwork": 38,
+    "decisions": 71,
+    "composure": 68
+   },
+   "athletic": {
+    "physical_power": 68,
+    "ball_control": 60,
+    "dribbling": 67,
+    "jumping": 58,
+    "acceleration": 60,
+    "speed": 64,
+    "heading": 65
+   },
+   "set_pieces": {
+    "free_kicks": 58,
+    "penalty": 77
+   },
+   "defense": {
+    "tackling": 26,
+    "marking": 21,
+    "positioning": 28
+   },
+   "attack": {
+    "finishing": 74,
+    "long_shots": 71,
+    "off_the_ball": 60
+   },
+   "playmaking": {
+    "creative": 52,
+    "passing": 52,
+    "crossing": 55
+   }
+  },
+  "averages": {
+   "mental": 51,
+   "defense": 25,
+   "attack": 68,
+   "playmaking": 53,
+   "athletic": 63,
+   "set_pieces": 68
+  }
+ },
+ {
+  "id": "32ca35f0-dccd-427e-a35c-7b2b3efe59d7",
+  "name": "Lucas Anderson",
+  "shirt_number": 19,
+  "position": "striker",
+  "side": "C",
+  "role": "poacher",
+  "level": "Normal",
+  "age": 32,
+  "height": 183,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 3,
+   "weak_foot_stars": 4
+  },
+  "weak_foot_stars": 4,
+  "stamina": 54,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "overall": 70,
+  "potential": null,
+  "squad_role": "starter",
+  "stats": {
+   "mental": {
+    "aggression": 34,
+    "teamwork": 44,
+    "decisions": 90,
+    "composure": 67
+   },
+   "athletic": {
+    "physical_power": 56,
+    "ball_control": 61,
+    "dribbling": 66,
+    "jumping": 60,
+    "acceleration": 63,
+    "speed": 52,
+    "heading": 61
+   },
+   "set_pieces": {
+    "free_kicks": 56,
+    "penalty": 62
+   },
+   "defense": {
+    "tackling": 30,
+    "marking": 32,
+    "positioning": 30
+   },
+   "attack": {
+    "finishing": 81,
+    "long_shots": 75,
+    "off_the_ball": 80
+   },
+   "playmaking": {
+    "creative": 55,
+    "passing": 39,
+    "crossing": 49
+   }
+  },
+  "averages": {
+   "mental": 59,
+   "defense": 31,
+   "attack": 79,
+   "playmaking": 48,
+   "athletic": 60,
+   "set_pieces": 59
+  }
+ },
+ {
+  "id": "9d886756-b5bd-4adc-ac22-a35c0f9d089e",
+  "name": "Mateo Moreau",
+  "shirt_number": 63,
+  "position": "goalkeeper",
+  "side": "C",
+  "role": "shot_stopper",
+  "level": "Normal",
+  "age": 27,
+  "height": 191,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 3,
+   "weak_foot_stars": 4
+  },
+  "weak_foot_stars": 4,
+  "stamina": 78,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "overall": 68,
+  "potential": null,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 8,
+    "teamwork": 54,
+    "decisions": 40,
+    "composure": 51
+   },
+   "athletic": {
+    "physical_power": 60,
+    "ball_control": 52,
+    "dribbling": 39,
+    "jumping": 69,
+    "acceleration": 48,
+    "speed": 54,
+    "heading": 66
+   },
+   "set_pieces": {
+    "free_kicks": 31,
+    "penalty": 32
+   },
+   "goalkeeping": {
+    "aerial_ability": 67,
+    "handling": 71,
+    "kicking": 53,
+    "one_on_one": 74,
+    "reflexes": 75
+   }
+  },
+  "averages": {
+   "mental": 38,
+   "athletic": 55,
+   "set_pieces": 32,
+   "goalkeeping": 68
+  }
+ },
+ {
+  "id": "cd024d3c-0a15-4bd3-bcd9-199a5908b91e",
+  "name": "David Garcia",
+  "shirt_number": 94,
+  "position": "fullback",
+  "side": "L",
+  "role": "wing_back",
+  "level": "Normal",
+  "age": 32,
+  "height": 167,
+  "preferred_foot": {
+   "dominant_foot": "Left",
+   "weak_foot_level": 2,
+   "weak_foot_stars": 3
+  },
+  "weak_foot_stars": 3,
+  "stamina": 56,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "overall": 64,
+  "potential": null,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 37,
+    "teamwork": 81,
+    "decisions": 38,
+    "composure": 54
+   },
+   "athletic": {
+    "physical_power": 46,
+    "ball_control": 56,
+    "dribbling": 57,
+    "jumping": 52,
+    "acceleration": 71,
+    "speed": 63,
+    "heading": 49
+   },
+   "set_pieces": {
+    "free_kicks": 34,
+    "penalty": 71
+   },
+   "defense": {
+    "tackling": 66,
+    "marking": 66,
+    "positioning": 62
+   },
+   "attack": {
+    "finishing": 34,
+    "long_shots": 38,
+    "off_the_ball": 55
+   },
+   "playmaking": {
+    "creative": 42,
+    "passing": 43,
+    "crossing": 70
+   }
+  },
+  "averages": {
+   "mental": 52,
+   "defense": 65,
+   "attack": 42,
+   "playmaking": 52,
+   "athletic": 56,
+   "set_pieces": 52
+  }
+ },
+ {
+  "id": "32102448-d344-4715-beca-92205ef55abb",
+  "name": "William Silva",
+  "shirt_number": 51,
+  "position": "defender",
+  "side": "L",
+  "role": "stopper",
+  "level": "Normal",
+  "age": 20,
+  "height": 192,
+  "preferred_foot": {
+   "dominant_foot": "Left",
+   "weak_foot_level": 1,
+   "weak_foot_stars": 2
+  },
+  "weak_foot_stars": 2,
+  "stamina": 77,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "overall": 64,
+  "potential": 82,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 12,
+    "teamwork": 10,
+    "decisions": 73,
+    "composure": 44
+   },
+   "athletic": {
+    "physical_power": 68,
+    "ball_control": 49,
+    "dribbling": 50,
+    "jumping": 61,
+    "acceleration": 53,
+    "speed": 64,
+    "heading": 65
+   },
+   "set_pieces": {
+    "free_kicks": 54,
+    "penalty": 58
+   },
+   "defense": {
+    "tackling": 69,
+    "marking": 68,
+    "positioning": 61
+   },
+   "attack": {
+    "finishing": 19,
+    "long_shots": 26,
+    "off_the_ball": 24
+   },
+   "playmaking": {
+    "creative": 51,
+    "passing": 39,
+    "crossing": 48
+   }
+  },
+  "averages": {
+   "mental": 35,
+   "defense": 66,
+   "attack": 23,
+   "playmaking": 46,
+   "athletic": 59,
+   "set_pieces": 56
+  }
+ },
+ {
+  "id": "6166179c-bfc7-4050-b075-e9b9482ec6f2",
+  "name": "Leo Brown",
+  "shirt_number": 89,
+  "position": "defender",
+  "side": "R",
+  "role": "stopper",
+  "level": "Normal",
+  "age": 32,
+  "height": 189,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 3,
+   "weak_foot_stars": 4
+  },
+  "weak_foot_stars": 4,
+  "stamina": 60,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "overall": 68,
+  "potential": null,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 88,
+    "teamwork": 5,
+    "decisions": 29,
+    "composure": 58
+   },
+   "athletic": {
+    "physical_power": 75,
+    "ball_control": 54,
+    "dribbling": 50,
+    "jumping": 71,
+    "acceleration": 70,
+    "speed": 52,
+    "heading": 74
+   },
+   "set_pieces": {
+    "free_kicks": 47,
+    "penalty": 53
+   },
+   "defense": {
+    "tackling": 76,
+    "marking": 73,
+    "positioning": 69
+   },
+   "attack": {
+    "finishing": 24,
+    "long_shots": 21,
+    "off_the_ball": 29
+   },
+   "playmaking": {
+    "creative": 54,
+    "passing": 45,
+    "crossing": 52
+   }
+  },
+  "averages": {
+   "mental": 45,
+   "defense": 73,
+   "attack": 25,
+   "playmaking": 50,
+   "athletic": 64,
+   "set_pieces": 50
+  }
+ },
+ {
+  "id": "a6cb495c-893e-4193-a62e-ffb468c1d38d",
+  "name": "Leo Thomas",
+  "shirt_number": 14,
+  "position": "fullback",
+  "side": "R",
+  "role": "wing_back",
+  "level": "Normal",
+  "age": 21,
+  "height": 173,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1,
+   "weak_foot_stars": 2
+  },
+  "weak_foot_stars": 2,
+  "stamina": 68,
+  "fitness": "Moderate",
+  "nationality": "CountryA",
+  "overall": 67,
+  "potential": 76,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 35,
+    "teamwork": 85,
+    "decisions": 11,
+    "composure": 52
+   },
+   "athletic": {
+    "physical_power": 46,
+    "ball_control": 55,
+    "dribbling": 52,
+    "jumping": 60,
+    "acceleration": 73,
+    "speed": 77,
+    "heading": 61
+   },
+   "set_pieces": {
+    "free_kicks": 64,
+    "penalty": 48
+   },
+   "defense": {
+    "tackling": 65,
+    "marking": 60,
+    "positioning": 56
+   },
+   "attack": {
+    "finishing": 34,
+    "long_shots": 37,
+    "off_the_ball": 49
+   },
+   "playmaking": {
+    "creative": 50,
+    "passing": 43,
+    "crossing": 82
+   }
+  },
+  "averages": {
+   "mental": 46,
+   "defense": 60,
+   "attack": 40,
+   "playmaking": 58,
+   "athletic": 61,
+   "set_pieces": 56
+  }
+ },
+ {
+  "id": "b6011769-1ee7-47d8-89c5-311fd876304f",
+  "name": "David Brown",
+  "shirt_number": 12,
+  "position": "winger",
+  "side": "L",
+  "role": "traditional",
+  "level": "Normal",
+  "age": 21,
+  "height": 184,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 2,
+   "weak_foot_stars": 3
+  },
+  "weak_foot_stars": 3,
+  "stamina": 51,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "overall": 67,
+  "potential": 82,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 10,
+    "teamwork": 20,
+    "decisions": 76,
+    "composure": 53
+   },
+   "athletic": {
+    "physical_power": 48,
+    "ball_control": 64,
+    "dribbling": 69,
+    "jumping": 43,
+    "acceleration": 71,
+    "speed": 65,
+    "heading": 42
+   },
+   "set_pieces": {
+    "free_kicks": 32,
+    "penalty": 60
+   },
+   "defense": {
+    "tackling": 27,
+    "marking": 33,
+    "positioning": 45
+   },
+   "attack": {
+    "finishing": 52,
+    "long_shots": 63,
+    "off_the_ball": 65
+   },
+   "playmaking": {
+    "creative": 56,
+    "passing": 67,
+    "crossing": 80
+   }
+  },
+  "averages": {
+   "mental": 40,
+   "defense": 35,
+   "attack": 60,
+   "playmaking": 68,
+   "athletic": 57,
+   "set_pieces": 46
+  }
+ },
+ {
+  "id": "8b28cae7-e41d-4bef-8e44-6c2553c5cf84",
+  "name": "Thomas Taylor",
+  "shirt_number": 77,
+  "position": "midfielder",
+  "side": "C",
+  "role": "box_to_box",
+  "level": "Normal",
+  "age": 23,
+  "height": 185,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1,
+   "weak_foot_stars": 2
+  },
+  "weak_foot_stars": 2,
+  "stamina": 63,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "overall": 62,
+  "potential": 67,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 18,
+    "teamwork": 84,
+    "decisions": 60,
+    "composure": 46
+   },
+   "athletic": {
+    "physical_power": 71,
+    "ball_control": 59,
+    "dribbling": 56,
+    "jumping": 60,
+    "acceleration": 54,
+    "speed": 59,
+    "heading": 54
+   },
+   "set_pieces": {
+    "free_kicks": 77,
+    "penalty": 54
+   },
+   "defense": {
+    "tackling": 48,
+    "marking": 52,
+    "positioning": 46
+   },
+   "attack": {
+    "finishing": 56,
+    "long_shots": 68,
+    "off_the_ball": 60
+   },
+   "playmaking": {
+    "creative": 68,
+    "passing": 70,
+    "crossing": 73
+   }
+  },
+  "averages": {
+   "mental": 52,
+   "defense": 49,
+   "attack": 61,
+   "playmaking": 70,
+   "athletic": 59,
+   "set_pieces": 66
+  }
+ },
+ {
+  "id": "fcf483ed-af05-4cf3-9051-fb1fcea505fc",
+  "name": "Thomas Haddad",
+  "shirt_number": 66,
+  "position": "midfielder",
+  "side": "C",
+  "role": "playmaker",
+  "level": "Normal",
+  "age": 30,
+  "height": 181,
+  "preferred_foot": {
+   "dominant_foot": "Left",
+   "weak_foot_level": 1,
+   "weak_foot_stars": 2
+  },
+  "weak_foot_stars": 2,
+  "stamina": 78,
+  "fitness": "Moderate",
+  "nationality": "CountryC",
+  "overall": 54,
+  "potential": null,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 15,
+    "teamwork": 35,
+    "decisions": 16,
+    "composure": 43
+   },
+   "athletic": {
+    "physical_power": 64,
+    "ball_control": 57,
+    "dribbling": 66,
+    "jumping": 55,
+    "acceleration": 48,
+    "speed": 47,
+    "heading": 59
+   },
+   "set_pieces": {
+    "free_kicks": 40,
+    "penalty": 43
+   },
+   "defense": {
+    "tackling": 50,
+    "marking": 47,
+    "positioning": 34
+   },
+   "attack": {
+    "finishing": 47,
+    "long_shots": 60,
+    "off_the_ball": 57
+   },
+   "playmaking": {
+    "creative": 69,
+    "passing": 76,
+    "crossing": 71
+   }
+  },
+  "averages": {
+   "mental": 27,
+   "defense": 44,
+   "attack": 55,
+   "playmaking": 72,
+   "athletic": 57,
+   "set_pieces": 42
+  }
+ },
+ {
+  "id": "5dd03f8d-fc66-48e0-a2e0-f1a83ea17887",
+  "name": "Luca Tanaka",
+  "shirt_number": 28,
+  "position": "winger",
+  "side": "R",
+  "role": "traditional",
+  "level": "Normal",
+  "age": 26,
+  "height": 175,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 2,
+   "weak_foot_stars": 3
+  },
+  "weak_foot_stars": 3,
+  "stamina": 54,
+  "fitness": "Low",
+  "nationality": "CountryB",
+  "overall": 67,
+  "potential": null,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 89,
+    "teamwork": 81,
+    "decisions": 49,
+    "composure": 62
+   },
+   "athletic": {
+    "physical_power": 35,
+    "ball_control": 63,
+    "dribbling": 68,
+    "jumping": 50,
+    "acceleration": 61,
+    "speed": 68,
+    "heading": 46
+   },
+   "set_pieces": {
+    "free_kicks": 60,
+    "penalty": 61
+   },
+   "defense": {
+    "tackling": 37,
+    "marking": 27,
+    "positioning": 47
+   },
+   "attack": {
+    "finishing": 64,
+    "long_shots": 71,
+    "off_the_ball": 60
+   },
+   "playmaking": {
+    "creative": 62,
+    "passing": 73,
+    "crossing": 79
+   }
+  },
+  "averages": {
+   "mental": 70,
+   "defense": 37,
+   "attack": 65,
+   "playmaking": 71,
+   "athletic": 56,
+   "set_pieces": 60
+  }
+ },
+ {
+  "id": "4491c64c-daa3-4980-a5ac-9c844150080f",
+  "name": "Lucas Novak",
+  "shirt_number": 76,
+  "position": "striker",
+  "side": "C",
+  "role": "target_man",
+  "level": "Normal",
+  "age": 31,
+  "height": 188,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 2,
+   "weak_foot_stars": 3
+  },
+  "weak_foot_stars": 3,
+  "stamina": 70,
+  "fitness": "Peak",
+  "nationality": "CountryB",
+  "overall": 68,
+  "potential": null,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 78,
+    "teamwork": 73,
+    "decisions": 74,
+    "composure": 70
+   },
+   "athletic": {
+    "physical_power": 75,
+    "ball_control": 61,
+    "dribbling": 70,
+    "jumping": 68,
+    "acceleration": 48,
+    "speed": 57,
+    "heading": 71
+   },
+   "set_pieces": {
+    "free_kicks": 56,
+    "penalty": 67
+   },
+   "defense": {
+    "tackling": 27,
+    "marking": 21,
+    "positioning": 30
+   },
+   "attack": {
+    "finishing": 73,
+    "long_shots": 74,
+    "off_the_ball": 71
+   },
+   "playmaking": {
+    "creative": 44,
+    "passing": 50,
+    "crossing": 46
+   }
+  },
+  "averages": {
+   "mental": 74,
+   "defense": 26,
+   "attack": 73,
+   "playmaking": 47,
+   "athletic": 64,
+   "set_pieces": 62
+  }
+ },
+ {
+  "id": "41049a28-96c7-4ded-a0a4-6a80408be055",
+  "name": "Leo Brown",
+  "shirt_number": 83,
+  "position": "striker",
+  "side": "C",
+  "role": "poacher",
+  "level": "Normal",
+  "age": 28,
+  "height": 180,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 1,
+   "weak_foot_stars": 1
+  },
+  "weak_foot_stars": 1,
+  "stamina": 72,
+  "fitness": "Moderate",
+  "nationality": "CountryC",
+  "overall": 69,
+  "potential": null,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 12,
+    "teamwork": 54,
+    "decisions": 28,
+    "composure": 68
+   },
+   "athletic": {
+    "physical_power": 50,
+    "ball_control": 56,
+    "dribbling": 63,
+    "jumping": 57,
+    "acceleration": 67,
+    "speed": 73,
+    "heading": 53
+   },
+   "set_pieces": {
+    "free_kicks": 43,
+    "penalty": 60
+   },
+   "defense": {
+    "tackling": 24,
+    "marking": 26,
+    "positioning": 35
+   },
+   "attack": {
+    "finishing": 79,
+    "long_shots": 69,
+    "off_the_ball": 80
+   },
+   "playmaking": {
+    "creative": 49,
+    "passing": 53,
+    "crossing": 49
+   }
+  },
+  "averages": {
+   "mental": 40,
+   "defense": 28,
+   "attack": 76,
+   "playmaking": 50,
+   "athletic": 60,
+   "set_pieces": 52
+  }
+ },
+ {
+  "id": "a4ed4f36-2ab1-4b2a-966e-07fc8ca736a9",
+  "name": "Richard Garcia",
+  "shirt_number": 54,
+  "position": "goalkeeper",
+  "side": "C",
+  "role": "sweeper_keeper",
+  "level": "Normal",
+  "age": 31,
+  "height": 190,
+  "preferred_foot": {
+   "dominant_foot": "Right",
+   "weak_foot_level": 2,
+   "weak_foot_stars": 3
+  },
+  "weak_foot_stars": 3,
+  "stamina": 69,
+  "fitness": "Moderate",
+  "nationality": "CountryB",
+  "overall": 71,
+  "potential": null,
+  "squad_role": "bench",
+  "stats": {
+   "mental": {
+    "aggression": 10,
+    "teamwork": 58,
+    "decisions": 7,
+    "composure": 61
+   },
+   "athletic": {
+    "physical_power": 61,
+    "ball_control": 50,
+    "dribbling": 36,
+    "jumping": 64,
+    "acceleration": 58,
+    "speed": 55,
+    "heading": 59
+   },
+   "set_pieces": {
+    "free_kicks": 34,
+    "penalty": 44
+   },
+   "goalkeeping": {
+    "aerial_ability": 68,
+    "handling": 78,
+    "kicking": 78,
+    "one_on_one": 81,
+    "reflexes": 72
+   }
+  },
+  "averages": {
+   "mental": 34,
+   "athletic": 55,
+   "set_pieces": 39,
+   "goalkeeping": 75
+  }
+ }
+]

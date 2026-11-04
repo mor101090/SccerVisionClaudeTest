@@ -44,6 +44,8 @@ namespace SoccerVision.Simulation
         public int AttackDir; // +1 attacks the goal at +X
         public int Score;
         public readonly TeamStats Stats = new TeamStats();
+        /// <summary>The starting eleven's mean passing quality (0-100), worked out on first use (-1 = not yet); see MatchEngine.PassingQuality.</summary>
+        public float PassingQualityValue = -1f;
         public TeamAgent Opponent;
 
         // Tactical state maintained by the team AI
@@ -286,6 +288,8 @@ namespace SoccerVision.Simulation
         public int WoodworkHits;
         public float ExpectedGoals;
         public float PossessionSeconds;
+        /// <summary>How many times the team got the ball (a change of possession in live play; a measuring counter, nothing reads it).</summary>
+        public int PossessionSpells;
         public float DistanceCoveredKm;
 
         public TeamStats Clone() => (TeamStats)MemberwiseClone();

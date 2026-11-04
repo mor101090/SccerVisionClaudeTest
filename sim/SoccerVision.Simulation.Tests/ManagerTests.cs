@@ -144,12 +144,14 @@ namespace SoccerVision.Simulation.Tests
 
         private static readonly ulong[] Seeds = { 51, 52, 53, 54 };
 
-        private static double Avg(string plan, Func<MatchEngine, double> f, Action<MatchEngine> sample = null)
+        private static double Avg(string plan, Func<MatchEngine, double> f, Action<MatchEngine> sample = null, int matches = 0)
         {
-            var r = new double[Seeds.Length];
-            Parallel.For(0, Seeds.Length, i =>
+            // (a rare thing - one player's long shots - needs more matches than the usual four, or a change anywhere in the engine tips it)
+            var seeds = matches <= Seeds.Length ? Seeds : Seeds.Concat(Enumerable.Range(0, matches - Seeds.Length).Select(k => 300UL + (ulong)k)).ToArray();
+            var r = new double[seeds.Length];
+            Parallel.For(0, seeds.Length, i =>
             {
-                var e = Engine(Seeds[i], plan);
+                var e = Engine(seeds[i], plan);
                 if (sample == null) e.RunToEnd();
                 else while (!e.IsFinished) { e.Advance(0.25f); if (e.Phase == MatchPhase.Live) sample(e); }
                 Assert.Equal(0, e.RecoveredErrors);
@@ -171,7 +173,7 @@ namespace SoccerVision.Simulation.Tests
             // slot 5 (right midfielder): shoot from distance, dribble, tackle - more v less
             double Shots(MatchEngine e) => e.EventLog.Count(x => x.Type == MatchEventType.Shot && x.Team == 0 && x.Player == 5
                 && Math.Min(Math.Sqrt((52.5 - x.X) * (52.5 - x.X) + x.Y * x.Y), Math.Sqrt((52.5 + x.X) * (52.5 + x.X) + x.Y * x.Y)) > 18);
-            double shotsMore = Avg(Orders(5, "0.2.1.1"), Shots), shotsLess = Avg(Orders(5, "0.0.1.1"), Shots);
+            double shotsMore = Avg(Orders(5, "0.2.1.1"), Shots, null, 16), shotsLess = Avg(Orders(5, "0.0.1.1"), Shots, null, 16);
             Assert.True(shotsMore > shotsLess * 2 + 0.5, $"long shots by him: more {shotsMore:0.0} v less {shotsLess:0.0}");
             // (take-ons are few for one player: the whole team gets the instruction)
             string AllOrders(string order) => "orders=" + string.Join(",", Enumerable.Repeat(order, 11));

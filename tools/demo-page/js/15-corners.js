@@ -115,14 +115,16 @@
   });
   function drawTakers() {
     if (!R) return;
-    var c = document.querySelector('[data-sp="corners"]'), f = document.querySelector('[data-sp="fk"]'), p = document.querySelector('[data-sp="pen"]');
+    var c = document.querySelector('[data-sp="corners"]'), f = document.querySelector('[data-sp="fk"]'), p = document.querySelector('[data-sp="pen"]'), rt = document.querySelector('[data-sp="corner-routines"]');
     var keep = document.activeElement && document.activeElement.closest && document.activeElement.closest(".sp");
     if (keep && document.activeElement.tagName === "SELECT") return;
     c.innerHTML = '<p class="note">Click a player to add him next in the queue; the first takes it, and if he is substituted, injured or sent off the next steps up. Auto = the best on the pitch.</p>' +
       '<div class="sp-cols">' + spList("ctr", "Right-side corners (taken from the right corner flag)", 9, "Crossing") + spList("ctl", "Left-side corners", 9, "Crossing") + '</div>' +
-      '<div class="sp-cols">' + spRoutine("crr", "Right-side routine") + spRoutine("crl", "Left-side routine") + '</div>' +
       '<div class="sp-cols">' + spZones("czr", "Who stands where - right corners") + spZones("czl", "Who stands where - left corners") + '</div>' + boxSvg() +
       '<p class="note">Zones: 1 near post, 2 far post, 3 penalty spot, 4 six-yard centre, 5 edge of the box, 6 rebound. Put your tall high-jumper at the near post, a quick finisher at the far post. Left Auto = the best headers go first.</p>';
+    // (the routine - where the corner is aimed - is part of the attack: it has its place in the Attack tab, with the set-up it belongs to)
+    rt.innerHTML = '<p class="note">The routine: where the corner is aimed. Choose one for each side, then set who stands where below.</p>' +
+      '<div class="sp-cols">' + spRoutine("crr", "Right-side routine") + spRoutine("crl", "Left-side routine") + '</div>';
     f.innerHTML = '<p class="note">Direct and crossed free kicks. The first on the list who is still on the pitch takes it.</p><div class="sp-cols">' +
       spList("fkr", "Right-side free kicks", 20, "Free kicks") + spList("fkl", "Left-side free kicks", 20, "Free kicks") + '</div>';
     p.innerHTML = '<p class="note">Click a player to add him next in the queue; the first on the pitch takes the penalty.</p>' + spList("pen", "Penalty takers", 21, "Penalty");
