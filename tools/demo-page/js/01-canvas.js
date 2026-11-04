@@ -4,9 +4,9 @@
   function X(x) { return view.ox + x * view.s; }
   function Y(y) { return view.oy - y * view.s; }
   function resize() {
-    // (3x screens: 2x is plenty and twice as fast; a device that really is slow steps down to 1.5x at most, see adaptQuality: below that
-    // the pitch is visibly blurred on a phone)
-    var dpr = Math.min(QUALITY >= 2 ? 1.5 : 2, window.devicePixelRatio || 1), r = cv.getBoundingClientRect();
+    // (3x screens: 2x is plenty. The resolution does not depend on how fast the device is: a slow device sheds effects and frame rate, see
+    // adaptQuality - a blurred pitch on a phone is worse than a few frames fewer)
+    var dpr = Math.min(2, window.devicePixelRatio || 1), r = cv.getBoundingClientRect();
     view.dpr = dpr;
     cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
     view.s = Math.min(cv.width / W, cv.height / H); view.ox = cv.width / 2; view.oy = (cv.height - H * view.s) / 2 + TOP * view.s;
