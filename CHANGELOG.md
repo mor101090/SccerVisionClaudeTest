@@ -128,6 +128,13 @@ a high press moved it by 2-5 points. Real football: the most possession-heavy si
 - Tests: `TeamStrengthTests` (valid squads at every strength; medium unchanged; each step at least 5 attribute points; the stronger side scores more and wins more than it loses, 48
   matches per pairing, both seats; the biggest mismatch stays between 62% and 92%, not a massacre). Verified in the browser: choosing the strengths in the page reaches the engine and the squads that
   come back differ (speed 84 v 50 with strong at home and weak away).
+## `fix/landscape-layout`
+
+**A phone on its side: the pitch fills the screen's height and the controls sit beside it.** Before (a live match in a 1000 x 375 frame): a small pitch in the middle with big empty
+margins, the title cut off at the top and the controls (speed, LIVE, the slider) below the fold. Now, in a short landscape window (640 px or less): the pitch takes the full height
+(left column), the controls are a rail on the right (mode buttons, sound, speed, the LIVE badge and who plays, the slider, the clock), the title is gone (the scoreboard on the pitch
+already says who plays) and the manager's panels follow below at full width. Checked at 1000 x 375, 844 x 390 and 1280 x 600 (a small laptop window); portrait, tablet and desktop are
+unchanged. CSS only.
 
 ## `fix/layout-responsive`
 
