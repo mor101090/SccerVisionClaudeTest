@@ -184,6 +184,7 @@
   </div>
 
 
+  <div class="ptabs" id="ptabs" role="tablist" aria-label="Page sections"><button type="button" role="tab" data-pv="manager" aria-selected="true">Manager</button><button type="button" role="tab" data-pv="story" aria-selected="false">Commentary</button><button type="button" role="tab" data-pv="facts" aria-selected="false">Match facts</button></div>
   <section class="panel tactics mgr" id="tactics" aria-labelledby="tacTitle">
     <div class="tac-head">
       <h2 id="tacTitle">Manager <span class="tac-team"><i></i><span id="tacTeam">Team A</span> · you</span></h2>
@@ -201,7 +202,8 @@
       <button type="button" role="tab" data-tab="freekicks" aria-selected="false">Free Kicks</button>
       <button type="button" role="tab" data-tab="penalties" aria-selected="false">Penalty Kickers</button>
     </div>
-    <div class="mtab" data-pane="team" role="tabpanel">
+    <div class="mtab" data-pane="team" data-sv="board" role="tabpanel">
+      <div class="svtabs" id="svtabs" role="tablist" aria-label="Team tactics view"><button type="button" role="tab" data-sv="board" aria-selected="true">Formation</button><button type="button" role="tab" data-sv="squad" aria-selected="false">Squad</button><button type="button" role="tab" data-sv="tactics" aria-selected="false">Instructions</button></div>
       <div class="team-grid">
         <div class="fboard-wrap">
           <div class="fpick"><label for="formation">Formation</label><select id="formation"></select></div>
@@ -285,11 +287,11 @@
   </section>
 
   <div class="cols">
-    <section class="panel">
+    <section class="panel" id="panStory">
       <h2>Live commentary</h2>
       <div id="feed" aria-live="polite"></div>
     </section>
-    <section class="panel">
+    <section class="panel" id="panFacts">
       <h2>Match facts</h2>
       <table><tbody id="facts"></tbody></table>
       <div class="moments" id="moments"></div>

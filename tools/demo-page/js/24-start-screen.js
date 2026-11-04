@@ -247,4 +247,18 @@
   }
   if (!joinFromLink() && !gameFromLink()) $("asUser").focus();
   requestAnimationFrame(frame);
+  // ---- a phone: one thing at a time ---------------------------------------------------------------------------------
+  // On a narrow screen the page is a very long scroll (manager, formation, the whole squad table, instructions, commentary, facts).
+  // These two tab rows show one part at a time; on a wide screen they are hidden (CSS) and everything shows as before.
+  function pickTab(rowId, attr, apply) {
+    var row = $(rowId); if (!row) return;
+    row.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      var v = b.getAttribute(attr);
+      row.querySelectorAll("button").forEach(function (o) { o.setAttribute("aria-selected", String(o === b)); });
+      apply(v);
+    });
+  }
+  pickTab("ptabs", "data-pv", function (v) { document.body.setAttribute("data-pv", v); });
+  pickTab("svtabs", "data-sv", function (v) { var pane = document.querySelector('.mtab[data-pane="team"]'); if (pane) pane.setAttribute("data-sv", v); });
 })();

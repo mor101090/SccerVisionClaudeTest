@@ -2,6 +2,18 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/phone-tabs`
+
+**On a phone the page is no longer one endless scroll (it was about 4,950 px).** A narrow screen (760 px or less) shows one part at a time:
+- **Page tabs** under the pitch: *Manager* / *Commentary* / *Match facts*.
+- **Team Tactics** has its own three tabs: *Formation* / *Squad* / *Instructions* (the formation board, the whole squad table, the sliders and style
+  buttons - they were stacked one under the other).
+- The manager's own tab row (Team Tactics, Player Instruction, Corners, ...) is one scrolling row instead of three lines.
+- The squad table fits the screen width, so the Rating column is no longer behind a sideways scroll; the IN / OUT cards fade out at the right edge to
+  show that they go on.
+- Tablet and desktop are unchanged (the tab rows are hidden above 760 px). CSS, template and a few lines of JS - no engine change.
+  Measured on a 390 px screen: the manager view is about 3,000 px, the commentary view about 1,300 px.
+
 ## `fix/layout-responsive`
 
 **The page checked at four sizes (phone upright / on its side, tablet, desktop) and the ugly parts fixed.**

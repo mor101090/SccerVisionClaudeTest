@@ -148,3 +148,27 @@
 .takers button[aria-pressed="true"] { background: var(--amber); color: #fff; }
 .takers .v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
 .takers .note { color: var(--muted); font-size: 13px; margin: 0 0 6px; }
+/* A phone (narrow screen): one part of the page at a time, so it is not one endless scroll */
+.ptabs, .svtabs { display: none; }
+@media (max-width: 760px) {
+  .ptabs, .svtabs { display: flex; gap: 4px; background: #1f2331; border-radius: 6px; padding: 4px; }
+  .ptabs button, .svtabs button { flex: 1; background: transparent; border: 0; color: #fff; padding: 10px 6px; border-radius: 4px; font: 600 14px/1 var(--body); }
+  .ptabs button[aria-selected="true"], .svtabs button[aria-selected="true"] { background: var(--amber); }
+  .svtabs { margin-bottom: 10px; }
+  /* the manager's own tabs: one scrolling row, not three lines */
+  .mtabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .mtabs::-webkit-scrollbar { display: none; }
+  .mtabs button { flex: none; white-space: nowrap; }
+  body[data-pv="story"] #tactics, body[data-pv="story"] #panFacts,
+  body[data-pv="facts"] #tactics, body[data-pv="facts"] #panStory { display: none; }
+  .mtab[data-pane="team"][data-sv="board"] .sheet-wrap, .mtab[data-pane="team"][data-sv="board"] .mtab-h, .mtab[data-pane="team"][data-sv="board"] .tac-grid,
+  .mtab[data-pane="team"][data-sv="squad"] .fboard-wrap, .mtab[data-pane="team"][data-sv="squad"] .mtab-h, .mtab[data-pane="team"][data-sv="squad"] .tac-grid,
+  .mtab[data-pane="team"][data-sv="tactics"] .team-grid { display: none; }
+  .mtab[data-pane="team"][data-sv="tactics"] .mtab-h { margin-top: 4px; }
+  /* the squad table fits the width: tighter cells, so the Rating column is on the screen and not behind a scroll */
+  .sheet th, .sheet td { padding: 7px 4px; font-size: 12.5px; }
+  .sheet td:nth-child(2) { min-width: 5.5em; }
+  .sheet .hon { display: none; }
+  /* a hint that the cards go on: they fade out at the right edge */
+  .cards { -webkit-mask-image: linear-gradient(90deg, #000 90%, transparent); mask-image: linear-gradient(90deg, #000 90%, transparent); }
+}
