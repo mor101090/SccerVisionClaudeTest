@@ -2,6 +2,13 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/corner-routine-attack-tab`
+
+**The corner routine is in the Attack tab.** The right- and left-side routine choosers (varied, near post, far post, penalty spot, pulled
+back, short) were in Corners -> Takers, with the list of who takes them; the routine is where the corner is aimed, so it now sits in
+Corners -> Attack, above the set-up of who stands where. Takers keeps the taker lists and the zones. Checked in a browser: both
+selectors are in the Attack tab, none is left in Takers, and a changed routine is kept after the redraw.
+
 ## `fix/online-connect`
 
 **Online play with a six-digit code, kits of your own, and a connection that comes back.** After two hours of picking line-ups the
