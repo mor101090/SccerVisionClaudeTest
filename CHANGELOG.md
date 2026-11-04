@@ -16,6 +16,9 @@ shots **died in the crowd** - 54% were blocked (22% of all shots are) and 35% mi
 200-plus matches on three seeds: rebound goals **0.14 -> 0.23-0.27 a match** (real 0.28), rebound conversion **10% -> 20-26%** (real 21%),
 share of open-play goals 5% -> 9-10% (real 12%); goals 2.64-2.79 a match (was 2.6-2.7), shots 29.7-30.2 (unchanged), first-time goals 53-56%.
 Tried first: only the gap (blocks fell, but the shots were saved or missed instead - goals did not move); only the sharper finish (same).
+Tests: the full suite passed 227 of 228; the one failure, `IndividualInstructionsChangeHowAPlayerPlays` (one player's long shots, 3.8 against 1.8 where
+it needs more than 4.1), averaged only four matches - too few for something this rare, so any change in the engine could tip it. It now
+averages sixteen and passes.
 
 ## `feature/attack-rebounds`
 
