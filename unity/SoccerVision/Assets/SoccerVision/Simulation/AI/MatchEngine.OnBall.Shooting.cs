@@ -29,7 +29,7 @@ namespace SoccerVision.Simulation
         private bool _shotCountedOnTarget;
 
         /// <summary>The chance a player sees in a shot, made to match how often such shots score in this engine (1 = as before this round).</summary>
-        public static float XgScale = 0.72f;
+        public static float XgScale = 0.6f;
 
         private float EstimateShotXG(PlayerAgent p, Vec2 pos, bool header = false, Vec2? keeperAt = null)
         {
@@ -150,6 +150,8 @@ namespace SoccerVision.Simulation
 
         private void ExecuteShot(PlayerAgent p, bool header, bool penalty, float xg, bool volley = false, bool bicycle = false)
         {
+            // (the chance the player weighed was scaled for his decision, XgScale; the shot's real worth - the statistic, the momentum, the commentary - is the unscaled one)
+            if (!penalty && XgScale > 0f) xg /= XgScale;
             var team = p.Team;
             int goalSign = team.AttackGoalSign;
             Vec2 from = Ball.Pos;
@@ -298,6 +300,10 @@ namespace SoccerVision.Simulation
                 _lastShotKeeperBucket = dk < 3f ? "a<3" : dk < 6f ? "b3-6" : dk < 10f ? "c6-10" : "d10+";
                 if (dk < 3f) _lastShotKeeperBucket += keeper != null && !keeper.IsDown && Vec2.DistanceToSegment(keeper.Pos, from, team.AttackGoal, out _) < 1.6f ? ".front" : ".beaten";
                 Count("shot.keeper." + _lastShotKeeperBucket);
+                // (the same distance bins StatsBomb's shots come in, and how far off his line the keeper stood - to tell a shot from close range from a keeper who came out)
+                float sd = Vec2.Distance(from, team.AttackGoal);
+                Count("shot.dist." + (sd < 6f ? "0-6" : sd < 11f ? "6-11" : sd < 16f ? "11-16" : sd < 22f ? "16-22" : "22+"));
+                if (keeper != null && !keeper.IsDown) { float kdep = Vec2.Distance(keeper.Pos, team.AttackGoal); Count("shot.keeperDepth." + (kdep < 2f ? "0-2" : kdep < 4f ? "2-4" : kdep < 8f ? "4-8" : "8+") + (sd < 11f ? ".closeShot" : ".farShot")); }
             }
             else _lastShotKeeperBucket = null;
             if (CollectDiagnostics && p.FirstTimeUntil > SimTime && !header && !penalty) { Count("shot.firstTime"); if (_lastShotKeeperBucket != null) _lastShotKeeperBucket += ".ft"; }

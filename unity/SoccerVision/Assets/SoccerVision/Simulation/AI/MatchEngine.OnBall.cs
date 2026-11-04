@@ -45,7 +45,9 @@ namespace SoccerVision.Simulation
         private float _shotRiskPremium;
         /// <summary>How readily a player shoots inside the box (1 = as before this round). Real football (StatsBomb, 194 matches): 13.3 shots a match from the box
         /// outside the six-yard box and 1.7 from inside it; the engine had 17 and 2.6.</summary>
-        public static float BoxShotAppetite = 1f; // (tried 0.5-0.8: no effect - a shot in the box is chosen on its chance, not this; left at 1)
+        public static float BoxShotAppetite = 1f;
+        /// <summary>How readily a player shoots from 11-22 m (1 = as before). Real shots (StatsBomb): 47% of open-play shots come from 11-22 m; the engine's foot shots, 35%.</summary>
+        public static float MidRangeShotAppetite = 3f; // (tried 0.5-0.8: no effect - a shot in the box is chosen on its chance, not this; left at 1)
         private bool _nextKickHeel;
 
         private string _lastPassKey;
@@ -166,6 +168,7 @@ namespace SoccerVision.Simulation
                 tendency *= 1.15f - 0.3f * MathUtil.A(p.Attr.Teamwork); // (a team player looks for the better-placed man; a selfish one has a go)
                 if (IsCutInsidePlayer(p) && MathF.Abs(l) < 24f && f > 24f && p.CutInUntil > SimTime) { tendency *= (p.PlayRole == PlayerRole.InvertedWinger ? 5.4f : 4.4f); xg *= 1.1f; }
                 if (distGoal < 17f) tendency *= BoxShotAppetite; // (inside the box: see BoxShotAppetite)
+                if (distGoal >= 11f && distGoal < 22f) tendency *= MidRangeShotAppetite; // (the edge of the box and just inside it: see MidRangeShotAppetite)
                 if (distGoal > 22f) tendency *= 0.6f + 0.6f * MathUtil.A(p.Attr.LongShots);
                 // (real football: four shots in ten come from outside the box - the edge of the box is a place to have a go from)
                 if (distGoal > 17f && distGoal < 30f) tendency *= 1.4f;

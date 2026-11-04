@@ -32,6 +32,15 @@ numbers from `tools/calibration/real_leagues.py` (football-data.co.uk, 3,800 mat
 **Tests changed**: `FinishingTests` asked for at least 8 saves a match - the engine's own old number, not the real one; it now asks for 5-8.5 (real: about 6). `ManagerTests.FiveChanges...`
 assumed no injury substitution before half-time in the match it plays (seed 12); with more fouls there is one, so it now takes the first match from seed 12 that has none (the rules it tests are unchanged).
 
+**Keepers standing 3-6 m from the shooter (second pass)**: real shots (StatsBomb, foot, open play) have the keeper under 3 m / 3-6 / 6-10 / 10+ m away in 3.9 / 8.6 / 16.4 / 71.1% of the
+cases; the engine had 4.9 / 17.2 / 19.0 / 58.9. The cause was not the keeper but where the shots came from: new diagnostics (`shot.dist.*`, `shot.keeperDepth.*`) show the engine's foot
+shots came 29% from 6-11 m and 35% from 11-22 m (real open-play shots, headers included: 24% and 47%), and the keeper stood where keepers stand (0-4 m off his line for a shot from
+range, 4+ m off only on 5% of close shots). Players reached 6-8 m and shot from there instead of from the edge of the box. Now a player shoots from 11-22 m three times as readily
+(`MidRangeShotAppetite = 3`) and the chance he weighs is scaled to 0.6 (`XgScale`, was 0.72) so the total does not run away. Over three more seeds (200 matches each): keeper
+distance 3.7 / 11.7 / 15.3 / 69.4% (real 3.9 / 8.6 / 16.4 / 71.1); goals from outside the box 9-12% (real 13%); goals 2.8-3.0; shots 28.4 (**up** from 26.3 in the first pass; real 25.4).
+The 3-6 m share is still above the real one. **Correction**: the first pass said the xG statistic "matches the goals" - it did because the scaled estimate was being summed; the statistic
+(and the momentum and commentary values) now use the unscaled chance, which was always about 20-30% above the goals in this engine (3.4-3.7 against 2.8-3.0): it is not a calibrated xG.
+
 **Still off, not changed here**: red cards 0.22-0.28 a match (Premier League 0.12; Ligue 1, La Liga, Serie A 0.23-0.30) - more fouls brought more second yellows; goals from outside
 the box 9% (real 13%) and fewer shots from there (6.5 against 9.7); headed goals 18% (real 14%); keepers still stand 3-6 m from the shooter twice as often as real ones.
 

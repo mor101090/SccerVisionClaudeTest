@@ -59,6 +59,7 @@ for (int i = 0; i < args.Length; i++)
         case "--strong-spread": TeamStrengthScaling.StrongSpread = float.Parse(args[++i]); break;
         case "--weak-spread": TeamStrengthScaling.WeakSpread = float.Parse(args[++i]); break; // how far weak / strong squads are from the medium one: 0..1 (see TeamStrengthScaling)
         case "--swap": swap = true; break;
+        case "--midshots": MatchEngine.MidRangeShotAppetite = float.Parse(args[++i]); break; // (experiment)
         case "--foulrate": MatchEngine.FoulRate = float.Parse(args[++i]); break; // (experiment)
         case "--rangesave": MatchEngine.RangeSaveScale = float.Parse(args[++i]); break; // (experiment)
         case "--xgscale": MatchEngine.XgScale = float.Parse(args[++i]); break; // (experiment: the chance a player sees in a shot)
