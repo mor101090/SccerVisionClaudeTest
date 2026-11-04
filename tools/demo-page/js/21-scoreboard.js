@@ -74,10 +74,22 @@
     slowFor = frameAvg > (QUALITY >= 2 ? 26 : 14) ? slowFor + 1 : 0;
     if (slowFor > 90 && QUALITY < 3) { QUALITY++; slowFor = 0; frameAvg = 6; resize(); }
   }
+  var perfFrames = 0, perfAt = 0, perfWork = 0;
   function frame(now) {
     requestAnimationFrame(frame);
-    var t0 = performance.now(), ran = frameBody(now);
-    if (ran) adaptQuality(performance.now() - t0);
+    var t0 = performance.now(), ran = frameBody(now), work = performance.now() - t0;
+    if (ran) adaptQuality(work);
+    // a status line for the developer view (or #perf): what the pitch is really drawn at, so a blurred pitch can be explained, not guessed at
+    perfFrames++; perfWork += work;
+    if (now - perfAt > 1000) {
+      var el = $("perf");
+      if (el) {
+        var show = ROLE === "dev" || /perf/.test(location.hash);
+        if (el.hidden === show) el.hidden = !show;
+        if (show) el.textContent = "pitch " + cv.width + "x" + cv.height + " (" + (view.dpr || 1) + "x) · quality " + QUALITY + " · " + Math.round(perfFrames * 1000 / Math.max(1, now - perfAt)) + " fps · " + (perfWork / Math.max(1, perfFrames)).toFixed(1) + " ms";
+      }
+      perfAt = now; perfFrames = 0; perfWork = 0;
+    }
   }
   function frameBody(now) { // (true if it drew a frame)
     if (QUALITY >= 3) { skip = !skip; if (skip) return false; } // 30 frames a second

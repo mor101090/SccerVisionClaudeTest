@@ -12,6 +12,10 @@ Each round of changes is developed on its own branch, named after what it change
 - **The numbers**: a shirt number had a minimum size of 8 canvas pixels, while a player is a 3 px speck on a phone-width pitch (the whole pitch is
   ~370 px wide), so the number spilled out of the circle. Now a player is never smaller than 6.2 CSS pixels in radius (about 12 px across - they
   overlap a little more on a phone, but can be read), and the number is sized to fit inside the circle (a three-digit number is narrower).
+- **Correction**: the first diagnosis (low-power mode) was a guess from the colour of the battery icon, and it was wrong for the phone in question.
+  The cause on that phone is not confirmed, so the resolution no longer depends on the speed ladder at all: it stays at the device's pixel density
+  (up to 2x) always; a slow device sheds effects and frame rate instead. The developer view (or `#perf` in the address) shows a status line with
+  what the pitch is really drawn at: `pitch 744x563 (2x) · quality 0 · 20 fps · 2.2 ms`.
 - Checked at 420 px wide, 3x density, with 30 frames a second forced: before, the pitch canvas had 1 pixel per CSS pixel and the numbers were
   unreadable; now it has 2 per CSS pixel and each number is inside its circle.
 
