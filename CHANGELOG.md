@@ -84,6 +84,15 @@ Tests: the full suite passed 227 of 228; the one failure, `IndividualInstruction
 it needs more than 4.1), averaged only four matches - too few for something this rare, so any change in the engine could tip it. It now
 averages sixteen and passes.
 
+## `feature/teams-api`
+
+**The team generator's new address**: the squads came from `soccer-simulation.onrender.com`, which no longer answers.
+`tools/teams/fetch_teams.py` fetches squads from the new API (<https://soccer-api.dev-spirit.com/docs>, v2 - same seed, same squad)
+in the format `build_teams.py` reads (the skill groups v2 returns as null are left out); `build_teams.py` takes `--dir` and `--out`.
+The squads the game uses now are not changed - that changes every match and the tests' measurements, so it is a separate step
+(`fetch_teams.py --out data/teams red-rovers:SEED blue-falcons:SEED`, then `build_teams.py`, then the full suite). Tried: two squads
+of 23 (seeds 101 and 202) build into 20-man squads. Noted: `GeneratedTeams.cs` in the repository was not made by the present
+`build_teams.py` (it lacks the `Order` list the script writes) - that was so before.
 ## `feature/attack-rebounds`
 
 **The rebound is hit first time**: a ball that comes back off the keeper, the post or a defender a moment after his team's shot, within
