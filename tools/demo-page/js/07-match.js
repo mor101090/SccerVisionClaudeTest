@@ -53,6 +53,6 @@
       if (mine !== token) return;
       var c = engineSettings(seed);
       worker.postMessage({ cmd: "stop", token: mine });
-      worker.postMessage({ cmd: "start", token: mine, mode: ONLINE === "host" ? "online" : mode, seed: seed, weather: c.weather, maintenance: c.maintenance, wind: c.wind, windAngle: c.windAngle, night: c.night, competition: SET.comp || "League", lead: mode === "live" ? 20 : 0, plan: planString(), hold: mode === "live" });
+      worker.postMessage({ cmd: "start", token: mine, mode: ONLINE === "host" ? "online" : mode, seed: seed, weather: c.weather, maintenance: c.maintenance, wind: c.wind, windAngle: c.windAngle, night: c.night, competition: SET.comp || "League", homeStrength: ONLINE ? "medium" : SET.hstr || "medium", awayStrength: ONLINE ? "medium" : SET.astr || "medium", lead: mode === "live" ? 20 : 0, plan: planString(), hold: mode === "live" });
     }, function () {});
   }

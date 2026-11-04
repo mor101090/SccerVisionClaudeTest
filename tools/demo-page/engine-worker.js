@@ -2,7 +2,7 @@
 // match to the page as replay data: header, then batches of frames, events and stats.
 //
 // Messages in:  {cmd:"init", base}            load the engine (base = URL of the engine folder)
-//               {cmd:"start", token, mode, seed, weather, maintenance, wind, windAngle, night, lead, plan, hold}
+//               {cmd:"start", token, mode, seed, weather, maintenance, wind, windAngle, night, lead, plan, hold, homeStrength, awayStrength}
 //                                              lead = 0: generate the whole match as fast as possible;
 //                                              lead = N: stay at most N frames (N/10 s) ahead of the viewer (live)
 //                                              plan: the home manager's plan as text (see TeamPlan.cs)
@@ -28,7 +28,7 @@ self.onmessage = async (e) => {
       postMessage({ type: "ready" });
     } else if (m.cmd === "start") {
       token = m.token; lead = m.lead; generated = 0; played = 0; held = !!m.hold;
-      const header = L.Start(m.seed, m.mode, m.weather, m.maintenance, m.wind, m.windAngle, m.night, m.plan || "", m.competition || "League");
+      const header = L.Start(m.seed, m.mode, m.weather, m.maintenance, m.wind, m.windAngle, m.night, m.plan || "", m.competition || "League", m.homeStrength || "medium", m.awayStrength || "medium");
       postMessage({ type: "header", token, header });
       if (!held) pump();
     } else if (m.cmd === "go") {

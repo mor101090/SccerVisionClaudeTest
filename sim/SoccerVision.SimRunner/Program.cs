@@ -30,6 +30,8 @@ MatchScript script = null;
 string homeTactics = null, awayTactics = null;
 bool golden = false;
 int exportRoster = 0;
+// --home-strength / --away-strength weak|medium|strong: how good each demo squad is (medium: the squads the game always had)
+TeamStrength homeStrength = TeamStrength.Medium, awayStrength = TeamStrength.Medium;
 for (int i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -52,6 +54,8 @@ for (int i = 0; i < args.Length; i++)
         case "--momentum": momentumStrength = float.Parse(args[++i]); break;
         case "--home": homeTactics = args[++i]; break;
         case "--away": awayTactics = args[++i]; break;
+        case "--home-strength": homeStrength = Enum.Parse<TeamStrength>(args[++i], true); break;
+        case "--away-strength": awayStrength = Enum.Parse<TeamStrength>(args[++i], true); break;
         case "--script": if (args[++i] == "staged") script = MatchScript.Staged(); break;
         case "--golden": golden = true; break;
         case "--export-roster": exportRoster = int.Parse(args[++i]); break;
@@ -97,8 +101,8 @@ MatchConfig MakeConfig()
     return c;
 }
 
-TeamSetup Home() => WithTactics(DemoTeams.Red(), homeTactics);
-TeamSetup Away() => WithTactics(DemoTeams.Blue(), awayTactics);
+TeamSetup Home() => WithTactics(DemoTeams.Red(1001, homeStrength), homeTactics);
+TeamSetup Away() => WithTactics(DemoTeams.Blue(1001, awayStrength), awayTactics);
 
 static TeamSetup WithTactics(TeamSetup t, string spec)
 {
@@ -133,7 +137,7 @@ if (args.Contains("--shotorigins"))
     int total = 0;
     for (int m = 0; m < matches; m++)
     {
-        var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed + (ulong)m, MakeConfig());
+        var e = new MatchEngine(DemoTeams.Red(1001, homeStrength), DemoTeams.Blue(1001, awayStrength), seed + (ulong)m, MakeConfig());
         e.RunToEnd(0.25f);
         var log = e.EventLog.Where(x => x.Type != MatchEventType.Whistle && x.Type != MatchEventType.NetHit).ToList();
         for (int i = 0; i < log.Count; i++)
@@ -209,7 +213,7 @@ if (args.Contains("--scan"))
 
 if (timeline)
 {
-    var engine = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed, MakeConfig());
+    var engine = new MatchEngine(DemoTeams.Red(1001, homeStrength), DemoTeams.Blue(1001, awayStrength), seed, MakeConfig());
     engine.RunToEnd(0.25f);
     foreach (var e in engine.EventLog)
     {
@@ -312,6 +316,7 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Injuries: serious (had to go off)", Avg(x => x.SeriousInjuries), "~0.2-0.4");
     Row("Substitutions for injury", Avg(x => x.Substitutions), "~0.2-0.4");
     Row("Goals home / away", Avg(x => x.HomeGoals), Avg(x => x.AwayGoals).ToString("0.00"));
+    Row("Results: home win / draw / away win %", 100.0 * r.Count(x => x.HomeGoals > x.AwayGoals) / r.Count(), (100.0 * r.Count(x => x.HomeGoals == x.AwayGoals) / r.Count()).ToString("0") + " / " + (100.0 * r.Count(x => x.HomeGoals < x.AwayGoals) / r.Count()).ToString("0"));
     Row("Shots home / away", Avg(x => x.HomeShots), Avg(x => x.AwayShots).ToString("0.00"));
     Row("Marking switches (zonal home / m2m away)", Avg(x => x.HomeSwitches), Avg(x => x.AwaySwitches).ToString("0.0"));
     Row("Home possession %", Avg(x => x.HomePossession), "50 +/- 15");
