@@ -2,6 +2,19 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/mobile-pitch-resolution`
+
+**A sharp pitch on a phone, and shirt numbers that fit their circle.**
+- **The blur**: the page lowers its drawing quality when it thinks the device is slow, and it judged that by the time *between* frames. A phone
+  in low-power mode (or a busy browser) shows 30 frames a second, which looked like "slow" - so the pitch was drawn at 1x pixel density on a 3x
+  screen. It now judges by how long *the page* takes to draw a frame (a real slowdown still reduces effects and frame rate), and the pitch never
+  drops below 1.5x pixel density.
+- **The numbers**: a shirt number had a minimum size of 8 canvas pixels, while a player is a 3 px speck on a phone-width pitch (the whole pitch is
+  ~370 px wide), so the number spilled out of the circle. Now a player is never smaller than 6.2 CSS pixels in radius (about 12 px across - they
+  overlap a little more on a phone, but can be read), and the number is sized to fit inside the circle (a three-digit number is narrower).
+- Checked at 420 px wide, 3x density, with 30 frames a second forced: before, the pitch canvas had 1 pixel per CSS pixel and the numbers were
+  unreadable; now it has 2 per CSS pixel and each number is inside its circle.
+
 ## `fix/online-connect`
 
 **Online play with a six-digit code, kits of your own, and a connection that comes back.** After two hours of picking line-ups the

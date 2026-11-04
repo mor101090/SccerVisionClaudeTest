@@ -137,7 +137,7 @@
   // A player on the ground (slide tackle, then getting up): the body lies stretched along the slide, with a streak of
   // churned-up grass behind him while he is still sliding.
   function downPlayer(p, tm, info, x, y) {
-    var r = view.s * .95, a = -p.f, c = Math.cos(a), sn = Math.sin(a);
+    var r = discR(), a = -p.f, c = Math.cos(a), sn = Math.sin(a);
     if (p.sl) {
       var g = ctx.createLinearGradient(x - c * r * 2.4, y - sn * r * 2.4, x, y);
       g.addColorStop(0, "rgba(225,240,205,0)"); g.addColorStop(1, "rgba(225,240,205,.3)");
@@ -149,7 +149,7 @@
     ctx.beginPath(); ctx.ellipse(0, 0, r * 1.22, r * .93, 0, 0, Math.PI * 2);
     ctx.fillStyle = p.gk ? tm.kit.gk : tm.kit.primary; ctx.fill(); ctx.lineWidth = Math.max(1, r * .12); ctx.strokeStyle = p.gk ? tm.kit.gkTrim || tm.kit.secondary : tm.kit.secondary; ctx.stroke();
     ctx.restore();
-    ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * 1.05) + "px Barlow, system-ui, sans-serif";
+    ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + numFont(r, info.number) + "px Barlow, system-ui, sans-serif";
     fillC(String(info.number), x, y);
     if (p.bk) { ctx.fillStyle = "#ffd23f"; ctx.fillRect(x + r * .55, y - r * 1.05, r * .32, r * .45); }
   }
@@ -265,7 +265,7 @@
       var bx = x + r * 1.25, by = y - r * 1.7, br = r * .85;
       ctx.globalAlpha = al * .94; ctx.fillStyle = "#12182a"; ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
       ctx.lineWidth = Math.max(1.2, r * .16); ctx.strokeStyle = col; ctx.stroke();
-      ctx.globalAlpha = al; ctx.fillStyle = col; ctx.font = "800 " + Math.max(8, r * 1.05) + "px Barlow, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.globalAlpha = al; ctx.fillStyle = col; ctx.font = "800 " + numFont(r, d.sign || "!") + "px Barlow, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(d.sign, bx, by + r * .04);
     }
     ctx.restore();
@@ -282,8 +282,13 @@
     ctx.beginPath(); ctx.ellipse(x, y, r * (1 + .3 * k), r * (1 - .14 * k), ang, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.restore();
   }
+  // A player's radius: .95 m on the pitch, but never smaller than 6.2 CSS pixels (about 12 px across) - on a phone the whole pitch is ~400 px wide,
+  // so the true size is a 7 px speck with a number that cannot be read. Players overlap a little more there; they can be read.
+  function discR() { return Math.max(.95 * view.s, 6.2 * (view.dpr || 1)); }
+  // The shirt number's size: fitted to the disc (a three-digit number is narrower than a two-digit one, it must not spill over the edge)
+  function numFont(r, text) { return Math.max(3, Math.min(r * 1.05, r * 2.1 / (Math.max(1, String(text).length) * .6))); }
   function entities(S, now, dt) {
-    var s = view.s, r = .95 * s;
+    var s = view.s, r = discR();
     [[-52.5, -34], [-52.5, 34], [52.5, -34], [52.5, 34]].forEach(function (c, i) { cornerFlag(X(c[0]), Y(c[1]), s, now, i, X(c[0] + Math.sign(c[0])) - X(c[0]), Y(c[1] + Math.sign(c[1])) - Y(c[1])); });
     S.os.forEach(function (o, i) {
       var ox = X(o.x), oy = Y(o.y);
@@ -294,7 +299,7 @@
       // (the same marker as a player: same size, same feet, same edge)
       playerFeet(ox, oy, r, officialFacing(i, o, S), 0, false, rc.boots);
       playerDisc(ox, oy, r, rc.shirt, rc.trim);
-      ctx.fillStyle = rc.letter; ctx.font = "800 " + Math.max(8, 1.05 * s) + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
+      ctx.fillStyle = rc.letter; ctx.font = "800 " + numFont(r, "R") + "px Barlow, system-ui, sans-serif"; fillC(i === 0 ? "R" : "L", ox, oy);
       if (i === 0 && o.card) refereeCard(ox, oy, s, o.card);
     });
     S.ps.forEach(function (p, i) {
@@ -312,7 +317,7 @@
       castShadow(p.x, p.y, x, gy, r * 1.05 * sh, r * .95 * sh, .5 * sh);
       playerFeet(x, y, r * g, p.f, p.kp, p.kl, p.gk ? tm.kit.gkBoots || tm.kit.boots : tm.kit.boots, p.kh, p.no);
       playerDisc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary, p.gk ? tm.kit.gkTrim || tm.kit.secondary : tm.kit.secondary);
-      ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + Math.max(8, r * g * 1.05) + "px Barlow, system-ui, sans-serif";
+      ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + numFont(r * g, info.number) + "px Barlow, system-ui, sans-serif";
       fillC(String(info.number), x, y);
       if (p.bk) { ctx.fillStyle = "#ffd23f"; ctx.fillRect(x + r * .55, y - r * 1.05, r * .32, r * .45); }
       if (p.inj) injuryMark(x, y, r);
@@ -324,7 +329,7 @@
       castShadow(S.fig.x, S.fig.y, fx, fy, r * 1.05, r * .95, .5);
       playerFeet(fx, fy, r, S.fig.f, 0, false, ft.kit.boots);
       playerDisc(fx, fy, r, ft.kit.primary, ft.kit.secondary);
-      ctx.fillStyle = ft.kit.number; ctx.font = "700 " + Math.max(8, r * 1.05) + "px Barlow, system-ui, sans-serif"; fillC(String(S.fig.number), fx, fy);
+      ctx.fillStyle = ft.kit.number; ctx.font = "700 " + numFont(r, S.fig.number) + "px Barlow, system-ui, sans-serif"; fillC(String(S.fig.number), fx, fy);
     }
     S.ps.forEach(function (p) { if (p.os) offsideMark(X(p.x), Y(p.y), s); });
     var h = Math.max(0, S.bz - .11), bx = X(S.bx), by = Y(S.by);
