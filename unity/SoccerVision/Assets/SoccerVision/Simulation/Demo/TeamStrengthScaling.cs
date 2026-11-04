@@ -11,8 +11,8 @@ namespace SoccerVision.Simulation
     /// </summary>
     public static class TeamStrengthScaling
     {
-        /// <summary>0 = every squad is the medium one, 1 = the generator's weaker / excellent squads as they are.</summary>
-        public static float Spread = 1f;
+        /// <summary>0 = every squad is the medium one, 1 = the generator's weaker / excellent squads as they are. 0.6 matches the real Premier League (see CHANGELOG).</summary>
+        public static float Spread = 0.6f;
 
         public static (List<PlayerProfile> Starters, List<PlayerProfile> Bench) Red(TeamStrength s) => Make(s, GeneratedTeams.Red(), GeneratedTeamLevels.Red(s));
         public static (List<PlayerProfile> Starters, List<PlayerProfile> Bench) Blue(TeamStrength s) => Make(s, GeneratedTeams.Blue(), GeneratedTeamLevels.Blue(s));

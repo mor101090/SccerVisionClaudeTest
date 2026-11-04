@@ -49,7 +49,7 @@ namespace SoccerVision.Simulation.Tests
             foreach (var make in new System.Func<TeamStrength, TeamSetup>[] { s => DemoTeams.Red(1001, s), s => DemoTeams.Blue(1001, s) })
             {
                 double w = Mean(make(TeamStrength.Weak)), m = Mean(make(TeamStrength.Medium)), s2 = Mean(make(TeamStrength.Strong));
-                Assert.True(m - w >= 8 && s2 - m >= 8, $"weak {w:0.0}, medium {m:0.0}, strong {s2:0.0}: each step should be a real step");
+                Assert.True(m - w >= 5 && s2 - m >= 5, $"weak {w:0.0}, medium {m:0.0}, strong {s2:0.0}: each step should be a real step (the squads are pulled 60% of the way from medium, see TeamStrengthScaling)");
             }
         }
 
@@ -67,16 +67,26 @@ namespace SoccerVision.Simulation.Tests
         }
 
         [Fact]
-        public void AStrongerTeamWinsMoreAndScoresMore_InEitherSeat()
+        public void AStrongerTeamWinsMoreAndScoresMore()
         {
-            // 16 matches each way: strong v weak, strong v medium, medium v weak (the stronger team at home, then away)
+            // 24 matches in each seat per pairing, pooled (the home edge cancels out): the stronger team scores more and wins more than it loses
             foreach (var (hi, lo) in new[] { (TeamStrength.Strong, TeamStrength.Weak), (TeamStrength.Strong, TeamStrength.Medium), (TeamStrength.Medium, TeamStrength.Weak) })
             {
-                var home = Play(hi, lo, 16);
-                Assert.True(home.Home > home.Away && home.HomeWins > home.AwayWins, $"{hi} at home v {lo}: {home.Home:0.00}-{home.Away:0.00}, {home.HomeWins}-{home.AwayWins} wins");
-                var away = Play(lo, hi, 16);
-                Assert.True(away.Away > away.Home && away.AwayWins > away.HomeWins, $"{lo} at home v {hi}: {away.Home:0.00}-{away.Away:0.00}, {away.HomeWins}-{away.AwayWins} wins");
+                var h = Play(hi, lo, 24); var a = Play(lo, hi, 24);
+                double goalsFor = h.Home + a.Away, goalsAgainst = h.Away + a.Home;
+                int wins = h.HomeWins + a.AwayWins, losses = h.AwayWins + a.HomeWins;
+                Assert.True(goalsFor > goalsAgainst && wins > losses, $"{hi} v {lo}: goals {goalsFor / 2:0.00}-{goalsAgainst / 2:0.00}, {wins} wins {losses} defeats in 48");
             }
+        }
+
+        [Fact]
+        public void TheBiggestMismatchIsNotAMassacre()
+        {
+            // real Premier League: a top-two side beats a bottom-three side 89% of the time, a top four side at home 80% (10 seasons, 3,800 matches).
+            // Strong v weak (both seats, 40 matches) must stay in that range: well above a coin flip, well below "always".
+            var h = Play(TeamStrength.Strong, TeamStrength.Weak, 20); var a = Play(TeamStrength.Weak, TeamStrength.Strong, 20);
+            double winPct = 100.0 * (h.HomeWins + a.AwayWins) / 40;
+            Assert.InRange(winPct, 62, 92);
         }
     }
 }

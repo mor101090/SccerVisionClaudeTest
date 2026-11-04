@@ -22,26 +22,48 @@ Each round of changes is developed on its own branch, named after what it change
   | strong (API *excellent*) | 71.2 | 68.8 | 73.0 | 70.5 | 74.6 | 85 | 83 |
 
   Our own squads are within about 1 point of the API's normal level everywhere, so "medium" is what the API calls normal.
-- **What each pairing does to the game** (150 matches each, seed 500, default tactics: Team A zonal at home, Team B man-to-man away; so the medium v medium
-  row is the baseline, with its existing home edge):
+- **How far apart the teams are - checked against real football.** The generator's weaker / excellent squads, used as they are, made the stronger side win
+  94% of the time (a medium team against a weak one) - far more than the real game. Real numbers, from 10 Premier League seasons (3,800 matches,
+  <https://www.football-data.co.uk/englandm.php>, results and Pinnacle closing odds with the margin taken out):
 
-  | home v away | goals home - away | shots home - away | home win / draw / away win % |
+  | real Premier League, 2015/16 - 2024/25 | favourite wins | draw | favourite loses | goals fav - underdog |
+  |---|---|---|---|---|
+  | all matches | home 44% | 23% | away 32% | 1.55 - 1.28 (home - away) |
+  | clear favourite (55-60% in the odds) | 57% | 22% | 21% | 1.84 - 1.04 |
+  | big favourite (60-70%) | 68% | 19% | 12% | 2.14 - 0.86 |
+  | huge favourite (80%+) | 88% | 7% | 5% | 2.93 - 0.60 |
+  | top four at home v bottom three | 80% | 14% | 6% | 2.59 - 0.62 |
+  | top two (either seat) v bottom three | 89% | 8% | 3% | |
+
+  So each weak / strong squad is moved only **60%** of the way from the medium squad towards the generator's (`TeamStrengthScaling.Spread = 0.6`, the same
+  player in the same slot; tried 0.3 / 0.45 / 0.6 over 100 matches per pairing and both seats). The stronger side's results, both seats pooled
+  (150 matches per seat, seed 500; the home edge cancels out):
+
+  | stronger v weaker | stronger wins | draw | loses | goals stronger - weaker | real football |
+  |---|---|---|---|---|---|
+  | strong v weak | 81% | 12% | 6% | 2.57 - 0.42 | top four v bottom three 80%, 2.6 - 0.6; top two 89% |
+  | medium v weak | 69% | 17% | 14% | 2.25 - 0.68 | big favourite 68%, 2.14 - 0.86 |
+  | strong v medium | 60% | 18% | 22% | 1.78 - 0.81 | clear favourite 57%, 1.84 - 1.04 |
+
+  All nine pairings (home v away; goals home - away; shots home - away; home win / draw / away win %):
+
+  | home v away | goals | shots | result % |
   |---|---|---|---|
-  | weak v weak | 1.59 - 0.66 | 15.0 - 5.7 | 57 / 31 / 12 |
-  | weak v medium | 0.59 - 1.86 | 5.7 - 19.6 | 12 / 19 / 69 |
-  | weak v strong | 0.29 - 2.76 | 3.0 - 23.8 | 5 / 15 / 81 |
-  | medium v weak | 3.93 - 0.23 | 30.1 - 2.8 | 94 / 5 / 1 |
-  | **medium v medium** | **1.89 - 0.87** | **18.4 - 12.4** | **58 / 25 / 17** |
-  | medium v strong | 1.03 - 1.42 | 12.4 - 18.6 | 31 / 22 / 47 |
-  | strong v weak | 4.50 - 0.11 | 36.9 - 1.2 | 95 / 5 / 0 |
-  | strong v medium | 2.43 - 0.39 | 27.4 - 7.2 | 86 / 11 / 3 |
-  | strong v strong | 1.47 - 0.75 | 20.5 - 15.1 | 53 / 28 / 19 |
+  | weak v weak | 1.58 - 0.75 | 12.9 - 6.4 | 59 / 23 / 18 |
+  | weak v medium | 0.89 - 1.49 | 8.2 - 15.6 | 25 / 25 / 51 |
+  | weak v strong | 0.69 - 1.83 | 5.4 - 21.3 | 13 / 21 / 66 |
+  | medium v weak | 3.00 - 0.46 | 24.9 - 4.6 | 87 / 9 / 3 |
+  | **medium v medium (baseline, unchanged)** | **1.89 - 0.87** | **18.4 - 12.4** | **58 / 25 / 17** |
+  | medium v strong | 1.23 - 1.31 | 14.5 - 17.6 | 37 / 23 / 40 |
+  | strong v weak | 3.30 - 0.15 | 31.4 - 2.2 | 95 / 4 / 1 |
+  | strong v medium | 2.25 - 0.39 | 25.3 - 8.3 | 81 / 13 / 7 |
+  | strong v strong | 1.62 - 0.82 | 19.6 - 15.2 | 55 / 29 / 17 |
 
-  Read: the steps are real and in the right order, both ways round. They are large: a medium team beats a weak one 94% of the time and a strong
-  team beats a medium one 86% (at home) - larger than I would expect from real football, even for the biggest mismatches (a judgement, not a measured target). Possession stays near 50% in every pairing (it is the
-  shots that move, as in real football). The home edge is smaller against a strong team (31% wins) and larger against a weak one.
-- Tests: `TeamStrengthTests` (valid squads at every strength; medium unchanged; each step at least 8 attribute points; the stronger side wins more and
-  scores more in either seat, 16 matches per pairing). Verified in the browser: choosing the strengths in the page reaches the engine and the squads that
+  Possession stays near 50% in every pairing (it is the shots that move, as in real football). **Not changed, but noticed**: the home edge between equal
+  teams is bigger than the real one (medium v medium 58 / 25 / 17 and 1.89 - 0.87, real 44 / 23 / 32 and 1.55 - 1.28). Team A (home) is also the zonal team and
+  Team B the man-to-man one, so part of it may be the tactics and not home advantage; it was like that before this branch.
+- Tests: `TeamStrengthTests` (valid squads at every strength; medium unchanged; each step at least 5 attribute points; the stronger side scores more and wins more than it loses, 48
+  matches per pairing, both seats; the biggest mismatch stays between 62% and 92%, not a massacre). Verified in the browser: choosing the strengths in the page reaches the engine and the squads that
   come back differ (speed 84 v 50 with strong at home and weak away).
 
 ## `fix/layout-responsive`
