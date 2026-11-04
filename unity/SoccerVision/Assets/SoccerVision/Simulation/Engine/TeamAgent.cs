@@ -35,9 +35,22 @@ namespace SoccerVision.Simulation
                 e.Tempo += 0.2f * m; e.Mentality += 0.1f * m; e.PressingIntensity += 0.05f * m;
                 if (m <= -0.5f && e.Passing == PassingStyle.Mixed) e.Passing = PassingStyle.Short;
             }
+            // The score: a team in front drops off and lets the other side have the ball, a team behind pushes up and presses
+            // to win it back - real share of the ball (StatsBomb open data, the 2015/16 Premier League and La Liga, counted by
+            // tools/calibration/possession_tiers.py): 44% leading by one, 56% trailing by one, 47-48% / 52-53% two or more
+            // apart (the game is settled and both sides ease off). Nothing changes at level scores.
+            int d = Opponent == null ? 0 : Score - Opponent.Score;
+            if (d != 0 && ScoreEffect > 0f)
+            {
+                float w = ScoreEffect * MathF.Sign(d) * (MathF.Abs(d) == 1 ? 1f : 0.4f); // (+ ahead, - behind)
+                e.Mentality -= 0.15f * w; e.DefensiveLine -= 0.12f * w; e.PressingIntensity -= 0.15f * w;
+            }
             e.Sanitize();
             Eff = e;
         }
+
+        /// <summary>How strongly the score changes the way a team plays (see <see cref="RefreshEff"/>): 0 = not at all.</summary>
+        public static float ScoreEffect = 1.3f;
         private TeamTactics _tactics;
         /// <summary>The tactics as played (the styles applied to the sliders, see <see cref="TeamTactics.Effective"/>): what the AI reads.</summary>
         public TeamTactics Eff { get; private set; }

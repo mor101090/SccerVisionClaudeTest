@@ -148,6 +148,7 @@ namespace SoccerVision.Simulation
             if (defending == _chargeDownTeam && SimTime - _chargeDownTime < 8f) KeeperChargeDownGoals++;
             scoringTeam.Score++;
             scoringTeam.Stats.Goals++;
+            Home.RefreshEff(); Away.RefreshEff(); // (the score changes how both teams play)
             if (CollectDiagnostics && _lastShotKeeperBucket != null) Count("goal.keeper." + _lastShotKeeperBucket);
             if (CollectDiagnostics && _shotTags != null && SimTime - _lastShotTime < 4f) foreach (var tg in _shotTags) Count("goal." + tg);
             if (SimTime - scoringTeam.SetPieceAt < 10f) scoringTeam.Stats.SetPieceGoals++;

@@ -33,7 +33,13 @@ namespace SoccerVision.Simulation
             _team = team;
             _nextCheck = 6f * 60f;
             _last = engine.TeamOf(team).Tactics.Describe();
+            _plan = engine.TeamOf(team).Tactics.Clone();
         }
+
+        /// <summary>The tactics the team started with (its own plan: in a random match the styles it picked). Each check starts
+        /// from these and answers the game on top, so a team keeps its identity (it used to start from the default tactics,
+        /// which wiped a random plan's styles at the first check, six minutes in).</summary>
+        private readonly TeamTactics _plan;
 
         /// <summary>Call after each step of the match (cheap: it decides every few match minutes).</summary>
         public void Update()
@@ -46,12 +52,13 @@ namespace SoccerVision.Simulation
 
             var me = _engine.TeamOf(_team);
             var human = _engine.TeamOf(1 - _team).Tactics;
-            var t = new TeamTactics { Marking = me.Tactics.Marking, FormationName = me.Tactics.FormationName,
-                                      CornerTakersRight = me.Tactics.CornerTakersRight, CornerTakersLeft = me.Tactics.CornerTakersLeft,
-                                      FreeKickTakersRight = me.Tactics.FreeKickTakersRight, FreeKickTakersLeft = me.Tactics.FreeKickTakersLeft, PenaltyTakers = me.Tactics.PenaltyTakers,
-                                      CornerRoutineRight = me.Tactics.CornerRoutineRight, CornerRoutineLeft = me.Tactics.CornerRoutineLeft,
-                                      CornerZonesRight = me.Tactics.CornerZonesRight, CornerZonesLeft = me.Tactics.CornerZonesLeft,
-                                      CornerSetupAttack = me.Tactics.CornerSetupAttack, CornerSetupDefence = me.Tactics.CornerSetupDefence };
+            var t = _plan.Clone();
+            t.Marking = me.Tactics.Marking; t.FormationName = me.Tactics.FormationName;
+            t.CornerTakersRight = me.Tactics.CornerTakersRight; t.CornerTakersLeft = me.Tactics.CornerTakersLeft;
+            t.FreeKickTakersRight = me.Tactics.FreeKickTakersRight; t.FreeKickTakersLeft = me.Tactics.FreeKickTakersLeft; t.PenaltyTakers = me.Tactics.PenaltyTakers;
+            t.CornerRoutineRight = me.Tactics.CornerRoutineRight; t.CornerRoutineLeft = me.Tactics.CornerRoutineLeft;
+            t.CornerZonesRight = me.Tactics.CornerZonesRight; t.CornerZonesLeft = me.Tactics.CornerZonesLeft;
+            t.CornerSetupAttack = me.Tactics.CornerSetupAttack; t.CornerSetupDefence = me.Tactics.CornerSetupDefence;
             for (int i = 0; i < 11; i++) t.Orders[i] = me.Tactics.OrdersFor(i).Clone(); // (the roles and instructions stay)
             float minute = clock.Seconds / 60f;
             int diff = me.Score - _engine.TeamOf(1 - _team).Score;
@@ -89,7 +96,8 @@ namespace SoccerVision.Simulation
                 t.DefensiveLine = 0.25f;
                 t.Width = 0.4f;
                 t.Tempo = 0.25f;
-                t.Passing = PassingStyle.Short;
+                // (no switch to short passing: a team protecting a lead gives the ball away - 44% of it a goal up, StatsBomb
+                // open data, see TeamAgent.RefreshEff - it slows the game at the restarts, not by keeping the ball)
                 t.Defence = DefenceStyle.ParkTheBus;
                 t.Special = SpecialTactic.TimeWasting;
             }

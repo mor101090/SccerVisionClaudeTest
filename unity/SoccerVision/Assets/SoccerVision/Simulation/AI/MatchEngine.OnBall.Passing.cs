@@ -54,8 +54,12 @@ namespace SoccerVision.Simulation
             float quality = MathUtil.Clamp(MathF.Sign(gap) * MathF.Max(0f, MathF.Abs(gap) - 4f) / 6f, -1.8f, 1.8f);
             var o = team.Opponent.Tactics; // (what the manager chose, not the moment's adjustments: a team on its defaults is at 0)
             float pressed = MathUtil.Clamp((o.Defence == DefenceStyle.HighPress ? 0.6f : 0f) + 2f * (o.PressingIntensity - 0.5f), -0.4f, 1f);
-            return style + quality - pressed;
+            int d = team.Score - team.Opponent.Score; // (in front: no need to keep it; behind: the ball is needed - see TeamAgent.RefreshEff)
+            float score = d == 0 ? 0f : -ScorePatience * TeamAgent.ScoreEffect * MathF.Sign(d) * (MathF.Abs(d) == 1 ? 1f : 0.4f);
+            return style + quality - pressed + score;
         }
+        /// <summary>The score's part of a team's patience at one goal apart (see <see cref="Patience"/>).</summary>
+        public static float ScorePatience = 1f;
 
         /// <summary>The starting eleven's mean of passing, ball control, composure and decisions (0-100), worked out once per match (a red card or an injury does not change a team's character).</summary>
         private static float PassingQuality(TeamAgent team)

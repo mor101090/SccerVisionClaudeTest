@@ -2,6 +2,42 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/possession-quality`
+
+**Possession now follows the score, and a random match keeps each team's style.** Item 2 of the list of wrong statements ("possession near 50% in every pairing") was
+fixed for style and quality in the possession round; this round checks what was left against real match data, not against articles.
+- **Real data, counted** (`tools/calibration/possession_tiers.py`, [StatsBomb open data](https://github.com/statsbomb/open-data): every match of the 2015/16 Premier League and
+  La Liga, 380 each; possession as each side's share of the passes - how Opta works out the published figure - and as its share of the time on the ball, which agree within a point):
+  | | Premier League 2015/16 | La Liga 2015/16 |
+  |---|---|---|
+  | top two v bottom three | 53.8% | 60.4% |
+  | top two v 7th-14th | 49.9% | 62.1% |
+  | 7th-14th v bottom three | 52.9% | 50.4% |
+  | 7th-14th v 7th-14th, match to match (10% - 90%) | 36 - 64 | 38 - 62 |
+  | a goal down / level / a goal up | 55.7 / 50 / 44.3 | 56.7 / 50 / 43.3 |
+  | two or more down / up | 52.9 / 47.1 | 51.6 / 48.4 |
+
+  One season a league, and the tier cells are small (12 to 48 matches): possession follows a club's style more than its table place (Leicester won the 2015/16 league with 42%).
+- **What the engine did** (`SimRunner --poss`, which now also prints the pass share, the share by the score and the teams' passing quality; `--random` plays the game's random
+  match - both managers pick a random plan and change the tactics during the match): with the default tactics, possession by level was too strong (strong v weak 62%, medium v weak 60%)
+  because both teams play the same style; the score did nothing (a goal down: 49.5%); and in a random match every team played nearly the default style after six minutes.
+- **The score** (`TeamAgent.RefreshEff`, `MatchEngine.Patience`): a team a goal up plays a little deeper, presses less and is less patient on the ball; a team a goal down the other way;
+  less (0.4 of it) two or more apart; nothing at level scores. `TeamAgent.ScoreEffect` (1.3) and `MatchEngine.ScorePatience` (1.0) were set on 100-match runs and confirmed on 150 matches,
+  seed 2000: a goal down **57.9%** with the default tactics, **53.7%** in a random match (real 56-57); two down 55.4% / 52.0% (real 52-53). Both teams refresh their tactics at every goal.
+  With `--scoreeffect 0` the match is the same as before to the last digit.
+- **Fix: the computer manager kept wiping its own plan.** Every four minutes it built its tactics from the default ones and only then answered the game, so a random plan's styles
+  (passing, defence, attack, special) were gone at the first check. It now starts from the plan it kicked off with. Also: protecting a lead late it no longer switches to short passing
+  (a side in front has less of the ball; it still slows the restarts and the keeper takes his time). The live match (the computer against you) starts from the default tactics, as before.
+- **Random match, after** (150 matches, seed 2000): strong v weak **55.0%** (real 54-60), medium v weak **51.3%** (real 50-53), medium v medium match to match 43 - 56 (real 36 - 64:
+  still narrower - real clubs differ more in style than the random plans do; not changed).
+- **Results, before / after** (default tactics, Team A at home, 150 matches each, seed 500, the same matches; one seat only): strong v weak 95 / 5 / 0 -> 93 / 7 / 1, goals 3.90 - 0.18 -> **3.05** - 0.24
+  (real, both seats pooled: 2.82 - 0.63 - a team in front no longer piles them on); strong v medium 87 / 11 / 3 -> 87 / 11 / 2; medium v weak 81 / 14 / 5 -> 80 / 14 / 6;
+  medium v medium 60 / 19 / 21 -> 63 / 23 / 14. Win rates within the noise of 150 matches (about 4 points); goals a match 2.75-4.08 -> 2.91-3.29.
+- **Not done**: the pass share. A side's share of the passes runs far ahead of its share of the time (strong v weak 78% of the passes, 62% of the time; real: the two agree), because the
+  engine's matches have about 410 passes - the weaker side hardly strings passes together. That is the pass count, a separate round.
+- **Tests**: `ScoreEffectTests` - a side a goal up plays deeper and presses less, a goal down the other way, level again as before; a side a goal down has 52-63% of the ball
+  (24 matches); the computer manager keeps a counter-attacking plan 20 minutes in.
+
 ## `feature/phone-tabs`
 
 **On a phone the page is no longer one endless scroll (it was about 4,950 px).** A narrow screen (760 px or less) shows one part at a time:
