@@ -7,6 +7,11 @@ namespace SoccerVision.Simulation
     /// <summary>Marking: zonal and man-to-man.</summary>
     public sealed partial class MatchEngine
     {
+        /// <summary>(experiment) How far a man-marker stands from his man (1 = as calibrated).</summary>
+        public static float ManMarkGapScale = 1f;
+        /// <summary>(experiment) How strongly a zonal defender steps to the man in his zone (1 = as calibrated).</summary>
+        public static float ZonalPull = 1f;
+
         private readonly List<PlayerAgent> _markPool = new List<PlayerAgent>(11);
 
         private readonly List<PlayerAgent> _threats = new List<PlayerAgent>(11);
