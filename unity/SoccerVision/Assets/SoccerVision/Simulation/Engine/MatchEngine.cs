@@ -120,7 +120,9 @@ namespace SoccerVision.Simulation
         /// <summary>Sim seconds since the engine was created.</summary>
         public float SimTime { get; private set; }
         /// <summary>Real (viewer) seconds since the first kick-off whistle sequence started.</summary>
-        public float RealTimeElapsed { get; private set; }
+        public float RealTimeElapsed => (float)_realTimeElapsed;
+        /// <summary>(kept in double: a float summed over 60,000 steps of step / MotionSpeed drifted by a few real seconds a half)</summary>
+        private double _realTimeElapsed, _clockSeconds;
         public float HalftimeRemaining { get; private set; }
         public float FirstHalfRealSeconds { get; private set; }
         public float SecondHalfRealSeconds { get; private set; }
@@ -244,7 +246,7 @@ namespace SoccerVision.Simulation
                     float used = MathF.Min(realDt, HalftimeRemaining);
                     HalftimeRemaining -= used;
                     HalftimeRealSeconds += used;
-                    RealTimeElapsed += used;
+                    _realTimeElapsed += used;
                     realDt -= used;
                     if (HalftimeRemaining <= 1e-6f) EndBreak();
                     continue;
@@ -257,7 +259,7 @@ namespace SoccerVision.Simulation
                     ProcessCommands();
                     Step(step);
                     _accumulator -= step;
-                    RealTimeElapsed += step / Config.MotionSpeed;
+                    _realTimeElapsed += (double)step / Config.MotionSpeed;
                 }
                 if (Phase == MatchPhase.HalfTimeBreak && _accumulator > 0f)
                 {
@@ -311,7 +313,11 @@ namespace SoccerVision.Simulation
             if (Clock.Running)
             {
                 float clockDt = dt * Config.ClockSecondsPerSimSecond;
-                Clock.Seconds += clockDt;
+                // (summed in double, as the real time is: a float clock drifted ahead of the real time by about a second a half; if anything
+                // else has set the clock - a new period - the sum starts again from it)
+                if (Clock.Seconds != (float)_clockSeconds) _clockSeconds = Clock.Seconds;
+                _clockSeconds += clockDt;
+                Clock.Seconds = (float)_clockSeconds;
                 DecayMomentum(clockDt);
                 if (_restart != null && _restart.CountsAsLostTime) Clock.LostSeconds += clockDt;
                 if (Phase == MatchPhase.GoalCelebration) Clock.LostSeconds += clockDt;

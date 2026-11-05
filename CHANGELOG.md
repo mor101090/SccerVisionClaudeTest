@@ -28,6 +28,13 @@ Each round of changes is developed on its own branch, named after what it change
   still above Barcelona's 738), shots 13.8 -> 11.0. Larger values (1.0-2.0) were tried: fewer passes, but the share of the ball went past Barcelona's and the shots fell further.
 - **The game 5% slower** (`MatchConfig.MotionSpeed` 2.025 -> 1.924; the Unity controller had the old 2.25, now the same): the players and the ball move 5% slower on screen; the
   clock and the real length of a half are unchanged. Goals a match 2.99 -> 2.75 (150 matches, seed 500; real Premier League 2.83), fouls and cards about the same.
+- **Fix: the clock and the real time drifted apart** (`MatchEngine.Advance` / `Step`): both were summed as floats, about 60,000 small steps a match; at the new pace a half
+  ended about 2 real seconds too early for its clock (637.5 s for 639.5-648.7). Both are now summed in double (the public values stay floats). Found by
+  `FullMatchTests.MatchReachesFullTimeWithCorrectDurations`.
+- **Test changed**: `FullMatchTests.ManyMatchesStayHealthy` asked every team for more than 100 passes - counted in compressed time. A side a goal up from the first
+  minute now sits off (the score round) and made 99 (39% of the ball). It now asks for more than 150 as over 90 minutes (that side: 232); the fewest open-play
+  passes by a Premier League side in a 2015/16 match was 183 (StatsBomb). `TacticalIntelligenceTests.LongThrows...` failed once (1 long throw in 12 matches) and
+  passes since the clock fix; over 60 matches the long throws went from 34 (old pace) to 43 (new pace) - not fewer.
 - **Not done**: an ordinary team passes faster than a real one in true-speed seconds (2.8 v 3.6 s) and builds up in fewer passes per shot (15 v 34 real, unscaled) - that is the
   pace of the whole engine, a separate round.
 

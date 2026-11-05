@@ -179,7 +179,9 @@ namespace SoccerVision.Simulation.Tests
                 Assert.InRange(e.Home.Score + e.Away.Score, 0, 14);
                 foreach (var t in e.Teams)
                 {
-                    Assert.True(t.Stats.Passes > 100);
+                    // (as over a real 90 minutes - the engine plays compressed time; the fewest open-play passes a Premier League side made in a match in
+                    // 2015/16 was 183, StatsBomb open data, tools/calibration/passing_tempo.py)
+                    Assert.True(t.Stats.Passes * e.Config.ClockSecondsPerSimSecond > 150f, $"passes {t.Stats.Passes} ({t.Stats.Passes * e.Config.ClockSecondsPerSimSecond:0} as over 90 minutes)");
                     Assert.True(t.Stats.PassesCompleted <= t.Stats.Passes);
                     Assert.True(t.Stats.ShotsOnTarget <= t.Stats.Shots);
                     Assert.True(t.ActiveCount >= 7, "a team can be reduced but must keep at least 7 players");
