@@ -18,7 +18,9 @@ Run every step on **dev first** (Supabase dev project `mcrglsqpxyrbazwzrnzg`, Ne
 3. **Migrate the prod schema:** `DATABASE_URL_UNPOOLED=<prod direct url> yarn db:migrate` from `app/`. This creates the
    tables, the `replays` bucket and the lobby Realtime trigger. Password lockout stays in the app. Supabase's
    password-verification hook is a paid feature and is not part of this cutover.
-4. **Set the Vercel Production env and GitHub secrets** (see "Environment" in CLAUDE.md). Keep the Neon values until step 3 of
+4. **Set the Vercel Production env and GitHub secrets** (see "Environment" in CLAUDE.md), including
+   `SUPABASE_PROD_DATABASE_URL_UNPOOLED`. The pull request build fails until that secret exists, because the
+   production deploy migrates with it and does not run on the pull request. Keep the Neon values until step 3 of
    the cutover.
 5. **Rehearse on dev:** delete the `yarn e2e:seed` accounts on Supabase dev, run the migration script against Neon `dev`, then `yarn e2e:seed` again. Then sign in with Google, play a
    saved match's replay, and play an online match.

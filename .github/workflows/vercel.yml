@@ -55,7 +55,12 @@ jobs:
       - name: Migrate the production database
         env:
           DATABASE_URL_UNPOOLED: ${{ secrets.SUPABASE_PROD_DATABASE_URL_UNPOOLED }}
-        run: yarn db:migrate
+        run: |
+          if [ -z "$DATABASE_URL_UNPOOLED" ]; then
+            echo "::error::SUPABASE_PROD_DATABASE_URL_UNPOOLED is empty. Refusing to build or deploy."
+            exit 1
+          fi
+          yarn db:migrate
 
       - name: Build (vercel, Production env)
         run: |
