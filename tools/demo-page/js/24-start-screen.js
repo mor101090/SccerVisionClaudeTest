@@ -132,10 +132,30 @@
   // ---- the club crest: described in words, made by the faces server (tools/faces/server.py: Qwen-Image in ComfyUI) ----------------
   // the address of that server: #faces=http://127.0.0.1:8765 in the page's address, or the last one used; without it the button says how to start it
   var CREST = (function () { try { return localStorage.getItem("sv-crest") || ""; } catch (e) { return ""; } })();
-  var FACES_API = (/#faces=([^&]+)/.exec(location.hash) || [])[1] || (function () { try { return localStorage.getItem("sv-faces-api") || ""; } catch (e) { return ""; } })() || "http://127.0.0.1:8765";
-  var FACES_TOKEN = (/#faces-token=([^&]+)/.exec(location.hash) || [])[1] || (function () { try { return localStorage.getItem("sv-faces-token") || ""; } catch (e) { return ""; } })();
+  function hashPart(name) {
+    var m = new RegExp("#" + name + "=([^&]+)").exec(location.hash);
+    if (!m) return "";
+    try { return decodeURIComponent(m[1]); } catch (e) { return ""; }
+  }
+  function facesOrigin(url) {
+    try { var u = new URL(url); return u.protocol === "http:" || u.protocol === "https:" ? u.origin : ""; }
+    catch (e) { return ""; }
+  }
+  function facesSaved() {
+    try { return { api: localStorage.getItem("sv-faces-api") || "", token: localStorage.getItem("sv-faces-token") || "" }; }
+    catch (e) { return { api: "", token: "" }; }
+  }
+  // A link may name a different crest server. The saved token belongs to the saved server only, so that link
+  // has to bring its own token. Otherwise generating a crest would send the saved secret to the new address.
+  var hashFaces = hashPart("faces"), hashFacesToken = hashPart("faces-token"), savedFaces = facesSaved();
+  var FACES_API = hashFaces || savedFaces.api || "http://127.0.0.1:8765";
+  var FACES_TOKEN = hashFacesToken || (!hashFaces || facesOrigin(hashFaces) === facesOrigin(savedFaces.api) ? savedFaces.token : "");
   function drawCrest() {
-    $("crestPreview").innerHTML = CREST ? '<img alt="" src="' + CREST + '">' : "";
+    var box = $("crestPreview");
+    box.textContent = "";
+    if (CREST && CREST.indexOf("data:image/") === 0) {
+      var img = document.createElement("img"); img.alt = ""; img.src = CREST; box.appendChild(img);
+    }
     $("crestClear").hidden = !CREST;
   }
   function setCrest(dataUrl) { CREST = dataUrl || ""; try { localStorage.setItem("sv-crest", CREST); } catch (e) {} drawCrest(); }
@@ -310,7 +330,9 @@
       if (clash(KIT.home.num, KIT.home.base)) KIT.home.num = textOn(KIT.home.base) === "#111" ? "#1b1b1b" : "#f2f2f2";
       if (clashAny(KIT.gk.base, [KIT.home.base, KIT.away.base, OTHER_GK.base])) KIT.gk.base = KEEPER_PICKS.filter(function (c) { return !clashAny(c, [KIT.home.base, KIT.away.base, OTHER_GK.base]); })[0];
       $("kTitle").textContent = "Your kit"; $("kitInvite").hidden = true;
-      $("kitGo").innerHTML = "<b>Continue</b><span>Next: a reply code for your friend, then your eleven.</span>";
+      $("kitGo").textContent = "";
+      var goTitle = document.createElement("b"); goTitle.textContent = "Continue"; $("kitGo").appendChild(goTitle);
+      var goNote = document.createElement("span"); goNote.textContent = "Next: a reply code for your friend, then your eleven."; $("kitGo").appendChild(goNote);
       drawKitPicker(); $("kitSetup").hidden = false;
     }, function () { $("online").hidden = false; $("oText").textContent = "This invite link does not work - ask your friend for a new one."; });
     return true;

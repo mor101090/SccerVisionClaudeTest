@@ -105,7 +105,26 @@
       startMatch(m, m === "staged" ? STAGED_SEED : newSeed());
     });
   });
+  function hexColor(v, fallback) {
+    if (typeof v !== "string" || v.length !== 7 || v.charAt(0) !== "#") return fallback;
+    for (var i = 1; i < 7; i++) {
+      var c = v.charCodeAt(i);
+      if (!((c >= 48 && c <= 57) || (c >= 65 && c <= 70) || (c >= 97 && c <= 102))) return fallback;
+    }
+    return v;
+  }
+  function plainKit(kit) {
+    var k = kit && typeof kit === "object" ? kit : {};
+    return {
+      primary: hexColor(k.primary, "#d32f2f"), secondary: hexColor(k.secondary, "#1b1b1b"),
+      boots: hexColor(k.boots, "#1b1b1b"), number: hexColor(k.number, "#f2f2f2"),
+      gk: hexColor(k.gk, "#f9d71c"), gkTrim: hexColor(k.gkTrim, "#1b1b1b"),
+      gkBoots: hexColor(k.gkBoots, "#1b1b1b"), gkNumber: hexColor(k.gkNumber, "#1b1b1b")
+    };
+  }
   function beginMatch(hdr) {
+    if (hdr.home) hdr.home.kit = plainKit(hdr.home.kit);
+    if (hdr.away) hdr.away.kit = plainKit(hdr.away.kit);
     R = hdr; F = R.frames = []; E = R.events = []; R.stats = []; teams = [R.home, R.away];
     R.home._kit0 = R.home.kit; R.away._kit0 = R.away.kit;
     SUBS = {}; t0 = 0; tEnd = 0; secondHalfT = Infinity; addedMinutes = [0, 0, 0, 0]; et1T = Infinity; et2T = Infinity; SO_KICKS = []; finished = false;

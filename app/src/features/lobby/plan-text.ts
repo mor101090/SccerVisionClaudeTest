@@ -2,15 +2,60 @@
  * True when TeamPlan.Parse can read the text without throwing. Unknown keys are ignored, the same way the
  * engine ignores them. A numeric field is rejected only in the shapes the engine actually parses.
  */
-const INT = /^-?\d+$/;
-const FLOAT = /^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+/** A number longer than this cannot be an int or a finite float the engine accepts. Checked before any scan. */
+const MAX_NUMBER = 32;
 
-function isInt(value: string): boolean {
-  return INT.test(value);
+function isDigits(value: string, from: number, to: number): boolean {
+  if (from >= to) return false;
+  for (let i = from; i < to; i++) {
+    const code = value.charCodeAt(i);
+    if (code < 48 || code > 57) return false;
+  }
+  return true;
 }
 
+/** True for an invariant integer inside Int32, the range int.Parse accepts. No regular expression. */
+function isInt(value: string): boolean {
+  if (value.length === 0 || value.length > 11) return false;
+  let i = 0;
+  if (value[0] === "-" || value[0] === "+") i = 1;
+  if (!isDigits(value, i, value.length)) return false;
+  const n = Number(value);
+  return Number.isInteger(n) && n >= -2_147_483_648 && n <= 2_147_483_647;
+}
+
+/**
+ * True for the float forms float.Parse accepts: digits, one dot, and an exponent.
+ * The shape is a single left-to-right scan, so a long bad field cannot backtrack.
+ */
 function isFloat(value: string): boolean {
-  if (!FLOAT.test(value)) return false;
+  if (value.length === 0 || value.length > MAX_NUMBER) return false;
+  let i = 0;
+  if (value[0] === "-" || value[0] === "+") i = 1;
+  const body = i;
+  let sawDigit = false;
+  let sawDot = false;
+  for (; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code >= 48 && code <= 57) {
+      sawDigit = true;
+      continue;
+    }
+    if (code === 46 && !sawDot) {
+      sawDot = true;
+      continue;
+    }
+    break;
+  }
+  if (!sawDigit || i === body) return false;
+  if (i < value.length && (value[i] === "e" || value[i] === "E")) {
+    i += 1;
+    if (value[i] === "+" || value[i] === "-") i += 1;
+    const exp = i;
+    while (i < value.length && value.charCodeAt(i) >= 48 && value.charCodeAt(i) <= 57) i += 1;
+    if (i === exp) return false;
+  }
+  if (i !== value.length) return false;
   return Number.isFinite(Number(value));
 }
 
