@@ -83,6 +83,7 @@
   }
   function resetTacticsPanel() {
     $("tacTeam").textContent = R.home.name; $("cpuTeam").textContent = R.away.name;
+    $("matchTitle").textContent = R.home.name + " v " + R.away.name;
     document.documentElement.style.setProperty("--home", teams[0].kit.primary); document.documentElement.style.setProperty("--away", teams[1].kit.primary);
     $("cpuNow").textContent = "Middle line, normal width, mixed passing, normal tempo, balanced"; $("cpuLog").textContent = "";
     var live = MODE === "live";

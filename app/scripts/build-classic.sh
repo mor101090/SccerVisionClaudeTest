@@ -26,5 +26,9 @@ rm -rf "$out"
 mkdir -p "$out"
 ENGINE_DIR="$base" python3 "$root/tools/demo-page/build_page.py" "$work" "$out/index.html"
 cp -R "$root/docs/sounds" "$out/sounds"
+# Portraits are optional (tools/faces makes them); without any, the page draws vector faces. An empty manifest keeps the page from asking for
+# a file that is not there (a 404 on every load).
+mkdir -p "$out/faces"
+[ -f "$root/docs/faces/manifest.json" ] && cp -R "$root/docs/faces/." "$out/faces/" || echo '{}' > "$out/faces/manifest.json"
 
 echo "Classic page -> public/classic (engine $base)"

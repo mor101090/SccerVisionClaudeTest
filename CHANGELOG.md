@@ -2,6 +2,21 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `chore/close-loose-ends`
+
+**Loose ends from the earlier lists, closed; nothing in the engine's play changes.** Deferred by the user and taken off the list: the league setting, the branches in the old repo.
+- **Classic page header**: no "engine demo" kicker and no static "Team A v Team B" / "4-4-2 v 4-4-2" line; the title shows the match's own team names (set when the match begins), the page
+  title is "SoccerVision". The random and staged matches are still played by the engine's demo teams, whose names are "Team A" and "Team B" - a naming choice, not changed here.
+- **`faces/manifest.json` 404**: the page asked for it on every load and no build ever shipped it. `yarn classic:build` now ships an empty one (or the real one if `docs/faces` has it);
+  checked in a browser: no failed request, no page error.
+- **`KeeperCloseDribble`**: already gone from the code (the earlier list was out of date).
+- **SimRunner reference column**: the seven figures that were counted ([C]: goals 2.83, shots 25.4, on target 8.8, corners 10.4, fouls 21.5, yellows 3.44, reds 0.12; `real_leagues.py`, Premier League 2015/16-2024/25) replace the
+  "PL 24/25" numbers, which had no source in the repository; the header says every other figure is an unsourced estimate. The offsides figure is marked unsourced.
+- **A test that pins the engine to real data** (`RealWorldPinTests`, 160 matches: medium v medium in all four marking pairings, both seats): goals 2.4-3.2 (real 2.83; measured 2.59 on its own seeds), shots 22-28 (25.4),
+  fouls 19-24 (21.5), the zonal / man-to-man gap within 25 points (measured -2.5; about +25 before the goals round), the home edge with seats and systems swapped between -5 and 30 points (measured +15; real +12).
+  The ranges are wide on purpose: they catch an engine that has wandered off, not a tenth of a goal.
+- **Tests**: `dotnet test sim/` -> **Passed! 248 / 248** (13 m 11 s; the three new ones included). `yarn check` in `app/`: lint, typecheck and format clean, 58 / 58.
+
 ## `feature/goals-and-marking-gap`
 
 **The two open items of the squads round: goals 2.4-2.5 v 2.83, and zonal marking beating man-to-man by 20+ points.** They turned out to be one problem seen twice.
