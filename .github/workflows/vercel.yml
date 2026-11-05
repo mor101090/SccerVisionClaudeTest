@@ -1,70 +1,94 @@
-# Deploys the demo page to Vercel (project soccer-vision): every pull request gets a preview deployment, with its link
-# posted on the PR, and every push to main is the production deployment at https://soccer.dev-spirit.com.
-# The site is built here (tools/vercel-build.sh) and uploaded prebuilt, from a folder without .git, so Vercel's Hobby
-# plan accepts it whoever authored the commit.
-# Needs the repository secret VERCEL_TOKEN (vercel.com/account/tokens) and the variables VERCEL_ORG_ID / VERCEL_PROJECT_ID.
-name: Vercel
+# Deploys the Next.js app (app/) to production on every push to main: https://soccer.dev-spirit.com (Neon branch main).
+# Pull requests are only checked (pr.yml), never deployed.
+#
+# The engine (C# -> WebAssembly) and the classic page are built here, then the app is built with `vercel build` and
+# uploaded prebuilt from a folder without .git (Hobby plan accepts any commit author). Vercel's own Git deployments are
+# off (root vercel.json `git.deploymentEnabled: false`): this workflow is the only deployer.
+#
+# Secrets: VERCEL_TOKEN, NEON_API_KEY. Variables: VERCEL_ORG_ID, VERCEL_PROJECT_ID, NEON_PROJECT_ID.
+name: Deploy
 
 on:
-  pull_request:
   push:
     branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: vercel-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # never cancel a production deploy half-way; the next push waits
+  group: deploy-production
+  cancel-in-progress: false
 
 permissions:
   contents: read
-  pull-requests: write
 
 env:
   VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
   VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
 
 jobs:
   deploy:
-    # PRs from forks get no secrets
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: app
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+      - name: Enable corepack (Yarn 4 from packageManager)
+        run: corepack enable
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm install --global vercel@latest
-      - name: Build
+          node-version-file: app/.nvmrc
+          cache: yarn
+          cache-dependency-path: app/yarn.lock
+      - run: yarn install --immutable
+
+      - name: Build engine (WASM) and classic page
+        run: yarn assets:build
+
+      - name: Migrate the production database
         run: |
-          if [ "${{ github.event_name }}" = pull_request ]; then env=preview; prod=; else env=production; prod=--prod; fi
-          echo "PROD=$prod" >> "$GITHUB_ENV"
-          vercel pull --yes --environment=$env --token="$VERCEL_TOKEN"
-          vercel build $prod --token="$VERCEL_TOKEN"
-      - name: Deploy
-        id: deploy
+          url=$(npx neon connection-string main --project-id "$NEON_PROJECT_ID")
+          echo "::add-mask::$url"
+          DATABASE_URL_UNPOOLED="$url" yarn db:migrate
+
+      - name: Build (vercel, Production env)
         run: |
-          mkdir -p /tmp/site && cp -r .vercel /tmp/site/
-          cd /tmp/site
-          url=$(vercel deploy --prebuilt $PROD --yes --token="$VERCEL_TOKEN")
-          echo "url=$url" >> "$GITHUB_OUTPUT"
-          echo "Deployed: $url" >> "$GITHUB_STEP_SUMMARY"
-      - name: Comment the preview link on the PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        env:
-          URL: ${{ steps.deploy.outputs.url }}
-        with:
-          script: |
-            const marker = '<!-- vercel-preview -->';
-            const sha = context.payload.pull_request.head.sha.slice(0, 7);
-            const body = `${marker}\n**Vercel preview** for \`${sha}\`: ${process.env.URL}\n\nProduction (main): https://soccer.dev-spirit.com`;
-            const { owner, repo } = context.repo, issue_number = context.issue.number;
-            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
-            const old = comments.find((c) => c.body.includes(marker));
-            if (old) await github.rest.issues.updateComment({ owner, repo, comment_id: old.id, body });
-            else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+          npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+          bash ../tools/ci/drop-sensitive-placeholders.sh .vercel/.env.production.local production
+          npx vercel@latest build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy to production
+        run: |
+          # From app/ (the prebuilt output references node_modules), with .git moved aside so no commit metadata is
+          # sent: Vercel's Hobby plan then accepts any commit author.
+          mv ../.git ../.git-off
+          trap 'mv ../.git-off ../.git' EXIT
+          url=$(npx vercel@latest deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN")
+          echo "Deployed: $url -> https://soccer.dev-spirit.com" >> "$GITHUB_STEP_SUMMARY"
+
+  production-check:
+    # soccer.dev-spirit.com must serve the site after the deploy (catches an empty or broken deployment).
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: soccer.dev-spirit.com answers
+        run: |
+          for path in / /home /play /auth/sign-in; do
+            code=000
+            for i in 1 2 3 4 5 6; do
+              code=$(curl -sL -o /dev/null -w '%{http_code}' "https://soccer.dev-spirit.com$path" || echo 000)
+              [ "$code" = 200 ] && break
+              sleep 10
+            done
+            if [ "$code" != 200 ]; then echo "::error::https://soccer.dev-spirit.com$path answered $code"; exit 1; fi
+            echo "$path: 200"
+          done

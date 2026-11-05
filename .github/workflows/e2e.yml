@@ -1,0 +1,73 @@
+# The full end-to-end suite, once a day at the end of the working day (not on every PR: it takes ~10 minutes).
+# Runs main's code in CI (yarn dev) against the shared Neon branch `dev`; also startable by hand (Run workflow).
+# A failure shows on the Actions tab and GitHub mails it to whoever last changed this schedule.
+#
+# Secrets: NEON_API_KEY. Variables: NEON_PROJECT_ID.
+name: E2E (daily)
+
+on:
+  schedule:
+    - cron: "0 18 * * 1-5" # 18:00 UTC = 20:00 Israel (winter), Monday-Friday
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-daily
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Enable corepack (Yarn 4 from packageManager)
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: app/.nvmrc
+          cache: yarn
+          cache-dependency-path: app/yarn.lock
+      - run: yarn install --immutable
+      - name: Build engine (WASM) and classic page
+        run: yarn assets:build
+      - name: Env of Neon branch dev, migrated
+        run: |
+          npx neon env pull --project-id "$NEON_PROJECT_ID" --branch dev --file .env.local
+          while IFS='=' read -r k v; do
+            case "$k" in
+              DATABASE_URL|DATABASE_URL_UNPOOLED|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|NEON_REALTIME_SECRET) ;;
+              *) continue ;;
+            esac
+            v="${v%\"}"; v="${v#\"}"
+            echo "::add-mask::$v"
+          done < .env.local
+          secret=$(openssl rand -base64 32)
+          echo "::add-mask::$secret"
+          echo "NEON_AUTH_COOKIE_SECRET=\"$secret\"" >> .env.local
+          yarn db:migrate
+      - run: yarn playwright install --with-deps chromium
+      - name: Playwright
+        env:
+          CI: "true"
+        run: yarn test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: app/test-results
+          retention-days: 7

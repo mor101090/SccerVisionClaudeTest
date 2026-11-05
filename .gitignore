@@ -36,7 +36,12 @@ __pycache__/
 *.pyc
 tools/names/.accent_cache.json
 
-# Vercel build output and local link
-public/
+# Vercel build output (root static site only; app/public is source) and local link
+/public/
 .vercel/
 .env*.local
+
+# Neon CLI link file (org/project/branch ids) and pulled env
+.neon
+.env
+

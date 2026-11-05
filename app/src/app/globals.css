@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/*
+ * SoccerVision palette, mirrored from Figma (file "soccer simulator mor").
+ * Collection "Primitives (Mor)" -> --mor-*; collection "SoccerVision Web" (semantic) -> --color-*.
+ * Use the semantic token for a role; a Mor primitive only for brand-specific cases.
+ * Change a color here once and every screen follows.
+ */
+:root {
+  /* Primitives (Mor) */
+  --mor-dark-purple: #17062e;
+  --mor-dark-blue: #2a3142;
+  --mor-bright-purple: #626ed4;
+  --mor-blue: #1a54df;
+  --mor-pressed-button: #39445b;
+  --mor-button-text: #dde9ff;
+  --mor-line: #798ba9;
+  --mor-search-bar: #252735;
+  --mor-green: #1b8718;
+  --mor-light-green: #3bb52a;
+  --mor-yellow: #c8ce21;
+  --mor-orange: #d7a21f;
+  --mor-red: #b63613;
+  --mor-black: #0b0314;
+  --mor-pitch-green: #3f9a2b;
+  --mor-pitch-green-dark: #2f7d20;
+  --mor-pink: #d4559c;
+  --mor-sky-blue: #4a9be0;
+  --mor-teal: #1fb5b0;
+  --mor-google-stroke: #fbbc05;
+  --mor-facebook-stroke: #0676e8;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Semantic (SoccerVision Web) */
+  --color-bg: var(--mor-dark-purple);
+  --color-panel: var(--mor-dark-blue);
+  --color-panel-2: var(--mor-search-bar);
+  --color-text: var(--mor-button-text);
+  --color-muted: var(--mor-line);
+  --color-accent: var(--mor-green);
+  --color-accent-ink: var(--mor-dark-purple);
+  --color-goal: var(--mor-light-green);
+  --color-foul: var(--mor-red);
+  --color-card: var(--mor-yellow);
+  --color-chance: var(--mor-orange);
+  --color-info: var(--mor-blue);
+  --color-border: var(--mor-pressed-button);
+  --color-divider: var(--mor-dark-blue);
+  --color-white: #ffffff;
+
+  /* Interactive roles (reference screen: Login, node 541-2333) */
+  --color-link: var(--mor-bright-purple);
+  --color-button: var(--mor-dark-blue);
+  --color-button-text: var(--mor-button-text);
+  --color-field-ink: var(--mor-dark-blue);
+  --color-google-stroke: var(--mor-google-stroke);
+  --color-facebook-stroke: var(--mor-facebook-stroke);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}

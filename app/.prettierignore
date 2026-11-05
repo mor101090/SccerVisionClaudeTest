@@ -1,0 +1,10 @@
+.next
+node_modules
+coverage
+yarn.lock
+.yarn
+next-env.d.ts
+public/engine
+drizzle/meta
+src/engine/replay
+src/engine/audio
