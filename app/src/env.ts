@@ -16,13 +16,8 @@ const serverSchema = z.object({
   VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
   // Supabase Postgres through the transaction pooler (Supavisor, port 6543).
   DATABASE_URL: z.url().optional(),
-  // Supabase secret key (sb_secret_…): server-only admin calls (e2e seeding, migration script). Never sent to browsers.
+  // Supabase secret key (sb_secret_…): server-only admin calls (Storage, e2e seeding). Never sent to browsers.
   SUPABASE_SECRET_KEY: z.string().min(1).optional(),
-  // Supabase Storage through its S3-compatible endpoint (AWS-standard names).
-  AWS_ACCESS_KEY_ID: z.string().optional(),
-  AWS_SECRET_ACCESS_KEY: z.string().optional(),
-  AWS_ENDPOINT_URL_S3: z.url().optional(),
-  AWS_REGION: z.string().optional(),
   // Neon Realtime (live SQL over WebSocket). The URL is sent to the browser by the seal endpoint.
   NEON_REALTIME_URL: z.url().optional(),
   NEON_REALTIME_SECRET: z.string().min(1).optional(),

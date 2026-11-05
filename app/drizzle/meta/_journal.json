@@ -8,6 +8,13 @@
       "when": 1793881308575,
       "tag": "0000_supabase_baseline",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793882033431,
+      "tag": "0001_storage_buckets",
+      "breakpoints": true
     }
   ]
 }
