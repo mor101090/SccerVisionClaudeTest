@@ -1,11 +1,11 @@
-# Deploys the Next.js app (app/) to production on every push to main: https://soccer.dev-spirit.com (Neon branch main).
+# Deploys the Next.js app (app/) to production on every push to main: https://soccer.dev-spirit.com (Supabase prod project).
 # Pull requests are only checked (pr.yml), never deployed.
 #
 # The engine (C# -> WebAssembly) and the classic page are built here, then the app is built with `vercel build` and
 # uploaded prebuilt from a folder without .git (Hobby plan accepts any commit author). Vercel's own Git deployments are
 # off (root vercel.json `git.deploymentEnabled: false`): this workflow is the only deployer.
 #
-# Secrets: VERCEL_TOKEN, NEON_API_KEY. Variables: VERCEL_ORG_ID, VERCEL_PROJECT_ID, NEON_PROJECT_ID.
+# Secrets: VERCEL_TOKEN, SUPABASE_PROD_DATABASE_URL_UNPOOLED (direct :5432). Variables: VERCEL_ORG_ID, VERCEL_PROJECT_ID.
 name: Deploy
 
 on:
@@ -25,8 +25,6 @@ env:
   VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
   VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-  NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
   DOTNET_NOLOGO: "1"
 
@@ -55,10 +53,9 @@ jobs:
         run: yarn assets:build
 
       - name: Migrate the production database
-        run: |
-          url=$(npx neon connection-string main --project-id "$NEON_PROJECT_ID")
-          echo "::add-mask::$url"
-          DATABASE_URL_UNPOOLED="$url" yarn db:migrate
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.SUPABASE_PROD_DATABASE_URL_UNPOOLED }}
+        run: yarn db:migrate
 
       - name: Build (vercel, Production env)
         run: |

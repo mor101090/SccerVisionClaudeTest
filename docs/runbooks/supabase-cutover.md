@@ -11,6 +11,7 @@ Run every step on **dev first** (Supabase dev project `mcrglsqpxyrbazwzrnzg`, Ne
    - Providers Google, Facebook and Discord, with the redirect `https://<prod-ref>.supabase.co/auth/v1/callback`
      added to each OAuth app.
    - Data API: remove `public` from the exposed schemas.
+   - Realtime → Settings: turn off "Allow public access" (only private channels; lobbies use `lobby:<id>`).
 2. **Email templates** (Auth → Email Templates):
    - Confirm signup: show the code `{{ .Token }}` (the site asks for the 6-digit code).
    - Reset password: link to `{{ .RedirectTo }}?token={{ .TokenHash }}`.

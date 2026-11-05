@@ -1,4 +1,4 @@
-/** Test account on the shared `dev` Neon branch only. Never valid on production. */
+/** Test account on the Supabase dev project only (created by `yarn e2e:seed`). Never valid on production. */
 export const TEST_USER = {
   name: "E2E Tester",
   username: "E2E_Tester",
@@ -6,7 +6,7 @@ export const TEST_USER = {
   password: "sv-3a734a3b8666dd15",
 };
 
-/** Second account for two-player (online) tests. Shared `dev` branch only. */
+/** Second account for two-player (online) tests. Supabase dev project only. */
 export const GUEST_USER = {
   name: "E2E Guest",
   username: "E2E_Guest",
@@ -14,5 +14,5 @@ export const GUEST_USER = {
   password: "sv-8480ad76f679b7c4",
 };
 
-/** Fixed address for the sign-up → verify test. Never receives mail (.test). Shared `dev` branch only. */
+/** Fixed address for the sign-up → verify test. Never receives mail (.test). Supabase dev project only. */
 export const SIGNUP_EMAIL = "e2e-signup@soccer-vision.test";

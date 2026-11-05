@@ -44,7 +44,7 @@ test.describe.serial("auth", () => {
     await page.getByLabel("Confirm password").fill("kickoff-2026");
     await page.getByLabel(/I have read and agree/).check();
     await page.getByRole("button", { name: "Sign up", exact: true }).click();
-    // Verification off: Neon says the address is taken. On (dev, prod): the same verify screen as a new
+    // Confirm email on (dev, prod): Supabase answers with the same verify screen as for a new
     // account, so sign-up never reveals which emails exist.
     await expect(
       page
