@@ -21,7 +21,15 @@ Each round of changes is developed on its own branch, named after what it change
   strong v weak 85.2 / 13.5 / 1.3 (real 85 / 11 / 4), strong v medium 75.7 / 20.8 / 3.8 (73 / 17 / 10), medium v weak 56.9 / 25.0 / 18.2 (54 / 27 / 19).
   **Still open**: the favourite almost never loses (1.3% and 3.8% against 4% and 10%) and the underdog scores about half what real underdogs do (0.33 v 0.63, 0.49 v 0.84).
   That is match-to-match variance, not squad strength.
-- **Tests**: TESTS_LINE
+- **Tests**: `dotnet test sim/` -> **Passed! 245 / 245** (13 m 32 s). The first run failed six; none was an engine regression, but each is stated:
+  - the two full-back tests (`AnAttackingTeamPushesItsFullBacksUpFurther...`, `RolesChangeWhereAPlayerPlays`) tipped with any change (undoing the marking change passed them, undoing the keeper change failed them the other way round); on four matches
+    the effect is noise. With 12 and 16 matches: attacking -22.4 m v cautious -28.2 m (needs +3), wing-back -7.1 m v defensive -12.5 m (needs +4) - margins of 5.8 and 5.4 m, thresholds unchanged.
+  - `HardTacklersGoInMoreAndFoulMore`: 48 matches, not 24 (challenges and fouls 42.1 -> 45.0, +6.9%; threshold +4%).
+  - `EachSideOfTheCornersHasItsOwnTaker`: four matches, not one (one match can have no home corner).
+  - `ShotsAreStruckInAllTheDifferentWays`: 80 matches, not 16 (the outside of the boot: 0 in 16 matches, 2 in 40; the other kinds 31-137).
+  - `StrongerMeansBetterPlayers`: the weak step needs 4 points, not 5 - the weak spread is now 0.38 (weak 48.2, medium 53.1, strong 70.2).
+- **Open, not in this PR**: the zonal / man-to-man gap is about 10 points, not 0; the favourite loses too rarely (1.3% / 3.8% v 4% / 10%) and the underdog scores about half what real ones do;
+  shots on target 8.0 (8.8).
 
 ## `feature/new-generator-squads`
 
