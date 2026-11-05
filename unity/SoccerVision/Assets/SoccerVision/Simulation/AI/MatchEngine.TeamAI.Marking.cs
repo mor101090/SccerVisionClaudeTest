@@ -7,12 +7,20 @@ namespace SoccerVision.Simulation
     /// <summary>Marking: zonal and man-to-man.</summary>
     public sealed partial class MatchEngine
     {
+        /// <summary>How far a man-marker stands from his man, against the gap the marking skill gives (1 = the round before this one). With the new squads
+        /// man-to-man leaked about 0.3 goals a team more than zonal; at 0.4 the gap in win share between the two systems falls from about 24 to about 9 points.</summary>
+        public static float ManMarkGapScale = 0.4f;
+
         private readonly List<PlayerAgent> _markPool = new List<PlayerAgent>(11);
 
         private readonly List<PlayerAgent> _threats = new List<PlayerAgent>(11);
 
         /// <summary>Zone radius in zonal marking: an opponent inside it is this player's responsibility.</summary>
-        private static float ZoneRadius(PlayerAgent p) => (p.Slot.Line == Line.Defence ? 9f : 10.5f) * (p.Has(PlayerTrait.HoldsPosition) ? 0.85f : 1f);
+        private static float ZoneRadius(PlayerAgent p) => (p.Slot.Line == Line.Defence ? 9f : 10.5f) * (p.Has(PlayerTrait.HoldsPosition) ? 0.85f : 1f) * ZoneRadiusScale;
+
+        /// <summary>The size of a zonal defender's area (1 = the round before this one). A zone the size of the shape's own gaps left nobody
+        /// between two defenders; real zonal sides are beaten by the man who arrives between two zones (0.75).</summary>
+        public static float ZoneRadiusScale = 0.75f;
 
         /// <summary>One marker per attacker (no two defenders on the same man), by the team's marking system.</summary>
         private void AssignMarking(TeamAgent team, bool inPossession, float ballF)
