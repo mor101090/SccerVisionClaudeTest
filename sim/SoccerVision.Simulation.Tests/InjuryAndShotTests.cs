@@ -131,7 +131,7 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void ShotsAreStruckInAllTheDifferentWays()
         {
-            var engines = Play(6400, 16, true);
+            var engines = Play(6400, 80, true); // (80 matches: the outside of the boot is two shots in 40 matches, and 16 matches miss it with any change anywhere in the engine)
             int Tech(string t) => engines.Sum(e => e.Diagnostics.GetValueOrDefault("shot.tech." + t));
             foreach (var t in new[] { "Power", "PlacedNear", "PlacedFar", "Curler", "Volley", "Chip", "OutsideFoot", "WeakFoot" })
                 Assert.True(Tech(t) >= 1, t + " " + Tech(t));

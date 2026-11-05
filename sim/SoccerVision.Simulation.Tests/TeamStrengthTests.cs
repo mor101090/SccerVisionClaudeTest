@@ -49,7 +49,7 @@ namespace SoccerVision.Simulation.Tests
             foreach (var make in new System.Func<TeamStrength, TeamSetup>[] { s => DemoTeams.Red(1001, s), s => DemoTeams.Blue(1001, s) })
             {
                 double w = Mean(make(TeamStrength.Weak)), m = Mean(make(TeamStrength.Medium)), s2 = Mean(make(TeamStrength.Strong));
-                Assert.True(m - w >= 5 && s2 - m >= 5, $"weak {w:0.0}, medium {m:0.0}, strong {s2:0.0}: each step should be a real step (the squads are pulled 60% of the way from medium, see TeamStrengthScaling)");
+                Assert.True(m - w >= 4 && s2 - m >= 5, $"weak {w:0.0}, medium {m:0.0}, strong {s2:0.0}: each step should be a real step (the weak squads are pulled 38% and the strong ones 125% of the way from medium, see TeamStrengthScaling)");
             }
         }
 

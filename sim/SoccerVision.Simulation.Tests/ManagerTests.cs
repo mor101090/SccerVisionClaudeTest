@@ -210,11 +210,12 @@ namespace SoccerVision.Simulation.Tests
             double Depth(string order)
             {
                 double sum = 0; int n = 0; object gate = new object();
+                // (16 matches, not the usual four: the difference is a few metres and four matches tip with any change anywhere in the engine)
                 Avg(Orders(1, order), _ => 0, e =>
                 {
                     if (e.Ball.Owner == null || e.Ball.Owner.Team != e.Home) return;
                     lock (gate) { sum += e.Home.Forward(e.Home.Players[1].Pos); n++; }
-                });
+                }, matches: 16);
                 return sum / n;
             }
             double wingBack = Depth((int)PlayerRole.WingBack + ".1.1.1"), defensive = Depth((int)PlayerRole.DefensiveFullBack + ".1.1.1");
@@ -287,15 +288,19 @@ namespace SoccerVision.Simulation.Tests
             var red = DemoTeams.Red();
             int right = red.Starters[3].ShirtNumber, left = red.Starters[6].ShirtNumber;
             TeamPlan.Parse("ctr=" + right + ";ctl=" + left).ApplyBeforeKickOff(red);
-            var e = new MatchEngine(red, DemoTeams.Blue(), 13, MatchConfig.CreateDefault());
             int r1 = 0, l1 = 0, wrong = 0;
-            e.RestartExecuting += r =>
+            // (four matches: one match can have no corner for the home side, and which match that is moves with any change in the engine)
+            for (ulong seed = 13; seed < 17; seed++)
             {
-                if (r.Type != RestartType.CornerKick || r.Team != e.Home || r.Taker == null) return;
-                bool rightSide = e.Home.Lateral(r.Spot) < 0f;
-                if (rightSide) { r1++; if (r.Taker.Number != right) wrong++; } else { l1++; if (r.Taker.Number != left) wrong++; }
-            };
-            e.RunToEnd();
+                var e = new MatchEngine(red, DemoTeams.Blue(), seed, MatchConfig.CreateDefault());
+                e.RestartExecuting += r =>
+                {
+                    if (r.Type != RestartType.CornerKick || r.Team != e.Home || r.Taker == null) return;
+                    bool rightSide = e.Home.Lateral(r.Spot) < 0f;
+                    if (rightSide) { r1++; if (r.Taker.Number != right) wrong++; } else { l1++; if (r.Taker.Number != left) wrong++; }
+                };
+                e.RunToEnd();
+            }
             Assert.True(r1 + l1 > 0, "no corners");
             Assert.Equal(0, wrong);
         }
