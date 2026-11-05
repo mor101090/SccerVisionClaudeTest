@@ -92,6 +92,8 @@ namespace SoccerVision.Simulation
         public float MaxSetupSeconds = 40f;
 
         // ---- Ball physics (SI units) ------------------------------------------------------------------
+        /// <summary>The physical ball (mass, size, pressure, moment of inertia). See <see cref="BallSpec"/> and docs/BALL_PHYSICS.md.</summary>
+        public BallSpec Ball = BallSpec.Reference;
         public float Gravity = 9.81f;
         /// <summary>0.5*rho*Cd*A/m with rho=1.2, Cd=0.25, r=0.11 m, m=0.43 kg.</summary>
         public float AirDragK = 0.0133f;
