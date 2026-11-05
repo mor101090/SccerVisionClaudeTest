@@ -40,7 +40,9 @@ public static partial class LiveEngine
         // the players' names are drawn anew for every match (from the Israeli name database)
         ulong names = (ulong)seed * 2654435761UL + 17UL;
         // how good each team is: weak | medium | strong (anything else: medium, the squads the game always had)
-        var home = DemoTeams.Red(names, ParseStrength(homeStrength));
+        // a manager's own squad (see UseHomeTeam) plays at home instead of the red demo team, for this match only
+        var home = _homeTeam != null ? ParseTeam(_homeTeam) : DemoTeams.Red(names, ParseStrength(homeStrength));
+        _homeTeam = null;
         var away = DemoTeams.Blue(names, ParseStrength(awayStrength));
         if (mode == "random")
         {
@@ -60,6 +62,63 @@ public static partial class LiveEngine
     }
 
     private static TeamStrength ParseStrength(string s) => Enum.TryParse<TeamStrength>(s, true, out var v) ? v : TeamStrength.Medium;
+
+    private static string _homeTeam;
+
+    /// <summary>
+    /// The next <see cref="Start"/> fields this squad at home instead of the red demo team (a manager's own club, made on the
+    /// website). Plain text, one line each, fields split by '|':
+    /// line 1: name|shortName|manager|kitPrimary|kitSecondary|kitNumber|gkPrimary|gkNumber|gkSecondary|seed;
+    /// then one line per player, the 11 starters first in 4-4-2 slot order (GK, RB, CB right, CB left, LB, RM, CM right,
+    /// CM left, LM, ST right, ST left), then the bench:
+    /// first|last|shirt|Goalkeeper/Defender/Midfielder/Forward|positionLabel|heightCm|stamina|Low/Normal/High|leftFoot|rightFoot (stars 1-5, the strong foot 5)|age|nationality|27 attributes
+    /// (comma separated, in the order of GeneratedTeams.P). Null or empty: the demo team again.
+    /// </summary>
+    [JSExport]
+    public static void UseHomeTeam(string team) => _homeTeam = string.IsNullOrEmpty(team) ? null : team;
+
+    private static TeamSetup ParseTeam(string text)
+    {
+        var lines = text.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var h = lines[0].Split('|');
+        var t = new TeamSetup
+        {
+            Name = h[0],
+            ShortName = h[1],
+            Manager = h[2],
+            Kit = new KitColors { Primary = h[3], Secondary = h[4], Number = h[5], GoalkeeperPrimary = h[6], GoalkeeperNumber = h[7], GoalkeeperSecondary = h[8] },
+            Formation = Formation.F442(),
+            Tactics = new TeamTactics(),
+        };
+        int seed = int.Parse(h[9], System.Globalization.CultureInfo.InvariantCulture);
+        for (int i = 1; i < lines.Length; i++)
+        {
+            var f = lines[i].Split('|');
+            int N(int k) => int.Parse(f[k], System.Globalization.CultureInfo.InvariantCulture);
+            var v = Array.ConvertAll(f[12].Split(','), s => int.Parse(s, System.Globalization.CultureInfo.InvariantCulture));
+            var a = new PlayerAttributes
+            {
+                Stamina = N(6), Fitness = Enum.Parse<FitnessLevel>(f[7]), LeftFoot = N(8), RightFoot = N(9),
+                Aggression = v[0], Teamwork = v[1], Composure = v[2], Decisions = v[3],
+                Tackling = v[4], Marking = v[5], Positioning = v[6],
+                Creativity = v[7], Passing = v[8], Crossing = v[9],
+                Finishing = v[10], LongShots = v[11], OffTheBall = v[12],
+                PhysicalPower = v[13], BallControl = v[14], Dribbling = v[15], Acceleration = v[16], Speed = v[17], Jumping = v[18], Heading = v[19],
+                FreeKicks = v[20], Penalty = v[21],
+                AerialAbility = v[22], Handling = v[23], Kicking = v[24], OneOnOne = v[25], Reflexes = v[26],
+            };
+            var p = new PlayerProfile
+            {
+                Id = 9000 + i, // (apart from the demo squads' ids)
+                FirstName = f[0], LastName = f[1], ShirtNumber = N(2), NaturalPosition = Enum.Parse<PositionGroup>(f[3]), Position = f[4],
+                HeightCm = N(5), Age = N(10), Nationality = f[11], Attributes = a,
+            };
+            if (t.Starters.Count < 11) t.Starters.Add(p); else t.Bench.Add(p);
+        }
+        PlayerTraits.Assign(t, seed);
+        PlayerAppearances.Assign(t, seed);
+        return t;
+    }
 
     /// <summary>Plays up to <paramref name="frames"/> frames; returns them (FrameLength numbers each). Events and stats: see below.</summary>
     [JSExport]

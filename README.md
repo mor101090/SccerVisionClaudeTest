@@ -43,14 +43,22 @@ Game, it reaches 90 minutes plus added time with:
 A standalone page with six full matches played by the real C# engine (a "New match" button picks another one),
 with sound, commentary and key moments (goals, penalties, offsides, free kicks).
 
-**One fixed link, always the latest change** - a GitHub Action (`.github/workflows/publish-demo.yml`) rebuilds the page on every
-push to any branch and publishes it to the `demo` branch (about 3 minutes after the push):
+**Live:** <https://soccer.dev-spirit.com> (production, `main`). Every pull request gets its own Vercel preview link,
+commented on the PR by `.github/workflows/vercel.yml`.
 
-- <https://raw.githack.com/mor101090/SccerVisionClaudeTest/demo/index.html> (works right away)
-- <https://mor101090.github.io/SccerVisionClaudeTest/> after enabling GitHub Pages once (Settings > Pages > Deploy from a
-  branch > `demo`, folder `/ (root)`).
+The site is the Next.js app in `app/` (see `CLAUDE.md`): `/play` runs the engine in the browser, signed-in players
+save matches and watch replays, `/lobby` plays a friend online, and `/classic` serves the full original demo page.
 
-To build it yourself: `tools/demo-page/build.sh` (needs the .NET 8 SDK, node and python3; writes the git-ignored `docs/index.html`).
+To run it yourself (needs the .NET 8 SDK, node 24 with corepack (Yarn 4), and python3):
+
+```bash
+cd app
+yarn install
+yarn assets:build   # engine (C# -> WebAssembly) + classic page into public/
+yarn dev            # http://localhost:3000
+```
+
+The standalone page alone still builds with `tools/demo-page/build.sh` (writes the git-ignored `docs/index.html`).
 
 ## Repository layout
 

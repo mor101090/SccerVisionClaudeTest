@@ -28,6 +28,8 @@ self.onmessage = async (e) => {
       postMessage({ type: "ready" });
     } else if (m.cmd === "start") {
       token = m.token; lead = m.lead; generated = 0; played = 0; held = !!m.hold;
+      // optional: a manager's own club at home (LiveEngine.UseHomeTeam, used once by the next Start; see Program.cs)
+      if (m.homeTeam && L.UseHomeTeam) L.UseHomeTeam(m.homeTeam);
       const header = L.Start(m.seed, m.mode, m.weather, m.maintenance, m.wind, m.windAngle, m.night, m.plan || "", m.competition || "League", m.homeStrength || "medium", m.awayStrength || "medium");
       postMessage({ type: "header", token, header });
       if (!held) pump();
