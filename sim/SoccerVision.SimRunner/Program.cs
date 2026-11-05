@@ -72,6 +72,7 @@ for (int i = 0; i < args.Length; i++)
         case "--boxshots": MatchEngine.BoxShotAppetite = float.Parse(args[++i]); break; // (experiment: how readily a player shoots inside the box)
         case "--mangap": MatchEngine.ManMarkGapScale = float.Parse(args[++i]); break; // (experiment)
         case "--zonalpull": MatchEngine.ZonalPull = float.Parse(args[++i]); break; // (experiment)
+        case "--zoneradius": MatchEngine.ZoneRadiusScale = float.Parse(args[++i]); break; // (experiment)
         case "--closereach": MatchEngine.CloseReachBase = float.Parse(args[++i]); break; // (experiment: a keeper's reach against a shot that is on him at once)
         case "--home-strength": homeStrength = Enum.Parse<TeamStrength>(args[++i], true); break;
         case "--away-strength": awayStrength = Enum.Parse<TeamStrength>(args[++i], true); break;

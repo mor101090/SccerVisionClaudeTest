@@ -17,7 +17,10 @@ namespace SoccerVision.Simulation
         private readonly List<PlayerAgent> _threats = new List<PlayerAgent>(11);
 
         /// <summary>Zone radius in zonal marking: an opponent inside it is this player's responsibility.</summary>
-        private static float ZoneRadius(PlayerAgent p) => (p.Slot.Line == Line.Defence ? 9f : 10.5f) * (p.Has(PlayerTrait.HoldsPosition) ? 0.85f : 1f);
+        private static float ZoneRadius(PlayerAgent p) => (p.Slot.Line == Line.Defence ? 9f : 10.5f) * (p.Has(PlayerTrait.HoldsPosition) ? 0.85f : 1f) * ZoneRadiusScale;
+
+        /// <summary>(experiment) The size of a zonal defender's area (1 = as calibrated): a smaller one leaves more men between two zones.</summary>
+        public static float ZoneRadiusScale = 1f;
 
         /// <summary>One marker per attacker (no two defenders on the same man), by the team's marking system.</summary>
         private void AssignMarking(TeamAgent team, bool inPossession, float ballF)
