@@ -22,7 +22,8 @@
     "test:e2e": "playwright test",
     "classic:build": "bash scripts/build-classic.sh",
     "assets:build": "yarn engine:build && yarn classic:build",
-    "postinstall": "cd .. && husky app/.husky"
+    "postinstall": "cd .. && husky app/.husky",
+    "migrate:neon-to-supabase": "node tools/migrate-neon-to-supabase.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1161.0",
