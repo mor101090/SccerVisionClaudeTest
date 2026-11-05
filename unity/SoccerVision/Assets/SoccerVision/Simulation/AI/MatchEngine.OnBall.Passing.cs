@@ -588,15 +588,17 @@ namespace SoccerVision.Simulation
             float cross = Vec2.Cross(p.FacingDir, direction);
             bool needsLeft = cross > 0.15f;
             bool needsRight = cross < -0.15f;
-            int rating;
-            if (needsLeft) rating = p.Attr.LeftFoot;
-            else if (needsRight) rating = p.Attr.RightFoot;
-            else rating = p.Attr.StrongFootRating;
-            // Weak foot (stats spec): 3 two strong feet, 2 he can use the other foot, 1 he cannot use it at all - he tries to
-            // get the ball onto his strong foot (more often managing it), and when he cannot, the kick is a poor one.
-            if (p.Has(PlayerTrait.UsesWeakFoot)) rating = Math.Max(rating, 2); // he practises with it and is happy to use it (never as good as the strong one)
-            else if (_rng.Chance(rating == 1 ? 0.5f : 0.35f)) rating = p.Attr.StrongFootRating;
-            return rating >= 3 ? 1f : rating == 2 ? 1.25f : 1.8f;
+            int stars;
+            if (needsLeft) stars = p.Attr.LeftFoot;
+            else if (needsRight) stars = p.Attr.RightFoot;
+            else stars = p.Attr.StrongFootRating;
+            // Weak foot (stars 1-5): 5 two strong feet, 3 he can use the other foot, 1-2 he hardly can - he tries to get the ball onto his
+            // strong foot (more often managing it), and when he cannot, the kick is a poor one.
+            if (p.Has(PlayerTrait.UsesWeakFoot)) stars = Math.Max(stars, 3); // he practises with it and is happy to use it (never as good as the strong one)
+            else if (_rng.Chance(stars <= 2 ? 0.5f : 0.35f)) stars = p.Attr.StrongFootRating;
+            // (the error multiplier: 1 at level 3, 1.25 at 2, 1.8 at 1 - as on the old 1-3 scale - and in between for 2 and 4 stars)
+            float level = PlayerAttributes.FootLevel(stars);
+            return level >= 2f ? 1f + 0.25f * (3f - level) : 1.25f + 0.55f * (2f - level);
         }
 
         private void KickGround(PlayerAgent p, KickPlan plan, float pressure)

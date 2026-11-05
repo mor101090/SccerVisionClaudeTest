@@ -29,8 +29,23 @@ namespace SoccerVision.Simulation.Tests
             Assert.True(all.Max(p => p.HeightCm) - all.Min(p => p.HeightCm) >= 12);
             Assert.Contains(all, p => p.Attributes.StrongFoot == Foot.Left);
             Assert.Contains(all, p => p.Attributes.StrongFoot == Foot.Right);
-            Assert.Contains(all, p => p.Attributes.WeakFootRating == 1);
-            Assert.Contains(all, p => p.Attributes.WeakFootRating >= 2);
+            Assert.Contains(all, p => p.Attributes.WeakFootRating <= 2);  // (stars: hardly uses the other foot)
+            Assert.Contains(all, p => p.Attributes.WeakFootRating >= 3);  // (can use it - as the old "2 of 3")
+        }
+
+        [Fact]
+        public void TheWeakerFootIsRatedInStarsOneToFive()
+        {
+            // the generator's stars (1-5, the strong foot 5): every value turns up across the three strengths, and somebody is two-footed
+            var all = new[] { TeamStrength.Weak, TeamStrength.Medium, TeamStrength.Strong }
+                .SelectMany(s => new[] { DemoTeams.Red(1001, s), DemoTeams.Blue(1001, s) })
+                .SelectMany(t => t.Starters.Concat(t.Bench)).ToList();
+            Assert.All(all, p => Assert.Equal(5, p.Attributes.StrongFootRating));
+            for (int stars = 1; stars <= 5; stars++) Assert.Contains(all, p => p.Attributes.WeakFootRating == stars);
+            Assert.Contains(all, p => p.Attributes.LeftFoot == 5 && p.Attributes.RightFoot == 5);
+            // the engine weighs them on its old 1-3 scale: 1-2 stars as the old 1, 3 as 2, 4-5 as 3 (about)
+            Assert.Equal(1f, PlayerAttributes.FootLevel(1)); Assert.Equal(2f, PlayerAttributes.FootLevel(3)); Assert.Equal(3f, PlayerAttributes.FootLevel(5));
+            Assert.True(PlayerAttributes.FootLevel(2) < PlayerAttributes.FootLevel(3) && PlayerAttributes.FootLevel(4) < PlayerAttributes.FootLevel(5));
         }
 
         [Fact]
@@ -54,7 +69,7 @@ namespace SoccerVision.Simulation.Tests
             foreach (var t in new[] { DemoTeams.Red(), DemoTeams.Blue() })
             {
                 // a left-back is a left-footer when the squad has one (it does)
-                Assert.Equal(3, t.Starters[4].Attributes.LeftFoot);
+                Assert.Equal(5, t.Starters[4].Attributes.LeftFoot); // (the strong foot: 5 stars)
                 foreach (var p in t.Starters.Concat(t.Bench)) Assert.Contains(p.PositionLabel, positions);
                 // the bench's positions are the real ones, not a group
                 Assert.Contains(t.Bench, p => p.PositionLabel == "CB");

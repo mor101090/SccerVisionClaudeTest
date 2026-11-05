@@ -2,6 +2,24 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/weak-foot-stars`
+
+**The weaker foot in stars, 1 to 5.** How other games show it (read through a search): EA FC rates the weaker foot in 1-5 stars on the player card
+([guide](https://www.magicgameworld.com/?p=128993)); Football Manager keeps a hidden 1-20 number and shows a word (very weak ... very strong,
+[guide](https://sortitoutsi.net/content/67409/training-a-players-weaker-foot-guide)); for Football Manager Pro / Top Eleven no description was found. We use stars,
+as the team generator already does.
+- **The squads** (`tools/teams/build_teams.py`): each foot in stars, the strong one 5, the other the generator's `weak_foot_stars`. The medium squads were saved before
+  the generator had stars and carry only its 1-3 level: it becomes stars the way the generator's own 138 players show it - level 1 = 1 star (9%) or 2 (91%), 2 = 3,
+  3 = 4 (87%) or 5 (13%) - fixed by the player's id. All the other values of every player are unchanged (checked field by field). The six squads now hold 1 to 5 stars
+  (1: 4 players, 2: 57, 3: 44, 4: 12, 5 - two-footed: 3).
+- **The engine** keeps its tuning: it weighs the stars on its old 1-3 scale (`PlayerAttributes.FootLevel`: 1 / 1.2 / 2 / 2.75 / 3), so a 2-star foot plays as the old "1",
+  3 stars as "2", 4-5 as "3", with a little difference inside each group. Passing on the weaker foot, the weak-foot shot's pace and accuracy, the trivela, the winger who
+  cuts inside, and the traits read the stars. 150 matches, seeds 500 and 900, before / after: goals 2.75 / 2.70 and 2.74 / 2.94 (noise, in opposite directions), results and shots the same.
+- **The page**: the player card shows the weak foot as stars (gold filled, the rest dim) instead of "2/3"; the foot colours are green for 4-5 stars, yellow for 3, orange for 1-2.
+  The hover card and the Unity HUD read the new scale (two-footed = 5 and 5).
+- **Tests**: `GeneratedTeamsTests.TheWeakerFootIsRatedInStarsOneToFive` (the strong foot 5, every star value present, someone two-footed, the scale the engine weighs them on);
+  the left back's left foot is 5; "some use the weaker foot" is 3 stars or more (the old 2 of 3).
+
 ## `feature/passing-tempo`
 
 **Passes in the match facts, tiki-taka at Barcelona's real pace, and the game 5% slower.**

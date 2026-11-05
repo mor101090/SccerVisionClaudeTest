@@ -86,7 +86,7 @@ namespace SoccerVision.Replay
         {
             var a = pr.Attributes;
             b.Append(",\"height\":").Append(pr.HeightCm).Append(",\"age\":").Append(pr.Age);
-            b.Append(",\"foot\":\"").Append(a.LeftFoot == 3 && a.RightFoot == 3 ? "Both" : a.StrongFoot == Foot.Left ? "Left" : "Right").Append('"');
+            b.Append(",\"foot\":\"").Append(a.LeftFoot == 5 && a.RightFoot == 5 ? "Both" : a.StrongFoot == Foot.Left ? "Left" : "Right").Append('"');
             b.Append(",\"weakFoot\":").Append(a.WeakFootRating);
             b.Append(",\"fitness\":\"").Append(a.Fitness == FitnessLevel.Low ? "Low" : a.Fitness == FitnessLevel.High ? "Peak" : "Moderate").Append('"');
             // every skill, in the order of "attrNames" in the header (the player profile page shows them all)

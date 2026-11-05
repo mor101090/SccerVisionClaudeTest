@@ -25,7 +25,7 @@
     meta.innerHTML = "";
     if (p.height) {
       [p.height + " cm · " + p.age + " years",
-       (p.foot === "Both" ? "Two-footed" : p.foot + "-footed") + " · weak foot " + p.weakFoot + "/3"].forEach(function (line) { var d = document.createElement("div"); d.textContent = line; meta.appendChild(d); });
+       (p.foot === "Both" ? "Two-footed" : p.foot + "-footed") + " · weak foot " + "★".repeat(Math.max(1, Math.min(5, +p.weakFoot || 1))) + "☆".repeat(5 - Math.max(1, Math.min(5, +p.weakFoot || 1)))].forEach(function (line) { var d = document.createElement("div"); d.textContent = line; meta.appendChild(d); });
       var fit = document.createElement("div"); fit.appendChild(document.createTextNode("Fitness: ")); var fb = document.createElement("b"); fb.className = "fit-" + p.fitness; fb.textContent = p.fitness; fit.appendChild(fb); meta.appendChild(fit);
     }
     var en = document.createElement("div"); en.className = "pc-energy"; en.innerHTML = '<span>Stamina left</span><i><b></b></i><em></em>'; meta.appendChild(en);

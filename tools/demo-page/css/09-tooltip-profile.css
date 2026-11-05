@@ -16,6 +16,9 @@
 .pf-id .team { color: var(--muted); font-size: 15px; }
 .pf-feet { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
 .pf-feet svg { width: 46px; height: 46px; }
+/* the weaker foot in stars (1-5): filled in the card gold, the rest in the rule colour */
+.wf-stars { color: var(--rule); letter-spacing: 1px; font-size: 13px; white-space: nowrap; }
+.wf-stars b { color: var(--card); font-weight: 400; }
 .pf-pent svg { width: 260px; height: 220px; display: block; }
 .pf-pent text { fill: #fff; font: 700 15px var(--body); }
 .pf-cats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }

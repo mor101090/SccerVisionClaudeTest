@@ -135,8 +135,8 @@ namespace SoccerVision.Simulation
                 [PlayerTrait.CutsInsideToShoot] = gk || def && !fb ? 0f : (wide ? (inverted ? 1.0f : 0.2f) : fb ? 0.2f : st || pos == "AM" ? 0.5f : 0.15f) * (0.4f + A((a.Dribbling + a.Finishing) / 2)),
                 [PlayerTrait.LovesToDribble] = gk ? 0f : (wide ? 2f : pos == "AM" || st ? 1.1f : fb ? 0.7f : def ? 0.15f : 0.6f) * (0.3f + A(a.Dribbling)),
                 [PlayerTrait.Unselfish] = (gk ? 0.6f : mid ? 1.6f : 1f) * (0.3f + A((a.Teamwork + a.Passing) / 2)),
-                [PlayerTrait.OutsideOfTheFoot] = gk ? 0f : 0.45f * (0.2f + A((a.BallControl + a.Creativity) / 2)) * (a.WeakFootRating <= 1 ? 1.6f : 0.8f),
-                [PlayerTrait.UsesWeakFoot] = (gk ? 0.4f : 0.6f) * (a.WeakFootRating >= 2 ? 1.5f : 0.6f),
+                [PlayerTrait.OutsideOfTheFoot] = gk ? 0f : 0.45f * (0.2f + A((a.BallControl + a.Creativity) / 2)) * (a.WeakFootRating <= 2 ? 1.6f : 0.8f),
+                [PlayerTrait.UsesWeakFoot] = (gk ? 0.4f : 0.6f) * (a.WeakFootRating >= 3 ? 1.5f : 0.6f),
                 [PlayerTrait.Showboat] = gk ? 0f : (def && !fb ? 0.15f : 0.8f) * (0.15f + A((a.Creativity + a.BallControl + a.Dribbling) / 3)),
                 // (a hard man: a strong tackler, more often a defender; he is given the aggression that goes with it below)
                 [PlayerTrait.HardTackler] = (gk ? 0.1f : def || pos == "DM" ? 1.1f : 0.35f) * (0.2f + A(a.Tackling)),

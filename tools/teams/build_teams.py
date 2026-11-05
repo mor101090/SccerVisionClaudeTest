@@ -5,11 +5,11 @@ https://soccer-api.dev-spirit.com/docs with tools/teams/fetch_teams.py) into the
 Each squad: 11 starters in a 4-4-2 (the generator's positions decide who plays where; left-footed full-backs and
 wingers go on the left, right-footed on the right, a second winger of the same foot plays "inverted") and a bench of 9
 (a keeper, two defenders, two midfielders, two forwards). Every attribute, the height, the feet (the strong foot is
-rated 3, the other by the weak-foot level), the stamina and the fitness come from the generator unchanged.
+rated 5 stars, the other by its weak-foot stars), the stamina and the fitness come from the generator unchanged.
 
     python3 tools/teams/build_teams.py [--dir data/teams] [--out unity/.../GeneratedTeams.cs]
 """
-import json, os
+import hashlib, json, os
 
 root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEAMS = [("Red", "red-rovers"), ("Blue", "blue-falcons")]
@@ -41,9 +41,23 @@ def attr(p, name, group, key):
     return OUTFIELD_KEEPING[name]
 
 
+def weak_foot_stars(p):
+    """The weaker foot in stars (1-5), as the generator rates it (`weak_foot_stars`). Squads saved before the generator had stars carry only the
+    1-3 level: it is turned into stars the way the generator's own squads show (data/teams/api, 138 players): level 1 = 1 star (9%) or 2 (91%),
+    2 = 3 stars, 3 = 4 stars (87%) or 5 (13%) - which one fixed by the player's id, so the squad is the same every build."""
+    pf = p["preferred_foot"]
+    stars = pf.get("weak_foot_stars", p.get("weak_foot_stars"))
+    if stars is not None:
+        return int(stars)
+    level = int(pf["weak_foot_level"])
+    h = (int(hashlib.md5(p["id"].encode()).hexdigest(), 16) % 100) / 100.0
+    return (1 if h < 0.09 else 2) if level == 1 else 3 if level == 2 else (5 if h < 0.13 else 4)
+
+
 def foot_ratings(p):
-    dom, weak = p["preferred_foot"]["dominant_foot"], int(p["preferred_foot"]["weak_foot_level"])
-    return (3, weak) if dom == "Left" else (weak, 3)  # (left, right)
+    """(left, right) in stars: the strong foot 5, the other its weak-foot stars (5 and 5: two-footed)."""
+    weak = weak_foot_stars(p)
+    return (5, weak) if p["preferred_foot"]["dominant_foot"] == "Left" else (weak, 5)
 
 
 def left_footed(p):

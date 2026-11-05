@@ -5,8 +5,14 @@
       '<path d="M8 48 A38 38 0 0 1 ' + x.toFixed(1) + ' ' + y.toFixed(1) + '" fill="none" stroke="' + levelColour(v) + '" stroke-width="7"/>' +
       '<text x="46" y="47" text-anchor="middle" fill="' + levelColour(v) + '">' + Math.round(v) + '</text></svg>';
   }
+  // the weaker foot in stars (1-5), as EA FC shows it: filled in gold, the rest dim
+  function wfStars(n) {
+    n = Math.max(1, Math.min(5, +n || 1));
+    return '<span class="wf-stars" role="img" aria-label="' + n + ' of 5 stars"><b>' + "★".repeat(n) + "</b>" + "★".repeat(5 - n) + "</span>";
+  }
   function footSvg(p) {
-    var l = p.leftFoot || 1, r = p.rightFoot || 3, c = function (v) { return v >= 3 ? "#9bd23c" : v >= 2 ? "#e7cf2e" : "#f39a1e"; };
+    // each foot in stars, 1-5 (the strong one 5): green 4-5, yellow 3, orange 1-2
+    var l = p.leftFoot || 2, r = p.rightFoot || 5, c = function (v) { return v >= 4 ? "#9bd23c" : v >= 3 ? "#e7cf2e" : "#f39a1e"; };
     var foot = function (x, v, letter) { return '<g transform="translate(' + x + ' 0)"><path d="M8 4 C14 2 18 8 17 16 C16 26 15 34 10 40 C6 44 1 41 2 34 C3 24 1 12 3 8 C4 6 6 4.6 8 4 Z" fill="' + c(v) + '"/><text x="9.5" y="17" text-anchor="middle" font-weight="800" font-size="9" fill="#1b1f2b">' + letter + '</text><text x="9" y="35" text-anchor="middle" font-weight="800" font-size="9" fill="#1b1f2b">' + v + '</text></g>'; };
     return '<svg viewBox="0 0 42 46" aria-label="Left foot ' + l + ', right foot ' + r + '">' + foot(0, l, "L") + foot(21, r, "R") + '</svg>';
   }
@@ -62,7 +68,7 @@
     var html = '<button type="button" class="pf-close" id="pfClose" aria-label="Close the player page">✕</button>' +
       '<div class="pf-top"><div class="pf-photo">' + faceHtml(p, tm.kit, gk) + '</div>' +
       '<div class="pf-id"><span class="nm" id="pfName">' + esc((p.role || "") + " " + p.name) + '</span><span>Age: ' + esc(p.age) + '</span><span>Height: ' + esc(p.height) + ' cm</span>' +
-      '<span class="pf-feet">' + footSvg(p) + '<span>Preferred foot: ' + esc(p.foot) + '<br><small class="muted">weak foot ' + esc(p.weakFoot) + '/3</small></span></span>' +
+      '<span class="pf-feet">' + footSvg(p) + '<span>Preferred foot: ' + esc(p.foot) + '<br><small class="muted">Weak foot ' + wfStars(p.weakFoot) + '</small></span></span>' +
       '<span class="team">' + esc(tm.name) + ' · Num. ' + esc(p.number) + (p.nation ? ' · ' + esc(p.nation) : "") + '</span></div>' +
       '<div class="pf-pent">' + pentagonSvg(c, gk) + '</div></div>' +
       '<div class="pf-tabs" role="tablist"><button type="button" role="tab" id="pfTabAttr" aria-selected="true" aria-controls="pfAttr">ATTRIBUTES</button>' +

@@ -268,8 +268,8 @@ namespace SoccerVision.Simulation
                     break;
                 case ShotTechnique.WeakFoot:
                     // On the weaker foot: less pace and less control the poorer that foot is.
-                    power *= 0.86f + 0.05f * p.Attr.WeakFootRating;
-                    accuracy = 1f + (3 - MathUtil.Clamp(p.Attr.WeakFootRating, 1, 3)) * 0.3f;
+                    power *= 0.86f + 0.05f * p.Attr.WeakFootLevel;
+                    accuracy = 1f + (3f - p.Attr.WeakFootLevel) * 0.3f;
                     break;
             }
             // An open goal (the keeper beaten or down, nobody in the lane): he just rolls it in - well inside the posts, low,
@@ -512,8 +512,8 @@ namespace SoccerVision.Simulation
                 // The trivela is a rare, showy skill: only the most technical players, and mostly those whose weaker
                 // foot is poor, try it; everybody else just hits it with the foot the ball is on.
                 bool technical = technique > 0.7f;
-                int weak = p.Attr.WeakFootRating;
-                float trivela = !technical ? 0f : weak <= 1 ? 0.3f : weak == 2 ? 0.12f : 0f;
+                int weak = p.Attr.WeakFootRating; // (stars)
+                float trivela = !technical ? 0f : weak <= 2 ? 0.3f : weak == 3 ? 0.12f : 0f;
                 if (p.Has(PlayerTrait.OutsideOfTheFoot)) trivela = 0.45f + 0.25f * technique; // his signature strike
                 if (p.Has(PlayerTrait.UsesWeakFoot)) trivela = 0f;                            // he trusts the other foot
                 return _rng.Chance(trivela * (0.5f + technique)) ? ShotTechnique.OutsideFoot : ShotTechnique.WeakFoot;

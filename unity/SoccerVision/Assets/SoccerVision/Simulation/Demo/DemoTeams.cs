@@ -228,15 +228,15 @@ namespace SoccerVision.Simulation
             float r = rng.NextFloat();
             if (r < 0.05f)
             {
-                a.LeftFoot = 3; a.RightFoot = 3;
+                a.LeftFoot = 5; a.RightFoot = 5;
             }
             else if (rng.Chance(pLeft))
             {
-                a.LeftFoot = 3; a.RightFoot = rng.Chance(0.3f) ? 2 : 1;
+                a.LeftFoot = 5; a.RightFoot = rng.Chance(0.3f) ? 3 : 2;
             }
             else
             {
-                a.RightFoot = 3; a.LeftFoot = rng.Chance(0.3f) ? 2 : 1;
+                a.RightFoot = 5; a.LeftFoot = rng.Chance(0.3f) ? 3 : 2;
             }
             float fit = rng.NextFloat();
             a.Fitness = fit < 0.15f ? FitnessLevel.Low : (fit < 0.75f ? FitnessLevel.Normal : FitnessLevel.High);

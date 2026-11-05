@@ -53,9 +53,9 @@ namespace SoccerVision.Simulation
         public int FreeKicks = 50;
         public int Penalty = 50;
 
-        // FOOT PREFERENCE (1 = weak, 3 = excellent)
-        public int LeftFoot = 1;
-        public int RightFoot = 3;
+        // FOOT PREFERENCE: stars, 1-5 as the team generator and EA FC rate the weaker foot (the strong foot is 5; 5 on both = two-footed)
+        public int LeftFoot = 2;
+        public int RightFoot = 5;
 
         // GOALKEEPING
         public int AerialAbility = 20;
@@ -74,6 +74,10 @@ namespace SoccerVision.Simulation
         public Foot StrongFoot => RightFoot >= LeftFoot ? Foot.Right : Foot.Left;
         public int StrongFootRating => Math.Max(LeftFoot, RightFoot);
         public int WeakFootRating => Math.Min(LeftFoot, RightFoot);
+        /// <summary>The weaker foot as the engine weighs it (1 = he cannot use it, 3 = as good as the other): stars 1 / 2 / 3 / 4 / 5 = 1 / 1.2 / 2 / 2.75 / 3.
+        /// (The engine was tuned on a 1-3 scale; the generator's 1-3 level becomes 1-2 stars, 3 stars, 4-5 stars, so the old values sit where they were.)</summary>
+        public float WeakFootLevel => FootLevel(WeakFootRating);
+        public static float FootLevel(int stars) => stars <= 1 ? 1f : stars == 2 ? 1.2f : stars == 3 ? 2f : stars == 4 ? 2.75f : 3f;
 
         public PlayerAttributes Clone() => (PlayerAttributes)MemberwiseClone();
     }
