@@ -6,8 +6,43 @@
     ["Sky blue", "#4fb3e8"], ["Navy", "#14244f"], ["Purple", "#6a3fb5"], ["Maroon", "#7b1e2b"], ["Pink", "#e05aa0"], ["Grey", "#7d8796"], ["Cyan", "#18c6c6"]];
   var PARTS = [["base", "Shirt"], ["trim", "Trim"], ["socks", "Socks"], ["num", "Number"]];
   var KIT_DEFAULT = { home: { base: "#d32f2f", trim: "#1b1b1b", socks: "#1b1b1b", num: "#f2f2f2" }, away: { base: "#1e5bc6", trim: "#1b1b1b", socks: "#f2f2f2", num: "#f2f2f2" }, gk: { base: "#f9d71c", trim: "#1b1b1b", socks: "#1b1b1b", num: "#1b1b1b" } };
+  function paletteColor(c) {
+    if (typeof c !== "string") return null;
+    var hex = c.toLowerCase();
+    for (var i = 0; i < COLS.length; i++) if (COLS[i][1].toLowerCase() === hex) return COLS[i][1];
+    return null;
+  }
+  function copyKit(k, fallback) {
+    return {
+      base: paletteColor(k && k.base) || fallback.base,
+      trim: paletteColor(k && k.trim) || fallback.trim,
+      socks: paletteColor(k && k.socks) || fallback.socks,
+      num: paletteColor(k && k.num) || fallback.num,
+    };
+  }
   var KIT = JSON.parse(JSON.stringify(KIT_DEFAULT));
-  try { var kst = JSON.parse(localStorage.getItem("sv-user-kits") || "{}"); ["home", "away", "gk"].forEach(function (t) { if (kst[t] && typeof kst[t] === "object") PARTS.forEach(function (q) { if (kst[t][q[0]]) KIT[t][q[0]] = kst[t][q[0]]; }); }); } catch (e) {}
+  try { var kst = JSON.parse(localStorage.getItem("sv-user-kits") || "{}"); ["home", "away", "gk"].forEach(function (t) { if (kst[t] && typeof kst[t] === "object") KIT[t] = copyKit(kst[t], KIT_DEFAULT[t]); }); } catch (e) {}
+  function shirtSvg(k, number) {
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 60 44"); svg.setAttribute("aria-hidden", "true");
+    var path = document.createElementNS(ns, "path");
+    path.setAttribute("d", "M18 6 L24 3 Q30 8 36 3 L42 6 L52 13 L47 21 L42 18 L42 42 L18 42 L18 18 L13 21 L8 13 Z");
+    path.setAttribute("fill", k.base); path.setAttribute("stroke", k.trim); path.setAttribute("stroke-width", "2.4");
+    svg.appendChild(path);
+    [21, 32].forEach(function (x) {
+      var rect = document.createElementNS(ns, "rect");
+      rect.setAttribute("x", String(x)); rect.setAttribute("y", "40"); rect.setAttribute("width", "7"); rect.setAttribute("height", "4");
+      rect.setAttribute("fill", k.socks); svg.appendChild(rect);
+    });
+    if (number != null) {
+      var text = document.createElementNS(ns, "text");
+      text.setAttribute("x", "30"); text.setAttribute("y", "31"); text.setAttribute("text-anchor", "middle");
+      text.setAttribute("font-family", "Barlow, sans-serif"); text.setAttribute("font-weight", "800"); text.setAttribute("font-size", "15");
+      text.setAttribute("fill", k.num); text.textContent = String(number); svg.appendChild(text);
+    }
+    return svg;
+  }
   function rgbOf(h) { var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
   // two colours that a viewer could mix up (red and maroon, white and grey...)
   function clash(a, b) { var x = rgbOf(a), y = rgbOf(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 110; }
@@ -52,17 +87,35 @@
     var names = ONLINE === "guest" ? { home: "Your kit", away: "Your friend's kit", gk: "Your goalkeeper" }
       : KIT_MODE === "online" ? { home: "Your kit", away: "Your second kit (worn if your friend's looks like yours)", gk: "Your goalkeeper" }
       : { home: "Home kit", away: "Away kit", gk: "Goalkeeper" };
-    $("kitBlocks").innerHTML = ["home", "away", "gk"].map(function (t) {
-      var k = KIT[t];
-      var shirt = '<svg viewBox="0 0 60 44" aria-hidden="true"><path d="M18 6 L24 3 Q30 8 36 3 L42 6 L52 13 L47 21 L42 18 L42 42 L18 42 L18 18 L13 21 L8 13 Z" fill="' + k.base + '" stroke="' + k.trim + '" stroke-width="2.4"/><rect x="21" y="40" width="7" height="4" fill="' + k.socks + '"/><rect x="32" y="40" width="7" height="4" fill="' + k.socks + '"/><text x="30" y="31" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="800" font-size="15" fill="' + k.num + '">' + (t === "gk" ? 1 : 10) + '</text></svg>';
-      return '<div class="kit' + (ONLINE === "guest" && t === "away" ? " fixed" : "") + '"><h3>' + shirt + names[t] + '</h3>' + PARTS.map(function (q) {
+    var blocks = $("kitBlocks");
+    blocks.textContent = "";
+    ["home", "away", "gk"].forEach(function (t) {
+      var k = KIT[t] = copyKit(KIT[t], KIT_DEFAULT[t]);
+      var block = document.createElement("div");
+      block.className = "kit" + (ONLINE === "guest" && t === "away" ? " fixed" : "");
+      var h3 = document.createElement("h3");
+      h3.appendChild(shirtSvg(k, t === "gk" ? 1 : 10));
+      h3.appendChild(document.createTextNode(names[t]));
+      block.appendChild(h3);
+      PARTS.forEach(function (q) {
         var no = forbidden(t, q[0]);
-        return '<div class="part"><span>' + q[1] + '</span><div class="swatches" data-team="' + t + '" data-part="' + q[0] + '" role="group" aria-label="' + names[t] + ' ' + q[1].toLowerCase() + '">' + COLS.map(function (c) {
+        var part = document.createElement("div"); part.className = "part";
+        var label = document.createElement("span"); label.textContent = q[1]; part.appendChild(label);
+        var swatches = document.createElement("div");
+        swatches.className = "swatches"; swatches.setAttribute("data-team", t); swatches.setAttribute("data-part", q[0]);
+        swatches.setAttribute("role", "group"); swatches.setAttribute("aria-label", names[t] + " " + q[1].toLowerCase());
+        COLS.forEach(function (c) {
           var dis = no.length && clashAny(c[1], no);
-          return '<button type="button" data-c="' + c[1] + '" style="background:' + c[1] + '" aria-label="' + c[0] + '" title="' + c[0] + (dis ? " (too close to another kit)" : "") + '" aria-pressed="' + (k[q[0]] === c[1]) + '"' + (dis ? " disabled" : "") + '></button>';
-        }).join("") + '</div></div>';
-      }).join("") + '</div>';
-    }).join("");
+          var button = document.createElement("button");
+          button.type = "button"; button.setAttribute("data-c", c[1]); button.style.background = c[1];
+          button.setAttribute("aria-label", c[0]); button.title = c[0] + (dis ? " (too close to another kit)" : "");
+          button.setAttribute("aria-pressed", String(k[q[0]] === c[1])); if (dis) button.disabled = true;
+          swatches.appendChild(button);
+        });
+        part.appendChild(swatches); block.appendChild(part);
+      });
+      blocks.appendChild(block);
+    });
     $("kRefs").textContent = "The other team's keeper and the referees are dressed in colours that clash with none of yours.";
   }
   $("kitBlocks").addEventListener("click", function (ev) {
@@ -80,6 +133,7 @@
   // the address of that server: #faces=http://127.0.0.1:8765 in the page's address, or the last one used; without it the button says how to start it
   var CREST = (function () { try { return localStorage.getItem("sv-crest") || ""; } catch (e) { return ""; } })();
   var FACES_API = (/#faces=([^&]+)/.exec(location.hash) || [])[1] || (function () { try { return localStorage.getItem("sv-faces-api") || ""; } catch (e) { return ""; } })() || "http://127.0.0.1:8765";
+  var FACES_TOKEN = (/#faces-token=([^&]+)/.exec(location.hash) || [])[1] || (function () { try { return localStorage.getItem("sv-faces-token") || ""; } catch (e) { return ""; } })();
   function drawCrest() {
     $("crestPreview").innerHTML = CREST ? '<img alt="" src="' + CREST + '">' : "";
     $("crestClear").hidden = !CREST;
@@ -88,10 +142,10 @@
   $("crestGo").addEventListener("click", function () {
     var prompt = $("crestPrompt").value.trim(); if (!prompt) { $("crestNote").textContent = "Write what the crest should look like."; return; }
     $("crestGo").disabled = true; $("crestNote").textContent = "Creating your crest... (about a minute)";
-    fetch(FACES_API + "/logo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: prompt, name: (R && R.home && R.home.name) || "" }) })
+    fetch(FACES_API + "/logo", { method: "POST", headers: { "Content-Type": "application/json", "X-Faces-Token": FACES_TOKEN }, body: JSON.stringify({ prompt: prompt, name: (R && R.home && R.home.name) || "" }) })
       .then(function (r) { if (!r.ok) return r.json().then(function (j) { throw new Error(j.error || "the server said " + r.status); }); return r.blob(); })
       .then(function (b) { return new Promise(function (res) { var im = new Image(), u = URL.createObjectURL(b); im.onload = function () { var c = document.createElement("canvas"); c.width = c.height = 256; c.getContext("2d").drawImage(im, 0, 0, 256, 256); URL.revokeObjectURL(u); res(c.toDataURL("image/png")); }; im.src = u; }); })
-      .then(function (d) { setCrest(d); $("crestNote").textContent = "Your crest."; try { localStorage.setItem("sv-faces-api", FACES_API); } catch (e) {} })
+      .then(function (d) { setCrest(d); $("crestNote").textContent = "Your crest."; try { localStorage.setItem("sv-faces-api", FACES_API); localStorage.setItem("sv-faces-token", FACES_TOKEN); } catch (e) {} })
       .catch(function (e) { $("crestNote").textContent = e instanceof TypeError ? "The crest server is not running. Start it with: python3 tools/faces/server.py  (ComfyUI with Qwen-Image must be running)" : "Could not make the crest: " + e.message; })
       .then(function () { $("crestGo").disabled = false; });
   });
@@ -159,7 +213,19 @@
     }, function (e) { $("oText").textContent = "Could not prepare the invite: " + e.message; });
   });
   // ---- online with a game code: the kits of both, worked out the same way on both sides ----
-  function kitShirt(k) { return '<svg viewBox="0 0 60 44" aria-hidden="true"><path d="M18 6 L24 3 Q30 8 36 3 L42 6 L52 13 L47 21 L42 18 L42 42 L18 42 L18 18 L13 21 L8 13 Z" fill="' + k.base + '" stroke="' + k.trim + '" stroke-width="2.4"/><rect x="21" y="40" width="7" height="4" fill="' + k.socks + '"/><rect x="32" y="40" width="7" height="4" fill="' + k.socks + '"/></svg>'; }
+  function showOnlineKits(me, him) {
+    var box = $("oKits");
+    box.textContent = "";
+    function side(k, label) {
+      var span = document.createElement("span");
+      span.appendChild(shirtSvg(copyKit(k, KIT_DEFAULT.home)));
+      span.appendChild(document.createTextNode(" " + label));
+      return span;
+    }
+    box.appendChild(side(me.kit, "You"));
+    var vs = document.createElement("b"); vs.textContent = "v"; box.appendChild(vs);
+    box.appendChild(side(him.kit, "Your friend"));
+  }
   function readable(k) { var c = JSON.parse(JSON.stringify(k)); if (clash(c.num, c.base)) c.num = textOn(c.base) === "#111" ? "#1b1b1b" : "#f2f2f2"; return c; }
   // The host keeps his kit. The friend wears his own kit - or his second kit if his looks like the host's (or the host's
   // keeper's) - or, if both do, a shirt that clashes with neither. Each keeper takes a colour that clashes with no shirt.
@@ -176,11 +242,16 @@
     return { host: { kit: hostKit, gk: hostGk2 }, guest: { kit: guestKit, gk: guestGk, second: second } };
   }
   NET.onKits(function (theirs) {
+    theirs = {
+      home: copyKit(theirs && theirs.home, KIT_DEFAULT.home),
+      away: copyKit(theirs && theirs.away, KIT_DEFAULT.away),
+      gk: copyKit(theirs && theirs.gk, KIT_DEFAULT.gk),
+    };
     var mine = { home: KIT.home, away: KIT.away, gk: KIT.gk };
     var k = ONLINE === "host" ? onlineKits(mine, theirs) : onlineKits(theirs, mine);
     var me = ONLINE === "host" ? k.host : k.guest, him = ONLINE === "host" ? k.guest : k.host;
     KIT.home = me.kit; KIT.gk = me.gk; KIT.away = him.kit; OTHER_GK = him.gk;
-    $("oKits").innerHTML = '<span>' + kitShirt(me.kit) + ' You</span><b>v</b><span>' + kitShirt(him.kit) + ' Your friend</span>';
+    showOnlineKits(me, him);
     $("oKits").hidden = false;
     var note = k.guest.second ? (ONLINE === "guest" ? "Your shirt looked like your friend's: you wear your second kit." : "Your friend's shirt looked like yours: he wears his second kit.") : "";
     NET.status("Connected! " + note);
@@ -223,7 +294,7 @@
     NET.status("Connecting...");
     NET.accept(code).then(function (kit) {
       // the friend's colours are the away kit (his keeper gets a colour that clashes with nothing)
-      KIT.away = kit.home; OTHER_GK = kit.gk; NET.status("Connecting...");
+      KIT.away = copyKit(kit && kit.home, KIT_DEFAULT.away); OTHER_GK = copyKit(kit && kit.gk, KIT_DEFAULT.gk); NET.status("Connecting...");
     }, function (e) { NET.status(e && /already used/.test(e.message) ? "This invite was already used - press Cancel and make a new one." : "That reply code does not work - copy it again from your friend (the whole code)."); });
   });
   NET.onOpen(function () { startOnline(); });
@@ -234,7 +305,7 @@
     $("welcome").hidden = true;
     if (!window.RTCPeerConnection) { $("online").hidden = false; $("oText").textContent = "This browser cannot play online."; return true; }
     NET.join(m[1]).then(function (hostKit) {
-      KIT.away = hostKit.home; OTHER_GK = hostKit.gk; // (the friend's own kit must not look like the host's)
+      KIT.away = copyKit(hostKit && hostKit.home, KIT_DEFAULT.away); OTHER_GK = copyKit(hostKit && hostKit.gk, KIT_DEFAULT.gk); // (the friend's own kit must not look like the host's)
       if (clashAny(KIT.home.base, [KIT.away.base, OTHER_GK.base])) KIT.home.base = COLS.map(function (c) { return c[1]; }).filter(function (c) { return !clashAny(c, [KIT.away.base, OTHER_GK.base]); })[0];
       if (clash(KIT.home.num, KIT.home.base)) KIT.home.num = textOn(KIT.home.base) === "#111" ? "#1b1b1b" : "#f2f2f2";
       if (clashAny(KIT.gk.base, [KIT.home.base, KIT.away.base, OTHER_GK.base])) KIT.gk.base = KEEPER_PICKS.filter(function (c) { return !clashAny(c, [KIT.home.base, KIT.away.base, OTHER_GK.base]); })[0];

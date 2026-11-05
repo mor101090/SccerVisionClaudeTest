@@ -3,8 +3,10 @@
  * Runs the C# match engine (WebAssembly) off the main thread and streams the match as replay data:
  * a header, then batches of frames, events and stats. Port of tools/demo-page/engine-worker.js.
  */
+
 import type { DotnetModule, LiveEngineExports } from "./dotnet";
 import type { FromWorker, ScheduledInput, ToWorker } from "./protocol";
+import { planTextIsSafe } from "../features/lobby/plan-text";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -35,8 +37,14 @@ function applyDue(L: LiveEngineExports): void {
       keep.push(input);
       continue;
     }
-    if (input.kind === "plan") L.SetPlanFor(input.team, input.plan);
-    else L.SubstituteFor(input.team, input.out, input.in);
+    // A bad plan must leave the queue. Leaving it at the head makes every later step throw on the same request.
+    try {
+      if (input.kind === "plan") {
+        if (planTextIsSafe(input.plan)) L.SetPlanFor(input.team, input.plan);
+      } else L.SubstituteFor(input.team, input.out, input.in);
+    } catch {
+      // Still reported below, so the host records it and a reload does not schedule it again.
+    }
     appliedCount += 1;
     send({ type: "applied", token, id: input.id, frame: generated, order: appliedCount });
   }

@@ -146,7 +146,13 @@
       if (e.type === "ExtraTime") { if (e.detail === 2) et2T = e.t; else et1T = e.t; }
     });
     var SL = 15 + 22 + 22 + 4; // the time, 14 team stats, the energy left of the 22 players, their ratings x10, passes and completed passes h/a (as over 90 minutes)
-    for (i = 0; i < m.stats.length; i += SL) R.stats.push(Array.prototype.slice.call(m.stats, i, i + SL));
+    var stats = m.stats && typeof m.stats.length === "number" ? m.stats : [];
+    function finiteStat(v) { var n = typeof v === "number" ? v : Number(v); return isFinite(n) ? n : 0; }
+    for (i = 0; i < stats.length; i += SL) {
+      var row = [];
+      for (var s = 0; s < SL && i + s < stats.length; s++) row.push(finiteStat(stats[i + s]));
+      R.stats.push(row);
+    }
     if (F.length) { if (F.length === n) { t0 = F[0][0] / 100; t = t0; lastT = t0; seek.min = t0; } tEnd = F[F.length - 1][0] / 100; seek.max = tEnd; }
     if (m.finished) finished = true;
     if (m.final) { try { R.final = JSON.parse(m.final); } catch (e) {} }
@@ -177,7 +183,18 @@
                 ["Passes", [st[59] || 0, st[60] || 0]], ["Pass accuracy", [acc(st[61], st[59]), acc(st[62], st[60])]],
                 ["Tackles", [st[7], st[8]]], ["Tackles won", [st[9], st[10]]], ["Dribbles", [st[11], st[12]]], ["Dribbles won", [st[13], st[14]]],
                 ["Saves", c.Save], ["Corners", c.Corner], ["Fouls", c.Foul], ["Offsides", c.Offside], ["Yellow cards", c.YellowCard], ["Red cards", c.RedCard]];
-    $("facts").innerHTML = rows.map(function (r) { return "<tr><td>" + r[1][0] + '</td><td class="l">' + r[0] + "</td><td>" + r[1][1] + "</td></tr>"; }).join("");
+    var facts = $("facts");
+    facts.textContent = "";
+    rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      [r[1][0], r[0], r[1][1]].forEach(function (cell, idx) {
+        var td = document.createElement("td");
+        if (idx === 1) td.className = "l";
+        td.textContent = String(cell);
+        tr.appendChild(td);
+      });
+      facts.appendChild(tr);
+    });
   }
   // a live match can be watched again, but only what has happened: never past the live moment (LIVE_T)
   var LIVE_T = 0, REWOUND = false;

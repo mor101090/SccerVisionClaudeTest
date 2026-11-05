@@ -1,9 +1,14 @@
 import { z } from "zod";
 
+import { planTextIsSafe } from "./plan-text";
+
 export const lobbyCodeSchema = z.string().regex(/^\d{6}$/, "Enter the 6-digit game code");
 
 export const inputActionSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("plan"), plan: z.string().max(20_000) }),
+  z.object({
+    kind: z.literal("plan"),
+    plan: z.string().max(20_000).refine(planTextIsSafe, "That plan cannot be read"),
+  }),
   z.object({
     kind: z.literal("sub"),
     out: z.number().int().min(1).max(99),
