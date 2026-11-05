@@ -11,7 +11,7 @@ export default defineConfig({
   schema: "./src/server/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
-  // neon_auth is owned by Neon Auth: never generate migrations for it.
+  // `auth` is owned by Supabase Auth (and `storage`/`realtime` by Supabase): never generate migrations for them.
   schemaFilter: ["public"],
   dbCredentials: { url },
   strict: true,

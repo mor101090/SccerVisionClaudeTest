@@ -29,6 +29,7 @@
   --mor-teal: #1fb5b0;
   --mor-google-stroke: #fbbc05;
   --mor-facebook-stroke: #0676e8;
+  --mor-discord-stroke: #5865f2; /* Discord brand blurple; not yet in Figma "Primitives (Mor)" */
 }
 
 @theme inline {
@@ -59,6 +60,7 @@
   --color-field-ink: var(--mor-dark-blue);
   --color-google-stroke: var(--mor-google-stroke);
   --color-facebook-stroke: var(--mor-facebook-stroke);
+  --color-discord-stroke: var(--mor-discord-stroke);
 }
 
 html {

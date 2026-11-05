@@ -1,7 +1,7 @@
 import "server-only";
 
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 
 import { serverEnv } from "@/env";
 
@@ -10,7 +10,10 @@ import * as schema from "./schema";
 function createDb() {
   const url = serverEnv.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");
-  return drizzle({ client: neon(url), schema, casing: "snake_case" });
+  // DATABASE_URL is Supabase's transaction pooler (Supavisor, port 6543): it does not support
+  // prepared statements, and each serverless instance needs only a few connections.
+  const client = postgres(url, { prepare: false, max: 5 });
+  return drizzle({ client, schema, casing: "snake_case" });
 }
 
 let instance: ReturnType<typeof createDb> | null = null;

@@ -30,6 +30,14 @@ export async function acceptTerms(userId: string): Promise<void> {
     });
 }
 
+/** The manager name shown in the header and lobbies (Supabase's auth.users has no name column). */
+export async function setDisplayName(userId: string, displayName: string): Promise<void> {
+  await db()
+    .insert(profiles)
+    .values({ userId, displayName })
+    .onConflictDoUpdate({ target: profiles.userId, set: { displayName } });
+}
+
 export class UsernameTakenError extends Error {
   constructor() {
     super("That username is taken. Try another one.");

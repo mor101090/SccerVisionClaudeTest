@@ -10,9 +10,11 @@ test.describe.serial("auth", () => {
     await expect(page.getByRole("heading", { name: "Login to your account" })).toBeVisible();
   });
 
-  test("wrong password shows the banner with tries left and keeps the email", async ({ page }) => {
+  test("wrong password shows the banner and keeps the email", async ({ page }) => {
     await fillSignIn(page, TEST_USER.email, "definitely-wrong-password");
-    await expect(page.getByRole("alert").filter({ hasText: /tries? left|paused/ })).toBeVisible();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Wrong email or password" }),
+    ).toBeVisible();
     await expect(page.getByLabel("Email address")).toHaveValue(TEST_USER.email);
     await expect(page).toHaveURL(/\/auth\/sign-in/);
   });
@@ -44,7 +46,7 @@ test.describe.serial("auth", () => {
     await page.getByLabel("Confirm password").fill("kickoff-2026");
     await page.getByLabel(/I have read and agree/).check();
     await page.getByRole("button", { name: "Sign up", exact: true }).click();
-    // Verification off: Neon says the address is taken. On (dev, prod): the same verify screen as a new
+    // Confirm email on (dev, prod): Supabase answers with the same verify screen as for a new
     // account, so sign-up never reveals which emails exist.
     await expect(
       page
@@ -61,7 +63,7 @@ test.describe.serial("auth", () => {
     await page.getByLabel(/I have read and agree/).check();
     await page.getByRole("button", { name: "Sign up", exact: true }).click();
 
-    // First run creates the account; later runs find it already registered.
+    // The account exists (yarn e2e:seed), so Supabase shows the same verify screen as for a new one and sends nothing.
     const verify = page.getByRole("heading", { name: "Check your inbox" });
     const taken = page.getByText("That email is already registered.");
     await expect(verify.or(taken)).toBeVisible({ timeout: 15_000 });
@@ -88,30 +90,25 @@ test.describe.serial("auth", () => {
     await expect(page.getByRole("link", { name: "Send a new link" })).toBeVisible();
   });
 
-  test("the auth proxy serves only the SDK paths: no password login that skips the lockout", async ({
+  test("no auth proxy on the site: password paths are gone, social sign-in goes to Supabase", async ({
     page,
     request,
   }) => {
-    for (const path of [
-      "sign-in/email",
-      "sign-up/email",
-      "request-password-reset",
-      "reset-password",
-      "email-otp/send-verification-otp",
-      "sign-in/email-otp",
-    ]) {
+    // The Neon-era proxy is gone: none of its paths answer (password flows run only as Server Actions).
+    for (const path of ["sign-in/email", "sign-up/email", "reset-password", "get-session"]) {
       const res = await request.post(`/api/auth/${path}`, {
         data: { email: TEST_USER.email, password: "wrong-password" },
       });
       expect(res.status(), path).toBe(404);
     }
-    expect((await request.get("/api/auth/get-session")).status()).toBe(200);
-    // Google sign-in still goes through the proxy and on to Google.
+    // Google sign-in leaves for Supabase Auth's authorize endpoint (PKCE), back to /auth/callback.
     await page.goto("/auth/sign-in");
-    const social = page.waitForRequest((r) => r.url().includes("/api/auth/sign-in/social"));
+    const authorize = page.waitForRequest((r) =>
+      r.url().includes("/auth/v1/authorize?provider=google"),
+    );
     await page.getByRole("button", { name: "Google" }).click();
-    const res = await (await social).response();
-    expect(res?.status()).toBe(200);
+    const url = new URL((await authorize).url());
+    expect(url.searchParams.get("redirect_to")).toContain("/auth/callback");
   });
 
   test("a crafted redirect never leaves the site", async ({ page }) => {
