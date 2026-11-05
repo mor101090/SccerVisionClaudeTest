@@ -30,7 +30,8 @@ Facts from the inventory that shape the plan:
 ## Phase 1: Supabase projects and dashboard config (about 2 h, needs you in the dashboards)
 1. **Dev project already exists:** ref `mcrglsqpxyrbazwzrnzg`. Confirm its region is eu-central-1. Create `soccer-vision-prod` before Phase 6.
 2. **Branding: dev-spirit.com everywhere, app name "Soccer-Vision by Devspirit".**
-   - **Auth domain.** Supabase Custom Domain `auth.soccer.dev-spirit.com` for prod and `auth-dev.soccer.dev-spirit.com` for dev.
+   - **Deferred: all Pro features, including the custom domain.** Until then, OAuth callbacks and `NEXT_PUBLIC_SUPABASE_URL` use `https://mcrglsqpxyrbazwzrnzg.supabase.co`. Switching later means adding the new callback URL to each OAuth app and changing one env var.
+   - **Auth domain (later).** Supabase Custom Domain `auth.soccer.dev-spirit.com` for prod and `auth-dev.soccer.dev-spirit.com` for dev.
      - Needs the Pro plan plus the Custom Domain add-on.
      - Add the CNAME and TXT records at the dev-spirit.com DNS host, then activate with `supabase domains activate`.
      - **Set this up before the providers**, so every OAuth callback is `https://auth.soccer.dev-spirit.com/auth/v1/callback`. Users then see dev-spirit.com, never `*.supabase.co`.
@@ -54,7 +55,7 @@ Facts from the inventory that shape the plan:
 4. **Custom SMTP (Resend, branding above).** The built-in SMTP sends only a few emails per hour, which is unusable. Two templates change their content:
    - Confirm signup: use `{{ .Token }}` (6-digit code, keeps `verify-form.tsx`)
    - Reset password: link to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`
-5. **Providers.** Each uses the redirect `https://auth.soccer.dev-spirit.com/auth/v1/callback` (the dev project uses `auth-dev.…`):
+5. **Providers.** Each uses the redirect `https://<ref>.supabase.co/auth/v1/callback` for now (`auth.soccer.dev-spirit.com` once the custom domain is added):
    - Google: add the new redirect URI to the existing Google OAuth client
    - Facebook: new Meta app with Facebook Login, scopes `email` and `public_profile`
    - Discord: new Discord application, scopes `identify` and `email`
