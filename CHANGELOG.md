@@ -18,7 +18,9 @@ as the team generator already does.
 - **The page**: the player card shows the weak foot as stars (gold filled, the rest dim) instead of "2/3"; the foot colours are green for 4-5 stars, yellow for 3, orange for 1-2.
   The hover card and the Unity HUD read the new scale (two-footed = 5 and 5).
 - **Tests**: `GeneratedTeamsTests.TheWeakerFootIsRatedInStarsOneToFive` (the strong foot 5, every star value present, someone two-footed, the scale the engine weighs them on);
-  the left back's left foot is 5; "some use the weaker foot" is 3 stars or more (the old 2 of 3).
+  the left back's left foot is 5; "some use the weaker foot" is 3 stars or more (the old 2 of 3). `BoardAndDeadBallTests.APlayerShootsAtAnOpenGoal` played six matches
+  for a thing that happens about 0.2 times a match (60 matches, seeds 60 and 3000: 10 and 16 before this round, 16 and 14 after - no fewer), so six saw none about a
+  quarter of the time; it now plays up to 24 until one is seen.
 
 ## `feature/passing-tempo`
 
