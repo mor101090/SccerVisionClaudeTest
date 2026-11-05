@@ -30,6 +30,7 @@ Each round of changes is developed on its own branch, named after what it change
   - `StrongerMeansBetterPlayers`: the weak step needs 4 points, not 5 - the weak spread is now 0.38 (weak 48.2, medium 53.1, strong 70.2).
 - **Open, not in this PR**: the zonal / man-to-man gap is about 10 points, not 0; the favourite loses too rarely (1.3% / 3.8% v 4% / 10%) and the underdog scores about half what real ones do;
   shots on target 8.0 (8.8).
+
 ## `feat/supabase-migration`
 
 **From Neon to Supabase: Auth, Postgres, Storage and Realtime.** Neon Managed Auth has no Facebook provider; Supabase Auth has Google,
