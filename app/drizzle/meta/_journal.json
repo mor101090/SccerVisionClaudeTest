@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1793820113631,
-      "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1793820617396,
-      "tag": "0001_lobby_sync",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1793828212097,
-      "tag": "0002_auth_profiles",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1793832535726,
-      "tag": "0003_create_team",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1793868616384,
-      "tag": "0004_club_integrity",
+      "when": 1793881308575,
+      "tag": "0000_supabase_baseline",
       "breakpoints": true
     }
   ]

@@ -29,10 +29,10 @@ export function realtime(): Realtime | null {
 export function lobbyLiveQuery(userId: string, lobbyId: string) {
   return rawSql<LobbyLiveRow>(
     `SELECT 'lobby' AS row_kind, l.id::text AS id, l.status::text AS status,
-            l.host_frame AS frame, l.final_frame AS final_frame, g.name AS guest_name,
+            l.host_frame AS frame, l.final_frame AS final_frame, coalesce(g.display_name, g.username) AS guest_name,
             NULL::smallint AS team, NULL::text AS action_kind, NULL::jsonb AS payload, NULL::integer AS seq
        FROM lobbies l
-       LEFT JOIN neon_auth."user" g ON g.id = l.guest_id
+       LEFT JOIN profiles g ON g.user_id = l.guest_id
       WHERE l.id = $1::uuid AND (l.host_id = $2::uuid OR l.guest_id = $2::uuid)
      UNION ALL
      SELECT 'input', i.id::text, NULL, i.frame, NULL, NULL, i.team, i.kind, i.payload, i.seq
