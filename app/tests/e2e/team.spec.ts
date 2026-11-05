@@ -57,7 +57,12 @@ test("create your team and play a match with it", async ({ page }) => {
     await page.waitForURL("**/team/new/squad");
   }
 
-  // Generating (first time) then the squad.
+  // Generating (first time): 22/22, the "Squad complete" celebration, then the squad.
+  await expect(page.getByRole("heading", { name: /squad complete/i })).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(page.getByText("22/22 players signed", { exact: false })).toBeVisible();
+  await shot(page, "4-squad-complete");
   await expect(page.getByRole("heading", { name: "Suggested XI · 4-4-2" })).toBeVisible({
     timeout: 60_000,
   });

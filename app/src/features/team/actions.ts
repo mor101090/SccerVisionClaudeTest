@@ -133,20 +133,27 @@ export async function saveKitsAction(_prev: TeamFormState, form: FormData): Prom
 
 // ------------------------------------------------------------------ 4–6 squad
 
-async function run(fn: () => Promise<void>): Promise<TeamFormState> {
+async function run(
+  fn: () => Promise<void>,
+  { revalidate = true }: { revalidate?: boolean } = {},
+): Promise<TeamFormState> {
   try {
     await fn();
   } catch (err) {
     if (err instanceof TeamError || err instanceof SquadApiError) return { error: err.message };
     throw err;
   }
-  revalidatePath("/team/new/squad");
+  if (revalidate) revalidatePath("/team/new/squad");
   return null;
 }
 
+/**
+ * No revalidation: the Generating screen finishes its count and celebration first, then calls router.refresh()
+ * itself. Revalidating here would ship the squad page with the action's response and cut the animation short.
+ */
 export async function generateSquadAction(): Promise<TeamFormState> {
   const user = await requireUser();
-  return run(() => makeSquad(user.id, false));
+  return run(() => makeSquad(user.id, false), { revalidate: false });
 }
 
 export async function regenerateSquadAction(): Promise<TeamFormState> {
