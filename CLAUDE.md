@@ -36,8 +36,9 @@ The site is a Next.js fullstack app (`app/`) backed by Supabase. **The classic g
 ## Commands (run in `app/`)
 
 ```bash
-yarn assets:build   # engine WASM + classic page (needs .NET 8 SDK, python3). Run once, and after engine changes.
-yarn dev            # dev server
+yarn dev            # dev server. First builds the engine WASM + classic page if missing or their sources changed
+                    # (tools/ensure-assets.ts; needs .NET 8 SDK + python3, else it warns and starts anyway; SKIP_ASSETS=1 skips)
+yarn assets:build   # force a rebuild of engine WASM + classic page
 yarn check          # lint + typecheck + format check + unit tests (run before every PR)
 yarn test:e2e       # Playwright (starts dev server on :3100). Test users from tests/e2e/fixtures.ts on Supabase dev (`yarn e2e:seed`).
 yarn build
