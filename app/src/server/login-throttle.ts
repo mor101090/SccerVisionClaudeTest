@@ -11,10 +11,7 @@ import { db, schema } from "./db";
 const { loginAttempts } = schema;
 const WINDOW = sql.raw(`interval '${LOGIN_LOCK_MINUTES} minutes'`);
 
-/**
- * Never store the address: a salted-by-purpose hash of the normalized email is the key.
- * `drizzle/0003_password_lockout_hook.sql` hashes the same string. Keep the two in step.
- */
+/** Never store the address: a salted-by-purpose hash of the normalized email is the key. */
 function keyFor(email: string): string {
   return createHash("sha256").update(`login:${email.trim().toLowerCase()}`).digest("hex");
 }
@@ -48,20 +45,16 @@ export async function passwordPauseStartedAt(email: string): Promise<Date | null
 export async function recordFailure(email: string): Promise<number> {
   const stale = sql`${loginAttempts.windowStartedAt} < now() - ${WINDOW}`;
   const failures = sql`case when ${stale} then 1 else ${loginAttempts.failures} + 1 end`;
-  // The password hook counts a direct Auth API grant and stamps hook_counted_at. A Server Action
-  // runs just after that hook, so a fresh stamp means this attempt is already counted. With the
-  // hook off the stamp stays empty and every Server Action still counts.
-  const countedByHook = sql`${loginAttempts.hookCountedAt} > now() - interval '5 seconds'`;
   const [row] = await db()
     .insert(loginAttempts)
     .values({ key: keyFor(email), failures: 1 })
     .onConflictDoUpdate({
       target: loginAttempts.key,
       set: {
-        failures: sql`case when ${countedByHook} then ${loginAttempts.failures} else ${failures} end`,
-        windowStartedAt: sql`case when ${countedByHook} then ${loginAttempts.windowStartedAt} when ${stale} then now() else ${loginAttempts.windowStartedAt} end`,
-        lockedUntil: sql`case when ${countedByHook} then ${loginAttempts.lockedUntil} when ${failures} >= ${LOGIN_MAX_FAILURES} then now() + ${WINDOW} else null end`,
-        lockedAt: sql`case when ${countedByHook} then ${loginAttempts.lockedAt} when ${failures} >= ${LOGIN_MAX_FAILURES} then coalesce(case when ${loginAttempts.lockedUntil} > now() then ${loginAttempts.lockedAt} else null end, now()) else null end`,
+        failures,
+        windowStartedAt: sql`case when ${stale} then now() else ${loginAttempts.windowStartedAt} end`,
+        lockedUntil: sql`case when ${failures} >= ${LOGIN_MAX_FAILURES} then now() + ${WINDOW} else null end`,
+        lockedAt: sql`case when ${failures} >= ${LOGIN_MAX_FAILURES} then coalesce(case when ${loginAttempts.lockedUntil} > now() then ${loginAttempts.lockedAt} else null end, now()) else null end`,
       },
     })
     .returning({ failures: loginAttempts.failures });

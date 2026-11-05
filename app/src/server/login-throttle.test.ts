@@ -5,17 +5,16 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const sql = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../../drizzle/0003_password_lockout_hook.sql"),
+  join(dirname(fileURLToPath(import.meta.url)), "../../drizzle/0003_login_pause.sql"),
   "utf8",
 );
 
-describe("password lockout hook", () => {
-  it("counts a direct failed password grant and blocks only a new sign-in during a pause", () => {
-    expect(sql).toContain("INSERT INTO public.login_attempts");
-    expect(sql).toContain("hook_counted_at");
-    expect(sql).toContain("'decision', 'reject'");
-    expect(sql).toContain("'message', 'Invalid login credentials'");
-    expect(sql).toContain("'should_logout_user', false");
-    expect(sql).not.toContain("paused");
+describe("login pause migration", () => {
+  it("records when a pause began and does not install the paid password hook", () => {
+    expect(sql).toContain("locked_at");
+    expect(sql).toContain("DROP FUNCTION IF EXISTS public.hook_password_verification_attempt");
+    expect(sql).not.toContain(
+      "CREATE OR REPLACE FUNCTION public.hook_password_verification_attempt",
+    );
   });
 });

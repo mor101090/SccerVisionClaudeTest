@@ -27,7 +27,7 @@
       "idx": 3,
       "version": "7",
       "when": 1793882400000,
-      "tag": "0003_password_lockout_hook",
+      "tag": "0003_login_pause",
       "breakpoints": true
     }
   ]

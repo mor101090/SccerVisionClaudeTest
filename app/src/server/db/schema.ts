@@ -80,8 +80,6 @@ export const loginAttempts = pgTable("login_attempts", {
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
   /** When the current pause began. Stays put if later failures extend the window. */
   lockedAt: timestamp("locked_at", { withTimezone: true }),
-  /** Set by the password hook when it counted this row, so the Server Action does not count it again. */
-  hookCountedAt: timestamp("hook_counted_at", { withTimezone: true }),
 }).enableRLS();
 
 // ---------------------------------------------------------------- teams

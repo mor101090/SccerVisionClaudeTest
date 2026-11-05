@@ -16,15 +16,11 @@ Run every step on **dev first** (Supabase dev project `mcrglsqpxyrbazwzrnzg`, Ne
    - Confirm signup: show the code `{{ .Token }}` (the site asks for the 6-digit code).
    - Reset password: link to `{{ .RedirectTo }}?token={{ .TokenHash }}`.
 3. **Migrate the prod schema:** `DATABASE_URL_UNPOOLED=<prod direct url> yarn db:migrate` from `app/`. This creates the
-   tables, the `replays` bucket, the lobby Realtime trigger and the password-lockout hook function.
-4. **Turn on the password hook.** Authentication → Hooks → Password verification attempt → Postgres function
-   `public.hook_password_verification_attempt`. It counts failed password grants that never reach the app, and while
-   an email is paused it rejects a correct password with the same invalid-credentials error as a wrong one. The
-   sign-in form gives that same answer. A password session opened after the pause began is not signed in; an
-   older one stays. Do this on dev and on prod.
-5. **Set the Vercel Production env and GitHub secrets** (see "Environment" in CLAUDE.md). Keep the Neon values until step 3 of
+   tables, the `replays` bucket and the lobby Realtime trigger. Password lockout stays in the app. Supabase's
+   password-verification hook is a paid feature and is not part of this cutover.
+4. **Set the Vercel Production env and GitHub secrets** (see "Environment" in CLAUDE.md). Keep the Neon values until step 3 of
    the cutover.
-6. **Rehearse on dev:** delete the `yarn e2e:seed` accounts on Supabase dev, run the migration script against Neon `dev`, then `yarn e2e:seed` again. Then sign in with Google, play a
+5. **Rehearse on dev:** delete the `yarn e2e:seed` accounts on Supabase dev, run the migration script against Neon `dev`, then `yarn e2e:seed` again. Then sign in with Google, play a
    saved match's replay, and play an online match.
 
 ## Cutover

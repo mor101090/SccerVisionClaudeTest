@@ -95,14 +95,11 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   the reference for color roles is the Login screen (node 541-2333). Never hard-code hex in components.
 - **Auth flow** (`features/auth/actions.ts`): every sign-in path ends in `nextPathAfterSignIn()` → `/auth/finish` until the
   profile has a username + terms (`profiles` table), then `redirectTo`. Password logins are throttled per email
-  (`server/login-throttle.ts`, 5 failures / 15 min). `hook_password_verification_attempt`
-  (`drizzle/0003_password_lockout_hook.sql`) counts every failed password grant, including a direct Auth API call,
-  and rejects a correct password during a pause with Supabase's normal invalid-credentials error. That rejection
-  does not sign out a session that already exists. A wrong password looks the same for a registered address and an
-  gets Supabase's normal invalid-credentials error whether or not the address is registered. The sign-in form
-  gives that same answer while an email is paused, with no remaining-try count. A password session opened
-  after the pause began is not signed in; a session from before it, and a social session, keep working. Enable
-  the hook under Authentication → Hooks. Classify Supabase Auth errors with `classifyAuthError()`. Emails
+  (`server/login-throttle.ts`, 5 failures / 15 min), one atomic increment per attempt in the Server Actions.
+  Supabase's password-verification hook is a paid feature, so the app does not use it. The sign-in form gives the
+  same wrong-email-or-password answer for a wrong password, an unknown address, and a pause. A password session
+  opened after the pause began is not signed in; a session from before it, and a social session, keep working.
+  Classify Supabase Auth errors with `classifyAuthError()`. Emails
   pending verification/reset live in an httpOnly cookie, never in URLs. Password, sign-up, code and reset flows go
   through the Server Actions. The browser client refuses password grants (`password-grant.ts`); it is only for social
   sign-in (`signInWithOAuth`, PKCE → `/auth/callback`), linking and Realtime.
