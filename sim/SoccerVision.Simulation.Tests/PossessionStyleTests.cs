@@ -57,8 +57,9 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void AHighPressTakesTheBallBack()
         {
-            var plain = Play(null, null, matches: 24).Poss;
-            var press = Play(HighPress, null, matches: 24).Poss;
+            // (48 matches: the press gains about 2 points over 120 matches, two seeds, with the generator's realism squads; 24 matches gave 0.7)
+            var plain = Play(null, null, matches: 48).Poss;
+            var press = Play(HighPress, null, matches: 48).Poss;
             // (+0.8: since the score round the side behind pushes up too, and a press gains 1.1-1.3 points over 120 matches, two seeds - it was +1.5 before)
             Assert.True(press > plain + 0.8, $"high press {press:0.0}% v {plain:0.0}%");
         }

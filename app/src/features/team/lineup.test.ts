@@ -18,40 +18,40 @@ describe("suggestLineup (port of build_teams.squad)", () => {
   it("picks the same XI, in the same slots, as GeneratedTeams.Red", () => {
     const { starters } = suggestLineup(squad);
     expect(starters.map(label)).toEqual([
-      "Robert Martin #5",
-      "Robert Taylor #1",
-      "James Smith #63",
-      "Richard Johnson #51",
-      "Chris White #47",
-      "William White #70",
-      "James Harris #18",
-      "Richard Taylor #69",
-      "John Thomas #14",
-      "John Harris #11",
-      "Chris White #16",
+      "Mateo Novak #1",
+      "Diego Silva #34",
+      "Omar Jackson #5",
+      "Michael Smith #79",
+      "Leo Garcia #68",
+      "Yuki Johnson #7",
+      "Thomas White #8",
+      "Leo Moreau #10",
+      "Elias Thomas #11",
+      "Ivan Taylor #9",
+      "Diego Tanaka #80",
     ]);
   });
 
   it("picks the same bench of nine", () => {
     const { bench } = suggestLineup(squad);
-    expect(bench.map((i) => squad[i]!.shirt_number)).toEqual([92, 49, 61, 73, 54, 60, 75, 56, 37]);
+    expect(bench.map((i) => squad[i]!.shirt_number)).toEqual([99, 4, 40, 3, 44, 57, 81, 91, 19]);
   });
 });
 
 describe("engine attributes", () => {
   it("map a keeper exactly as GeneratedTeams.cs does", () => {
-    const keeper = squad.find((p) => p.name === "Robert Martin")!;
+    const keeper = squad.find((p) => p.name === "Mateo Novak")!;
     expect(engineAttributes(keeper)).toEqual([
-      34, 60, 54, 61, 20, 20, 69, 35, 57, 25, 12, 15, 20, 68, 50, 41, 61, 54, 71, 73, 35, 28, 71,
-      72, 68, 68, 71,
+      19, 69, 43, 66, 20, 20, 70, 35, 42, 25, 12, 15, 20, 52, 51, 37, 64, 66, 63, 19, 29, 32, 72,
+      69, 50, 67, 74,
     ]);
   });
 
   it("map an outfield player exactly as GeneratedTeams.cs does", () => {
-    const cb = squad.find((p) => p.shirt_number === 63)!;
+    const cb = squad.find((p) => p.shirt_number === 5)!;
     expect(engineAttributes(cb)).toEqual([
-      32, 26, 68, 40, 87, 94, 86, 67, 65, 68, 27, 27, 23, 89, 76, 68, 60, 88, 85, 86, 74, 52, 15,
-      15, 22, 15, 18,
+      6, 35, 45, 54, 63, 65, 60, 43, 49, 45, 24, 21, 22, 59, 53, 42, 57, 67, 51, 73, 51, 48, 15, 15,
+      22, 15, 18,
     ]);
   });
 
@@ -77,13 +77,13 @@ describe("engine attributes", () => {
     expect(lines).toHaveLength(21);
     expect(lines[0]).toBe("Red   Rovers|RED|redcoach|#d32f2f|#1b1b1b|#f2f2f2|#f9d71c|#1b1b1b||42");
     expect(lines[1]!.split("|").slice(0, 8)).toEqual([
-      "Robert",
-      "Martin",
-      "5",
+      "Mateo",
+      "Novak",
+      "1",
       "Goalkeeper",
       "GK",
-      "184",
-      "66",
+      "181",
+      "57",
       "Normal",
     ]);
     expect(lines[6]!.split("|")[3]).toBe("Midfielder"); // RM slot

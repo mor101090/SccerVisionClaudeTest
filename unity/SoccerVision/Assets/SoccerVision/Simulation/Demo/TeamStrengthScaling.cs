@@ -11,8 +11,8 @@ namespace SoccerVision.Simulation
     /// </summary>
     public static class TeamStrengthScaling
     {
-        /// <summary>0 = every squad is the medium one, 1 = the generator's excellent squads as they are (above 1 goes beyond them, attributes capped at 99). 1.0 / 0.45 are the best fit to eight real leagues with the squads of the generator v2 realism round (see CHANGELOG; 1.2 / 0.5 for the squads before it).</summary>
-        public static float StrongSpread = 1.0f;
+        /// <summary>0 = every squad is the medium one, 1 = the generator's excellent squads as they are (above 1 goes beyond them, attributes capped at 99). 1.8 / 0.45 are the best fit to eight real leagues with the squads of the generator v2 realism round, each pairing played four ways (both colours, both seats) (see CHANGELOG; 1.2 / 0.5 for the squads before it).</summary>
+        public static float StrongSpread = 1.8f;
         /// <summary>The same for the weak squads.</summary>
         public static float WeakSpread = 0.45f;
 
