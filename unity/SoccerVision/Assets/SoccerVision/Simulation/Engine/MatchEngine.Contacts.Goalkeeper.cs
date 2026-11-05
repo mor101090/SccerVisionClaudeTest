@@ -58,6 +58,8 @@ namespace SoccerVision.Simulation
 
         /// <summary>The share of his full reach (3.2 m) a keeper has when the shot is on him at once (a quarter of a second or less).</summary>
         public static float CloseReachBase = 0.3f;
+        /// <summary>The save chance of a shot with no difficulty to it, before the keeper's skill (what the chance falls from as the shot gets harder).</summary>
+        public static float SaveBase = 0.90f;
         /// <summary>How much easier a shot from range is to save (1 = as before this round: +1.2 points a metre beyond 18 m, at most +12).</summary>
         public static float RangeSaveScale = 0.1f;
         /// <summary>How often a challenge outside the box is a foul (1 = as before this round). Real (Premier League, ten seasons, counted): 21.5 fouls a match; the engine had 16.5.
@@ -87,7 +89,7 @@ namespace SoccerVision.Simulation
             float difficulty = 0.42f * MathUtil.Clamp((speed - 12f) / 20f, 0f, 1.2f) + 0.55f * reachNeeded + (Ball.Z > 1.8f ? 0.12f : 0f) + 0.35f * closeRange;
             if (Ball.LastKickKind == KickKind.Header) difficulty += 0.25f; // close-range headers give little time to react
             if (Ball.ShotKnuckle) difficulty += 0.22f; // a ball with no spin moves late in the air
-            float pSave = MathUtil.Clamp(0.98f - difficulty * 0.44f + (skill - 0.5f) * 0.35f, 0.1f, 0.94f); // (calibrated with the open goals made honest: about 2.8 goals a match)
+            float pSave = MathUtil.Clamp(SaveBase - difficulty * 0.44f + (skill - 0.5f) * 0.35f, 0.1f, 0.94f); // (calibrated with the open goals made honest: about 2.8 goals a match)
             if (_penaltyKickTime >= 0f && shooter != null && SimTime - _penaltyKickTime < 1.5f)
             {
                 pSave = _penaltyGuessCorrect ? MathUtil.Clamp(0.36f + 0.3f * (skill - 0.5f) - reachNeeded * 0.15f, 0.15f, 0.7f) : 0.05f;

@@ -270,7 +270,7 @@ namespace SoccerVision.Simulation
                     {
                         // Tight, goal-side, and he goes wherever his man goes (looser when the ball is far away).
                         // (a poor marker gives his man more room)
-                        float gap = (inBox ? 0.9f : 1.1f + 3f * loose) * (2f - marking);
+                        float gap = (inBox ? 0.9f : 1.1f + 3f * loose) * (2f - marking) * ManMarkGapScale;
                         Vec2 goalSide = lead + (team.OwnGoal - lead).Normalized * gap;
                         if (farSide)
                         {

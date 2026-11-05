@@ -82,8 +82,8 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void HardTacklersGoInMoreAndFoulMore()
         {
-            var plain = Play(() => Red(PlayerTrait.None, p => p.Attributes.Aggression = 75), 520, 24);
-            var hard = Play(() => Red(PlayerTrait.HardTackler, p => p.Attributes.Aggression = 75), 520, 24);
+            var plain = Play(() => Red(PlayerTrait.None, p => p.Attributes.Aggression = 75), 520, 48);
+            var hard = Play(() => Red(PlayerTrait.HardTackler, p => p.Attributes.Aggression = 75), 520, 48);
             // (he goes in sooner, standing or sliding)
             double sl0 = plain.Average(e => e.Home.Stats.Tackles), sl1 = hard.Average(e => e.Home.Stats.Tackles);
             double f0 = plain.Average(e => e.Home.Stats.Fouls), f1 = hard.Average(e => e.Home.Stats.Fouls);

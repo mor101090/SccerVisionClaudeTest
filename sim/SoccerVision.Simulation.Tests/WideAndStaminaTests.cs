@@ -18,7 +18,7 @@ namespace SoccerVision.Simulation.Tests
             double Advance(float mentality)
             {
                 double sum = 0; int n = 0;
-                for (ulong seed = 5000; seed < 5004; seed++)
+                for (ulong seed = 5000; seed < 5012; seed++) // (twelve matches: four tip with any change anywhere in the engine)
                 {
                     var e = new MatchEngine(WithMentality(DemoTeams.Red(), mentality), DemoTeams.Blue(), seed);
                     while (!e.IsFinished && e.Clock.Seconds < 45 * 60)
