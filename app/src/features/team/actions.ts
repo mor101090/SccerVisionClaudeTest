@@ -5,14 +5,9 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { formText } from "@/lib/form";
-import { requireUser } from "@/server/auth";
+import { auth, requireUser } from "@/server/auth";
 import { isCountry } from "@/server/countries";
-import {
-  InviterNotFoundError,
-  saveManager,
-  setDisplayName,
-  UsernameTakenError,
-} from "@/server/profiles";
+import { InviterNotFoundError, saveManager, UsernameTakenError } from "@/server/profiles";
 import { SquadApiError } from "@/server/squad-api";
 import {
   finishTeam,
@@ -65,7 +60,7 @@ export async function saveManagerAction(
     if (err instanceof InviterNotFoundError) return { values, fields: { invitedBy: err.message } };
     throw err;
   }
-  if (parsed.data.username !== user.name) await setDisplayName(user.id, parsed.data.username);
+  if (parsed.data.username !== user.name) await auth().updateUser({ name: parsed.data.username });
   redirect("/team/new/club");
 }
 

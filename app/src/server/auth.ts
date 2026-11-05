@@ -1,59 +1,59 @@
 import "server-only";
 
+import { createNeonAuth } from "@neon/auth/next/server";
 import { cookies } from "next/headers";
-import { connection } from "next/server";
-import { cache } from "react";
 
-import { sessionIdOf } from "@/features/auth/password-session";
-import {
-  passwordAuthenticatedAt,
-  sessionStartedDuringPause,
-} from "@/features/auth/recovery-session";
+import { serverEnv } from "@/env";
 
-import { provisionalName } from "./auth-flow";
-import { passwordPauseStartedAt } from "./login-throttle";
-import { isAllowedPasswordSession } from "./password-sessions";
-import { getProfile } from "./profiles";
-import { supabaseServer } from "./supabase";
+function createAuth() {
+  const baseUrl = serverEnv.NEON_AUTH_BASE_URL;
+  const secret = serverEnv.NEON_AUTH_COOKIE_SECRET;
+  if (!baseUrl || !secret) {
+    throw new Error("NEON_AUTH_BASE_URL and NEON_AUTH_COOKIE_SECRET must be set");
+  }
+  return createNeonAuth({ baseUrl, cookies: { secret } });
+}
 
-export type User = { id: string; email: string; name: string };
+type Auth = ReturnType<typeof createAuth>;
+let instance: Auth | null = null;
+
+/** Lazily created so `next build` does not need auth env for static pages. */
+export function auth(): Auth {
+  instance ??= createAuth();
+  return instance;
+}
+
+type AuthResult<T = unknown> = Promise<{
+  data: T | null;
+  error: { code?: string; status?: number; message?: string } | null;
+}>;
 
 /**
- * The signed-in user, or null. The session JWT is verified by getClaims() (locally when the project signs with
- * asymmetric keys). The name is the manager's display name, else the username, else the social profile's name,
- * else the email's local part. Cached per request.
+ * Email OTP endpoints (Managed plugin). The server proxy implements them (`email-otp/*` in the
+ * SDK's endpoint table) but the SDK's types leave `emailOtp` as `unknown`, so type them here.
  */
-export const currentUser = cache(async (): Promise<User | null> => {
-  // Stop prerendering here, in our code: the session is per request, and getClaims() reads the clock
-  // (token expiry), which Next.js rejects during prerender, including the runtime-prefetch stage.
+export function emailOtp() {
+  return (
+    auth() as unknown as {
+      emailOtp: {
+        sendVerificationOtp(body: {
+          email: string;
+          type: "email-verification" | "sign-in" | "forget-password";
+        }): AuthResult;
+        verifyEmail(body: { email: string; otp: string }): AuthResult<{ user?: { id: string } }>;
+      };
+    }
+  ).emailOtp;
+}
+
+/** The signed-in user, or null. */
+export async function currentUser() {
+  // Touch cookies() here first: during prerender this suspends in our code, not inside the
+  // SDK's own try/catch (which would log a HANGING_PROMISE_REJECTION).
   await cookies();
-  await connection();
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getClaims();
-  const claims = data?.claims;
-  if (!claims?.sub) return null;
-  const email = typeof claims.email === "string" ? claims.email : "";
-  // A password grant the app did not create (a direct Auth API call) is not a session. A password
-  // session opened after this pause began is not signed in either. Social sign-in keeps working.
-  if (passwordAuthenticatedAt(claims) !== null) {
-    const sessionId = sessionIdOf(claims);
-    if (!sessionId || !(await isAllowedPasswordSession(sessionId))) return null;
-  }
-  if (email) {
-    const pauseStarted = await passwordPauseStartedAt(email);
-    if (sessionStartedDuringPause(passwordAuthenticatedAt(claims), pauseStarted)) return null;
-  }
-  const meta = (claims.user_metadata ?? {}) as { full_name?: unknown; name?: unknown };
-  const socialName =
-    typeof meta.full_name === "string"
-      ? meta.full_name
-      : typeof meta.name === "string"
-        ? meta.name
-        : null;
-  const profile = await getProfile(claims.sub);
-  const name = profile?.displayName || profile?.username || socialName || provisionalName(email);
-  return { id: claims.sub, email, name };
-});
+  const { data } = await auth().getSession();
+  return data?.user ?? null;
+}
 
 /** The signed-in user, or throws. Use in Route Handlers and Server Actions before any data access. */
 export async function requireUser() {

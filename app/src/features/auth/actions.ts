@@ -3,43 +3,31 @@
 import { redirect } from "next/navigation";
 
 import { formText } from "@/lib/form";
-import { currentUser } from "@/server/auth";
+import { auth, currentUser, emailOtp } from "@/server/auth";
 import {
   clearPendingEmail,
-  clearRecoveryUser,
   getPendingEmail,
-  getRecoveryUser,
   nextPathAfterSignIn,
   provisionalName,
   requestOrigin,
   setPendingEmail,
-  setRecoveryUser,
 } from "@/server/auth-flow";
 import { clearFailures, lockedMinutes, recordFailure } from "@/server/login-throttle";
-import { allowPasswordSession, forgetPasswordSession } from "@/server/password-sessions";
-import {
-  acceptTerms,
-  completeProfile,
-  getProfile,
-  setDisplayName,
-  UsernameTakenError,
-} from "@/server/profiles";
-import { supabaseServer } from "@/server/supabase";
+import { acceptTerms, completeProfile, getProfile, UsernameTakenError } from "@/server/profiles";
 import { getTeam } from "@/server/teams";
 
 import { classifyAuthError, type AuthError } from "./auth-errors";
-import { sessionIdFromAccessToken } from "./password-session";
 import {
   fieldErrors,
   finishSchema,
   forgotSchema,
+  LOGIN_LOCK_MINUTES,
   resetSchema,
   safeRedirect,
   signInSchema,
   signUpSchema,
   verifySchema,
 } from "./policy";
-import { isRecoverySession } from "./recovery-session";
 
 /** Result of every auth form action. `fields` holds per-field messages, `error` a banner. */
 export type AuthFormState = {
@@ -52,9 +40,6 @@ export type AuthFormState = {
 } | null;
 
 const RATE_LIMITED = "Too many requests. Wait a minute and try again.";
-/** Same answer for a wrong password, an unknown address, and a pause, so the pause is not an account oracle. */
-const WRONG_PASSWORD =
-  "Wrong email or password. We upgraded our login: if you signed up with email before, reset your password once.";
 
 /** Unexpected auth failures: status and code only, never user input. */
 function logAuthError(step: string, e: AuthError): void {
@@ -65,11 +50,12 @@ function isRateLimited(e: AuthError): boolean {
   return classifyAuthError(e) === "rate_limited";
 }
 
-/** Sends the 6-digit sign-up code again (the "Confirm signup" email template shows {{ .Token }}). */
 async function sendCode(email: string): Promise<AuthError> {
-  const supabase = await supabaseServer();
-  const { error } = await supabase.auth.resend({ type: "signup", email });
-  return error;
+  const { error } = await emailOtp().sendVerificationOtp({
+    email,
+    type: "email-verification",
+  });
+  return error as AuthError;
 }
 
 // ------------------------------------------------------------------ sign in
@@ -78,20 +64,22 @@ export async function signInAction(_prev: AuthFormState, form: FormData): Promis
   const values = { email: formText(form, "email") };
   const parsed = signInSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values };
-  const { email, password } = parsed.data;
+  const { email, password, rememberMe } = parsed.data;
 
   const paused = await lockedMinutes(email);
   if (paused > 0) {
     return {
       values,
-      fields: { password: "Wrong email or password." },
-      error: WRONG_PASSWORD,
+      error: `Too many wrong passwords. Logins for this email are paused for ${paused} more minute${paused === 1 ? "" : "s"}. Reset your password or use Google.`,
     };
   }
 
-  const supabase = await supabaseServer();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  const e: AuthError = error;
+  const { data, error } = await auth().signIn.email({
+    email,
+    password,
+    rememberMe: rememberMe === "on",
+  });
+  const e = error as AuthError;
   if (e) {
     const kind = classifyAuthError(e);
     if (kind === "email_not_verified") {
@@ -100,13 +88,15 @@ export async function signInAction(_prev: AuthFormState, form: FormData): Promis
       redirect(withRedirect("/auth/verify-email", form));
     }
     if (isRateLimited(e)) return { values, error: RATE_LIMITED };
-    const pausedNow = await lockedMinutes(email);
-    if (pausedNow > 0 || kind === "invalid_credentials") {
-      if (kind === "invalid_credentials") await recordFailure(email);
+    if (kind === "invalid_credentials" || e.status === 401) {
+      const left = await recordFailure(email);
       return {
         values,
         fields: { password: "Wrong email or password." },
-        error: WRONG_PASSWORD,
+        error:
+          left > 0
+            ? `Wrong email or password. ${left} ${left === 1 ? "try" : "tries"} left before we pause logins for ${LOGIN_LOCK_MINUTES} minutes.`
+            : `Wrong email or password. Logins for this email are paused for ${LOGIN_LOCK_MINUTES} minutes.`,
       };
     }
     logAuthError("sign-in", e);
@@ -114,16 +104,8 @@ export async function signInAction(_prev: AuthFormState, form: FormData): Promis
   }
 
   await clearFailures(email);
-  const userId = data.user?.id;
-  const sessionId = data.session?.access_token
-    ? sessionIdFromAccessToken(data.session.access_token)
-    : null;
-  if (!userId || !sessionId) {
-    await supabase.auth.signOut();
-    return { values, error: "We couldn't log you in. Try again in a moment." };
-  }
-  await allowPasswordSession(sessionId, userId);
-  redirect(await nextPathAfterSignIn(userId, form.get("redirectTo")));
+  const userId = (data as { user?: { id: string } } | null)?.user?.id;
+  redirect(userId ? await nextPathAfterSignIn(userId, form.get("redirectTo")) : "/play");
 }
 
 // ------------------------------------------------------------------ sign up + verify
@@ -134,16 +116,12 @@ export async function signUpAction(_prev: AuthFormState, form: FormData): Promis
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values };
   const { email, password } = parsed.data;
 
-  const supabase = await supabaseServer();
-  const { error } = await supabase.auth.signUp({
+  const { error } = await auth().signUp.email({
     email,
     password,
-    options: {
-      data: { name: provisionalName(email) },
-      emailRedirectTo: `${await requestOrigin()}/auth/sign-in?verified=1`,
-    },
+    name: provisionalName(email),
   });
-  const e: AuthError = error;
+  const e = error as AuthError;
   if (e) {
     const kind = classifyAuthError(e);
     if (kind === "user_exists") {
@@ -157,9 +135,9 @@ export async function signUpAction(_prev: AuthFormState, form: FormData): Promis
     return { values, error: "We couldn't create the account. Try again in a moment." };
   }
 
-  // signUp has already emailed the code. With "Confirm email" on, Supabase answers a sign-up for an existing address
-  // with a decoy success (no account enumeration), so nothing is written here: consent is recorded once the code is
-  // verified.
+  // With "verify email" required, Better Auth answers a sign-up for an existing address with a decoy success
+  // (no account enumeration), so nothing is written for this id yet: consent is recorded once the code is verified.
+  await sendCode(email);
   await setPendingEmail(email);
   redirect(withRedirect("/auth/verify-email", form));
 }
@@ -173,22 +151,21 @@ export async function verifyEmailAction(
   const parsed = verifySchema.safeParse({ email, otp: formText(form, "otp") });
   if (!parsed.success) return { fields: fieldErrors(parsed.error) };
 
-  const supabase = await supabaseServer();
-  const { data, error } = await supabase.auth.verifyOtp({
-    email: parsed.data.email,
-    token: parsed.data.otp,
-    type: "email",
-  });
-  const e: AuthError = error;
+  const { data, error } = await emailOtp().verifyEmail(parsed.data);
+  const e = error as AuthError;
   if (e) {
+    const kind = classifyAuthError(e);
+    if (kind === "otp_expired") return { fields: { otp: "That code expired. Send a new one." } };
+    if (kind === "too_many_attempts") {
+      return { fields: { otp: "Too many wrong codes. Send a new one." } };
+    }
     if (isRateLimited(e)) return { error: RATE_LIMITED };
-    return {
-      fields: { otp: "That code isn't right or has expired. Check the email or send a new one." },
-    };
+    return { fields: { otp: "That code isn't right. Check the email and try again." } };
   }
 
   await clearPendingEmail();
-  const userId = data.user?.id ?? null;
+  const userId =
+    (data as { user?: { id: string } } | null)?.user?.id ?? (await currentUser())?.id ?? null;
   // Every email account was created through the sign-up form, which requires accepting the terms.
   if (userId) await acceptTerms(userId);
   if (!userId) {
@@ -209,12 +186,10 @@ export async function resendCodeAction(): Promise<AuthFormState> {
 
 // ------------------------------------------------------------------ password reset
 
-/** The "Reset password" email template links to {{ .RedirectTo }}?token={{ .TokenHash }}. */
 async function sendResetLink(email: string): Promise<AuthError> {
   const redirectTo = `${await requestOrigin()}/auth/reset-password`;
-  const supabase = await supabaseServer();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-  return error;
+  const { error } = await auth().requestPasswordReset({ email, redirectTo });
+  return error as AuthError;
 }
 
 export async function forgotPasswordAction(
@@ -246,54 +221,16 @@ export async function resetPasswordAction(
   const parsed = resetSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { fields: fieldErrors(parsed.error) };
   const { token, password } = parsed.data;
-  const supabase = await supabaseServer();
-  // The link's token is redeemed only here, on submit, so mail scanners that open links can't use it up.
-  // A retry after a rejected password keeps that recovery session — not whatever session the browser already had.
-  const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
-    token_hash: token,
-    type: "recovery",
-  });
-  if (!verifyError) {
-    const userId = verified.user?.id;
-    const { data } = await supabase.auth.getClaims();
-    if (!userId || data?.claims?.sub !== userId || !isRecoverySession(data?.claims)) {
-      return { error: "This reset link expired or was already used. Request a new one." };
-    }
-    await setRecoveryUser(userId);
-  } else if (isRateLimited(verifyError)) {
-    return { error: RATE_LIMITED };
-  } else if (!(await canRetryRecovery(supabase))) {
-    await clearRecoveryUser();
-    return { error: "This reset link expired or was already used. Request a new one." };
-  }
-  const { error } = await supabase.auth.updateUser({ password });
-  const e: AuthError = error;
+  const { error } = await auth().resetPassword({ newPassword: password, token });
+  const e = error as AuthError;
   if (e) {
     if (isRateLimited(e)) return { error: RATE_LIMITED };
-    const kind = classifyAuthError(e);
-    if (kind === "weak_password")
+    if (classifyAuthError(e) === "weak_password")
       return { fields: { password: e.message ?? "Choose another password." } };
-    if (kind === "same_password")
-      return { fields: { password: "Choose a password you haven't used here before." } };
-    logAuthError("reset-password", e);
-    return { error: "We couldn't save the new password. Try again in a moment." };
+    return { error: "This reset link expired or was already used. Request a new one." };
   }
-  await supabase.auth.signOut();
   await clearPendingEmail();
-  await clearRecoveryUser();
   redirect("/auth/sign-in?reset=1");
-}
-
-/** The token was already redeemed in this browser, and the session it created is still a recovery session. */
-async function canRetryRecovery(
-  supabase: Awaited<ReturnType<typeof supabaseServer>>,
-): Promise<boolean> {
-  const marked = await getRecoveryUser();
-  if (!marked) return false;
-  const { data } = await supabase.auth.getClaims();
-  const sub = data?.claims?.sub;
-  if (typeof sub !== "string" || sub !== marked) return false;
-  return isRecoverySession(data?.claims);
 }
 
 // ------------------------------------------------------------------ social: finish + link
@@ -319,14 +256,14 @@ export async function finishProfileAction(
     if (err instanceof UsernameTakenError) return { values, fields: { username: err.message } };
     throw err;
   }
-  await setDisplayName(user.id, parsed.data.username);
+  await auth().updateUser({ name: parsed.data.username });
   // A new manager builds the club next (Create your team); one who has a club goes where they were going.
   redirect((await getTeam(user.id)) ? safeRedirect(form.get("redirectTo")) : "/team/new");
 }
 
 /**
  * Step 1 of linking Google to an existing password account: log in with the password.
- * The browser then calls linkIdentity (it must follow the provider redirect itself).
+ * The browser then calls linkSocial (it must follow the provider redirect itself).
  */
 export async function linkSignInAction(
   _prev: AuthFormState,
@@ -337,46 +274,37 @@ export async function linkSignInAction(
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values };
   const { email, password } = parsed.data;
   const paused = await lockedMinutes(email);
-  if (paused > 0) return { values, fields: { password: "Wrong password." } };
-  const supabase = await supabaseServer();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  const e: AuthError = error;
+  if (paused > 0) {
+    return { values, error: `Logins for this email are paused for ${paused} more minutes.` };
+  }
+  const { error } = await auth().signIn.email({ email, password });
+  const e = error as AuthError;
   if (e) {
     if (isRateLimited(e)) return { values, error: RATE_LIMITED };
-    const pausedNow = await lockedMinutes(email);
-    if (!(pausedNow > 0)) await recordFailure(email);
-    return { values, fields: { password: "Wrong password." } };
+    const left = await recordFailure(email);
+    return {
+      values,
+      fields: { password: "Wrong password." },
+      error:
+        left > 0
+          ? undefined
+          : `Logins for this email are paused for ${LOGIN_LOCK_MINUTES} minutes.`,
+    };
   }
   await clearFailures(email);
-  const sessionId = data.session?.access_token
-    ? sessionIdFromAccessToken(data.session.access_token)
-    : null;
-  if (!data.user?.id || !sessionId) {
-    await supabase.auth.signOut();
-    return { values, error: "We couldn't log you in. Try again in a moment." };
-  }
-  await allowPasswordSession(sessionId, data.user.id);
   return { ok: true, values };
 }
 
 // ------------------------------------------------------------------ sign out
 
 export async function signOutAction(): Promise<void> {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getClaims();
-  const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
-  if (sessionId) await forgetPasswordSession(sessionId);
-  await supabase.auth.signOut();
+  await auth().signOut();
   redirect("/");
 }
 
 /** "Change" / "Use a different account": sign out and start over at the login screen. */
 export async function switchAccountAction(): Promise<void> {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getClaims();
-  const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
-  if (sessionId) await forgetPasswordSession(sessionId);
-  await supabase.auth.signOut();
+  await auth().signOut();
   redirect("/auth/sign-in");
 }
 

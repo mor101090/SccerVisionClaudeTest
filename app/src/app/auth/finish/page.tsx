@@ -4,18 +4,17 @@ import { Suspense } from "react";
 
 import { AuthShell, AuthTitle } from "@/features/auth/auth-shell";
 import { safeRedirect } from "@/features/auth/policy";
-import { isSocialProvider, PROVIDER_LABEL } from "@/features/auth/providers";
 import { FinishForm, type ProviderAccount } from "@/features/auth/social-forms";
-import { currentUser } from "@/server/auth";
+import { auth, currentUser } from "@/server/auth";
 import { getProfile, isComplete } from "@/server/profiles";
-import { supabaseServer } from "@/server/supabase";
 
 export const metadata: Metadata = { title: "Almost there" };
 
-/** The social provider this user signed in with, if any ("email" = email/password). */
+/** The social provider this user signed in with, if any (credential = email/password). */
 async function providerOf(user: { name: string; email: string }): Promise<ProviderAccount> {
-  const { data } = await (await supabaseServer()).auth.getUserIdentities();
-  const provider = data?.identities.map((i) => i.provider).find(isSocialProvider);
+  const { data } = await auth().listAccounts();
+  const ids = ((data ?? []) as { providerId: string }[]).map((a) => a.providerId);
+  const provider = ids.find((p): p is "google" | "facebook" => p === "google" || p === "facebook");
   return provider ? { provider, name: user.name, email: user.email } : null;
 }
 
@@ -37,7 +36,7 @@ async function Finish({ searchParams }: { searchParams: Promise<{ redirectTo?: s
     <>
       <AuthTitle title="Almost there">
         {account
-          ? `You signed in with ${PROVIDER_LABEL[account.provider]}. Pick the name other managers will see.`
+          ? `You signed in with ${account.provider === "google" ? "Google" : "Facebook"}. Pick the name other managers will see.`
           : "Pick the name other managers will see."}
       </AuthTitle>
       <FinishForm

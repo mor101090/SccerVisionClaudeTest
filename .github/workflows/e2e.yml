@@ -1,10 +1,8 @@
 # The full end-to-end suite, once a day at the end of the working day (not on every PR: it takes ~10 minutes).
-# Runs main's code in CI (yarn dev) against the Supabase dev project; also startable by hand (Run workflow).
+# Runs main's code in CI (yarn dev) against the shared Neon branch `dev`; also startable by hand (Run workflow).
 # A failure shows on the Actions tab and GitHub mails it to whoever last changed this schedule.
 #
-# Secrets: SUPABASE_DEV_DATABASE_URL (pooler :6543), SUPABASE_DEV_DATABASE_URL_UNPOOLED (direct :5432),
-#          SUPABASE_DEV_SECRET_KEY.
-# Variables: SUPABASE_DEV_URL, SUPABASE_DEV_PUBLISHABLE_KEY.
+# Secrets: NEON_API_KEY. Variables: NEON_PROJECT_ID.
 name: E2E (daily)
 
 on:
@@ -20,6 +18,8 @@ permissions:
   contents: read
 
 env:
+  NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
   DOTNET_NOLOGO: "1"
 
@@ -45,22 +45,21 @@ jobs:
       - run: yarn install --immutable
       - name: Build engine (WASM) and classic page
         run: yarn assets:build
-      - name: Env of the Supabase dev project, migrated, e2e accounts seeded
-        env:
-          DATABASE_URL: ${{ secrets.SUPABASE_DEV_DATABASE_URL }}
-          DATABASE_URL_UNPOOLED: ${{ secrets.SUPABASE_DEV_DATABASE_URL_UNPOOLED }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_DEV_SECRET_KEY }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_DEV_URL }}
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_DEV_PUBLISHABLE_KEY }}
+      - name: Env of Neon branch dev, migrated
         run: |
-          {
-            echo "DATABASE_URL=\"$DATABASE_URL\""
-            echo "SUPABASE_SECRET_KEY=\"$SUPABASE_SECRET_KEY\""
-            echo "NEXT_PUBLIC_SUPABASE_URL=\"$NEXT_PUBLIC_SUPABASE_URL\""
-            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=\"$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY\""
-          } > .env.local
+          npx neon env pull --project-id "$NEON_PROJECT_ID" --branch dev --file .env.local
+          while IFS='=' read -r k v; do
+            case "$k" in
+              DATABASE_URL|DATABASE_URL_UNPOOLED|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|NEON_REALTIME_SECRET) ;;
+              *) continue ;;
+            esac
+            v="${v%\"}"; v="${v#\"}"
+            echo "::add-mask::$v"
+          done < .env.local
+          secret=$(openssl rand -base64 32)
+          echo "::add-mask::$secret"
+          echo "NEON_AUTH_COOKIE_SECRET=\"$secret\"" >> .env.local
           yarn db:migrate
-          yarn e2e:seed
       - run: yarn playwright install --with-deps chromium
       - name: Playwright
         env:

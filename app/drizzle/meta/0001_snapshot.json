@@ -1,18 +1,36 @@
 {
-  "id": "6d4cad63-0353-40dd-9726-edf78527d618",
-  "prevId": "2898fb83-4bfd-41cb-934c-de19675b1ee7",
+  "id": "3605685f-4a1d-4dee-8627-b0abd9342d28",
+  "prevId": "ee5376ef-cb23-47dd-ba68-8185c26a877e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "auth.users": {
-      "name": "users",
-      "schema": "auth",
+    "neon_auth.user": {
+      "name": "user",
+      "schema": "neon_auth",
       "columns": {
         "id": {
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
           "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -52,28 +70,28 @@
         "league_members_league_id_leagues_id_fk": {
           "name": "league_members_league_id_leagues_id_fk",
           "tableFrom": "league_members",
+          "tableTo": "leagues",
           "columnsFrom": [
             "league_id"
           ],
-          "tableTo": "leagues",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "league_members_team_id_teams_id_fk": {
           "name": "league_members_team_id_teams_id_fk",
           "tableFrom": "league_members",
+          "tableTo": "teams",
           "columnsFrom": [
             "team_id"
           ],
-          "tableTo": "teams",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -88,7 +106,7 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": true
+      "isRLSEnabled": false
     },
     "public.leagues": {
       "name": "leagues",
@@ -147,32 +165,32 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
-        "leagues_owner_id_users_id_fk": {
-          "name": "leagues_owner_id_users_id_fk",
+        "leagues_owner_id_user_id_fk": {
+          "name": "leagues_owner_id_user_id_fk",
           "tableFrom": "leagues",
+          "tableTo": "user",
+          "schemaTo": "neon_auth",
           "columnsFrom": [
             "owner_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": true
+      "isRLSEnabled": false
     },
     "public.lobbies": {
       "name": "lobbies",
@@ -288,60 +306,60 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "\"lobbies\".\"status\" in ('open', 'ready', 'playing')",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "lobbies_host_id_users_id_fk": {
-          "name": "lobbies_host_id_users_id_fk",
+        "lobbies_host_id_user_id_fk": {
+          "name": "lobbies_host_id_user_id_fk",
           "tableFrom": "lobbies",
+          "tableTo": "user",
+          "schemaTo": "neon_auth",
           "columnsFrom": [
             "host_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
-        "lobbies_guest_id_users_id_fk": {
-          "name": "lobbies_guest_id_users_id_fk",
+        "lobbies_guest_id_user_id_fk": {
+          "name": "lobbies_guest_id_user_id_fk",
           "tableFrom": "lobbies",
+          "tableTo": "user",
+          "schemaTo": "neon_auth",
           "columnsFrom": [
             "guest_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "lobbies_match_id_matches_id_fk": {
           "name": "lobbies_match_id_matches_id_fk",
           "tableFrom": "lobbies",
+          "tableTo": "matches",
           "columnsFrom": [
             "match_id"
           ],
-          "tableTo": "matches",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": true
+      "isRLSEnabled": false
     },
     "public.lobby_inputs": {
       "name": "lobby_inputs",
@@ -422,84 +440,45 @@
             }
           ],
           "isUnique": true,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "lobby_inputs_lobby_id_lobbies_id_fk": {
           "name": "lobby_inputs_lobby_id_lobbies_id_fk",
           "tableFrom": "lobby_inputs",
+          "tableTo": "lobbies",
           "columnsFrom": [
             "lobby_id"
           ],
-          "tableTo": "lobbies",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
-        "lobby_inputs_user_id_users_id_fk": {
-          "name": "lobby_inputs_user_id_users_id_fk",
+        "lobby_inputs_user_id_user_id_fk": {
+          "name": "lobby_inputs_user_id_user_id_fk",
           "tableFrom": "lobby_inputs",
+          "tableTo": "user",
+          "schemaTo": "neon_auth",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": true
-    },
-    "public.login_attempts": {
-      "name": "login_attempts",
-      "schema": "",
-      "columns": {
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "failures": {
-          "name": "failures",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "window_started_at": {
-          "name": "window_started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "locked_until": {
-          "name": "locked_until",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": true
+      "isRLSEnabled": false
     },
     "public.matches": {
       "name": "matches",
@@ -579,12 +558,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "home_squad": {
-          "name": "home_squad",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "away_plan": {
           "name": "away_plan",
           "type": "text",
@@ -648,9 +621,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "matches_league_idx": {
           "name": "matches_league_idx",
@@ -663,71 +636,71 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
-        "matches_user_id_users_id_fk": {
-          "name": "matches_user_id_users_id_fk",
+        "matches_user_id_user_id_fk": {
+          "name": "matches_user_id_user_id_fk",
           "tableFrom": "matches",
+          "tableTo": "user",
+          "schemaTo": "neon_auth",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "matches_league_id_leagues_id_fk": {
           "name": "matches_league_id_leagues_id_fk",
           "tableFrom": "matches",
+          "tableTo": "leagues",
           "columnsFrom": [
             "league_id"
           ],
-          "tableTo": "leagues",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "matches_home_team_id_teams_id_fk": {
           "name": "matches_home_team_id_teams_id_fk",
           "tableFrom": "matches",
+          "tableTo": "teams",
           "columnsFrom": [
             "home_team_id"
           ],
-          "tableTo": "teams",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "matches_away_team_id_teams_id_fk": {
           "name": "matches_away_team_id_teams_id_fk",
           "tableFrom": "matches",
+          "tableTo": "teams",
           "columnsFrom": [
             "away_team_id"
           ],
-          "tableTo": "teams",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": true
+      "isRLSEnabled": false
     },
     "public.players": {
       "name": "players",
@@ -776,36 +749,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "position": {
-          "name": "position",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "level": {
-          "name": "level",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "profile": {
-          "name": "profile",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "starter_slot": {
-          "name": "starter_slot",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "bench_order": {
-          "name": "bench_order",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -839,161 +782,31 @@
             }
           ],
           "isUnique": true,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
-        },
-        "players_team_starter_uq": {
-          "name": "players_team_starter_uq",
-          "columns": [
-            {
-              "expression": "team_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "starter_slot",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "with": {},
-          "method": "btree",
-          "where": "\"players\".\"starter_slot\" is not null",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "players_team_id_teams_id_fk": {
           "name": "players_team_id_teams_id_fk",
           "tableFrom": "players",
+          "tableTo": "teams",
           "columnsFrom": [
             "team_id"
           ],
-          "tableTo": "teams",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": true
-    },
-    "public.profiles": {
-      "name": "profiles",
-      "schema": "",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "username": {
-          "name": "username",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "display_name": {
-          "name": "display_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "terms_accepted_at": {
-          "name": "terms_accepted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nationality": {
-          "name": "nationality",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "invited_by": {
-          "name": "invited_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "profiles_username_lower_uq": {
-          "name": "profiles_username_lower_uq",
-          "columns": [
-            {
-              "expression": "lower(\"username\")",
-              "isExpression": true,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "with": {},
-          "method": "btree",
-          "concurrently": false
-        }
-      },
-      "foreignKeys": {
-        "profiles_user_id_users_id_fk": {
-          "name": "profiles_user_id_users_id_fk",
-          "tableFrom": "profiles",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "tableTo": "users",
-          "schemaTo": "auth",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
-        },
-        "profiles_invited_by_users_id_fk": {
-          "name": "profiles_invited_by_users_id_fk",
-          "tableFrom": "profiles",
-          "columnsFrom": [
-            "invited_by"
-          ],
-          "tableTo": "users",
-          "schemaTo": "auth",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": true
+      "isRLSEnabled": false
     },
     "public.teams": {
       "name": "teams",
@@ -1036,57 +849,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "kits": {
-          "name": "kits",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "crest": {
-          "name": "crest",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name_pools": {
-          "name": "name_pools",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "formation": {
-          "name": "formation",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'4-4-2'"
-        },
-        "squad_seed": {
-          "name": "squad_seed",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "regenerations_left": {
-          "name": "regenerations_left",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 2
-        },
-        "captain_id": {
-          "name": "captain_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'draft'"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1103,8 +865,8 @@
         }
       },
       "indexes": {
-        "teams_owner_uq": {
-          "name": "teams_owner_uq",
+        "teams_owner_idx": {
+          "name": "teams_owner_idx",
           "columns": [
             {
               "expression": "owner_id",
@@ -1113,33 +875,33 @@
               "nulls": "last"
             }
           ],
-          "isUnique": true,
-          "with": {},
+          "isUnique": false,
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
-        "teams_owner_id_users_id_fk": {
-          "name": "teams_owner_id_users_id_fk",
+        "teams_owner_id_user_id_fk": {
+          "name": "teams_owner_id_user_id_fk",
           "tableFrom": "teams",
+          "tableTo": "user",
+          "schemaTo": "neon_auth",
           "columnsFrom": [
             "owner_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": true
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -1166,10 +928,10 @@
     }
   },
   "schemas": {},
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

@@ -4,32 +4,43 @@ export type AuthErrorKind =
   | "user_exists"
   | "email_not_verified"
   | "invalid_credentials"
-  | "otp_invalid_or_expired"
+  | "invalid_otp"
+  | "otp_expired"
+  | "too_many_attempts"
+  | "invalid_token"
   | "weak_password"
-  | "same_password"
   | "rate_limited"
   | "unknown";
 
-const RATE_LIMIT_CODES = new Set([
-  "over_request_rate_limit",
-  "over_email_send_rate_limit",
-  "over_sms_send_rate_limit",
-]);
-
 /**
- * Maps a Supabase Auth error to what the form should say. Supabase sends a stable `code`
- * (https://supabase.com/docs/guides/auth/debugging/error-codes); the HTTP status covers rate limits without one.
- * Supabase answers a wrong and an expired code the same way (`otp_expired`), so they are one kind.
+ * Neon's server SDK rewrites Better Auth's error code from the HTTP status (a 422 "User already
+ * exists" arrives as code `validation_failed`), so classify by the original code OR its message.
  */
 export function classifyAuthError(e: AuthError): AuthErrorKind {
   if (!e) return "unknown";
-  const code = e.code ?? "";
-  if (e.status === 429 || RATE_LIMIT_CODES.has(code)) return "rate_limited";
-  if (code === "user_already_exists" || code === "email_exists") return "user_exists";
-  if (code === "email_not_confirmed") return "email_not_verified";
-  if (code === "invalid_credentials") return "invalid_credentials";
-  if (code === "otp_expired" || code === "otp_disabled") return "otp_invalid_or_expired";
-  if (code === "weak_password") return "weak_password";
-  if (code === "same_password") return "same_password";
+  const code = (e.code ?? "").toUpperCase();
+  const msg = (e.message ?? "").toLowerCase();
+  if (e.status === 429 || code === "TOO_MANY_REQUESTS") return "rate_limited";
+  if (
+    code.startsWith("USER_ALREADY_EXISTS") ||
+    code === "EMAIL_EXISTS" ||
+    msg.includes("already exists")
+  ) {
+    return "user_exists";
+  }
+  if (code === "EMAIL_NOT_VERIFIED" || msg.includes("email not verified"))
+    return "email_not_verified";
+  if (
+    code === "INVALID_EMAIL_OR_PASSWORD" ||
+    code === "INVALID_CREDENTIALS" ||
+    msg.includes("invalid email or password")
+  ) {
+    return "invalid_credentials";
+  }
+  if (code === "OTP_EXPIRED" || msg.includes("otp expired")) return "otp_expired";
+  if (code === "TOO_MANY_ATTEMPTS" || msg.includes("too many attempts")) return "too_many_attempts";
+  if (code === "INVALID_OTP" || msg.includes("invalid otp")) return "invalid_otp";
+  if (code === "INVALID_TOKEN" || msg.includes("invalid token")) return "invalid_token";
+  if (code.startsWith("PASSWORD_TOO_") || msg.startsWith("password too")) return "weak_password";
   return "unknown";
 }

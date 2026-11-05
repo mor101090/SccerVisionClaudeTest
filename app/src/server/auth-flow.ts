@@ -3,7 +3,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 
 import { serverEnv } from "@/env";
-import { RESET_LINK_MINUTES, safeRedirect } from "@/features/auth/policy";
+import { safeRedirect } from "@/features/auth/policy";
 
 import { getProfile, isComplete } from "./profiles";
 
@@ -29,30 +29,6 @@ export async function getPendingEmail(): Promise<string | null> {
 
 export async function clearPendingEmail(): Promise<void> {
   (await cookies()).delete({ name: PENDING_EMAIL, path: "/auth" });
-}
-
-/**
- * User id whose recovery token was redeemed in this browser. A later submit may retry a rejected
- * password without the token, but only for this user — an ordinary session is not enough.
- */
-const RECOVERY_USER = "sv_recovery_user";
-
-export async function setRecoveryUser(userId: string): Promise<void> {
-  (await cookies()).set(RECOVERY_USER, userId, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: serverEnv.NODE_ENV === "production",
-    path: "/auth",
-    maxAge: RESET_LINK_MINUTES * 60,
-  });
-}
-
-export async function getRecoveryUser(): Promise<string | null> {
-  return (await cookies()).get(RECOVERY_USER)?.value ?? null;
-}
-
-export async function clearRecoveryUser(): Promise<void> {
-  (await cookies()).delete({ name: RECOVERY_USER, path: "/auth" });
 }
 
 /** Origin of this request (the deployment the user is on). Neon Auth checks it against trusted domains. */

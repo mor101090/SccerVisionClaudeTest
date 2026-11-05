@@ -11,16 +11,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TextField } from "@/components/ui/text-field";
 
 import { finishProfileAction, linkSignInAction, switchAccountAction } from "./actions";
-import { PROVIDER_LABEL, type SocialProvider } from "./providers";
+import { authClient } from "./auth-client";
 import { socialCallbackURL } from "./social-buttons";
-import { supabaseBrowser } from "./supabase-client";
 import { RedirectField, useAuthForm } from "./use-auth-form";
 
 export type ProviderAccount = {
-  provider: SocialProvider;
+  provider: "google" | "facebook";
   name: string;
   email: string;
 } | null;
+
+const PROVIDER_LABEL = { google: "Google", facebook: "Facebook" } as const;
 
 /** Figma "provider account": who you signed in as, with "Change" (signs out). */
 function ProviderCard({ account }: { account: NonNullable<ProviderAccount> }) {
@@ -45,7 +46,7 @@ function ProviderCard({ account }: { account: NonNullable<ProviderAccount> }) {
   );
 }
 
-/** Figma: Google & Facebook / Social sign-up – finish your account ("Almost there"). Also used for Discord. */
+/** Figma: Google & Facebook / Social sign-up – finish your account ("Almost there"). */
 export function FinishForm({
   account,
   email,
@@ -121,11 +122,8 @@ export function LinkAccountForm() {
 
   useEffect(() => {
     if (!state?.ok) return;
-    supabaseBrowser()
-      .auth.linkIdentity({
-        provider: "google",
-        options: { redirectTo: socialCallbackURL(redirectTo) },
-      })
+    authClient
+      .linkSocial({ provider: "google", callbackURL: socialCallbackURL(redirectTo) })
       .then(({ error }) => {
         if (error) setLinkError("We couldn't link Google. You are logged in with your password.");
       });
