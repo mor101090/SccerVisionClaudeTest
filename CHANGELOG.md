@@ -16,7 +16,7 @@ full plan, every parameter's source and class (A standardised, B measured, C der
   (the Law's 0.6-1.1 is the pressure above the air; absolute = gauge + 101,325 Pa). A ball outside the Law is reported, not refused.
 - **Stage 2, moment of inertia**: I = k m R², k between a solid sphere (2/5) and a thin shell (2/3); reference 2/3 (0.003457 kg·m²),
   because no measured value for a size 5 ball was found - class E until one is. Angular velocity and momentum are 3D (`Core/Vec3.cs`).
-- **Tests**: `BallSpecTests` (TEST 1 and the inertia checks), 6 / 6. TESTS_LINE
+- **Tests**: `BallSpecTests` (TEST 1 and the inertia checks), 6 / 6; `dotnet test sim/` -> **Passed! 254 / 254** (13 m 49 s).
 
 ## `chore/close-loose-ends`
 
