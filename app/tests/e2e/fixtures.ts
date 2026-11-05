@@ -14,5 +14,8 @@ export const GUEST_USER = {
   password: "sv-8480ad76f679b7c4",
 };
 
-/** Fixed address for the sign-up → verify test. Never receives mail (.test). Supabase dev project only. */
-export const SIGNUP_EMAIL = "e2e-signup@soccer-vision.test";
+/**
+ * Fixed address for the sign-up → verify test (Supabase rejects .test addresses). `yarn e2e:seed` creates it confirmed,
+ * so sign-up answers with the decoy verify screen and Supabase sends no email. Supabase dev project only.
+ */
+export const SIGNUP_EMAIL = "e2e-signup@example.com";

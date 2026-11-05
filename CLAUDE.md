@@ -6,15 +6,15 @@ The site is a Next.js fullstack app (`app/`) backed by Supabase. **The classic g
 
 ## Repo map
 
-| Path | What |
-|---|---|
-| `app/` | **Next.js 16 app** (App Router, TS strict, Tailwind 4, Yarn 4). The production site. |
-| `unity/SoccerVision/Assets/SoccerVision/Simulation/` | The engine (pure C#, no UnityEngine refs). Source of truth for match logic. |
-| `sim/` | .NET 8 solution: engine build, xUnit tests, SimRunner CLI, Replay recorder, `SoccerVision.Wasm` (browser host). |
-| `tools/demo-page/` | Classic single-page game. Built into `app/public/classic/` by `yarn classic:build`. |
-| `web/` | Legacy React/Vite shell (Unity WebGL + replay viewer). Not deployed; replay code was copied into `app/src/engine/`. |
-| `data/` | Static teams and names JSON. |
-| `docs/ARCHITECTURE.md` | Engine/bridge architecture. Read before touching engine contracts. |
+| Path                                                 | What                                                                                                                |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `app/`                                               | **Next.js 16 app** (App Router, TS strict, Tailwind 4, Yarn 4). The production site.                                |
+| `unity/SoccerVision/Assets/SoccerVision/Simulation/` | The engine (pure C#, no UnityEngine refs). Source of truth for match logic.                                         |
+| `sim/`                                               | .NET 8 solution: engine build, xUnit tests, SimRunner CLI, Replay recorder, `SoccerVision.Wasm` (browser host).     |
+| `tools/demo-page/`                                   | Classic single-page game. Built into `app/public/classic/` by `yarn classic:build`.                                 |
+| `web/`                                               | Legacy React/Vite shell (Unity WebGL + replay viewer). Not deployed; replay code was copied into `app/src/engine/`. |
+| `data/`                                              | Static teams and names JSON.                                                                                        |
+| `docs/ARCHITECTURE.md`                               | Engine/bridge architecture. Read before touching engine contracts.                                                  |
 
 ## Stack (app/)
 
@@ -48,11 +48,11 @@ Engine tests (repo root): `dotnet test sim/` takes **28–45 minutes**. Run a fi
 
 ## Environments
 
-| | Vercel env | Supabase project |
-|---|---|---|
-| Local | — (`.env.local`, values from the dev project) | dev |
-| Pull request (CI only, nothing deployed) | — | — (daily e2e uses dev, migrates and seeds it) |
-| Production | Production | prod |
+|                                          | Vercel env                                    | Supabase project                              |
+| ---------------------------------------- | --------------------------------------------- | --------------------------------------------- |
+| Local                                    | — (`.env.local`, values from the dev project) | dev                                           |
+| Pull request (CI only, nothing deployed) | —                                             | — (daily e2e uses dev, migrates and seeds it) |
+| Production                               | Production                                    | prod                                          |
 
 Env (`app/src/env.ts`): `DATABASE_URL` (transaction pooler, :6543), `DATABASE_URL_UNPOOLED` (direct, :5432, migrations only),
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (server only: Storage, seeding).
@@ -97,7 +97,9 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   profile has a username + terms (`profiles` table), then `redirectTo`. Password logins are throttled per email
   (`server/login-throttle.ts`, 5 failures / 15 min). Classify Supabase Auth errors with `classifyAuthError()`. Emails
   pending verification/reset live in an httpOnly cookie, never in URLs. Password, sign-up, code and reset flows go
-  through the Server Actions (never supabase-js in the browser), or the lockout and anti-enumeration answers are skipped;
+  through the Server Actions (never supabase-js in the browser), which add the per-email lockout and anti-enumeration
+  answers. Supabase's Auth API itself is public (publishable key), so a script can skip the lockout and meet only
+  Supabase's per-IP rate limits (Auth → Rate Limits; CAPTCHA would close this);
   the browser client is only for social sign-in (`signInWithOAuth`, PKCE → `/auth/callback`), linking and Realtime.
   Reset links carry `?token=<token hash>`, redeemed only when the new password is submitted. `currentUser()` returns
   `{ id, email, name }` (JWT via `getClaims()`; name from `profiles.display_name` / username). Users moved from Neon have

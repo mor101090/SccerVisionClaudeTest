@@ -19,7 +19,7 @@ Run every step on **dev first** (Supabase dev project `mcrglsqpxyrbazwzrnzg`, Ne
    tables, the `replays` bucket and the lobby Realtime trigger.
 4. **Set the Vercel Production env and GitHub secrets** (see "Environment" in CLAUDE.md). Keep the Neon values until step 3 of
    the cutover.
-5. **Rehearse on dev:** run the migration script against Neon `dev` and Supabase dev. Then sign in with Google, play a
+5. **Rehearse on dev:** delete the `yarn e2e:seed` accounts on Supabase dev, run the migration script against Neon `dev`, then `yarn e2e:seed` again. Then sign in with Google, play a
    saved match's replay, and play an online match.
 
 ## Cutover

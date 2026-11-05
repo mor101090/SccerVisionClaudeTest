@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { cache } from "react";
 
 import { provisionalName } from "./auth-flow";
@@ -15,8 +16,10 @@ export type User = { id: string; email: string; name: string };
  * else the email's local part. Cached per request.
  */
 export const currentUser = cache(async (): Promise<User | null> => {
-  // Touch cookies() first: during prerender this suspends in our code, not inside the SDK.
+  // Stop prerendering here, in our code: the session is per request, and getClaims() reads the clock (token expiry),
+  // which Next.js rejects during prerender (also in the runtime-prefetch stage, where cookies() alone resolves).
   await cookies();
+  await connection();
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
