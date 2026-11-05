@@ -2,24 +2,27 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
-## `feature/new-generator-squads`
+## `feature/new-generator-squads` (NOT MERGED - work in progress)
 
-**New squads from the generator's realism round** ([PR #22](https://github.com/SoccerVision/soccer-vision-players-stats/pull/22), live at soccer-api.dev-spirit.com since 2026-11-05).
-- **All three levels, and the medium squads too, now come from the API** (seeds 101 and 202, as before; the medium squads used to be saved from the old generator): weaker /
-  normal / excellent, 46 players each. Average attribute: weak 44.1 -> 42.9, medium 55.2 -> 53.4, strong 70.3 -> 66.3 (an excellent player averages 77 overall, not 83:
-  the generator no longer piles the excellent level at the 99 ceiling). Every player is the generator's; the weak-foot stars (1-5) and ages follow its new model
-  (strong: 22 of 46 players with 4-5 stars, as in the real top divisions' best players).
-- **Strong / weak spreads re-fitted** (`TeamStrengthScaling`): with the new squads and the old 1.2 / 0.5, the top was too strong (strong v weak 90.8%, real 85%; strong v medium 79.3%,
-  real 73%) and medium v weak 58% (real 54%). Tried on 150 matches a seat, seats pooled, seed 500: strong spread 1.0 fits strong v medium (74.7%); the weak spread moves
-  medium v weak by about 10 points between 0.5 (58%) and 0.4 (48.5%). **1.0 / 0.45**, two seeds (500 and 900, 300 matches a pairing, strong / draw / weak):
-  | | engine | real (eight leagues) |
-  |---|---|---|
-  | strong v weak | 87.3 / 11 / 2.1, goals 2.46-0.29 | 85 / 11 / 4, 2.82-0.63 |
-  | strong v medium | 77.4 / 19 / 3.5, 2.32-0.56 | 73 / 17 / 10, 2.31-0.84 |
-  | medium v weak | 54.0 / 32.5 / 13.5, 1.35-0.62 | 54 / 27 / 19, 1.69-0.98 |
-
-  Within the noise of 300 matches (about 3-4 points a cell), but the bottom side wins and scores less than a real one (4 / 10 / 19% of its matches v 2 / 4 / 14%; 0.29-0.62 goals v
-  0.63-0.98) - the weak squads are a little too weak or too passive; not changed further on this evidence.
+**Status: the squads of the generator's realism round ([PR #22](https://github.com/SoccerVision/soccer-vision-players-stats/pull/22), live since 2026-11-05) change the match more than
+a re-fit of the strong / weak spreads can absorb. Kept on this branch; `main` still plays the old squads.**
+- Squads fetched (seeds 101 / 202, all three levels, the medium ones too) with the decisions of generator PR #27 (55 / 65 / 75), run locally - the same players the generator
+  will return once #27 is deployed (checked: only decisions differ from the live squads). Average attribute: weak 44.1 -> 43.4, medium 55.2 -> 54.1, strong 70.3 -> 66.6.
+- **What changed in the squads, by position** (old medium -> new): the old generator's per-process draws and overwritten stats inflated the squads the engine was tuned on - defenders'
+  physical power 72 -> 57, midfielders' teamwork 63 -> 47, acceleration 67 -> 55, decisions 70 -> 63 (49 at the live generator's means), aggression 29 -> 50 (strikers 30 -> 59);
+  goalkeepers' reflexes 72 -> 74, one-on-one 65 -> 72, wingers' crossing 74 -> 80.
+- **Effect** (100 matches, seed 500): goals 2.80 -> 1.99, shots 26.8 -> 20.8, fouls 20.1 -> 23.4, winger shots 8.4 -> 4.6 (crosses 4.8 -> 7.9).
+  Single attributes shifted back explain a part each (teamwork +15: goals +0.3; aggression -15: +0.35 and fouls -1.7; acceleration +8: +0.15; decisions +15: +0.2).
+- **Winger cut-ins**: 3 stars is the generator's typical weaker foot (63% of normal players), so "a two-footed winger cuts in" now needs 4+ stars (it was 3+ = the old level 2).
+- **Constants moved** to bring shots, shots on target and fouls back: `XgScale` 0.6 -> 1.0, `FoulRate` 1.4 -> 1.25, `RangeSaveScale` 0.3 -> 0.1, `CloseReachBase` 0.2 -> 0.3
+  (150 matches, two seeds): shots 26.2, on target 8.6, fouls 21.0, yellows 4.0, corners 10.7 - but **goals 2.4-2.5 (real 2.83): the keepers (one-on-one 72) save 6.3 of 8.6 shots on target
+  where a real one saves 6.0 of 8.8, and no constant moved it further.**
+- **Strong / weak spreads** 1.2 / 0.5 -> 1.0 / 0.45 (two seeds, 300 matches a pairing): strong v weak 79 / 18 / 3, strong v medium 72 / 23 / 6, medium v weak 59 / 28 / 14 (real 85 / 11 / 4,
+  73 / 17 / 10, 54 / 27 / 19; the seeds differ by up to 11 points a cell).
+- **The full suite fails 7 tests** with all of the above (`FasterPlayersCoverMoreGround`, `CutInWingersCurl...`, `EveryInvertedWingerShoots...`, `AHighPressTakesTheBallBack`,
+  `CornersAreVaried...`, `IndividualInstructionsChange...`, `TheBiggestMismatchIsNotAMassacre`) - several features were tuned against the old squads' numbers. Not fixed: it needs a decision
+  (see the report to the owner) between recalibrating the engine for the new squads and keeping the old ones until the generator's medium level is set to what the engine was tuned on.
+- `SimRunner --adjust Stat=N` (diagnosis: shifts one attribute of every player).
 
 ## `feature/weak-foot-stars`
 

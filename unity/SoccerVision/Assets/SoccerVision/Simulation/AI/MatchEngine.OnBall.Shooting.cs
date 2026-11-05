@@ -29,7 +29,7 @@ namespace SoccerVision.Simulation
         private bool _shotCountedOnTarget;
 
         /// <summary>The chance a player sees in a shot, made to match how often such shots score in this engine (1 = as before this round).</summary>
-        public static float XgScale = 0.6f;
+        public static float XgScale = 1.0f;
 
         private float EstimateShotXG(PlayerAgent p, Vec2 pos, bool header = false, Vec2? keeperAt = null)
         {

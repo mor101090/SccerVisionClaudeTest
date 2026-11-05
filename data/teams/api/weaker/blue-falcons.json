@@ -25,7 +25,7 @@
    "mental": {
     "aggression": 82,
     "teamwork": 70,
-    "decisions": 48,
+    "decisions": 61,
     "composure": 41
    },
    "athletic": {
@@ -50,7 +50,7 @@
    }
   },
   "averages": {
-   "mental": 60,
+   "mental": 64,
    "athletic": 33,
    "set_pieces": 22,
    "goalkeeping": 57
@@ -82,7 +82,7 @@
    "mental": {
     "aggression": 45,
     "teamwork": 45,
-    "decisions": 63,
+    "decisions": 74,
     "composure": 36
    },
    "athletic": {
@@ -115,7 +115,7 @@
    }
   },
   "averages": {
-   "mental": 47,
+   "mental": 50,
    "defense": 49,
    "attack": 30,
    "playmaking": 33,
@@ -142,14 +142,14 @@
   "stamina": 54,
   "fitness": "Moderate",
   "nationality": "CountryB",
-  "overall": 53,
+  "overall": 54,
   "potential": null,
   "squad_role": "starter",
   "stats": {
    "mental": {
     "aggression": 24,
     "teamwork": 67,
-    "decisions": 44,
+    "decisions": 57,
     "composure": 36
    },
    "athletic": {
@@ -182,7 +182,7 @@
    }
   },
   "averages": {
-   "mental": 43,
+   "mental": 46,
    "defense": 58,
    "attack": 21,
    "playmaking": 39,
@@ -209,14 +209,14 @@
   "stamina": 52,
   "fitness": "Moderate",
   "nationality": "CountryA",
-  "overall": 50,
+  "overall": 51,
   "potential": null,
   "squad_role": "starter",
   "stats": {
    "mental": {
     "aggression": 82,
     "teamwork": 41,
-    "decisions": 43,
+    "decisions": 55,
     "composure": 46
    },
    "athletic": {
@@ -249,7 +249,7 @@
    }
   },
   "averages": {
-   "mental": 53,
+   "mental": 56,
    "defense": 53,
    "attack": 17,
    "playmaking": 40,
@@ -283,7 +283,7 @@
    "mental": {
     "aggression": 87,
     "teamwork": 85,
-    "decisions": 43,
+    "decisions": 56,
     "composure": 36
    },
    "athletic": {
@@ -316,7 +316,7 @@
    }
   },
   "averages": {
-   "mental": 63,
+   "mental": 66,
    "defense": 57,
    "attack": 37,
    "playmaking": 39,
@@ -350,7 +350,7 @@
    "mental": {
     "aggression": 65,
     "teamwork": 58,
-    "decisions": 70,
+    "decisions": 82,
     "composure": 33
    },
    "athletic": {
@@ -383,7 +383,7 @@
    }
   },
   "averages": {
-   "mental": 56,
+   "mental": 60,
    "defense": 28,
    "attack": 49,
    "playmaking": 52,
@@ -410,14 +410,14 @@
   "stamina": 40,
   "fitness": "Moderate",
   "nationality": "CountryB",
-  "overall": 40,
-  "potential": 66,
+  "overall": 41,
+  "potential": 67,
   "squad_role": "starter",
   "stats": {
    "mental": {
     "aggression": 33,
     "teamwork": 57,
-    "decisions": 16,
+    "decisions": 27,
     "composure": 36
    },
    "athletic": {
@@ -450,7 +450,7 @@
    }
   },
   "averages": {
-   "mental": 36,
+   "mental": 38,
    "defense": 33,
    "attack": 39,
    "playmaking": 49,
@@ -477,14 +477,14 @@
   "stamina": 59,
   "fitness": "Low",
   "nationality": "CountryB",
-  "overall": 46,
+  "overall": 48,
   "potential": null,
   "squad_role": "starter",
   "stats": {
    "mental": {
     "aggression": 44,
     "teamwork": 67,
-    "decisions": 52,
+    "decisions": 65,
     "composure": 31
    },
    "athletic": {
@@ -517,7 +517,7 @@
    }
   },
   "averages": {
-   "mental": 48,
+   "mental": 52,
    "defense": 28,
    "attack": 39,
    "playmaking": 58,
@@ -551,7 +551,7 @@
    "mental": {
     "aggression": 64,
     "teamwork": 27,
-    "decisions": 31,
+    "decisions": 45,
     "composure": 44
    },
    "athletic": {
@@ -584,7 +584,7 @@
    }
   },
   "averages": {
-   "mental": 42,
+   "mental": 45,
    "defense": 30,
    "attack": 49,
    "playmaking": 58,
@@ -618,7 +618,7 @@
    "mental": {
     "aggression": 41,
     "teamwork": 60,
-    "decisions": 74,
+    "decisions": 87,
     "composure": 59
    },
    "athletic": {
@@ -651,7 +651,7 @@
    }
   },
   "averages": {
-   "mental": 58,
+   "mental": 62,
    "defense": 22,
    "attack": 56,
    "playmaking": 27,
@@ -685,7 +685,7 @@
    "mental": {
     "aggression": 9,
     "teamwork": 10,
-    "decisions": 27,
+    "decisions": 38,
     "composure": 50
    },
    "athletic": {
@@ -718,7 +718,7 @@
    }
   },
   "averages": {
-   "mental": 24,
+   "mental": 27,
    "defense": 21,
    "attack": 53,
    "playmaking": 32,
@@ -752,16 +752,16 @@
    "mental": {
     "aggression": 30,
     "teamwork": 64,
-    "decisions": 19,
-    "composure": 22
+    "decisions": 14,
+    "composure": 24
    },
    "athletic": {
-    "physical_power": 27,
-    "ball_control": 29,
-    "dribbling": 18,
-    "jumping": 38,
-    "acceleration": 50,
-    "speed": 41,
+    "physical_power": 22,
+    "ball_control": 27,
+    "dribbling": 21,
+    "jumping": 36,
+    "acceleration": 45,
+    "speed": 46,
     "heading": 8
    },
    "set_pieces": {
@@ -777,8 +777,8 @@
    }
   },
   "averages": {
-   "mental": 34,
-   "athletic": 30,
+   "mental": 33,
+   "athletic": 29,
    "set_pieces": 20,
    "goalkeeping": 45
   }
@@ -809,7 +809,7 @@
    "mental": {
     "aggression": 72,
     "teamwork": 59,
-    "decisions": 60,
+    "decisions": 73,
     "composure": 38
    },
    "athletic": {
@@ -842,7 +842,7 @@
    }
   },
   "averages": {
-   "mental": 57,
+   "mental": 60,
    "defense": 58,
    "attack": 35,
    "playmaking": 37,
@@ -869,14 +869,14 @@
   "stamina": 75,
   "fitness": "Moderate",
   "nationality": "CountryA",
-  "overall": 52,
+  "overall": 53,
   "potential": null,
   "squad_role": "bench",
   "stats": {
    "mental": {
     "aggression": 38,
     "teamwork": 89,
-    "decisions": 26,
+    "decisions": 39,
     "composure": 26
    },
    "athletic": {
@@ -909,7 +909,7 @@
    }
   },
   "averages": {
-   "mental": 45,
+   "mental": 48,
    "defense": 58,
    "attack": 19,
    "playmaking": 33,
@@ -936,14 +936,14 @@
   "stamina": 69,
   "fitness": "Peak",
   "nationality": "CountryB",
-  "overall": 54,
+  "overall": 55,
   "potential": null,
   "squad_role": "bench",
   "stats": {
    "mental": {
     "aggression": 29,
     "teamwork": 77,
-    "decisions": 22,
+    "decisions": 35,
     "composure": 21
    },
    "athletic": {
@@ -976,7 +976,7 @@
    }
   },
   "averages": {
-   "mental": 37,
+   "mental": 40,
    "defense": 59,
    "attack": 22,
    "playmaking": 32,
@@ -1010,7 +1010,7 @@
    "mental": {
     "aggression": 20,
     "teamwork": 82,
-    "decisions": 61,
+    "decisions": 74,
     "composure": 37
    },
    "athletic": {
@@ -1043,7 +1043,7 @@
    }
   },
   "averages": {
-   "mental": 50,
+   "mental": 53,
    "defense": 56,
    "attack": 33,
    "playmaking": 40,
@@ -1077,7 +1077,7 @@
    "mental": {
     "aggression": 36,
     "teamwork": 68,
-    "decisions": 4,
+    "decisions": 15,
     "composure": 27
    },
    "athletic": {
@@ -1110,7 +1110,7 @@
    }
   },
   "averages": {
-   "mental": 34,
+   "mental": 36,
    "defense": 28,
    "attack": 41,
    "playmaking": 53,
@@ -1137,14 +1137,14 @@
   "stamina": 51,
   "fitness": "Moderate",
   "nationality": "CountryC",
-  "overall": 52,
+  "overall": 53,
   "potential": null,
   "squad_role": "bench",
   "stats": {
    "mental": {
     "aggression": 23,
     "teamwork": 86,
-    "decisions": 49,
+    "decisions": 62,
     "composure": 42
    },
    "athletic": {
@@ -1177,7 +1177,7 @@
    }
   },
   "averages": {
-   "mental": 50,
+   "mental": 53,
    "defense": 38,
    "attack": 47,
    "playmaking": 57,
@@ -1204,14 +1204,14 @@
   "stamina": 68,
   "fitness": "Moderate",
   "nationality": "CountryC",
-  "overall": 46,
+  "overall": 47,
   "potential": null,
   "squad_role": "bench",
   "stats": {
    "mental": {
     "aggression": 7,
     "teamwork": 63,
-    "decisions": 36,
+    "decisions": 49,
     "composure": 38
    },
    "athletic": {
@@ -1244,7 +1244,7 @@
    }
   },
   "averages": {
-   "mental": 36,
+   "mental": 39,
    "defense": 28,
    "attack": 39,
    "playmaking": 56,
@@ -1278,7 +1278,7 @@
    "mental": {
     "aggression": 93,
     "teamwork": 56,
-    "decisions": 29,
+    "decisions": 41,
     "composure": 46
    },
    "athletic": {
@@ -1311,7 +1311,7 @@
    }
   },
   "averages": {
-   "mental": 56,
+   "mental": 59,
    "defense": 29,
    "attack": 51,
    "playmaking": 57,
@@ -1345,7 +1345,7 @@
    "mental": {
     "aggression": 33,
     "teamwork": 13,
-    "decisions": 31,
+    "decisions": 44,
     "composure": 57
    },
    "athletic": {
@@ -1378,7 +1378,7 @@
    }
   },
   "averages": {
-   "mental": 34,
+   "mental": 37,
    "defense": 22,
    "attack": 56,
    "playmaking": 34,
@@ -1412,7 +1412,7 @@
    "mental": {
     "aggression": 14,
     "teamwork": 51,
-    "decisions": 63,
+    "decisions": 75,
     "composure": 49
    },
    "athletic": {
@@ -1445,7 +1445,7 @@
    }
   },
   "averages": {
-   "mental": 44,
+   "mental": 47,
    "defense": 22,
    "attack": 59,
    "playmaking": 32,
@@ -1472,14 +1472,14 @@
   "stamina": 71,
   "fitness": "Moderate",
   "nationality": "CountryC",
-  "overall": 56,
+  "overall": 57,
   "potential": null,
   "squad_role": "bench",
   "stats": {
    "mental": {
     "aggression": 25,
     "teamwork": 63,
-    "decisions": 33,
+    "decisions": 46,
     "composure": 42
    },
    "athletic": {
@@ -1504,7 +1504,7 @@
    }
   },
   "averages": {
-   "mental": 41,
+   "mental": 44,
    "athletic": 34,
    "set_pieces": 22,
    "goalkeeping": 58
