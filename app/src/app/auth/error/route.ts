@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Neon Auth sends failed social sign-ins here (errorCallbackURL). An existing password account
- * with the same email gets the "link your Google account" screen; anything else goes back to login.
+ * Failed social sign-ins land here. Supabase links a social identity to an existing account with the same verified
+ * email automatically; `account_not_linked` is kept for the manual "link your Google account" screen.
  */
 export function GET(request: NextRequest) {
   const error = request.nextUrl.searchParams.get("error");

@@ -16,16 +16,19 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * Neon Auth (managed Better Auth) owns the `neon_auth` schema. It is declared here only so
- * our tables can reference users; drizzle.config.ts limits migrations to `public`.
+ * Supabase Auth owns the `auth` schema. `auth.users` is declared here (id only) so our tables can
+ * reference users; drizzle.config.ts limits migrations to `public`. Display names live in
+ * `profiles.display_name`, since `auth.users` has no name column.
  */
-const neonAuth = pgSchema("neon_auth");
-export const authUsers = neonAuth.table("user", {
+const supabaseAuth = pgSchema("auth");
+export const authUsers = supabaseAuth.table("users", {
   id: uuid("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  image: text("image"),
 });
+
+/*
+ * Every table has RLS enabled and no policies: Supabase's Data API (anon / authenticated keys) can't read
+ * or write them. The server connects as the `postgres` role, which bypasses RLS.
+ */
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -43,7 +46,7 @@ const ownerId = () =>
 // ---------------------------------------------------------------- accounts
 
 /**
- * App-side profile for every Neon Auth user: the public username (league tables) and terms consent.
+ * App-side profile for every user: the public username (league tables), display name and terms consent.
  * Created at sign-up (email) or on the "Almost there" screen (social sign-in).
  */
 export const profiles = pgTable(
@@ -54,6 +57,8 @@ export const profiles = pgTable(
       .references(() => authUsers.id, { onDelete: "cascade" }),
     /** 3–20 letters, numbers or _. Unique ignoring case. Null until chosen. */
     username: text("username"),
+    /** Manager name shown in lobbies and the header (from sign-up, the social profile, or Create your team). */
+    displayName: text("display_name"),
     termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
     /** ISO 3166 country code (the flag next to the name). */
     nationality: text("nationality"),
@@ -62,7 +67,7 @@ export const profiles = pgTable(
     ...timestamps,
   },
   (t) => [uniqueIndex("profiles_username_lower_uq").on(sql`lower(${t.username})`)],
-);
+).enableRLS();
 
 /**
  * Failed password logins per email (sha256 of the normalized address, never the address itself).
@@ -73,7 +78,16 @@ export const loginAttempts = pgTable("login_attempts", {
   failures: integer("failures").notNull().default(0),
   windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull().defaultNow(),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
-});
+  /** When the current pause began. Stays put if later failures extend the window. */
+  lockedAt: timestamp("locked_at", { withTimezone: true }),
+}).enableRLS();
+
+/** Password sessions created by a Server Action. A direct Auth API grant is not in this table. */
+export const passwordSessions = pgTable("password_sessions", {
+  sessionId: text("session_id").primaryKey(),
+  userId: uuid("user_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();
 
 // ---------------------------------------------------------------- teams
 
@@ -122,7 +136,7 @@ export const teams = pgTable(
   },
   // one club per manager for now (the unique index also serves lookups by owner)
   (t) => [uniqueIndex("teams_owner_uq").on(t.ownerId)],
-);
+).enableRLS();
 
 /** 27 engine attributes, 1..100 each. Keys follow the C# PlayerAttributes names. */
 export type PlayerAttributes = Record<string, number>;
@@ -157,7 +171,7 @@ export const players = pgTable(
       .on(t.teamId, t.starterSlot)
       .where(sql`${t.starterSlot} is not null`),
   ],
-);
+).enableRLS();
 
 // ---------------------------------------------------------------- leagues
 
@@ -171,7 +185,7 @@ export const leagues = pgTable(
     ...timestamps,
   },
   (t) => [index("leagues_owner_idx").on(t.ownerId)],
-);
+).enableRLS();
 
 export const leagueMembers = pgTable(
   "league_members",
@@ -185,7 +199,7 @@ export const leagueMembers = pgTable(
     joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.leagueId, t.teamId] })],
-);
+).enableRLS();
 
 // ---------------------------------------------------------------- matches
 
@@ -236,7 +250,7 @@ export const matches = pgTable(
     index("matches_user_played_idx").on(t.userId, t.playedAt.desc()),
     index("matches_league_idx").on(t.leagueId),
   ],
-);
+).enableRLS();
 
 // ---------------------------------------------------------------- online lobbies
 
@@ -278,7 +292,7 @@ export const lobbies = pgTable(
       .on(t.code)
       .where(sql`${t.status} in ('open', 'ready', 'playing')`),
   ],
-);
+).enableRLS();
 
 /**
  * In-match manager inputs (plan changes, substitutions), ordered per lobby.
@@ -307,4 +321,4 @@ export const lobbyInputs = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("lobby_inputs_seq_uq").on(t.lobbyId, t.seq)],
-);
+).enableRLS();

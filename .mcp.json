@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "Neon": {
+    "supabase": {
       "type": "http",
-      "url": "https://mcp.neon.tech/mcp"
+      "url": "https://mcp.supabase.com/mcp?project_ref=mcrglsqpxyrbazwzrnzg&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching%2Cfeedback%2Cstorage"
     }
   }
 }

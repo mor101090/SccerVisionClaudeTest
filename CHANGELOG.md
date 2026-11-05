@@ -2,6 +2,26 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feat/supabase-migration`
+
+**From Neon to Supabase: Auth, Postgres, Storage and Realtime.** Neon Managed Auth has no Facebook provider; Supabase Auth has Google,
+Facebook and Discord built in. Plan: `docs/plans/supabase-migration.md`; cutover: `docs/runbooks/supabase-cutover.md`.
+- **Login**: Google, Facebook (no longer "coming soon") and Discord. Email sign-up keeps the 6-digit code, the reset link keeps its
+  screens; the per-email lockout and the anti-enumeration answers are unchanged (Server Actions on `@supabase/ssr`).
+  The browser client refuses password grants. A reset changes the password only on the recovery session that
+  redeemed the link, not on an ordinary login. The per-email pause lives in the Server Actions. Supabase's
+  password-verification hook is a paid feature, so it is not used. The sign-in form gives the same answer for a
+  wrong password, an unknown address, and a pause. A password session opened after the pause began is not signed
+  in. An older session stays. A password session the app did not create, including a direct Auth API grant, is not signed in.
+- **Database**: Supabase Postgres through the transaction pooler (postgres-js); users are `auth.users`, display names moved to
+  `profiles.display_name`; RLS on every table (the Data API can't read them). One fresh baseline migration.
+- **Replays**: Supabase Storage (private `replays` bucket), read and written by the server only.
+- **Live lobbies**: a database trigger broadcasts on a private channel per lobby (host and guest only); the client re-reads the lobby,
+  so the lockstep still never sees a watermark without its inputs. Polling stays the fallback.
+- **Moving the data**: `yarn migrate:neon-to-supabase` copies users (same ids), clubs, squads, matches and replays. Old passwords
+  can't be moved: password users reset theirs once (the login screen says so).
+- **CI**: e2e runs on the Supabase dev project and seeds its test accounts (`yarn e2e:seed`); the deploy migrates Supabase prod.
+
 ## `feature/new-generator-squads`
 
 **The demo squads now come from the generator's realism round, and the engine is re-calibrated for them.** The generator (soccer-api.dev-spirit.com, PRs
