@@ -95,15 +95,17 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   the reference for color roles is the Login screen (node 541-2333). Never hard-code hex in components.
 - **Auth flow** (`features/auth/actions.ts`): every sign-in path ends in `nextPathAfterSignIn()` → `/auth/finish` until the
   profile has a username + terms (`profiles` table), then `redirectTo`. Password logins are throttled per email
-  (`server/login-throttle.ts`, 5 failures / 15 min). Classify Supabase Auth errors with `classifyAuthError()`. Emails
+  (`server/login-throttle.ts`, 5 failures / 15 min). The same counter is applied to every password grant by
+  `hook_password_verification_attempt` (`drizzle/0003_password_lockout_hook.sql`), including a script that calls the
+  Auth API with the publishable key. That hook has to be enabled in the dashboard (Authentication → Hooks); until it
+  is, only the Server Actions record failures. Classify Supabase Auth errors with `classifyAuthError()`. Emails
   pending verification/reset live in an httpOnly cookie, never in URLs. Password, sign-up, code and reset flows go
-  through the Server Actions (never supabase-js in the browser), which add the per-email lockout and anti-enumeration
-  answers. Supabase's Auth API itself is public (publishable key), so a script can skip the lockout and meet only
-  Supabase's per-IP rate limits (Auth → Rate Limits; CAPTCHA would close this);
-  the browser client is only for social sign-in (`signInWithOAuth`, PKCE → `/auth/callback`), linking and Realtime.
-  Reset links carry `?token=<token hash>`, redeemed only when the new password is submitted. `currentUser()` returns
-  `{ id, email, name }` (JWT via `getClaims()`; name from `profiles.display_name` / username). Users moved from Neon have
-  no password (Better Auth hashes can't be imported): they reset it once.
+  through the Server Actions. The browser client refuses password grants (`password-grant.ts`); it is only for social
+  sign-in (`signInWithOAuth`, PKCE → `/auth/callback`), linking and Realtime.
+  Reset links carry `?token=<token hash>`, redeemed only when the new password is submitted. `updateUser` runs only
+  for the recovery session that redeemed the token (or a retry of that same session), never for an ordinary login.
+  `currentUser()` returns `{ id, email, name }` (JWT via `getClaims()`; name from `profiles.display_name` / username).
+  Users moved from Neon have no password (Better Auth hashes can't be imported): they reset it once.
 - **Create your team** (`/team/new/{manager,club,kits,squad}`, `features/team/`, `server/teams.ts`): squads come from the
   team generator API (`SQUAD_API_URL`, POST `/api/v2/team`, 2 GK · 5 FB · 5 DEF · 5 MID · 2 WNG · 3 ST). The XI picker
   `features/team/lineup.ts` and attribute mapping `engine-team.ts` are ports of `tools/teams/build_teams.py`;

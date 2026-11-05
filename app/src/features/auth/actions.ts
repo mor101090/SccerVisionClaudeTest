@@ -6,13 +6,21 @@ import { formText } from "@/lib/form";
 import { currentUser } from "@/server/auth";
 import {
   clearPendingEmail,
+  clearRecoveryUser,
   getPendingEmail,
+  getRecoveryUser,
   nextPathAfterSignIn,
   provisionalName,
   requestOrigin,
   setPendingEmail,
+  setRecoveryUser,
 } from "@/server/auth-flow";
-import { clearFailures, lockedMinutes, recordFailure } from "@/server/login-throttle";
+import {
+  attemptSnapshot,
+  clearFailures,
+  countedFailure,
+  lockedMinutes,
+} from "@/server/login-throttle";
 import {
   acceptTerms,
   completeProfile,
@@ -35,6 +43,7 @@ import {
   signUpSchema,
   verifySchema,
 } from "./policy";
+import { isRecoverySession } from "./recovery-session";
 
 /** Result of every auth form action. `fields` holds per-field messages, `error` a banner. */
 export type AuthFormState = {
@@ -81,6 +90,7 @@ export async function signInAction(_prev: AuthFormState, form: FormData): Promis
   }
 
   const supabase = await supabaseServer();
+  const before = await attemptSnapshot(email);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   const e: AuthError = error;
   if (e) {
@@ -91,8 +101,15 @@ export async function signInAction(_prev: AuthFormState, form: FormData): Promis
       redirect(withRedirect("/auth/verify-email", form));
     }
     if (isRateLimited(e)) return { values, error: RATE_LIMITED };
+    const pausedNow = await lockedMinutes(email);
+    if (pausedNow > 0) {
+      return {
+        values,
+        error: `Too many wrong passwords. Logins for this email are paused for ${pausedNow} more minute${pausedNow === 1 ? "" : "s"}. Reset your password or use Google.`,
+      };
+    }
     if (kind === "invalid_credentials") {
-      const left = await recordFailure(email);
+      const left = await countedFailure(email, before);
       return {
         values,
         fields: { password: "Wrong email or password." },
@@ -234,13 +251,22 @@ export async function resetPasswordAction(
   const { token, password } = parsed.data;
   const supabase = await supabaseServer();
   // The link's token is redeemed only here, on submit, so mail scanners that open links can't use it up.
-  // A retry after a rejected password keeps the recovery session from the first try.
-  const { error: verifyError } = await supabase.auth.verifyOtp({
+  // A retry after a rejected password keeps that recovery session — not whatever session the browser already had.
+  const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
     token_hash: token,
     type: "recovery",
   });
-  if (verifyError && !(await currentUser())) {
-    if (isRateLimited(verifyError)) return { error: RATE_LIMITED };
+  if (!verifyError) {
+    const userId = verified.user?.id;
+    const { data } = await supabase.auth.getClaims();
+    if (!userId || data?.claims?.sub !== userId || !isRecoverySession(data?.claims)) {
+      return { error: "This reset link expired or was already used. Request a new one." };
+    }
+    await setRecoveryUser(userId);
+  } else if (isRateLimited(verifyError)) {
+    return { error: RATE_LIMITED };
+  } else if (!(await canRetryRecovery(supabase))) {
+    await clearRecoveryUser();
     return { error: "This reset link expired or was already used. Request a new one." };
   }
   const { error } = await supabase.auth.updateUser({ password });
@@ -257,7 +283,20 @@ export async function resetPasswordAction(
   }
   await supabase.auth.signOut();
   await clearPendingEmail();
+  await clearRecoveryUser();
   redirect("/auth/sign-in?reset=1");
+}
+
+/** The token was already redeemed in this browser, and the session it created is still a recovery session. */
+async function canRetryRecovery(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+): Promise<boolean> {
+  const marked = await getRecoveryUser();
+  if (!marked) return false;
+  const { data } = await supabase.auth.getClaims();
+  const sub = data?.claims?.sub;
+  if (typeof sub !== "string" || sub !== marked) return false;
+  return isRecoverySession(data?.claims);
 }
 
 // ------------------------------------------------------------------ social: finish + link
@@ -305,11 +344,16 @@ export async function linkSignInAction(
     return { values, error: `Logins for this email are paused for ${paused} more minutes.` };
   }
   const supabase = await supabaseServer();
+  const before = await attemptSnapshot(email);
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   const e: AuthError = error;
   if (e) {
     if (isRateLimited(e)) return { values, error: RATE_LIMITED };
-    const left = await recordFailure(email);
+    const pausedNow = await lockedMinutes(email);
+    if (pausedNow > 0) {
+      return { values, error: `Logins for this email are paused for ${pausedNow} more minutes.` };
+    }
+    const left = await countedFailure(email, before);
     return {
       values,
       fields: { password: "Wrong password." },
