@@ -33,6 +33,18 @@ namespace SoccerVision.Simulation
             return MathUtil.Clamp01(0.5f + (gkT - runnerArrives + misjudge) / 0.7f);
         }
 
+        /// <summary>The pace of a team's passing, for the match statistics: open-play passes, their length, and the runs of passes within one possession.</summary>
+        private void NotePassTempo(TeamAgent team, float length)
+        {
+            var st = team.Stats;
+            st.OpenPlayPasses++; st.PassLengthSum += length;
+            if (length < 15f) st.ShortPasses++; else if (length >= 32f) st.LongPasses++;
+            float now = SimTime * Config.ClockSecondsPerSimSecond;
+            if (st.PossessionSpells == st.LastPassSpell && now - st.LastPassClock < 30f) { st.PassGapSum += now - st.LastPassClock; st.PassGapCount++; }
+            else st.PassRuns++;
+            st.LastPassSpell = st.PossessionSpells; st.LastPassClock = now;
+        }
+
         /// <summary>
         /// How much a team wants to keep the ball (the possession round): its style (+1 possession, +0.5 short passing, -0.5 direct passing, -0.5 counter-attack,
         /// -0.5 park the bus), how much better its passers are than the other team's (up to +-1.8; nothing for a gap of less than 4 points), and how hard the other team

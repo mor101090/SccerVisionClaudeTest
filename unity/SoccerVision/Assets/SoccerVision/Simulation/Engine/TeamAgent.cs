@@ -303,6 +303,10 @@ namespace SoccerVision.Simulation
         public float PossessionSeconds;
         /// <summary>How many times the team got the ball (a change of possession in live play; a measuring counter, nothing reads it).</summary>
         public int PossessionSpells;
+        // the pace of passing (see MatchEngine.NotePassTempo): open-play passes, their length (m), short (< 15 m) and long (>= 32 m) ones,
+        // the runs of passes within one possession, and the clock seconds between the passes of a run
+        public int OpenPlayPasses, ShortPasses, LongPasses, PassRuns, PassGapCount, LastPassSpell = -1;
+        public float PassLengthSum, PassGapSum, LastPassClock;
         public float DistanceCoveredKm;
 
         public TeamStats Clone() => (TeamStats)MemberwiseClone();

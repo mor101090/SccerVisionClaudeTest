@@ -589,6 +589,7 @@ namespace SoccerVision.Simulation
                 Ball.LastPassTime = SimTime;
                 p.Team.Stats.Passes++;
                 p.PassesAttempted++;
+                if (kind != KickKind.Restart) NotePassTempo(p.Team, Vec2.Distance(p.Pos, target)); // (open play only, as the real figures it is checked against)
             }
             PossessionTeam = p.Team;
             p.KickCooldown = 0.3f;

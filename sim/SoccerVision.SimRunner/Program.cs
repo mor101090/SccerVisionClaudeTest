@@ -154,7 +154,7 @@ if (args.Contains("--poss"))
     foreach (var tt in new[] { Home(), Away() }) Console.WriteLine($"tactics: press {tt.Tactics.PressingIntensity} defence {tt.Tactics.Defence} passing {tt.Tactics.Passing} special {tt.Tactics.Special} line {tt.Tactics.DefensiveLine} tempo {tt.Tactics.Tempo}");
     // how the ball is shared: per team, per match - possession, passes, pass completion, tackles won, interceptions (so a change that should move possession can be seen)
     double[] xgs = new double[2], gls = new double[2], secs = new double[2], spells = new double[2], pos = new double[2], ps = new double[2], pc = new double[2], tw = new double[2], ic = new double[2], sh = new double[2];
-    var spread = new List<double>(); double[] qual = new double[2]; var byState = new double[5, 2]; bool randomPlans = args.Contains("--random");
+    var tempoSum = new List<double[]>(); var spread = new List<double>(); double[] qual = new double[2]; var byState = new double[5, 2]; bool randomPlans = args.Contains("--random");
     for (int m = 0; m < matches; m++)
     {
         // --random: as the game's random match - both managers pick a random plan and change the tactics during the match
@@ -175,6 +175,7 @@ if (args.Contains("--poss"))
             h0 = h1; a0 = a1;
         }
         var st = new[] { e.Home.Stats, e.Away.Stats };
+        foreach (var x in st) tempoSum.Add(new double[] { x.OpenPlayPasses, x.PassLengthSum, x.ShortPasses, x.LongPasses, x.PassRuns, x.PassGapSum, x.PassGapCount });
         double tot = st[0].PossessionSeconds + st[1].PossessionSeconds;
         spread.Add(100.0 * st[0].PossessionSeconds / tot);
         qual[0] += e.Home.PassingQualityValue; qual[1] += e.Away.PassingQualityValue;
@@ -184,6 +185,12 @@ if (args.Contains("--poss"))
     string P(double[] a, int i) => (a[i] / matches).ToString("0.0");
     Console.WriteLine($"home: possession {P(pos, 0)}%  passes {P(ps, 0)}  completion {(100 * pc[0] / ps[0]):0}%  tackles won {P(tw, 0)}  interceptions {P(ic, 0)}  shots {P(sh, 0)}  goals {P(gls, 0)}  xG {P(xgs, 0)}  possessions {P(spells, 0)}  s/possession {(secs[0] / Math.Max(1, spells[0])):0.0}");
     Console.WriteLine($"away: possession {P(pos, 1)}%  passes {P(ps, 1)}  completion {(100 * pc[1] / ps[1]):0}%  tackles won {P(tw, 1)}  interceptions {P(ic, 1)}  shots {P(sh, 1)}  goals {P(gls, 1)}  xG {P(xgs, 1)}  possessions {P(spells, 1)}  s/possession {(secs[1] / Math.Max(1, spells[1])):0.0}");
+    {
+        // the pace of passing, as tools/calibration/passing_tempo.py counts it from real matches (per team per match)
+        double top = 0, tpl = 0, tsh = 0, tlg = 0, runs = 0, gs = 0, gn = 0; int tm = 0;
+        foreach (var x in tempoSum) { top += x[0]; tpl += x[1]; tsh += x[2]; tlg += x[3]; runs += x[4]; gs += x[5]; gn += x[6]; tm += 1; }
+        Console.WriteLine($"tempo (per team per match): open-play passes {top / tm:0.0}  mean length {tpl / Math.Max(1, top):0.0} m  short {100 * tsh / Math.Max(1, top):0.0}%  long {100 * tlg / Math.Max(1, top):0.0}%  passes per run {top / Math.Max(1, runs):0.00}  runs {runs / tm:0.0}  seconds between passes {gs / Math.Max(1, gn):0.00}");
+    }
     Console.WriteLine($"pass share (how Opta's published possession is worked out): home {(100 * ps[0] / (ps[0] + ps[1])):0.0}%  |  passing quality (starting XI): home {qual[0] / matches:0.0}  away {qual[1] / matches:0.0}");
     string[] stateNames = { "trailing by 2+", "trailing by 1", "level", "leading by 1", "leading by 2+" };
     Console.WriteLine("share of the ball by the score (both sides, pooled seconds): " + string.Join("  ", Enumerable.Range(0, 5).Where(k => byState[k, 0] + byState[k, 1] > 0).Select(k => $"{stateNames[k]} {100 * byState[k, 0] / (byState[k, 0] + byState[k, 1]):0.0}%")));
