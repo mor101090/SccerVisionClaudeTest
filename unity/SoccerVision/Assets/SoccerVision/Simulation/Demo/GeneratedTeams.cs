@@ -24,66 +24,66 @@ namespace SoccerVision.Simulation
             return new PlayerProfile { Id = id, FirstName = first, LastName = last, ShirtNumber = number, NaturalPosition = group, Position = pos, HeightCm = height, Age = age, Nationality = nation, Attributes = a };
         }
 
-        /// <summary>Red squad. Starters (4-4-2): GK Robert Martin #5; RB Robert Taylor #1; CB right James Smith #63; CB left Richard Johnson #51; LB Chris White #47; RM William White #70; CM right James Harris #18; CM left Richard Taylor #69; LM John Thomas #14; ST right John Harris #11; ST left Chris White #16.</summary>
+        /// <summary>Red squad. Starters (4-4-2): GK Mateo Novak #1; RB Diego Silva #34; CB right Omar Jackson #5; CB left Michael Smith #79; LB Leo Garcia #68; RM Yuki Johnson #7; CM right Thomas White #8; CM left Leo Moreau #10; LM Elias Thomas #11; ST right Ivan Taylor #9; ST left Diego Tanaka #80.</summary>
         public static (List<PlayerProfile> Starters, List<PlayerProfile> Bench) Red()
         {
             var starters = new List<PlayerProfile>
             {
-            P(101, "Robert", "Martin", 5, PositionGroup.Goalkeeper, "GK", 184, 66, FitnessLevel.Normal, 5, 4, 27, "CountryC", new[] { 34, 60, 54, 61, 20, 20, 69, 35, 57, 25, 12, 15, 20, 68, 50, 41, 61, 54, 71, 73, 35, 28, 71, 72, 68, 68, 71 }),
-            P(102, "Robert", "Taylor", 1, PositionGroup.Defender, "RB", 174, 77, FitnessLevel.Normal, 3, 5, 30, "CountryB", new[] { 21, 66, 65, 69, 79, 68, 66, 50, 54, 71, 32, 38, 49, 74, 55, 64, 65, 80, 59, 61, 64, 69, 15, 15, 22, 15, 18 }),
-            P(103, "James", "Smith", 63, PositionGroup.Defender, "CB", 187, 81, FitnessLevel.Normal, 2, 5, 21, "CountryB", new[] { 32, 26, 68, 40, 87, 94, 86, 67, 65, 68, 27, 27, 23, 89, 76, 68, 60, 88, 85, 86, 74, 52, 15, 15, 22, 15, 18 }),
-            P(104, "Richard", "Johnson", 51, PositionGroup.Defender, "CB", 185, 76, FitnessLevel.Normal, 2, 5, 27, "CountryA", new[] { 33, 62, 42, 69, 77, 77, 66, 48, 46, 52, 18, 26, 23, 73, 52, 50, 67, 55, 67, 67, 74, 75, 15, 15, 22, 15, 18 }),
-            P(105, "Chris", "White", 47, PositionGroup.Defender, "LB", 177, 53, FitnessLevel.Low, 5, 3, 30, "CountryC", new[] { 19, 50, 41, 60, 58, 65, 60, 43, 40, 60, 29, 30, 43, 50, 54, 55, 70, 65, 51, 50, 34, 59, 15, 15, 22, 15, 18 }),
-            P(106, "William", "White", 70, PositionGroup.Midfielder, "RW", 175, 77, FitnessLevel.Normal, 3, 5, 25, "CountryA", new[] { 25, 61, 61, 65, 34, 26, 47, 65, 72, 76, 65, 68, 79, 42, 66, 73, 78, 70, 46, 52, 43, 78, 15, 15, 22, 15, 18 }),
-            P(107, "James", "Harris", 18, PositionGroup.Midfielder, "CM", 178, 68, FitnessLevel.Normal, 2, 5, 28, "CountryC", new[] { 30, 63, 52, 70, 41, 57, 48, 69, 66, 69, 55, 58, 60, 49, 62, 60, 65, 72, 53, 56, 37, 46, 15, 15, 22, 15, 18 }),
-            P(108, "Richard", "Taylor", 69, PositionGroup.Midfielder, "CM", 187, 63, FitnessLevel.Normal, 5, 2, 23, "CountryC", new[] { 31, 63, 48, 68, 48, 51, 42, 71, 73, 74, 48, 67, 56, 70, 54, 58, 55, 58, 69, 65, 69, 54, 15, 15, 22, 15, 18 }),
-            P(109, "John", "Thomas", 14, PositionGroup.Midfielder, "CM", 171, 62, FitnessLevel.Normal, 5, 2, 23, "CountryC", new[] { 25, 71, 53, 70, 49, 48, 51, 68, 71, 68, 51, 59, 58, 63, 62, 68, 65, 72, 50, 44, 78, 44, 15, 15, 22, 15, 18 }),
-            P(110, "John", "Harris", 11, PositionGroup.Forward, "ST", 175, 71, FitnessLevel.High, 3, 5, 27, "CountryA", new[] { 28, 74, 71, 60, 19, 24, 35, 54, 49, 52, 81, 74, 74, 46, 70, 77, 72, 71, 47, 45, 64, 43, 15, 15, 22, 15, 18 }),
-            P(111, "Chris", "White", 16, PositionGroup.Forward, "ST", 162, 50, FitnessLevel.High, 5, 3, 27, "CountryB", new[] { 28, 67, 69, 80, 24, 27, 25, 50, 52, 48, 86, 68, 78, 56, 66, 69, 70, 69, 54, 52, 43, 59, 15, 15, 22, 15, 18 }),
+            P(101, "Mateo", "Novak", 1, PositionGroup.Goalkeeper, "GK", 181, 57, FitnessLevel.Normal, 3, 5, 27, "CountryB", new[] { 19, 69, 43, 51, 20, 20, 70, 35, 42, 25, 12, 15, 20, 52, 51, 37, 64, 66, 63, 19, 29, 32, 72, 69, 50, 67, 74 }),
+            P(102, "Diego", "Silva", 34, PositionGroup.Defender, "RB", 180, 52, FitnessLevel.Normal, 3, 5, 21, "CountryC", new[] { 28, 79, 46, 20, 72, 71, 63, 49, 42, 61, 35, 38, 44, 50, 57, 59, 69, 71, 54, 66, 69, 56, 15, 15, 22, 15, 18 }),
+            P(103, "Omar", "Jackson", 5, PositionGroup.Defender, "CB", 191, 50, FitnessLevel.Normal, 4, 5, 19, "CountryB", new[] { 6, 35, 45, 42, 63, 65, 60, 43, 49, 45, 24, 21, 22, 59, 53, 42, 57, 67, 51, 73, 51, 48, 15, 15, 22, 15, 18 }),
+            P(104, "Michael", "Smith", 79, PositionGroup.Defender, "CB", 181, 83, FitnessLevel.Normal, 5, 3, 28, "CountryC", new[] { 54, 32, 62, 33, 72, 75, 75, 55, 56, 53, 25, 21, 33, 52, 61, 48, 71, 63, 67, 57, 66, 58, 15, 15, 22, 15, 18 }),
+            P(105, "Leo", "Garcia", 68, PositionGroup.Defender, "LB", 177, 57, FitnessLevel.Normal, 5, 2, 22, "CountryB", new[] { 26, 72, 53, 37, 72, 66, 56, 47, 55, 67, 31, 41, 44, 59, 54, 61, 67, 65, 63, 57, 30, 49, 15, 15, 22, 15, 18 }),
+            P(106, "Yuki", "Johnson", 7, PositionGroup.Midfielder, "RW", 179, 71, FitnessLevel.Normal, 3, 5, 28, "CountryB", new[] { 87, 59, 52, 62, 33, 33, 51, 57, 68, 76, 61, 65, 67, 56, 66, 68, 73, 81, 66, 62, 46, 43, 15, 15, 22, 15, 18 }),
+            P(107, "Thomas", "White", 8, PositionGroup.Midfielder, "CM", 185, 86, FitnessLevel.Normal, 3, 5, 28, "CountryC", new[] { 51, 60, 46, 65, 56, 56, 56, 70, 65, 73, 59, 72, 55, 75, 61, 65, 57, 63, 71, 42, 70, 49, 15, 15, 22, 15, 18 }),
+            P(108, "Leo", "Moreau", 10, PositionGroup.Midfielder, "CM", 183, 67, FitnessLevel.Normal, 3, 5, 28, "CountryA", new[] { 5, 22, 45, 65, 43, 47, 42, 78, 74, 66, 53, 59, 55, 49, 56, 61, 50, 44, 56, 57, 38, 66, 15, 15, 22, 15, 18 }),
+            P(109, "Elias", "Thomas", 11, PositionGroup.Midfielder, "RW", 183, 89, FitnessLevel.Normal, 3, 5, 26, "CountryA", new[] { 25, 74, 51, 54, 29, 29, 52, 67, 69, 87, 57, 69, 72, 55, 58, 67, 62, 68, 50, 44, 75, 63, 15, 15, 22, 15, 18 }),
+            P(110, "Ivan", "Taylor", 9, PositionGroup.Forward, "ST", 180, 57, FitnessLevel.Normal, 5, 3, 30, "CountryB", new[] { 76, 75, 70, 37, 30, 24, 28, 51, 39, 51, 77, 71, 65, 65, 62, 60, 65, 60, 63, 74, 70, 52, 15, 15, 22, 15, 18 }),
+            P(111, "Diego", "Tanaka", 80, PositionGroup.Forward, "ST", 172, 74, FitnessLevel.Low, 5, 2, 26, "CountryB", new[] { 36, 13, 65, 47, 25, 27, 21, 53, 47, 53, 80, 70, 81, 37, 58, 61, 68, 58, 48, 55, 58, 66, 15, 15, 22, 15, 18 }),
             };
             var bench = new List<PlayerProfile>
             {
-            P(112, "David", "Martin", 92, PositionGroup.Goalkeeper, "GK", 188, 57, FitnessLevel.Normal, 2, 5, 21, "CountryB", new[] { 22, 60, 57, 72, 20, 20, 67, 35, 48, 25, 12, 15, 20, 62, 49, 43, 47, 38, 74, 72, 29, 26, 72, 68, 57, 63, 72 }),
-            P(113, "William", "Harris", 49, PositionGroup.Defender, "CB", 182, 67, FitnessLevel.Normal, 2, 5, 28, "CountryA", new[] { 28, 56, 49, 70, 82, 74, 68, 50, 49, 48, 19, 26, 28, 67, 63, 55, 66, 70, 64, 64, 41, 66, 15, 15, 22, 15, 18 }),
-            P(114, "Daniel", "Thomas", 61, PositionGroup.Defender, "CB", 184, 56, FitnessLevel.Normal, 2, 5, 22, "CountryA", new[] { 28, 62, 48, 66, 77, 70, 67, 45, 46, 47, 25, 26, 26, 72, 49, 51, 61, 63, 65, 65, 47, 48, 15, 15, 22, 15, 18 }),
-            P(115, "Thomas", "Taylor", 73, PositionGroup.Defender, "RB", 164, 68, FitnessLevel.Normal, 2, 5, 25, "CountryA", new[] { 28, 65, 47, 64, 68, 68, 62, 54, 36, 76, 36, 36, 52, 47, 61, 61, 71, 72, 49, 54, 41, 63, 15, 15, 22, 15, 18 }),
-            P(116, "Chris", "Brown", 54, PositionGroup.Midfielder, "CM", 182, 58, FitnessLevel.Normal, 2, 5, 21, "CountryC", new[] { 25, 65, 61, 62, 43, 49, 50, 65, 66, 70, 43, 55, 48, 69, 65, 58, 66, 54, 65, 65, 84, 72, 15, 15, 22, 15, 18 }),
-            P(117, "John", "Anderson", 60, PositionGroup.Midfielder, "CM", 174, 64, FitnessLevel.Normal, 5, 2, 24, "CountryB", new[] { 27, 62, 48, 64, 68, 65, 71, 70, 61, 70, 49, 57, 52, 68, 51, 63, 68, 49, 65, 65, 40, 61, 15, 15, 22, 15, 18 }),
-            P(118, "Richard", "Jackson", 75, PositionGroup.Midfielder, "RW", 174, 90, FitnessLevel.Normal, 3, 5, 22, "CountryC", new[] { 30, 59, 58, 66, 28, 25, 54, 70, 72, 81, 60, 61, 68, 49, 64, 71, 69, 65, 49, 53, 48, 51, 15, 15, 22, 15, 18 }),
-            P(119, "Thomas", "Smith", 56, PositionGroup.Forward, "ST", 169, 63, FitnessLevel.Low, 2, 5, 21, "CountryC", new[] { 27, 55, 64, 68, 20, 17, 25, 46, 41, 41, 69, 58, 64, 72, 51, 66, 64, 58, 65, 65, 43, 66, 15, 15, 22, 15, 18 }),
-            P(120, "Michael", "Brown", 37, PositionGroup.Defender, "RB", 180, 74, FitnessLevel.Normal, 2, 5, 28, "CountryA", new[] { 31, 62, 53, 73, 70, 69, 61, 43, 53, 67, 37, 40, 51, 65, 57, 69, 65, 72, 66, 61, 77, 61, 15, 15, 22, 15, 18 }),
+            P(112, "John", "Martin", 99, PositionGroup.Goalkeeper, "GK", 181, 69, FitnessLevel.Normal, 5, 3, 25, "CountryA", new[] { 35, 59, 44, 50, 20, 20, 75, 35, 45, 25, 12, 15, 20, 64, 50, 39, 73, 46, 62, 1, 28, 25, 71, 77, 54, 75, 75 }),
+            P(113, "Leo", "Anderson", 4, PositionGroup.Defender, "CB", 190, 65, FitnessLevel.High, 3, 5, 21, "CountryA", new[] { 30, 50, 45, 41, 61, 62, 60, 47, 44, 43, 24, 22, 24, 69, 47, 48, 62, 61, 64, 58, 48, 58, 15, 15, 22, 15, 18 }),
+            P(114, "Yuki", "Thomas", 40, PositionGroup.Defender, "CB", 189, 62, FitnessLevel.Low, 3, 5, 21, "CountryA", new[] { 39, 42, 51, 53, 64, 62, 63, 49, 60, 45, 22, 29, 25, 49, 46, 40, 55, 68, 40, 64, 51, 67, 15, 15, 22, 15, 18 }),
+            P(115, "John", "Novak", 3, PositionGroup.Defender, "LB", 175, 59, FitnessLevel.Low, 5, 3, 25, "CountryC", new[] { 34, 45, 53, 56, 71, 66, 63, 51, 48, 68, 39, 35, 43, 41, 55, 55, 69, 56, 55, 39, 79, 79, 15, 15, 22, 15, 18 }),
+            P(116, "Elias", "Novak", 44, PositionGroup.Midfielder, "CM", 170, 77, FitnessLevel.Normal, 3, 5, 27, "CountryA", new[] { 16, 91, 46, 61, 59, 44, 52, 67, 70, 75, 57, 65, 63, 44, 59, 62, 58, 65, 54, 65, 33, 69, 15, 15, 22, 15, 18 }),
+            P(117, "Michael", "Smith", 57, PositionGroup.Midfielder, "CM", 188, 55, FitnessLevel.Normal, 3, 5, 37, "CountryB", new[] { 24, 29, 44, 44, 43, 39, 47, 71, 74, 59, 38, 57, 56, 61, 57, 59, 38, 41, 53, 29, 62, 41, 15, 15, 22, 15, 18 }),
+            P(118, "Noah", "Anderson", 81, PositionGroup.Midfielder, "RW", 181, 77, FitnessLevel.Normal, 4, 5, 20, "CountryC", new[] { 84, 26, 51, 28, 33, 30, 41, 63, 65, 73, 58, 52, 63, 60, 58, 60, 64, 64, 42, 32, 65, 44, 15, 15, 22, 15, 18 }),
+            P(119, "Kofi", "Haddad", 91, PositionGroup.Forward, "ST", 174, 78, FitnessLevel.Normal, 3, 5, 27, "CountryA", new[] { 81, 57, 74, 36, 26, 32, 22, 47, 40, 54, 77, 70, 73, 42, 55, 64, 81, 55, 47, 68, 57, 46, 15, 15, 22, 15, 18 }),
+            P(120, "Elias", "Thomas", 19, PositionGroup.Forward, "ST", 184, 56, FitnessLevel.Normal, 4, 5, 36, "CountryA", new[] { 81, 46, 69, 80, 21, 22, 29, 47, 47, 44, 73, 74, 78, 53, 56, 53, 51, 45, 60, 63, 62, 63, 15, 15, 22, 15, 18 }),
             };
             return (starters, bench);
         }
 
-        /// <summary>Blue squad. Starters (4-4-2): GK John Smith #38; RB Michael Martin #33; CB right Robert Anderson #55; CB left Chris Anderson #95; LB Robert Anderson #65; RM David Jackson #98; CM right Richard Thomas #59; CM left David Brown #99; LM Michael Martin #48; ST right James Johnson #44; ST left James Martin #22.</summary>
+        /// <summary>Blue squad. Starters (4-4-2): GK Daniel Jackson #1; RB Richard White #90; CB right Andre Mensah #4; CB left William Harris #89; LB Daniel Jackson #3; RM Mateo Mensah #7; CM right Michael Silva #10; CM left Noah Novak #42; LM David Smith #18; ST right Richard Anderson #19; ST left Thomas Muller #9.</summary>
         public static (List<PlayerProfile> Starters, List<PlayerProfile> Bench) Blue()
         {
             var starters = new List<PlayerProfile>
             {
-            P(201, "John", "Smith", 38, PositionGroup.Goalkeeper, "GK", 182, 64, FitnessLevel.Normal, 2, 5, 21, "CountryA", new[] { 33, 52, 48, 68, 20, 20, 71, 35, 50, 25, 12, 15, 20, 65, 45, 55, 65, 70, 66, 63, 32, 28, 66, 73, 59, 69, 73 }),
-            P(202, "Michael", "Martin", 33, PositionGroup.Defender, "RB", 166, 63, FitnessLevel.Normal, 3, 5, 25, "CountryC", new[] { 16, 53, 52, 64, 77, 74, 60, 54, 54, 71, 35, 42, 46, 60, 65, 55, 91, 72, 51, 46, 59, 54, 15, 15, 22, 15, 18 }),
-            P(203, "Robert", "Anderson", 55, PositionGroup.Defender, "CB", 183, 78, FitnessLevel.Normal, 2, 5, 21, "CountryA", new[] { 24, 65, 45, 62, 73, 70, 70, 57, 45, 43, 21, 27, 30, 74, 54, 43, 59, 57, 83, 82, 51, 54, 15, 15, 22, 15, 18 }),
-            P(204, "Chris", "Anderson", 95, PositionGroup.Defender, "CB", 178, 79, FitnessLevel.Normal, 2, 5, 24, "CountryC", new[] { 27, 64, 58, 78, 74, 82, 70, 55, 44, 51, 25, 18, 32, 69, 56, 49, 52, 55, 65, 65, 42, 53, 15, 15, 22, 15, 18 }),
-            P(205, "Robert", "Anderson", 65, PositionGroup.Defender, "LB", 181, 77, FitnessLevel.Normal, 5, 2, 24, "CountryC", new[] { 22, 58, 45, 65, 65, 75, 59, 45, 44, 65, 34, 33, 46, 66, 61, 61, 54, 62, 65, 65, 44, 34, 15, 15, 22, 15, 18 }),
-            P(206, "David", "Jackson", 98, PositionGroup.Midfielder, "RW", 178, 73, FitnessLevel.Normal, 2, 5, 22, "CountryA", new[] { 27, 58, 54, 67, 33, 31, 45, 61, 67, 68, 66, 63, 74, 54, 61, 68, 65, 84, 44, 43, 71, 44, 15, 15, 22, 15, 18 }),
-            P(207, "Richard", "Thomas", 59, PositionGroup.Midfielder, "CM", 166, 85, FitnessLevel.Normal, 1, 5, 29, "CountryC", new[] { 24, 59, 58, 76, 78, 68, 64, 69, 73, 71, 54, 53, 51, 66, 53, 69, 68, 61, 65, 65, 66, 45, 15, 15, 22, 15, 18 }),
-            P(208, "David", "Brown", 99, PositionGroup.Midfielder, "CM", 184, 74, FitnessLevel.Normal, 5, 2, 27, "CountryB", new[] { 30, 66, 44, 80, 67, 75, 74, 68, 75, 67, 53, 60, 56, 61, 67, 64, 74, 65, 65, 58, 64, 70, 15, 15, 22, 15, 18 }),
-            P(209, "Michael", "Martin", 48, PositionGroup.Midfielder, "RW", 176, 76, FitnessLevel.Normal, 2, 5, 26, "CountryC", new[] { 28, 61, 54, 73, 35, 33, 53, 61, 66, 75, 74, 57, 72, 51, 68, 66, 68, 74, 57, 56, 33, 52, 15, 15, 22, 15, 18 }),
-            P(210, "James", "Johnson", 44, PositionGroup.Forward, "ST", 172, 80, FitnessLevel.Normal, 2, 5, 24, "CountryB", new[] { 31, 61, 69, 62, 25, 24, 26, 46, 41, 53, 73, 69, 67, 69, 59, 63, 57, 51, 65, 65, 42, 63, 15, 15, 22, 15, 18 }),
-            P(211, "James", "Martin", 22, PositionGroup.Forward, "ST", 175, 84, FitnessLevel.Normal, 5, 2, 22, "CountryA", new[] { 28, 56, 71, 79, 21, 24, 31, 51, 51, 51, 79, 68, 77, 39, 63, 73, 76, 67, 54, 56, 84, 56, 15, 15, 22, 15, 18 }),
+            P(201, "Daniel", "Jackson", 1, PositionGroup.Goalkeeper, "GK", 181, 78, FitnessLevel.Normal, 5, 3, 30, "CountryB", new[] { 82, 70, 56, 56, 20, 20, 77, 35, 54, 25, 12, 15, 20, 52, 51, 40, 55, 48, 55, 25, 30, 25, 73, 72, 64, 73, 81 }),
+            P(202, "Richard", "White", 90, PositionGroup.Defender, "RB", 179, 68, FitnessLevel.Normal, 4, 5, 27, "CountryA", new[] { 59, 45, 56, 28, 68, 65, 57, 55, 50, 78, 38, 47, 52, 74, 62, 67, 55, 72, 44, 54, 44, 66, 15, 15, 22, 15, 18 }),
+            P(203, "Andre", "Mensah", 4, PositionGroup.Defender, "CB", 195, 54, FitnessLevel.Normal, 3, 5, 33, "CountryB", new[] { 24, 67, 51, 52, 75, 71, 72, 53, 59, 49, 26, 24, 29, 63, 46, 49, 53, 63, 65, 62, 52, 49, 15, 15, 22, 15, 18 }),
+            P(204, "William", "Harris", 89, PositionGroup.Defender, "CB", 185, 60, FitnessLevel.Normal, 5, 2, 23, "CountryA", new[] { 89, 28, 34, 43, 82, 70, 69, 48, 42, 52, 25, 22, 34, 64, 51, 54, 58, 57, 59, 69, 41, 51, 15, 15, 22, 15, 18 }),
+            P(205, "Daniel", "Jackson", 3, PositionGroup.Defender, "LB", 173, 74, FitnessLevel.Normal, 5, 3, 20, "CountryA", new[] { 53, 45, 58, 36, 72, 65, 60, 41, 45, 59, 33, 38, 42, 46, 52, 54, 91, 69, 40, 32, 45, 45, 15, 15, 22, 15, 18 }),
+            P(206, "Mateo", "Mensah", 7, PositionGroup.Midfielder, "RW", 178, 71, FitnessLevel.High, 3, 5, 34, "CountryB", new[] { 64, 27, 59, 40, 22, 29, 53, 61, 73, 84, 55, 67, 68, 51, 67, 74, 58, 74, 56, 49, 35, 63, 15, 15, 22, 15, 18 }),
+            P(207, "Michael", "Silva", 10, PositionGroup.Midfielder, "CM", 193, 59, FitnessLevel.Normal, 3, 5, 36, "CountryB", new[] { 41, 19, 52, 76, 40, 44, 47, 74, 75, 65, 42, 62, 50, 74, 56, 52, 30, 37, 57, 49, 38, 72, 15, 15, 22, 15, 18 }),
+            P(208, "Noah", "Novak", 42, PositionGroup.Midfielder, "CM", 173, 76, FitnessLevel.High, 3, 5, 28, "CountryA", new[] { 45, 47, 61, 38, 40, 50, 40, 78, 75, 65, 54, 59, 52, 53, 69, 58, 55, 67, 49, 52, 35, 74, 15, 15, 22, 15, 18 }),
+            P(209, "David", "Smith", 18, PositionGroup.Midfielder, "LW", 184, 65, FitnessLevel.Normal, 5, 3, 26, "CountryC", new[] { 16, 68, 54, 61, 21, 29, 47, 57, 72, 85, 67, 70, 64, 66, 63, 76, 54, 75, 47, 45, 39, 67, 15, 15, 22, 15, 18 }),
+            P(210, "Richard", "Anderson", 19, PositionGroup.Forward, "ST", 188, 82, FitnessLevel.Normal, 3, 5, 27, "CountryB", new[] { 42, 15, 75, 52, 27, 23, 27, 52, 44, 50, 78, 75, 70, 57, 61, 67, 54, 67, 52, 73, 43, 58, 15, 15, 22, 15, 18 }),
+            P(211, "Thomas", "Muller", 9, PositionGroup.Forward, "ST", 163, 66, FitnessLevel.Normal, 5, 4, 26, "CountryA", new[] { 83, 54, 74, 51, 28, 28, 27, 48, 48, 39, 76, 67, 74, 36, 64, 70, 74, 71, 65, 62, 64, 52, 15, 15, 22, 15, 18 }),
             };
             var bench = new List<PlayerProfile>
             {
-            P(212, "Michael", "Martin", 72, PositionGroup.Goalkeeper, "GK", 182, 59, FitnessLevel.Normal, 2, 5, 24, "CountryB", new[] { 30, 55, 44, 69, 20, 20, 69, 35, 50, 25, 12, 15, 20, 74, 53, 33, 46, 59, 77, 79, 26, 25, 62, 75, 59, 64, 75 }),
-            P(213, "William", "Brown", 17, PositionGroup.Defender, "CB", 185, 60, FitnessLevel.Normal, 4, 5, 23, "CountryB", new[] { 20, 55, 43, 65, 64, 68, 66, 39, 44, 43, 26, 28, 24, 75, 56, 60, 58, 59, 65, 65, 59, 72, 15, 15, 22, 15, 18 }),
-            P(214, "Daniel", "Jackson", 85, PositionGroup.Defender, "CB", 187, 71, FitnessLevel.Normal, 3, 5, 29, "CountryB", new[] { 29, 55, 48, 64, 70, 68, 71, 52, 47, 44, 26, 25, 29, 63, 61, 55, 70, 65, 56, 59, 77, 78, 15, 15, 22, 15, 18 }),
-            P(215, "James", "Johnson", 54, PositionGroup.Defender, "RB", 183, 77, FitnessLevel.Normal, 4, 5, 23, "CountryA", new[] { 37, 62, 57, 62, 71, 66, 61, 50, 49, 68, 33, 50, 44, 77, 57, 67, 65, 73, 57, 62, 59, 33, 15, 15, 22, 15, 18 }),
-            P(216, "Chris", "Martin", 80, PositionGroup.Midfielder, "AM", 175, 77, FitnessLevel.High, 5, 5, 24, "CountryB", new[] { 25, 64, 48, 80, 49, 54, 55, 67, 70, 74, 74, 89, 88, 44, 56, 69, 70, 65, 60, 63, 51, 65, 15, 15, 22, 15, 18 }),
-            P(217, "Thomas", "Thomas", 76, PositionGroup.Midfielder, "CM", 175, 59, FitnessLevel.Normal, 2, 5, 26, "CountryA", new[] { 29, 57, 55, 63, 48, 47, 48, 73, 76, 68, 46, 63, 56, 48, 58, 63, 70, 69, 60, 64, 43, 35, 15, 15, 22, 15, 18 }),
-            P(218, "Michael", "White", 84, PositionGroup.Midfielder, "RW", 176, 79, FitnessLevel.Low, 2, 5, 21, "CountryB", new[] { 30, 58, 43, 50, 24, 23, 49, 59, 61, 68, 59, 57, 58, 73, 56, 67, 66, 58, 65, 65, 45, 40, 15, 15, 22, 15, 18 }),
-            P(219, "John", "Jackson", 79, PositionGroup.Forward, "ST", 186, 63, FitnessLevel.Normal, 1, 5, 27, "CountryB", new[] { 38, 62, 52, 66, 14, 23, 19, 30, 42, 35, 65, 52, 55, 24, 39, 55, 58, 50, 50, 46, 32, 64, 15, 15, 22, 15, 18 }),
-            P(220, "James", "Anderson", 82, PositionGroup.Defender, "RB", 187, 58, FitnessLevel.High, 3, 5, 29, "CountryC", new[] { 27, 67, 55, 77, 72, 74, 70, 56, 59, 75, 40, 47, 54, 67, 62, 57, 66, 65, 78, 76, 60, 69, 15, 15, 22, 15, 18 }),
+            P(212, "Yuki", "Martin", 82, PositionGroup.Goalkeeper, "GK", 192, 51, FitnessLevel.Low, 5, 4, 22, "CountryA", new[] { 31, 34, 46, 34, 20, 20, 68, 35, 41, 25, 12, 15, 20, 66, 50, 34, 42, 50, 60, 7, 39, 23, 69, 67, 49, 66, 70 }),
+            P(213, "Elias", "White", 5, PositionGroup.Defender, "CB", 187, 52, FitnessLevel.Normal, 2, 5, 26, "CountryA", new[] { 82, 41, 61, 50, 70, 65, 68, 61, 56, 48, 23, 21, 23, 60, 57, 52, 52, 62, 73, 60, 36, 65, 15, 15, 22, 15, 18 }),
+            P(214, "Daniel", "Haddad", 52, PositionGroup.Defender, "CB", 177, 58, FitnessLevel.Normal, 5, 3, 19, "CountryB", new[] { 75, 21, 40, 47, 64, 65, 63, 43, 59, 43, 22, 23, 25, 43, 44, 46, 74, 75, 58, 63, 50, 38, 15, 15, 22, 15, 18 }),
+            P(215, "Michael", "Harris", 62, PositionGroup.Defender, "LB", 179, 54, FitnessLevel.Normal, 5, 5, 25, "CountryB", new[] { 47, 26, 53, 40, 69, 68, 61, 49, 45, 75, 31, 35, 53, 37, 54, 53, 68, 70, 61, 71, 64, 56, 15, 15, 22, 15, 18 }),
+            P(216, "James", "Silva", 67, PositionGroup.Midfielder, "CM", 166, 76, FitnessLevel.Normal, 5, 3, 25, "CountryB", new[] { 31, 34, 44, 19, 50, 47, 50, 76, 77, 69, 53, 63, 56, 52, 57, 57, 70, 64, 47, 60, 45, 43, 15, 15, 22, 15, 18 }),
+            P(217, "David", "Tanaka", 8, PositionGroup.Midfielder, "CM", 180, 52, FitnessLevel.Normal, 4, 5, 18, "CountryB", new[] { 35, 65, 35, 27, 53, 43, 47, 62, 64, 55, 46, 56, 51, 54, 45, 55, 52, 44, 35, 47, 35, 57, 15, 15, 22, 15, 18 }),
+            P(218, "Luca", "Smith", 11, PositionGroup.Midfielder, "LW", 174, 58, FitnessLevel.Normal, 5, 3, 21, "CountryA", new[] { 61, 13, 60, 29, 26, 29, 44, 67, 65, 76, 54, 62, 65, 33, 54, 61, 71, 78, 50, 39, 64, 58, 15, 15, 22, 15, 18 }),
+            P(219, "Richard", "Harris", 24, PositionGroup.Forward, "ST", 181, 65, FitnessLevel.Normal, 5, 2, 28, "CountryB", new[] { 56, 57, 68, 48, 26, 27, 26, 42, 52, 49, 70, 74, 74, 54, 60, 64, 65, 66, 56, 72, 83, 64, 15, 15, 22, 15, 18 }),
+            P(220, "Kofi", "White", 74, PositionGroup.Forward, "ST", 188, 53, FitnessLevel.Normal, 4, 5, 28, "CountryB", new[] { 20, 42, 73, 54, 24, 20, 23, 51, 54, 51, 85, 69, 80, 49, 67, 64, 51, 61, 50, 32, 58, 51, 15, 15, 22, 15, 18 }),
             };
             return (starters, bench);
         }

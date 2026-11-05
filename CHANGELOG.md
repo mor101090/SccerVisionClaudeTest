@@ -2,6 +2,25 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/new-generator-squads`
+
+**New squads from the generator's realism round** ([PR #22](https://github.com/SoccerVision/soccer-vision-players-stats/pull/22), live at soccer-api.dev-spirit.com since 2026-11-05).
+- **All three levels, and the medium squads too, now come from the API** (seeds 101 and 202, as before; the medium squads used to be saved from the old generator): weaker /
+  normal / excellent, 46 players each. Average attribute: weak 44.1 -> 42.9, medium 55.2 -> 53.4, strong 70.3 -> 66.3 (an excellent player averages 77 overall, not 83:
+  the generator no longer piles the excellent level at the 99 ceiling). Every player is the generator's; the weak-foot stars (1-5) and ages follow its new model
+  (strong: 22 of 46 players with 4-5 stars, as in the real top divisions' best players).
+- **Strong / weak spreads re-fitted** (`TeamStrengthScaling`): with the new squads and the old 1.2 / 0.5, the top was too strong (strong v weak 90.8%, real 85%; strong v medium 79.3%,
+  real 73%) and medium v weak 58% (real 54%). Tried on 150 matches a seat, seats pooled, seed 500: strong spread 1.0 fits strong v medium (74.7%); the weak spread moves
+  medium v weak by about 10 points between 0.5 (58%) and 0.4 (48.5%). **1.0 / 0.45**, two seeds (500 and 900, 300 matches a pairing, strong / draw / weak):
+  | | engine | real (eight leagues) |
+  |---|---|---|
+  | strong v weak | 87.3 / 11 / 2.1, goals 2.46-0.29 | 85 / 11 / 4, 2.82-0.63 |
+  | strong v medium | 77.4 / 19 / 3.5, 2.32-0.56 | 73 / 17 / 10, 2.31-0.84 |
+  | medium v weak | 54.0 / 32.5 / 13.5, 1.35-0.62 | 54 / 27 / 19, 1.69-0.98 |
+
+  Within the noise of 300 matches (about 3-4 points a cell), but the bottom side wins and scores less than a real one (4 / 10 / 19% of its matches v 2 / 4 / 14%; 0.29-0.62 goals v
+  0.63-0.98) - the weak squads are a little too weak or too passive; not changed further on this evidence.
+
 ## `feature/weak-foot-stars`
 
 **The weaker foot in stars, 1 to 5.** How other games show it (read through a search): EA FC rates the weaker foot in 1-5 stars on the player card
