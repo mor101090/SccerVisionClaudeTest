@@ -15,12 +15,7 @@ import {
   setPendingEmail,
   setRecoveryUser,
 } from "@/server/auth-flow";
-import {
-  attemptSnapshot,
-  clearFailures,
-  countedFailure,
-  lockedMinutes,
-} from "@/server/login-throttle";
+import { clearFailures, lockedMinutes, recordFailure } from "@/server/login-throttle";
 import {
   acceptTerms,
   completeProfile,
@@ -90,7 +85,6 @@ export async function signInAction(_prev: AuthFormState, form: FormData): Promis
   }
 
   const supabase = await supabaseServer();
-  const before = await attemptSnapshot(email);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   const e: AuthError = error;
   if (e) {
@@ -109,7 +103,7 @@ export async function signInAction(_prev: AuthFormState, form: FormData): Promis
       };
     }
     if (kind === "invalid_credentials") {
-      const left = await countedFailure(email, before);
+      const left = await recordFailure(email);
       return {
         values,
         fields: { password: "Wrong email or password." },
@@ -344,7 +338,6 @@ export async function linkSignInAction(
     return { values, error: `Logins for this email are paused for ${paused} more minutes.` };
   }
   const supabase = await supabaseServer();
-  const before = await attemptSnapshot(email);
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   const e: AuthError = error;
   if (e) {
@@ -353,7 +346,7 @@ export async function linkSignInAction(
     if (pausedNow > 0) {
       return { values, error: `Logins for this email are paused for ${pausedNow} more minutes.` };
     }
-    const left = await countedFailure(email, before);
+    const left = await recordFailure(email);
     return {
       values,
       fields: { password: "Wrong password." },

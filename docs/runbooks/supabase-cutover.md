@@ -18,8 +18,9 @@ Run every step on **dev first** (Supabase dev project `mcrglsqpxyrbazwzrnzg`, Ne
 3. **Migrate the prod schema:** `DATABASE_URL_UNPOOLED=<prod direct url> yarn db:migrate` from `app/`. This creates the
    tables, the `replays` bucket, the lobby Realtime trigger and the password-lockout hook function.
 4. **Turn on the password hook.** Authentication → Hooks → Password verification attempt → Postgres function
-   `public.hook_password_verification_attempt`. The migration only creates the function. Until this switch is on, a
-   script with the publishable key can sign in without the per-email lockout. Do this on dev and on prod.
+   `public.hook_password_verification_attempt`. While an email is paused, this rejects a correct password on the
+   Auth API as well as in the app, with the same invalid-credentials error as a wrong password. The Server Actions
+   own the failure counter. Do this on dev and on prod.
 5. **Set the Vercel Production env and GitHub secrets** (see "Environment" in CLAUDE.md). Keep the Neon values until step 3 of
    the cutover.
 6. **Rehearse on dev:** delete the `yarn e2e:seed` accounts on Supabase dev, run the migration script against Neon `dev`, then `yarn e2e:seed` again. Then sign in with Google, play a

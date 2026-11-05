@@ -95,10 +95,11 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   the reference for color roles is the Login screen (node 541-2333). Never hard-code hex in components.
 - **Auth flow** (`features/auth/actions.ts`): every sign-in path ends in `nextPathAfterSignIn()` → `/auth/finish` until the
   profile has a username + terms (`profiles` table), then `redirectTo`. Password logins are throttled per email
-  (`server/login-throttle.ts`, 5 failures / 15 min). The same counter is applied to every password grant by
-  `hook_password_verification_attempt` (`drizzle/0003_password_lockout_hook.sql`), including a script that calls the
-  Auth API with the publishable key. That hook has to be enabled in the dashboard (Authentication → Hooks); until it
-  is, only the Server Actions record failures. Classify Supabase Auth errors with `classifyAuthError()`. Emails
+  (`server/login-throttle.ts`, 5 failures / 15 min), one atomic increment per attempt in the Server Actions.
+  The browser client refuses password grants (`password-grant.ts`). `hook_password_verification_attempt`
+  (`drizzle/0003_password_lockout_hook.sql`) rejects a correct password while that email is paused, including a
+  direct Auth API call, and it uses Supabase's invalid-credentials message so the pause is not an account oracle.
+  Enable that hook under Authentication → Hooks. Classify Supabase Auth errors with `classifyAuthError()`. Emails
   pending verification/reset live in an httpOnly cookie, never in URLs. Password, sign-up, code and reset flows go
   through the Server Actions. The browser client refuses password grants (`password-grant.ts`); it is only for social
   sign-in (`signInWithOAuth`, PKCE → `/auth/callback`), linking and Realtime.

@@ -8,9 +8,9 @@ Each round of changes is developed on its own branch, named after what it change
 Facebook and Discord built in. Plan: `docs/plans/supabase-migration.md`; cutover: `docs/runbooks/supabase-cutover.md`.
 - **Login**: Google, Facebook (no longer "coming soon") and Discord. Email sign-up keeps the 6-digit code, the reset link keeps its
   screens; the per-email lockout and the anti-enumeration answers are unchanged (Server Actions on `@supabase/ssr`).
-  The browser client refuses password grants. The password verification hook counts grants that call the Auth API
-  directly (enable it under Authentication → Hooks). A reset changes the password only on the recovery session that
-  redeemed the link, not on an ordinary login.
+  The browser client refuses password grants. A reset changes the password only on the recovery session that
+  redeemed the link, not on an ordinary login. While an email is paused, the password hook rejects a correct
+  password on the Auth API too, with the same invalid-credentials error as a wrong password.
 - **Database**: Supabase Postgres through the transaction pooler (postgres-js); users are `auth.users`, display names moved to
   `profiles.display_name`; RLS on every table (the Data API can't read them). One fresh baseline migration.
 - **Replays**: Supabase Storage (private `replays` bucket), read and written by the server only.

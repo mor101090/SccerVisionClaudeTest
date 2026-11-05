@@ -19,60 +19,6 @@ function keyFor(email: string): string {
   return createHash("sha256").update(`login:${email.trim().toLowerCase()}`).digest("hex");
 }
 
-/** The counter row, as it was before a password grant, so a hook write is not counted twice. */
-export type AttemptSnapshot = {
-  failures: number;
-  windowStartedAt: string;
-  lockedUntil: string | null;
-};
-
-export async function attemptSnapshot(email: string): Promise<AttemptSnapshot | null> {
-  const [row] = await db()
-    .select({
-      failures: loginAttempts.failures,
-      windowStartedAt: loginAttempts.windowStartedAt,
-      lockedUntil: loginAttempts.lockedUntil,
-    })
-    .from(loginAttempts)
-    .where(eq(loginAttempts.key, keyFor(email)));
-  if (!row) return null;
-  return {
-    failures: row.failures,
-    windowStartedAt: row.windowStartedAt.toISOString(),
-    lockedUntil: row.lockedUntil?.toISOString() ?? null,
-  };
-}
-
-function sameSnapshot(a: AttemptSnapshot | null, b: AttemptSnapshot | null): boolean {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  return (
-    a.failures === b.failures &&
-    a.windowStartedAt === b.windowStartedAt &&
-    a.lockedUntil === b.lockedUntil
-  );
-}
-
-/** Tries left from a counter the password hook already updated. */
-function triesLeft(snapshot: AttemptSnapshot | null): number {
-  return Math.max(0, LOGIN_MAX_FAILURES - (snapshot?.failures ?? 0));
-}
-
-/**
- * One failed password grant. The Auth hook records it for every grant, including ones that skip
- * these Server Actions. When the hook did not write (it is off, or the email has no account),
- * this records the failure itself.
- */
-export async function countedFailure(
-  email: string,
-  before: AttemptSnapshot | null,
-): Promise<number> {
-  if ((await lockedMinutes(email)) > 0) return 0;
-  const after = await attemptSnapshot(email);
-  if (!sameSnapshot(before, after)) return triesLeft(after);
-  return recordFailure(email);
-}
-
 /** Minutes until password login opens again for this email, or 0 when it is open. */
 export async function lockedMinutes(email: string): Promise<number> {
   const [row] = await db()

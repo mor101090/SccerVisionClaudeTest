@@ -12,7 +12,6 @@ export function isPasswordGrant(input: RequestInfo | URL): boolean {
 /**
  * Fetch for the browser Supabase client. Password grants are refused here: they would skip the
  * per-email lockout in the Server Actions. Session refresh, OAuth and Realtime still go through.
- * A script that calls the Auth API directly is counted by `hook_password_verification_attempt`.
  */
 export function browserAuthFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   if (isPasswordGrant(input)) {
