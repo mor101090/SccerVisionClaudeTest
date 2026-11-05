@@ -1,0 +1,75 @@
+# Pull request checks: nothing is deployed. Required checks (see .github/rulesets/main.json):
+#   check (lint|typecheck|format:check|test)  one job per script, in parallel
+#   build  after all four are green: the production build (`vercel build` with the Production env)
+# The full Playwright suite runs once a day, not per PR (e2e.yml).
+# Deploying happens only on main (vercel.yml).
+#
+# Secrets: VERCEL_TOKEN. Variables: VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+name: PR
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+jobs:
+  check:
+    # One job per script, in parallel; each installs first (Yarn cache shared through setup-node).
+    strategy:
+      fail-fast: false
+      matrix:
+        script: [lint, typecheck, "format:check", test]
+    name: check (${{ matrix.script }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable corepack (Yarn 4 from packageManager)
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: app/.nvmrc
+          cache: yarn
+          cache-dependency-path: app/yarn.lock
+      - run: yarn install --immutable
+      - run: yarn ${{ matrix.script }}
+
+  build:
+    # Only once every check is green: the production build (Production env, no deploy), the same build main deploys,
+    # so a production-only failure fails here, before the merge. Fork PRs get no secrets: plain build.
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable corepack (Yarn 4 from packageManager)
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: app/.nvmrc
+          cache: yarn
+          cache-dependency-path: app/yarn.lock
+      - run: yarn install --immutable
+      - name: yarn build (vercel build, Production env)
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then yarn build; exit 0; fi
+          npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+          bash ../tools/ci/drop-sensitive-placeholders.sh .vercel/.env.production.local production
+          npx vercel@latest build --prod --token="$VERCEL_TOKEN"

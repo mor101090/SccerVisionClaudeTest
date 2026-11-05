@@ -36,8 +36,16 @@ const clientSchema = z.object({
 
 const isServer = typeof window === "undefined";
 
+/**
+ * Empty values count as unset. `vercel pull` writes Sensitive variables as "" (their values can't be read back), so
+ * a CI build with the pulled env would otherwise fail on them; the deployment gets the real values at runtime.
+ */
+export function blankToUnset(values: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === "" ? undefined : v]));
+}
+
 function parse<T extends z.ZodType>(schema: T, values: Record<string, unknown>): z.infer<T> {
-  const result = schema.safeParse(values);
+  const result = schema.safeParse(blankToUnset(values));
   if (!result.success) {
     console.error("Invalid environment variables:", z.flattenError(result.error).fieldErrors);
     throw new Error("Invalid environment variables");

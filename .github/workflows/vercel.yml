@@ -1,31 +1,25 @@
-# Deploys the Next.js app (app/) to Vercel project soccer-vision.
+# Deploys the Next.js app (app/) to production on every push to main: https://soccer.dev-spirit.com (Neon branch main).
+# Pull requests are only checked (pr.yml), never deployed.
 #
-#   Pull request          -> preview deployment, link commented on the PR
-#                            DB: shared Neon branch `dev` (migrations applied, additive only)
-#                            Label `own-db` -> own Neon branch `preview/pr-<n>` (from dev, auto-expires)
-#   Push to main          -> production (https://soccer.dev-spirit.com), Neon branch `main`
-#   PR closed / unlabeled -> its `preview/pr-<n>` branch is deleted (see neon-cleanup job)
-#
-# The engine (C# -> WebAssembly) and the classic page are built here, then the app is built with
-# `vercel build` and uploaded prebuilt from a folder without .git (Hobby plan accepts any commit author).
+# The engine (C# -> WebAssembly) and the classic page are built here, then the app is built with `vercel build` and
+# uploaded prebuilt from a folder without .git (Hobby plan accepts any commit author). Vercel's own Git deployments are
+# off (root vercel.json `git.deploymentEnabled: false`): this workflow is the only deployer.
 #
 # Secrets: VERCEL_TOKEN, NEON_API_KEY. Variables: VERCEL_ORG_ID, VERCEL_PROJECT_ID, NEON_PROJECT_ID.
-name: Vercel
+name: Deploy
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled, closed]
   push:
     branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: vercel-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # never cancel a production deploy half-way; the next push waits
+  group: deploy-production
+  cancel-in-progress: false
 
 permissions:
   contents: read
-  pull-requests: write
 
 env:
   VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
@@ -38,162 +32,16 @@ env:
 
 jobs:
   deploy:
-    # Fork PRs get no secrets; closed PRs only need cleanup.
-    if: >-
-      github.event.action != 'closed' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    outputs:
-      url: ${{ steps.deploy.outputs.url }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Enable corepack (Yarn 4 from packageManager)
-        run: corepack enable
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: app/.nvmrc
-          cache: yarn
-          cache-dependency-path: app/yarn.lock
-
-      - name: Install
-        working-directory: app
-        run: yarn install --immutable
-
-      - name: Build engine (WASM) and classic page
-        working-directory: app
-        run: yarn assets:build
-
-      - name: Choose environment and Neon branch
-        id: env
-        run: |
-          if [ "${{ github.event_name }}" = pull_request ]; then
-            echo "vercel_env=preview" >> "$GITHUB_OUTPUT"
-            echo "prod=" >> "$GITHUB_OUTPUT"
-            if [ "${{ contains(github.event.pull_request.labels.*.name, 'own-db') }}" = true ]; then
-              echo "neon_branch=preview/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-              echo "own_db=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "neon_branch=dev" >> "$GITHUB_OUTPUT"
-              echo "own_db=false" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "vercel_env=production" >> "$GITHUB_OUTPUT"
-            echo "prod=--prod" >> "$GITHUB_OUTPUT"
-            echo "neon_branch=main" >> "$GITHUB_OUTPUT"
-            echo "own_db=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Neon env of this preview's branch (dev, or its own branch with label own-db)
-        # Every preview runs on the Neon branch this job migrates and trusts for Neon Auth. (The Vercel<>Neon
-        # integration also sets a per-git-branch DATABASE_URL to a branch of its own: the deploy below overrides it.)
-        if: steps.env.outputs.vercel_env == 'preview'
-        working-directory: app
-        run: |
-          branch="${{ steps.env.outputs.neon_branch }}"
-          if [ "${{ steps.env.outputs.own_db }}" = true ] && ! npx neon branches get "$branch" --project-id "$NEON_PROJECT_ID" >/dev/null 2>&1; then
-            # Creating through neon.ts provisions Auth + buckets and applies the preview/* policy (TTL).
-            npx neon link --project-id "$NEON_PROJECT_ID" --branch dev -y --no-env-pull
-            npx neon checkout "$branch" --create --no-env-pull
-          fi
-          npx neon env pull --project-id "$NEON_PROJECT_ID" --branch "$branch" --file .env.branch
-          # Mask the secrets. Only those: masking a plain value such as NEON_BRANCH=dev would also mask it inside the
-          # deployment URL (*-dev-spirit.vercel.app), and GitHub then drops the job's `url` output (e2e is skipped).
-          while IFS='=' read -r k v; do
-            case "$k" in
-              DATABASE_URL|DATABASE_URL_UNPOOLED|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|NEON_REALTIME_SECRET) ;;
-              *) continue ;;
-            esac
-            v="${v%\"}"; v="${v#\"}"
-            echo "::add-mask::$v"
-          done < .env.branch
-
-      - name: Migrate database
-        working-directory: app
-        run: |
-          url=$(npx neon connection-string "${{ steps.env.outputs.neon_branch }}" --project-id "$NEON_PROJECT_ID")
-          echo "::add-mask::$url"
-          DATABASE_URL_UNPOOLED="$url" yarn db:migrate
-
-      - name: Build (vercel)
-        working-directory: app
-        run: |
-          npx vercel@latest pull --yes --environment=${{ steps.env.outputs.vercel_env }} --token="$VERCEL_TOKEN"
-          npx vercel@latest build ${{ steps.env.outputs.prod }} --token="$VERCEL_TOKEN"
-
-      - name: Deploy
-        id: deploy
-        working-directory: app
-        run: |
-          extra=()
-          if [ "${{ steps.env.outputs.vercel_env }}" = preview ]; then
-            # Runtime env for this deployment only: point it at the Neon branch this job migrated.
-            for k in DATABASE_URL DATABASE_URL_UNPOOLED NEON_AUTH_BASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_ENDPOINT_URL_S3 AWS_REGION NEON_REALTIME_URL NEON_REALTIME_SECRET; do
-              v=$(grep -E "^$k=" .env.branch | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
-              [ -n "$v" ] && extra+=(-e "$k=$v")
-            done
-            # Cookie-signing key for this preview's sessions: fresh per deployment (previews share no sessions).
-            secret=$(openssl rand -base64 32)
-            echo "::add-mask::$secret"
-            extra+=(-e "NEON_AUTH_COOKIE_SECRET=$secret")
-          fi
-          # Deploy from app/ (the prebuilt output references files in node_modules), with .git moved
-          # aside so no commit metadata is sent: Vercel's Hobby plan then accepts any commit author.
-          mv ../.git ../.git-off
-          trap 'mv ../.git-off ../.git' EXIT
-          url=$(npx vercel@latest deploy --prebuilt ${{ steps.env.outputs.prod }} --yes "${extra[@]}" --token="$VERCEL_TOKEN")
-          echo "url=$url" >> "$GITHUB_OUTPUT"
-          echo "Deployed: $url (Neon branch: ${{ steps.env.outputs.neon_branch }})" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Trust this deployment's origin in Neon Auth
-        working-directory: app
-        run: |
-          npx neon neon-auth domain add "${{ steps.deploy.outputs.url }}" \
-            --project-id "$NEON_PROJECT_ID" --branch "${{ steps.env.outputs.neon_branch }}" || true
-
-      - name: Allow this deployment's origin in Neon Realtime
-        # Replaces the branch's list with neon.ts's static origins + this deployment, so the newest
-        # preview gets live lobbies; older previews fall back to polling.
-        working-directory: app
-        run: |
-          npx neon realtime enable --project-id "$NEON_PROJECT_ID" --branch "${{ steps.env.outputs.neon_branch }}" \
-            --allowed-origin http://localhost:3000 --allowed-origin http://localhost:3100 \
-            --allowed-origin https://soccer.dev-spirit.com \
-            --allowed-origin "${{ steps.deploy.outputs.url }}" || true
-
-      - name: Comment the preview link on the PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        env:
-          URL: ${{ steps.deploy.outputs.url }}
-          BRANCH: ${{ steps.env.outputs.neon_branch }}
-        with:
-          script: |
-            const marker = '<!-- vercel-preview -->';
-            const sha = context.payload.pull_request.head.sha.slice(0, 7);
-            const body = `${marker}\n**Vercel preview** for \`${sha}\`: ${process.env.URL}\n\nNeon branch: \`${process.env.BRANCH}\` (add the \`own-db\` label for an isolated database)\n\nProduction (main): https://soccer.dev-spirit.com`;
-            const { owner, repo } = context.repo, issue_number = context.issue.number;
-            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
-            const old = comments.find((c) => c.body.includes(marker));
-            if (old) await github.rest.issues.updateComment({ owner, repo, comment_id: old.id, body });
-            else await github.rest.issues.createComment({ owner, repo, issue_number, body });
-
-  e2e:
-    needs: deploy
-    if: github.event_name == 'pull_request' && needs.deploy.outputs.url != ''
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
     defaults:
       run:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
       - name: Enable corepack (Yarn 4 from packageManager)
         run: corepack enable
       - uses: actions/setup-node@v4
@@ -202,25 +50,45 @@ jobs:
           cache: yarn
           cache-dependency-path: app/yarn.lock
       - run: yarn install --immutable
-      - run: yarn playwright install --with-deps chromium
-      - name: Smoke test the preview
-        env:
-          E2E_BASE_URL: ${{ needs.deploy.outputs.url }}
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-          CI: "true"
-        run: yarn playwright test tests/e2e/auth.spec.ts tests/e2e/match.spec.ts tests/e2e/classic.spec.ts tests/e2e/team.spec.ts
 
-  neon-cleanup:
-    # Delete the PR's own Neon branch when the PR closes or loses the own-db label.
-    if: >-
-      github.event_name == 'pull_request' &&
-      (github.event.action == 'closed' || (github.event.action == 'unlabeled' && github.event.label.name == 'own-db'))
+      - name: Build engine (WASM) and classic page
+        run: yarn assets:build
+
+      - name: Migrate the production database
+        run: |
+          url=$(npx neon connection-string main --project-id "$NEON_PROJECT_ID")
+          echo "::add-mask::$url"
+          DATABASE_URL_UNPOOLED="$url" yarn db:migrate
+
+      - name: Build (vercel, Production env)
+        run: |
+          npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+          bash ../tools/ci/drop-sensitive-placeholders.sh .vercel/.env.production.local production
+          npx vercel@latest build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy to production
+        run: |
+          # From app/ (the prebuilt output references node_modules), with .git moved aside so no commit metadata is
+          # sent: Vercel's Hobby plan then accepts any commit author.
+          mv ../.git ../.git-off
+          trap 'mv ../.git-off ../.git' EXIT
+          url=$(npx vercel@latest deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN")
+          echo "Deployed: $url -> https://soccer.dev-spirit.com" >> "$GITHUB_STEP_SUMMARY"
+
+  production-check:
+    # soccer.dev-spirit.com must serve the site after the deploy (catches an empty or broken deployment).
+    needs: deploy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Delete preview/pr-${{ github.event.pull_request.number }}
+      - name: soccer.dev-spirit.com answers
         run: |
-          npx --yes neon branches delete "preview/pr-${{ github.event.pull_request.number }}" \
-            --project-id "$NEON_PROJECT_ID" 2>&1 || echo "No branch to delete."
+          for path in / /home /play /auth/sign-in; do
+            code=000
+            for i in 1 2 3 4 5 6; do
+              code=$(curl -sL -o /dev/null -w '%{http_code}' "https://soccer.dev-spirit.com$path" || echo 000)
+              [ "$code" = 200 ] && break
+              sleep 10
+            done
+            if [ "$code" != 200 ]; then echo "::error::https://soccer.dev-spirit.com$path answered $code"; exit 1; fi
+            echo "$path: 200"
+          done

@@ -45,21 +45,27 @@ Engine tests (repo root): `dotnet test sim/` takes **28–45 minutes**. Run a fi
 | | Vercel env | Neon branch |
 |---|---|---|
 | Local | — (`.env.local`, from `neon checkout dev`) | `dev` |
-| PR preview | Preview | `dev` (shared). Label **`own-db`** → own branch `preview/pr-<n>` |
+| Pull request (CI only, nothing deployed) | — | — (daily e2e uses `dev` and migrates it) |
 | Production | Production | `main` |
 
-CI (`.github/workflows/vercel.yml`) builds the engine, migrates the target branch, deploys prebuilt, adds the deployment URL
-to that branch's Neon Auth trusted domains, comments the link, and runs Playwright smoke tests against previews.
-Migrations on `dev` must be additive (shared by all previews); destructive ones need `own-db`.
-Previews get their runtime env from that Neon branch at deploy (`vercel deploy -e`, incl. a fresh
-`NEON_AUTH_COOKIE_SECRET`); this overrides the per-git-branch `DATABASE_URL` the Vercel<>Neon integration sets.
+**PRs are checked, `main` is deployed.** `.github/workflows/pr.yml` runs these checks on every PR, all required by the
+`main` ruleset (`.github/rulesets/main.json`: PR required, no reviews, no force push/deletion):
+`check (lint|typecheck|format:check|test)` (a matrix, in parallel), `build` (after all four are green: `vercel build`
+with the Production env, no deploy). The full Playwright suite runs daily at 18:00 UTC on weekdays
+(`.github/workflows/e2e.yml`, main's code against `yarn dev` in CI, on Neon `dev`; also Run workflow by hand). `.github/workflows/vercel.yml` runs only on `main`: engine build,
+migrate Neon `main`, `vercel build` + `deploy --prebuilt --prod`, then `production-check` (`/`, `/home`, `/play`,
+`/auth/sign-in` on soccer.dev-spirit.com must answer 200). Vercel's own Git deployments are off (root `vercel.json`).
+Migrations reach `dev` from the daily e2e run and local `yarn db:migrate`, so they must be additive. `vercel pull` writes Sensitive variables as placeholders:
+both builds run `tools/ci/drop-sensitive-placeholders.sh` (drops the keys the Vercel API lists as `sensitive`; Vercel
+sets the real values at runtime), and `env.ts` treats empty values as unset. Rulesets need GitHub Pro/Team for a private
+repo; apply with `gh api -X POST repos/SoccerVision/soccer-vision/rulesets --input .github/rulesets/main.json`.
 
 **Drizzle quirk:** `drizzle-kit generate` emits `CREATE TABLE "neon_auth"."user"` the first time a migration references it.
 Delete that statement from the generated SQL (see `drizzle/0000_init.sql`).
 
 ## Rules
 
-- **Branch → PR → Vercel preview.** Every branch gets its own PR. `main` is production (soccer.dev-spirit.com). Never commit to `main` directly.
+- **Branch → PR → green checks → merge.** Every branch gets its own PR. `main` is production (soccer.dev-spirit.com). Never commit to `main` directly.
 - **All new code is TypeScript.** Ported demo-page JS is converted, never copied as `.js`.
 - **Engine contracts are shared across runtimes.** Changing `sim/SoccerVision.Wasm/Program.cs` (LiveEngine exports), the replay
   frame layout (`sim/SoccerVision.Replay/ReplayRecorder.cs`) or `BridgeProtocol.cs` requires updating `app/src/engine/` (and
@@ -70,7 +76,7 @@ Delete that statement from the generated SQL (see `drizzle/0000_init.sql`).
 - **Lobby sync uses Neon Realtime** (`features/lobby/lobby-sync.ts`, `server/realtime.ts`): ONE live query (lobby row
   UNION ALL its inputs) so commits arrive atomically and in order — never split it into two subscriptions. Reads are
   pushed; the host writes only when it applied an input or every 30 frames. Polling is only the fallback when Realtime
-  is unavailable (503 / origin not allowed). Allowed origins: `neon.ts` + the CI step that adds each preview URL.
+  is unavailable (503 / origin not allowed). Allowed origins: `neon.ts` (localhost and soccer.dev-spirit.com).
 - **Env vars** are validated in `app/src/env.ts`. Never read `process.env` directly elsewhere.
 - Server data access: check the session in every Route Handler / Server Action (`currentUser()` / `withUser`), not only in `proxy.ts`.
 - **Auth screens follow Figma** (file `xMPwRHYFfISl5Q6nRADVM6`, group "Authentication flow" node 160-214). Colors come from

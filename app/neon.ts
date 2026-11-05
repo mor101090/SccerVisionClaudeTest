@@ -22,8 +22,8 @@ export default defineConfig({
   },
 
   // Live lobbies (beta): browsers subscribe to a sealed live query (src/server/realtime.ts).
-  // Only these origins may open the WebSocket. CI adds each preview deployment's origin to the
-  // branch it uses; anywhere else the lobby falls back to polling.
+  // Only these origins may open the WebSocket (local dev, the PR e2e job, production); anywhere else
+  // the lobby falls back to polling.
   preview: {
     realtime: {
       allowedOrigins: [
