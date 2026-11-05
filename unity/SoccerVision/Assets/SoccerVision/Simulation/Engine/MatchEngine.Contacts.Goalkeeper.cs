@@ -57,12 +57,12 @@ namespace SoccerVision.Simulation
         }
 
         /// <summary>The share of his full reach (3.2 m) a keeper has when the shot is on him at once (a quarter of a second or less).</summary>
-        public static float CloseReachBase = 0.2f;
+        public static float CloseReachBase = 0.3f;
         /// <summary>How much easier a shot from range is to save (1 = as before this round: +1.2 points a metre beyond 18 m, at most +12).</summary>
-        public static float RangeSaveScale = 0.3f;
+        public static float RangeSaveScale = 0.1f;
         /// <summary>How often a challenge outside the box is a foul (1 = as before this round). Real (Premier League, ten seasons, counted): 21.5 fouls a match; the engine had 16.5.
         /// Inside the box it is left as it was (the penalties were already right).</summary>
-        public static float FoulRate = 1.4f;
+        public static float FoulRate = 1.25f;
 
         private void SaveAttempt(PlayerAgent gk, bool allowCatch)
         {

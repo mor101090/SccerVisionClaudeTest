@@ -32,7 +32,7 @@ bool golden = false;
 int exportRoster = 0;
 // --home-strength / --away-strength weak|medium|strong: how good each demo squad is (medium: the squads the game always had)
 TeamStrength homeStrength = TeamStrength.Medium, awayStrength = TeamStrength.Medium;
-bool swap = false;
+bool swap = false; var adjusts = new List<(string Name, int Delta)>();
 for (int i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -62,6 +62,7 @@ for (int i = 0; i < args.Length; i++)
         case "--scoreeffect": TeamAgent.ScoreEffect = float.Parse(args[++i]); break; // (experiment: how strongly the score changes the way a team plays)
         case "--scorepatience": MatchEngine.ScorePatience = float.Parse(args[++i]); break; // (experiment)
         case "--patienttouch": MatchEngine.PatientTouch = float.Parse(args[++i]); break; // (experiment: the time a patient team takes on the ball)
+        case "--adjust": { var kv = args[++i].Split('='); adjusts.Add((kv[0], int.Parse(kv[1]))); break; } // (diagnosis: --adjust Stamina=4 adds 4 to that attribute of every player, both teams; repeatable)
         case "--chest": MatchEngine.ChestControlHeight = float.Parse(args[++i]); break; // (experiment: 0 = no chest control, as before)
         case "--shootkeeper": MatchEngine.ShootBeforeKeeper = float.Parse(args[++i]); break; // (experiment)
         case "--midshots": MatchEngine.MidRangeShotAppetite = float.Parse(args[++i]); break; // (experiment)
@@ -118,8 +119,17 @@ MatchConfig MakeConfig()
 }
 
 // --swap: Team B (the blue squad) plays at home and Team A away - the same two squads in the other seats, to tell a home edge from a difference between the squads
-TeamSetup Home() => WithTactics(swap ? DemoTeams.Blue(1001, homeStrength) : DemoTeams.Red(1001, homeStrength), homeTactics);
-TeamSetup Away() => WithTactics(swap ? DemoTeams.Red(1001, awayStrength) : DemoTeams.Blue(1001, awayStrength), awayTactics);
+TeamSetup Adjusted(TeamSetup t)
+{
+    foreach (var (name, delta) in adjusts)
+    {
+        var f = typeof(PlayerAttributes).GetField(name) ?? throw new ArgumentException("no attribute " + name);
+        foreach (var pl in t.Starters.Concat(t.Bench)) f.SetValue(pl.Attributes, Math.Clamp((int)f.GetValue(pl.Attributes) + delta, 1, 99));
+    }
+    return t;
+}
+TeamSetup Home() => WithTactics(Adjusted(swap ? DemoTeams.Blue(1001, homeStrength) : DemoTeams.Red(1001, homeStrength)), homeTactics);
+TeamSetup Away() => WithTactics(Adjusted(swap ? DemoTeams.Red(1001, awayStrength) : DemoTeams.Blue(1001, awayStrength)), awayTactics);
 
 static TeamSetup WithTactics(TeamSetup t, string spec)
 {

@@ -324,10 +324,10 @@ namespace SoccerVision.Simulation
             if (role == PlayerRole.ClassicWinger || role == PlayerRole.WideTargetMan) return false; // he stays wide
             bool inverted = (slot.BaseLateral > 0f) == (p.Attr.StrongFoot == Foot.Right);
             // (the trait: a winger with his strong foot inside, or a two-footed one, always looks to come in)
-            if (p.Has(PlayerTrait.CutsInsideToShoot) && (inverted || p.Attr.WeakFootRating >= 3)) return true;
+            if (p.Has(PlayerTrait.CutsInsideToShoot) && (inverted || p.Attr.WeakFootRating >= 4)) return true;
             float skill = (p.Attr.Dribbling + p.Attr.LongShots + p.Attr.Finishing + p.Attr.BallControl) / 4f;
             if (role == PlayerRole.InvertedWinger) return true; // the manager asked him to come inside: he does, whatever his skill (that only decides how well)
-            if (!inverted) return skill >= 62f && p.Attr.WeakFootRating >= 3; // a good two-footed winger cuts in too (3+ stars)
+            if (!inverted) return skill >= 62f && p.Attr.WeakFootRating >= 4; // a good two-footed winger cuts in too (4+ stars: 3 is the typical weaker foot - the generator gives it to 63% of players - and he stays wide and crosses)
             return skill >= 50f;
         }
     }
