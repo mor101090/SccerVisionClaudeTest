@@ -6,7 +6,8 @@
 -- Enable it in Authentication → Hooks → Password verification attempt.
 
 ALTER TABLE public.login_attempts
-  ADD COLUMN IF NOT EXISTS hook_counted_at timestamptz;--> statement-breakpoint
+  ADD COLUMN IF NOT EXISTS hook_counted_at timestamptz,
+  ADD COLUMN IF NOT EXISTS locked_at timestamptz;--> statement-breakpoint
 
 CREATE OR REPLACE FUNCTION public.hook_password_verification_attempt(event jsonb)
 RETURNS jsonb
@@ -45,8 +46,8 @@ BEGIN
 
   -- Wrong password: count it, then let Supabase return its normal invalid-credentials error.
   IF NOT coalesce((event->>'valid')::boolean, false) THEN
-    INSERT INTO public.login_attempts AS la (key, failures, window_started_at, locked_until, hook_counted_at)
-    VALUES (attempt_key, 1, now(), NULL, clock_timestamp())
+    INSERT INTO public.login_attempts AS la (key, failures, window_started_at, locked_until, locked_at, hook_counted_at)
+    VALUES (attempt_key, 1, now(), NULL, NULL, clock_timestamp())
     ON CONFLICT (key) DO UPDATE SET
       failures = CASE
         WHEN la.window_started_at < now() - interval '15 minutes' THEN 1
@@ -63,6 +64,18 @@ BEGIN
             ELSE la.failures + 1
           END
         ) >= 5 THEN now() + interval '15 minutes'
+        ELSE NULL
+      END,
+      locked_at = CASE
+        WHEN (
+          CASE
+            WHEN la.window_started_at < now() - interval '15 minutes' THEN 1
+            ELSE la.failures + 1
+          END
+        ) >= 5 THEN coalesce(
+          CASE WHEN la.locked_until > now() THEN la.locked_at ELSE NULL END,
+          clock_timestamp()
+        )
         ELSE NULL
       END,
       hook_counted_at = clock_timestamp();

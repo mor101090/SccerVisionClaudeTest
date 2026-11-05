@@ -30,6 +30,16 @@ export async function lockedMinutes(email: string): Promise<number> {
   return ms > 0 ? Math.ceil(ms / 60_000) : 0;
 }
 
+/** When the current pause began, or null when password login is open. */
+export async function passwordPauseStartedAt(email: string): Promise<Date | null> {
+  const [row] = await db()
+    .select({ lockedUntil: loginAttempts.lockedUntil, lockedAt: loginAttempts.lockedAt })
+    .from(loginAttempts)
+    .where(eq(loginAttempts.key, keyFor(email)));
+  if (!row?.lockedUntil || row.lockedUntil.getTime() <= Date.now()) return null;
+  return row.lockedAt ?? new Date(row.lockedUntil.getTime() - LOGIN_LOCK_MINUTES * 60_000);
+}
+
 /**
  * Counts one failed password login (atomically). A window older than LOGIN_LOCK_MINUTES restarts
  * at 1. Reaching LOGIN_MAX_FAILURES pauses password login for LOGIN_LOCK_MINUTES.
@@ -51,6 +61,7 @@ export async function recordFailure(email: string): Promise<number> {
         failures: sql`case when ${countedByHook} then ${loginAttempts.failures} else ${failures} end`,
         windowStartedAt: sql`case when ${countedByHook} then ${loginAttempts.windowStartedAt} when ${stale} then now() else ${loginAttempts.windowStartedAt} end`,
         lockedUntil: sql`case when ${countedByHook} then ${loginAttempts.lockedUntil} when ${failures} >= ${LOGIN_MAX_FAILURES} then now() + ${WINDOW} else null end`,
+        lockedAt: sql`case when ${countedByHook} then ${loginAttempts.lockedAt} when ${failures} >= ${LOGIN_MAX_FAILURES} then coalesce(case when ${loginAttempts.lockedUntil} > now() then ${loginAttempts.lockedAt} else null end, now()) else null end`,
       },
     })
     .returning({ failures: loginAttempts.failures });

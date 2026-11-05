@@ -2,6 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { clientEnv } from "@/env";
+import {
+  passwordAuthenticatedAt,
+  sessionStartedDuringPause,
+} from "@/features/auth/recovery-session";
+import { passwordPauseStartedAt } from "@/server/login-throttle";
 
 /** Member pages: signed-out visitors go to the login screen. /auth/finish needs a session to pick a username. */
 const PROTECTED = ["/account", "/matches", "/teams", "/leagues", "/lobby", "/team", "/auth/finish"];
@@ -33,7 +38,18 @@ export default async function proxy(request: NextRequest) {
 
   // Validates the JWT and refreshes it when expired; nothing may run between createServerClient and this call.
   const { data } = await supabase.auth.getClaims();
-  const signedIn = Boolean(data?.claims?.sub);
+  const claims = data?.claims;
+  let signedIn = Boolean(claims?.sub);
+  const email = typeof claims?.email === "string" ? claims.email : "";
+  if (signedIn && email) {
+    try {
+      const pauseStarted = await passwordPauseStartedAt(email);
+      if (sessionStartedDuringPause(passwordAuthenticatedAt(claims), pauseStarted))
+        signedIn = false;
+    } catch (err) {
+      console.error("[auth] lockout check failed", err);
+    }
+  }
 
   const path = request.nextUrl.pathname;
   if (!signedIn && isProtected(path)) {

@@ -31,7 +31,6 @@ import {
   fieldErrors,
   finishSchema,
   forgotSchema,
-  LOGIN_LOCK_MINUTES,
   resetSchema,
   safeRedirect,
   signInSchema,
@@ -51,6 +50,9 @@ export type AuthFormState = {
 } | null;
 
 const RATE_LIMITED = "Too many requests. Wait a minute and try again.";
+/** Same answer for a wrong password, an unknown address, and a pause, so the pause is not an account oracle. */
+const WRONG_PASSWORD =
+  "Wrong email or password. We upgraded our login: if you signed up with email before, reset your password once.";
 
 /** Unexpected auth failures: status and code only, never user input. */
 function logAuthError(step: string, e: AuthError): void {
@@ -80,7 +82,8 @@ export async function signInAction(_prev: AuthFormState, form: FormData): Promis
   if (paused > 0) {
     return {
       values,
-      error: `Too many wrong passwords. Logins for this email are paused for ${paused} more minute${paused === 1 ? "" : "s"}. Reset your password or use Google.`,
+      fields: { password: "Wrong email or password." },
+      error: WRONG_PASSWORD,
     };
   }
 
@@ -96,22 +99,12 @@ export async function signInAction(_prev: AuthFormState, form: FormData): Promis
     }
     if (isRateLimited(e)) return { values, error: RATE_LIMITED };
     const pausedNow = await lockedMinutes(email);
-    if (pausedNow > 0) {
-      return {
-        values,
-        error: `Too many wrong passwords. Logins for this email are paused for ${pausedNow} more minute${pausedNow === 1 ? "" : "s"}. Reset your password or use Google.`,
-      };
-    }
-    if (kind === "invalid_credentials") {
-      const left = await recordFailure(email);
+    if (pausedNow > 0 || kind === "invalid_credentials") {
+      if (kind === "invalid_credentials") await recordFailure(email);
       return {
         values,
         fields: { password: "Wrong email or password." },
-        error:
-          (left > 0
-            ? `Wrong email or password. ${left} ${left === 1 ? "try" : "tries"} left before we pause logins for ${LOGIN_LOCK_MINUTES} minutes.`
-            : `Wrong email or password. Logins for this email are paused for ${LOGIN_LOCK_MINUTES} minutes.`) +
-          " We upgraded our login: if you signed up with email before, reset your password once.",
+        error: WRONG_PASSWORD,
       };
     }
     logAuthError("sign-in", e);
@@ -334,27 +327,15 @@ export async function linkSignInAction(
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values };
   const { email, password } = parsed.data;
   const paused = await lockedMinutes(email);
-  if (paused > 0) {
-    return { values, error: `Logins for this email are paused for ${paused} more minutes.` };
-  }
+  if (paused > 0) return { values, fields: { password: "Wrong password." } };
   const supabase = await supabaseServer();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   const e: AuthError = error;
   if (e) {
     if (isRateLimited(e)) return { values, error: RATE_LIMITED };
     const pausedNow = await lockedMinutes(email);
-    if (pausedNow > 0) {
-      return { values, error: `Logins for this email are paused for ${pausedNow} more minutes.` };
-    }
-    const left = await recordFailure(email);
-    return {
-      values,
-      fields: { password: "Wrong password." },
-      error:
-        left > 0
-          ? undefined
-          : `Logins for this email are paused for ${LOGIN_LOCK_MINUTES} minutes.`,
-    };
+    if (!(pausedNow > 0)) await recordFailure(email);
+    return { values, fields: { password: "Wrong password." } };
   }
   await clearFailures(email);
   return { ok: true, values };

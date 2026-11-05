@@ -31,3 +31,37 @@ export function isRecoverySession(
   }
   return true;
 }
+
+/**
+ * When this session's password was accepted, or null if it is not a password session.
+ * Social and recovery sessions return null. The timestamp is the original grant; a refresh keeps it.
+ */
+export function passwordAuthenticatedAt(
+  claims: { amr?: unknown } | null | undefined,
+): number | null {
+  const amr = claims?.amr;
+  if (!Array.isArray(amr) || amr.length === 0) return null;
+  let at: number | null = null;
+  for (const entry of amr) {
+    if (!entry || typeof entry !== "object" || !("method" in entry)) return null;
+    const method = (entry as { method?: unknown }).method;
+    const timestamp = (entry as { timestamp?: unknown }).timestamp;
+    if (method !== "password" || typeof timestamp !== "number" || !Number.isFinite(timestamp)) {
+      return null;
+    }
+    at = at === null ? timestamp : Math.max(at, timestamp);
+  }
+  return at;
+}
+
+/** A password session issued once this pause had already started. Older sessions stay signed in. */
+export function sessionStartedDuringPause(
+  authenticatedAt: number | null,
+  pauseStartedAt: Date | null,
+  nowSec = Math.floor(Date.now() / 1000),
+): boolean {
+  if (authenticatedAt === null || pauseStartedAt === null) return false;
+  const start = Math.floor(pauseStartedAt.getTime() / 1000);
+  if (authenticatedAt > nowSec + SKEW_SEC) return false;
+  return authenticatedAt >= start;
+}

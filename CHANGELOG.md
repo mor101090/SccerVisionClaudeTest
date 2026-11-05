@@ -10,7 +10,8 @@ Facebook and Discord built in. Plan: `docs/plans/supabase-migration.md`; cutover
   screens; the per-email lockout and the anti-enumeration answers are unchanged (Server Actions on `@supabase/ssr`).
   The browser client refuses password grants. A reset changes the password only on the recovery session that
   redeemed the link, not on an ordinary login. The password hook counts direct password grants and rejects a
-  correct password during a pause with the same invalid-credentials error. An existing session stays signed in.
+  correct password during a pause with the same invalid-credentials error. The sign-in form gives that same
+  answer, and a password session opened after the pause began is not signed in. An older session stays.
 - **Database**: Supabase Postgres through the transaction pooler (postgres-js); users are `auth.users`, display names moved to
   `profiles.display_name`; RLS on every table (the Data API can't read them). One fresh baseline migration.
 - **Replays**: Supabase Storage (private `replays` bucket), read and written by the server only.

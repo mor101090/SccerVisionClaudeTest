@@ -4,7 +4,13 @@ import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { cache } from "react";
 
+import {
+  passwordAuthenticatedAt,
+  sessionStartedDuringPause,
+} from "@/features/auth/recovery-session";
+
 import { provisionalName } from "./auth-flow";
+import { passwordPauseStartedAt } from "./login-throttle";
 import { getProfile } from "./profiles";
 import { supabaseServer } from "./supabase";
 
@@ -25,6 +31,12 @@ export const currentUser = cache(async (): Promise<User | null> => {
   const claims = data?.claims;
   if (!claims?.sub) return null;
   const email = typeof claims.email === "string" ? claims.email : "";
+  // A password session opened after this pause began is not signed in. A session from before it,
+  // and a social session, keep working.
+  if (email) {
+    const pauseStarted = await passwordPauseStartedAt(email);
+    if (sessionStartedDuringPause(passwordAuthenticatedAt(claims), pauseStarted)) return null;
+  }
   const meta = (claims.user_metadata ?? {}) as { full_name?: unknown; name?: unknown };
   const socialName =
     typeof meta.full_name === "string"

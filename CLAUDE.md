@@ -99,8 +99,10 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   (`drizzle/0003_password_lockout_hook.sql`) counts every failed password grant, including a direct Auth API call,
   and rejects a correct password during a pause with Supabase's normal invalid-credentials error. That rejection
   does not sign out a session that already exists. A wrong password looks the same for a registered address and an
-  unknown one. The Server Action counts the attempt only when the hook did not. Enable the hook under
-  Authentication → Hooks. Classify Supabase Auth errors with `classifyAuthError()`. Emails
+  gets Supabase's normal invalid-credentials error whether or not the address is registered. The sign-in form
+  gives that same answer while an email is paused, with no remaining-try count. A password session opened
+  after the pause began is not signed in; a session from before it, and a social session, keep working. Enable
+  the hook under Authentication → Hooks. Classify Supabase Auth errors with `classifyAuthError()`. Emails
   pending verification/reset live in an httpOnly cookie, never in URLs. Password, sign-up, code and reset flows go
   through the Server Actions. The browser client refuses password grants (`password-grant.ts`); it is only for social
   sign-in (`signInWithOAuth`, PKCE → `/auth/callback`), linking and Realtime.

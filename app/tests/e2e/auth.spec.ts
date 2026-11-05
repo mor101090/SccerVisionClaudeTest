@@ -10,9 +10,11 @@ test.describe.serial("auth", () => {
     await expect(page.getByRole("heading", { name: "Login to your account" })).toBeVisible();
   });
 
-  test("wrong password shows the banner with tries left and keeps the email", async ({ page }) => {
+  test("wrong password shows the banner and keeps the email", async ({ page }) => {
     await fillSignIn(page, TEST_USER.email, "definitely-wrong-password");
-    await expect(page.getByRole("alert").filter({ hasText: /tries? left|paused/ })).toBeVisible();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Wrong email or password" }),
+    ).toBeVisible();
     await expect(page.getByLabel("Email address")).toHaveValue(TEST_USER.email);
     await expect(page).toHaveURL(/\/auth\/sign-in/);
   });
