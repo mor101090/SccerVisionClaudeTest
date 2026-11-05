@@ -1,8 +1,12 @@
--- While an email is paused, a correct password does not clear the pause. Wrong passwords are left to
--- Supabase's normal invalid-credentials response, for a registered address and an unknown one alike,
--- so the pause is not an account oracle. The Server Actions own the counter
--- (app/src/server/login-throttle.ts). This hook only reads it.
+-- Counts a failed password grant and enforces the pause for every password verification, including a
+-- direct Auth API call that never hits the Server Actions. The key matches app/src/server/login-throttle.ts
+-- (sha256 of "login:" + the normalized email). A wrong password gets Supabase's normal
+-- invalid-credentials result, whether or not the address is registered. A correct password during a pause
+-- is rejected with that same message and does not sign out a session that already exists.
 -- Enable it in Authentication → Hooks → Password verification attempt.
+
+ALTER TABLE public.login_attempts
+  ADD COLUMN IF NOT EXISTS hook_counted_at timestamptz;--> statement-breakpoint
 
 CREATE OR REPLACE FUNCTION public.hook_password_verification_attempt(event jsonb)
 RETURNS jsonb
@@ -16,8 +20,7 @@ DECLARE
   attempt_key text;
   prev_locked timestamptz;
 BEGIN
-  -- A wrong password, or a call with no user, gets Supabase's normal result.
-  IF coalesce(event->>'user_id', '') = '' OR NOT coalesce((event->>'valid')::boolean, false) THEN
+  IF coalesce(event->>'user_id', '') = '' THEN
     RETURN jsonb_build_object('decision', 'continue');
   END IF;
 
@@ -40,9 +43,39 @@ BEGIN
   FROM public.login_attempts AS la
   WHERE la.key = attempt_key;
 
-  -- Correct password during a pause: do not clear the counter. The app refuses the session.
-  IF prev_locked IS NOT NULL AND prev_locked > now() THEN
+  -- Wrong password: count it, then let Supabase return its normal invalid-credentials error.
+  IF NOT coalesce((event->>'valid')::boolean, false) THEN
+    INSERT INTO public.login_attempts AS la (key, failures, window_started_at, locked_until, hook_counted_at)
+    VALUES (attempt_key, 1, now(), NULL, clock_timestamp())
+    ON CONFLICT (key) DO UPDATE SET
+      failures = CASE
+        WHEN la.window_started_at < now() - interval '15 minutes' THEN 1
+        ELSE la.failures + 1
+      END,
+      window_started_at = CASE
+        WHEN la.window_started_at < now() - interval '15 minutes' THEN now()
+        ELSE la.window_started_at
+      END,
+      locked_until = CASE
+        WHEN (
+          CASE
+            WHEN la.window_started_at < now() - interval '15 minutes' THEN 1
+            ELSE la.failures + 1
+          END
+        ) >= 5 THEN now() + interval '15 minutes'
+        ELSE NULL
+      END,
+      hook_counted_at = clock_timestamp();
     RETURN jsonb_build_object('decision', 'continue');
+  END IF;
+
+  -- Correct password during a pause: no new session, and no session that already exists is signed out.
+  IF prev_locked IS NOT NULL AND prev_locked > now() THEN
+    RETURN jsonb_build_object(
+      'decision', 'reject',
+      'message', 'Invalid login credentials',
+      'should_logout_user', false
+    );
   END IF;
 
   DELETE FROM public.login_attempts WHERE key = attempt_key;

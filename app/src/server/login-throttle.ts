@@ -38,15 +38,19 @@ export async function lockedMinutes(email: string): Promise<number> {
 export async function recordFailure(email: string): Promise<number> {
   const stale = sql`${loginAttempts.windowStartedAt} < now() - ${WINDOW}`;
   const failures = sql`case when ${stale} then 1 else ${loginAttempts.failures} + 1 end`;
+  // The password hook counts a direct Auth API grant and stamps hook_counted_at. A Server Action
+  // runs just after that hook, so a fresh stamp means this attempt is already counted. With the
+  // hook off the stamp stays empty and every Server Action still counts.
+  const countedByHook = sql`${loginAttempts.hookCountedAt} > now() - interval '5 seconds'`;
   const [row] = await db()
     .insert(loginAttempts)
     .values({ key: keyFor(email), failures: 1 })
     .onConflictDoUpdate({
       target: loginAttempts.key,
       set: {
-        failures,
-        windowStartedAt: sql`case when ${stale} then now() else ${loginAttempts.windowStartedAt} end`,
-        lockedUntil: sql`case when ${failures} >= ${LOGIN_MAX_FAILURES} then now() + ${WINDOW} else null end`,
+        failures: sql`case when ${countedByHook} then ${loginAttempts.failures} else ${failures} end`,
+        windowStartedAt: sql`case when ${countedByHook} then ${loginAttempts.windowStartedAt} when ${stale} then now() else ${loginAttempts.windowStartedAt} end`,
+        lockedUntil: sql`case when ${countedByHook} then ${loginAttempts.lockedUntil} when ${failures} >= ${LOGIN_MAX_FAILURES} then now() + ${WINDOW} else null end`,
       },
     })
     .returning({ failures: loginAttempts.failures });
