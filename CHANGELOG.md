@@ -15,7 +15,7 @@ Each round of changes is developed on its own branch, named after what it change
 - **A test that pins the engine to real data** (`RealWorldPinTests`, 160 matches: medium v medium in all four marking pairings, both seats): goals 2.4-3.2 (real 2.83; measured 2.59 on its own seeds), shots 22-28 (25.4),
   fouls 19-24 (21.5), the zonal / man-to-man gap within 25 points (measured -2.5; about +25 before the goals round), the home edge with seats and systems swapped between -5 and 30 points (measured +15; real +12).
   The ranges are wide on purpose: they catch an engine that has wandered off, not a tenth of a goal.
-- **Tests**: TESTS_LINE
+- **Tests**: `dotnet test sim/` -> **Passed! 248 / 248** (13 m 11 s; the three new ones included). `yarn check` in `app/`: lint, typecheck and format clean, 58 / 58.
 
 ## `feature/goals-and-marking-gap`
 
