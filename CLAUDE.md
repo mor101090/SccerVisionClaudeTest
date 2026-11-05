@@ -113,6 +113,15 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   `linkIdentity` → `/auth/callback` → `/settings?linking=<p>` (success is read from the identities, a provider error
   arrives as `linkError`); Disconnect = `unlinkProviderAction`, refused for the last identity. Needs Supabase
   "Allow manual linking" ON (else `manual_linking_disabled`). Same-email verified sign-ins are linked automatically.
+  **Passkeys** (`features/auth/passkeys.ts`, `passkey-sign-in.tsx`, `passkey-settings.tsx`, `passkey-offer.tsx`): Supabase
+  WebAuthn (beta), relying party `soccer.dev-spirit.com` only (they can't work on localhost or *.vercel.app; changing
+  the RP ID breaks every passkey). Login: "Log in with a passkey" + autofill on the email field (`username webauthn`),
+  then `/auth/callback`. Settings → Passkeys: add / rename / remove. Supabase lets any valid session register a
+  passkey through its API, so the server enforces the 10-minute recent-login rule (`server/passkeys.ts`): the browser
+  registers, then `approvePasskeyAction` approves it (`approved_passkeys`) or deletes it. A passkey session (AMR method
+  `passkey`) counts only after `/auth/callback` vetted it (`passkey_sessions`, like `password_sessions`): the passkey
+  it used must be approved, else that passkey is deleted and the session signed out. After a fresh non-passkey sign-in, users without one get a
+  dismissible "Log in faster next time?" offer.
 - **Create your team** (`/team/new/{manager,club,kits,squad}`, `features/team/`, `server/teams.ts`): squads come from the
   team generator API (`SQUAD_API_URL`, POST `/api/v2/team`, 2 GK · 5 FB · 5 DEF · 5 MID · 2 WNG · 3 ST). The XI picker
   `features/team/lineup.ts` and attribute mapping `engine-team.ts` are ports of `tools/teams/build_teams.py`;

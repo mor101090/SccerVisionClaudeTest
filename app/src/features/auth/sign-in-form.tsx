@@ -12,6 +12,7 @@ import { TextField } from "@/components/ui/text-field";
 
 import { signInAction } from "./actions";
 import { AuthFooter } from "./auth-shell";
+import { PasskeySignIn } from "./passkey-sign-in";
 import { isSocialProvider, PROVIDER_LABEL } from "./providers";
 import { SocialButtons } from "./social-buttons";
 import { RedirectField, useAuthForm } from "./use-auth-form";
@@ -24,6 +25,8 @@ function ArrivalNotice() {
   const q = useSearchParams();
   if (q.get("reset"))
     return <Alert tone="success">Password updated. Login with your new password.</Alert>;
+  if (q.get("reauth"))
+    return <Alert tone="info">Log in again to continue. This keeps your account safe.</Alert>;
   if (q.get("verified")) return <Alert tone="success">Email verified. Login to continue.</Alert>;
   const notConnected = q.get("notConnected");
   if (notConnected && isSocialProvider(notConnected)) {
@@ -32,6 +35,14 @@ function ArrivalNotice() {
     return (
       <Alert tone="info">
         {PROVIDER_LABEL[notConnected]} wasn&apos;t connected to your account.{how}
+      </Alert>
+    );
+  }
+  if (q.get("error") === "passkey") {
+    return (
+      <Alert tone="error">
+        That passkey can&apos;t be used to log in. Log in another way, then add a passkey again in
+        Settings.
       </Alert>
     );
   }
@@ -63,7 +74,8 @@ export function SignInForm() {
           label="Email address"
           name="email"
           type="email"
-          autoComplete="email"
+          // "webauthn": the browser also offers saved passkeys here (PasskeySignIn).
+          autoComplete="username webauthn"
           placeholder="you@club.com"
           defaultValue={state?.values?.email}
           error={f.email}
@@ -93,6 +105,7 @@ export function SignInForm() {
           {pending ? "Logging in…" : "Login"}
         </Button>
       </form>
+      <PasskeySignIn />
       <DividerText>or login with</DividerText>
       <SocialButtons />
       <AuthFooter>

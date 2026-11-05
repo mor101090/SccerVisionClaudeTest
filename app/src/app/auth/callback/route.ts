@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { justAutoLinked } from "@/features/auth/linking";
+import { passkeyAuthenticatedAt } from "@/features/auth/passkeys";
 import { safeRedirect } from "@/features/auth/policy";
 import { currentUser } from "@/server/auth";
 import { nextPathAfterSignIn } from "@/server/auth-flow";
+import { vetPasskeySession } from "@/server/passkeys";
 import { supabaseServer } from "@/server/supabase";
 
 /**
@@ -19,6 +21,15 @@ export async function GET(request: NextRequest) {
     const { error } = await (await supabaseServer()).auth.exchangeCodeForSession(code);
     if (error)
       console.error("[auth] code exchange failed", { status: error.status, code: error.code });
+  }
+  // A passkey sign-in counts only if the passkey it used was approved by the app (server/passkeys.ts).
+  const { data: session } = await (await supabaseServer()).auth.getClaims();
+  if (
+    passkeyAuthenticatedAt(session?.claims) !== null &&
+    !(await vetPasskeySession(session?.claims))
+  ) {
+    await (await supabaseServer()).auth.signOut();
+    return NextResponse.redirect(new URL("/auth/sign-in?error=passkey", request.url));
   }
   const user = await currentUser();
   const providerError = params.get("error_code") ?? params.get("error");

@@ -89,6 +89,30 @@ export const passwordSessions = pgTable("password_sessions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }).enableRLS();
 
+/**
+ * Passkeys the app approved: added through Settings or the offer by a session with a recent login (checked on the
+ * server). Supabase lets any valid session register one directly; such a passkey is not here and can't sign in.
+ */
+export const approvedPasskeys = pgTable(
+  "approved_passkeys",
+  {
+    passkeyId: text("passkey_id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  // Foreign key column: the cascade from auth.users looks rows up by it.
+  (t) => [index("approved_passkeys_user_id_idx").on(t.userId)],
+).enableRLS();
+
+/** Passkey sessions the app vetted (/auth/callback: the passkey used is approved). Others are not signed in. */
+export const passkeySessions = pgTable("passkey_sessions", {
+  sessionId: text("session_id").primaryKey(),
+  userId: uuid("user_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();
+
 // ---------------------------------------------------------------- teams
 
 export type Kit = {

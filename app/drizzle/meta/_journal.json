@@ -36,6 +36,13 @@
       "when": 1793904000000,
       "tag": "0004_password_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793914957776,
+      "tag": "0005_passkey_approvals",
+      "breakpoints": true
     }
   ]
 }

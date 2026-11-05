@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/alert";
 import { Loading, Skeleton } from "@/components/ui/skeleton";
 import { ConnectedAccounts, type ProviderRow } from "@/features/auth/connected-accounts";
 import { linkNotice, unlinkNotice } from "@/features/auth/linking";
+import { PasskeySettings } from "@/features/auth/passkey-settings";
 import { SOCIAL_PROVIDERS } from "@/features/auth/providers";
 import { currentUser } from "@/server/auth";
 import { supabaseServer } from "@/server/supabase";
@@ -97,6 +98,12 @@ export default function SettingsPage(props: PageProps<"/settings">) {
         <Suspense fallback={<AccountsSkeleton />}>
           <Accounts searchParams={props.searchParams} />
         </Suspense>
+      </section>
+      <section className="flex flex-col gap-3" aria-labelledby="passkeys-title">
+        <h2 id="passkeys-title" className="text-lg font-bold">
+          Passkeys
+        </h2>
+        <PasskeySettings />
       </section>
     </main>
   );

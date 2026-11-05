@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { Brand, HeaderBar } from "@/components/brand";
 import { signOutAction } from "@/features/auth/actions";
+import { PasskeyOffer } from "@/features/auth/passkey-offer";
 import { initialsOf } from "@/features/team/ui/pieces";
 import { ManagerSkeleton } from "@/features/team/ui/team-skeleton";
 import { currentUser } from "@/server/auth";
@@ -61,6 +62,7 @@ export default function TeamLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
       </div>
+      <PasskeyOffer />
     </>
   );
 }

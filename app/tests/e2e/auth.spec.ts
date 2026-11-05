@@ -102,14 +102,23 @@ test.describe.serial("auth", () => {
       });
       expect(res.status(), path).toBe(404);
     }
-    // Google sign-in leaves for Supabase Auth's authorize endpoint (PKCE), back to /auth/callback.
+    // Google sign-in: with NEXT_PUBLIC_GOOGLE_CLIENT_ID straight to Google (ID token back to /auth/google), else
+    // through Supabase Auth's authorize endpoint (PKCE, back to /auth/callback).
     await page.goto("/auth/sign-in");
-    const authorize = page.waitForRequest((r) =>
-      r.url().includes("/auth/v1/authorize?provider=google"),
+    const authorize = page.waitForRequest(
+      (r) =>
+        r.url().includes("/auth/v1/authorize?provider=google") ||
+        r.url().startsWith("https://accounts.google.com/o/oauth2/v2/auth"),
     );
     await page.getByRole("button", { name: "Google" }).click();
     const url = new URL((await authorize).url());
-    expect(url.searchParams.get("redirect_to")).toContain("/auth/callback");
+    if (url.hostname === "accounts.google.com") {
+      expect(url.searchParams.get("redirect_uri")).toMatch(/\/auth\/google$/);
+      expect(url.searchParams.get("response_type")).toBe("id_token");
+      expect(url.searchParams.get("nonce")).toMatch(/^[0-9a-f]{64}$/);
+    } else {
+      expect(url.searchParams.get("redirect_to")).toContain("/auth/callback");
+    }
   });
 
   test("settings lists the social providers and Connect links one to this account", async ({

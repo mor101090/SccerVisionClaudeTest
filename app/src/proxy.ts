@@ -2,12 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { clientEnv } from "@/env";
+import { passkeyAuthenticatedAt } from "@/features/auth/passkeys";
 import { sessionIdOf } from "@/features/auth/password-session";
 import {
   passwordAuthenticatedAt,
   sessionStartedDuringPause,
 } from "@/features/auth/recovery-session";
 import { passwordPauseStartedAt } from "@/server/login-throttle";
+import { isAllowedPasskeySession } from "@/server/passkeys";
 import { isAllowedPasswordSession } from "@/server/password-sessions";
 
 /** Member pages: signed-out visitors go to the login screen. /auth/finish needs a session to pick a username. */
@@ -61,6 +63,16 @@ export default async function proxy(request: NextRequest) {
       signedIn = false;
     }
   }
+  if (signedIn && passkeyAuthenticatedAt(claims) !== null) {
+    try {
+      const sessionId = sessionIdOf(claims);
+      if (!sessionId || !(await isAllowedPasskeySession(sessionId))) signedIn = false;
+    } catch (err) {
+      console.error("[auth] passkey session check failed", err);
+      signedIn = false;
+    }
+  }
+
   if (signedIn && email) {
     try {
       const pauseStarted = await passwordPauseStartedAt(email);

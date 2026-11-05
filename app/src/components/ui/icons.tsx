@@ -26,6 +26,22 @@ export function EyeIcon({ className }: IconProps) {
   );
 }
 
+/** Passkey (a key). Not in the Figma export yet; drawn in the same 18px, 1.5px-stroke style. */
+export function PasskeyIcon({ className }: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden className={className}>
+      <circle cx="6" cy="9" r="3.75" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M9.75 9H16.5M14.25 9V11.25M16.5 9V10.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function CheckIcon({ className }: IconProps) {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden className={className}>

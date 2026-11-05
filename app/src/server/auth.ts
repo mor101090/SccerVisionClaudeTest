@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { cache } from "react";
 
+import { passkeyAuthenticatedAt } from "@/features/auth/passkeys";
 import { sessionIdOf } from "@/features/auth/password-session";
 import {
   passwordAuthenticatedAt,
@@ -12,6 +13,7 @@ import {
 
 import { provisionalName } from "./auth-flow";
 import { passwordPauseStartedAt } from "./login-throttle";
+import { isAllowedPasskeySession } from "./passkeys";
 import { isAllowedPasswordSession } from "./password-sessions";
 import { getProfile } from "./profiles";
 import { supabaseServer } from "./supabase";
@@ -38,6 +40,11 @@ export const currentUser = cache(async (): Promise<User | null> => {
   if (passwordAuthenticatedAt(claims) !== null) {
     const sessionId = sessionIdOf(claims);
     if (!sessionId || !(await isAllowedPasswordSession(sessionId))) return null;
+  }
+  // A passkey session counts only once /auth/callback vetted it (the passkey used was approved by the app).
+  if (passkeyAuthenticatedAt(claims) !== null) {
+    const sessionId = sessionIdOf(claims);
+    if (!sessionId || !(await isAllowedPasskeySession(sessionId))) return null;
   }
   if (email) {
     const pauseStarted = await passwordPauseStartedAt(email);

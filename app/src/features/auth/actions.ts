@@ -18,6 +18,12 @@ import {
 } from "@/server/auth-flow";
 import { verifyGoogleIdToken } from "@/server/google-token";
 import { clearFailures, lockedMinutes, recordFailure } from "@/server/login-throttle";
+import {
+  approvedPasskeyList,
+  approvePasskey,
+  forgetPasskeySession,
+  passkeysDisabled,
+} from "@/server/passkeys";
 import { allowPasswordSession, forgetPasswordSession } from "@/server/password-sessions";
 import {
   acceptTerms,
@@ -31,6 +37,7 @@ import { getTeam } from "@/server/teams";
 
 import { classifyAuthError, type AuthError } from "./auth-errors";
 import { canDisconnect, justAutoLinked, signUpMethod } from "./linking";
+import { passkeyAuthenticatedAt } from "./passkeys";
 import { sessionIdFromAccessToken } from "./password-session";
 import {
   fieldErrors,
@@ -59,6 +66,12 @@ const RATE_LIMITED = "Too many requests. Wait a minute and try again.";
 /** Same answer for a wrong password, an unknown address, and a pause, so the pause is not an account oracle. */
 const WRONG_PASSWORD =
   "Wrong email or password. We upgraded our login: if you signed up with email before, reset your password once.";
+
+/** Drop the app's record of a session on sign-out (the passkey table only for passkey sessions). */
+async function forgetSession(sessionId: string, claims: { amr?: unknown } | null | undefined) {
+  await forgetPasswordSession(sessionId);
+  if (passkeyAuthenticatedAt(claims) !== null) await forgetPasskeySession(sessionId);
+}
 
 /** Unexpected auth failures: status and code only, never user input. */
 function logAuthError(step: string, e: AuthError): void {
@@ -437,10 +450,47 @@ export async function rejectAutoLinkAction(form: FormData): Promise<void> {
   const { data: claims } = await supabase.auth.getClaims();
   const sessionId =
     typeof claims?.claims?.session_id === "string" ? claims.claims.session_id : null;
-  if (sessionId) await forgetPasswordSession(sessionId);
+  if (sessionId) await forgetSession(sessionId, claims?.claims);
   await supabase.auth.signOut();
   const via = encodeURIComponent(signUpMethod(others));
   redirect(`/auth/sign-in?notConnected=${linked.provider}&via=${via}`);
+}
+
+// ------------------------------------------------------------------ passkeys
+
+/**
+ * Approve the passkey the browser just registered (Settings, or the offer). The recent-login rule is checked here,
+ * on the verified session token: a passkey registered by a stale session is deleted and the user asked to log in.
+ */
+export async function approvePasskeyAction(
+  passkeyId: string,
+): Promise<{ ok: true } | { ok: false; needsLogin: boolean }> {
+  const user = await currentUser();
+  if (!user || typeof passkeyId !== "string" || passkeyId.length > 64) {
+    return { ok: false, needsLogin: true };
+  }
+  const result = await approvePasskey(user.id, passkeyId);
+  return result === "approved" ? { ok: true } : { ok: false, needsLogin: result === "needs_login" };
+}
+
+/** Settings → Passkeys: the user's passkeys, marked approved; never-approved ones past the window are removed. */
+export async function listPasskeysAction(): Promise<
+  | {
+      passkeys: {
+        id: string;
+        friendly_name?: string;
+        created_at: string;
+        last_used_at?: string;
+        approved: boolean;
+      }[];
+    }
+  | { error: "disabled" | "failed" }
+> {
+  const user = await currentUser();
+  if (!user) return { error: "failed" };
+  const passkeys = await approvedPasskeyList(user.id);
+  if (passkeys === null) return { error: (await passkeysDisabled()) ? "disabled" : "failed" };
+  return { passkeys };
 }
 
 // ------------------------------------------------------------------ sign out
@@ -449,9 +499,24 @@ export async function signOutAction(): Promise<void> {
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getClaims();
   const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
-  if (sessionId) await forgetPasswordSession(sessionId);
+  if (sessionId) await forgetSession(sessionId, data?.claims);
   await supabase.auth.signOut();
   redirect("/");
+}
+
+/**
+ * "Log in again" before a sensitive step (adding a passkey): sign out, then back to the login screen, which returns
+ * to `redirectTo` with a fresh session.
+ */
+export async function reauthenticateAction(form: FormData): Promise<void> {
+  const supabase = await supabaseServer();
+  const { data } = await supabase.auth.getClaims();
+  const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
+  if (sessionId) await forgetSession(sessionId, data?.claims);
+  await supabase.auth.signOut();
+  redirect(
+    `/auth/sign-in?reauth=1&redirectTo=${encodeURIComponent(safeRedirect(form.get("redirectTo")))}`,
+  );
 }
 
 /** "Change" / "Use a different account": sign out and start over at the login screen. */
@@ -459,7 +524,7 @@ export async function switchAccountAction(): Promise<void> {
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getClaims();
   const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
-  if (sessionId) await forgetPasswordSession(sessionId);
+  if (sessionId) await forgetSession(sessionId, data?.claims);
   await supabase.auth.signOut();
   redirect("/auth/sign-in");
 }
