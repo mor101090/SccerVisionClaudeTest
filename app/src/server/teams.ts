@@ -125,8 +125,11 @@ async function clubMatches(teamId: string): Promise<number> {
  * Squad writes of one team run one at a time: every batch that replaces players or moves starters takes this
  * transaction lock first, so two requests (two tabs, a retry) never interleave their deletes and inserts.
  */
-const lockTeam = (teamId: string) =>
-  db().execute(sql`select pg_advisory_xact_lock(hashtextextended(${teamId}, 0))`);
+type Tx = Parameters<Parameters<ReturnType<typeof db>["transaction"]>[0]>[0];
+
+/** Serializes squad writes for one team; held until the surrounding transaction ends. */
+const lockTeam = (tx: Tx, teamId: string) =>
+  tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${teamId}, 0))`);
 
 /**
  * Makes the squad at the team generator and stores it with the suggested XI and bench.
@@ -174,13 +177,13 @@ export async function makeSquad(userId: string, regenerate: boolean): Promise<vo
       benchOrder: bench.includes(i) ? bench.indexOf(i) : null,
     }));
 
-    // One HTTP round trip, one transaction: lock the team, drop the old squad, store the new one, update the team.
-    await db().batch([
-      lockTeam(team.id),
-      db().delete(players).where(eq(players.teamId, team.id)),
-      db().insert(players).values(rows),
-      db().update(teams).set({ squadSeed: seed, captainId: null }).where(eq(teams.id, team.id)),
-    ]);
+    // One transaction: lock the team, drop the old squad, store the new one, update the team.
+    await db().transaction(async (tx) => {
+      await lockTeam(tx, team.id);
+      await tx.delete(players).where(eq(players.teamId, team.id));
+      await tx.insert(players).values(rows);
+      await tx.update(teams).set({ squadSeed: seed, captainId: null }).where(eq(teams.id, team.id));
+    });
   } catch (err) {
     // Nothing was stored: give the regeneration back.
     if (regenerate)
@@ -224,16 +227,18 @@ export async function setStarter(userId: string, playerId: string): Promise<void
   const slot = slots.find((s) => bySlot.get(s)?.position === p.position) ?? slots[0]!;
   const out = bySlot.get(slot);
   // Locked like makeSquad; the unique (team, starter slot) index rejects a swap based on a stale read.
-  const swap = db().batch([
-    lockTeam(team.id),
-    db()
-      .update(players)
-      .set({ starterSlot: null, benchOrder: p.benchOrder })
-      .where(eq(players.id, out?.id ?? p.id)),
-    db().update(players).set({ starterSlot: slot, benchOrder: null }).where(eq(players.id, p.id)),
-  ]);
   try {
-    await swap;
+    await db().transaction(async (tx) => {
+      await lockTeam(tx, team.id);
+      await tx
+        .update(players)
+        .set({ starterSlot: null, benchOrder: p.benchOrder })
+        .where(eq(players.id, out?.id ?? p.id));
+      await tx
+        .update(players)
+        .set({ starterSlot: slot, benchOrder: null })
+        .where(eq(players.id, p.id));
+    });
   } catch (err) {
     if (isUniqueViolation(err)) throw new TeamError("Your lineup just changed. Try again.");
     throw err;

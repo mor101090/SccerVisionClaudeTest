@@ -67,6 +67,17 @@ jobs:
           cache: yarn
           cache-dependency-path: app/yarn.lock
       - run: yarn install --immutable
+      - name: Production migrate secret is set
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.SUPABASE_PROD_DATABASE_URL_UNPOOLED }}
+        run: |
+          # Same-repo PRs receive secrets; forks do not, and they already skip the Vercel build below.
+          # Deploy runs only after the merge, so a missing production URL has to fail here.
+          if [ -z "$VERCEL_TOKEN" ]; then exit 0; fi
+          if [ -z "$DATABASE_URL_UNPOOLED" ]; then
+            echo "::error::Set the SUPABASE_PROD_DATABASE_URL_UNPOOLED secret before merging. Production migrates with it, and that job does not run on a pull request."
+            exit 1
+          fi
       - name: yarn build (vercel build, Production env)
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then yarn build; exit 0; fi

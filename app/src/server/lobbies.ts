@@ -8,7 +8,7 @@ import type { InputActionBody, LobbyState, ProgressBody } from "@/features/lobby
 import { db, schema } from "./db";
 import { isUniqueViolation } from "./db/errors";
 
-const { lobbies, lobbyInputs, authUsers } = schema;
+const { lobbies, lobbyInputs, profiles } = schema;
 const ACTIVE = ["open", "ready", "playing"] as const;
 
 export class LobbyError extends Error {
@@ -81,19 +81,19 @@ async function memberLobby(userId: string, id: string) {
 }
 
 export async function getLobbyState(userId: string, id: string): Promise<LobbyState> {
-  const host = alias(authUsers, "host");
-  const guest = alias(authUsers, "guest");
+  const host = alias(profiles, "host");
+  const guest = alias(profiles, "guest");
   // Read the lobby (watermark) BEFORE the inputs: any input applied at or below the watermark
   // was written before the watermark moved, so it is guaranteed to be in the second read.
   const [lobby] = await db()
     .select({
       l: lobbies,
-      hostName: host.name,
-      guestName: guest.name,
+      hostName: sql<string>`coalesce(${host.displayName}, ${host.username}, 'Manager')`,
+      guestName: sql<string | null>`coalesce(${guest.displayName}, ${guest.username})`,
     })
     .from(lobbies)
-    .innerJoin(host, eq(host.id, lobbies.hostId))
-    .leftJoin(guest, eq(guest.id, lobbies.guestId))
+    .leftJoin(host, eq(host.userId, lobbies.hostId))
+    .leftJoin(guest, eq(guest.userId, lobbies.guestId))
     .where(and(eq(lobbies.id, id), or(eq(lobbies.hostId, userId), eq(lobbies.guestId, userId))))
     .limit(1);
   if (!lobby) throw new LobbyError("Game not found", 404);
