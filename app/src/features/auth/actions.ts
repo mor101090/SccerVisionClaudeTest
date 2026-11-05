@@ -16,6 +16,7 @@ import {
   setRecoveryUser,
 } from "@/server/auth-flow";
 import { clearFailures, lockedMinutes, recordFailure } from "@/server/login-throttle";
+import { allowPasswordSession, forgetPasswordSession } from "@/server/password-sessions";
 import {
   acceptTerms,
   completeProfile,
@@ -27,6 +28,7 @@ import { supabaseServer } from "@/server/supabase";
 import { getTeam } from "@/server/teams";
 
 import { classifyAuthError, type AuthError } from "./auth-errors";
+import { sessionIdFromAccessToken } from "./password-session";
 import {
   fieldErrors,
   finishSchema,
@@ -113,7 +115,15 @@ export async function signInAction(_prev: AuthFormState, form: FormData): Promis
 
   await clearFailures(email);
   const userId = data.user?.id;
-  redirect(userId ? await nextPathAfterSignIn(userId, form.get("redirectTo")) : "/play");
+  const sessionId = data.session?.access_token
+    ? sessionIdFromAccessToken(data.session.access_token)
+    : null;
+  if (!userId || !sessionId) {
+    await supabase.auth.signOut();
+    return { values, error: "We couldn't log you in. Try again in a moment." };
+  }
+  await allowPasswordSession(sessionId, userId);
+  redirect(await nextPathAfterSignIn(userId, form.get("redirectTo")));
 }
 
 // ------------------------------------------------------------------ sign up + verify
@@ -329,7 +339,7 @@ export async function linkSignInAction(
   const paused = await lockedMinutes(email);
   if (paused > 0) return { values, fields: { password: "Wrong password." } };
   const supabase = await supabaseServer();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   const e: AuthError = error;
   if (e) {
     if (isRateLimited(e)) return { values, error: RATE_LIMITED };
@@ -338,19 +348,35 @@ export async function linkSignInAction(
     return { values, fields: { password: "Wrong password." } };
   }
   await clearFailures(email);
+  const sessionId = data.session?.access_token
+    ? sessionIdFromAccessToken(data.session.access_token)
+    : null;
+  if (!data.user?.id || !sessionId) {
+    await supabase.auth.signOut();
+    return { values, error: "We couldn't log you in. Try again in a moment." };
+  }
+  await allowPasswordSession(sessionId, data.user.id);
   return { ok: true, values };
 }
 
 // ------------------------------------------------------------------ sign out
 
 export async function signOutAction(): Promise<void> {
-  await (await supabaseServer()).auth.signOut();
+  const supabase = await supabaseServer();
+  const { data } = await supabase.auth.getClaims();
+  const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
+  if (sessionId) await forgetPasswordSession(sessionId);
+  await supabase.auth.signOut();
   redirect("/");
 }
 
 /** "Change" / "Use a different account": sign out and start over at the login screen. */
 export async function switchAccountAction(): Promise<void> {
-  await (await supabaseServer()).auth.signOut();
+  const supabase = await supabaseServer();
+  const { data } = await supabase.auth.getClaims();
+  const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
+  if (sessionId) await forgetPasswordSession(sessionId);
+  await supabase.auth.signOut();
   redirect("/auth/sign-in");
 }
 

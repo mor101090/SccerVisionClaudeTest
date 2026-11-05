@@ -98,8 +98,9 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   (`server/login-throttle.ts`, 5 failures / 15 min), one atomic increment per attempt in the Server Actions.
   Supabase's password-verification hook is a paid feature, so the app does not use it. The sign-in form gives the
   same wrong-email-or-password answer for a wrong password, an unknown address, and a pause. A password session
-  opened after the pause began is not signed in; a session from before it, and a social session, keep working.
-  Classify Supabase Auth errors with `classifyAuthError()`. Emails
+  the app did not create is not signed in, so a direct Auth API password grant is not a session. A password
+  session opened after the pause began is not signed in either; a session from before it, and a social session,
+  keep working. Classify Supabase Auth errors with `classifyAuthError()`. Emails
   pending verification/reset live in an httpOnly cookie, never in URLs. Password, sign-up, code and reset flows go
   through the Server Actions. The browser client refuses password grants (`password-grant.ts`); it is only for social
   sign-in (`signInWithOAuth`, PKCE → `/auth/callback`), linking and Realtime.

@@ -84,7 +84,9 @@ namespace SoccerVision.Simulation.Tests
             double Run(int speed) => new ulong[] { 5, 6, 7, 8, 9, 10 }.AsParallel().Select(seed =>
             {
                 var home = DemoTeams.Red();
-                foreach (var p in home.Starters.Where(p => p.NaturalPosition != PositionGroup.Goalkeeper)) { p.Attributes.Speed = speed; p.Attributes.Acceleration = speed; }
+                // (stamina pinned too: with the generator's realism squads - young players with less of it - distance was set by fatigue,
+                // and a fast player who tires sooner covered the same ground as a slow one: 6844 m v 6802 m)
+                foreach (var p in home.Starters.Where(p => p.NaturalPosition != PositionGroup.Goalkeeper)) { p.Attributes.Speed = speed; p.Attributes.Acceleration = speed; p.Attributes.Stamina = 80; }
                 var e = new MatchEngine(home, DemoTeams.Blue(), seed, MatchConfig.CreateDefault());
                 e.RunToEnd();
                 return e.Home.Players.Where(p => !p.IsGoalkeeper).Average(p => (double)p.DistanceCovered);

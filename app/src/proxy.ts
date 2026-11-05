@@ -2,11 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { clientEnv } from "@/env";
+import { sessionIdOf } from "@/features/auth/password-session";
 import {
   passwordAuthenticatedAt,
   sessionStartedDuringPause,
 } from "@/features/auth/recovery-session";
 import { passwordPauseStartedAt } from "@/server/login-throttle";
+import { isAllowedPasswordSession } from "@/server/password-sessions";
 
 /** Member pages: signed-out visitors go to the login screen. /auth/finish needs a session to pick a username. */
 const PROTECTED = ["/account", "/matches", "/teams", "/leagues", "/lobby", "/team", "/auth/finish"];
@@ -41,6 +43,15 @@ export default async function proxy(request: NextRequest) {
   const claims = data?.claims;
   let signedIn = Boolean(claims?.sub);
   const email = typeof claims?.email === "string" ? claims.email : "";
+  if (signedIn && passwordAuthenticatedAt(claims) !== null) {
+    try {
+      const sessionId = sessionIdOf(claims);
+      if (!sessionId || !(await isAllowedPasswordSession(sessionId))) signedIn = false;
+    } catch (err) {
+      console.error("[auth] password session check failed", err);
+      signedIn = false;
+    }
+  }
   if (signedIn && email) {
     try {
       const pauseStarted = await passwordPauseStartedAt(email);

@@ -68,8 +68,11 @@ namespace SoccerVision.Simulation.Tests
             int curled = engines.Sum(e => e.Diagnostics.TryGetValue("shot.cutin.curl", out int v) ? v : 0);
             Assert.True(curled >= 36 * 0.5, "curled cut-inside shots " + curled);
             // They are taken from the flank and aimed at the far corner: the shot's origin is wide, the finish is on the other side.
-            var shots = engines.SelectMany(e => e.EventLog).Where(x => x.Type == MatchEventType.Shot && x.Detail == 2).ToList();
-            Assert.True(shots.Count >= 36 * 0.75, "cut-inside shots " + shots.Count);
+            // (a cut-inside shot is kind 2 when it is driven or placed; a curled one keeps the curler's kind, 8 - the generator's realism wingers
+            // curl most of theirs, so both kinds count; every cut-in shot is counted by the diagnostics)
+            int cutIns = engines.Sum(e => e.Diagnostics.Where(kv => kv.Key.StartsWith("cutin.T")).Sum(kv => kv.Value));
+            Assert.True(cutIns >= 36 * 0.75, "cut-inside shots " + cutIns);
+            var shots = engines.SelectMany(e => e.EventLog).Where(x => x.Type == MatchEventType.Shot && (x.Detail == 2 || x.Detail == 8)).ToList();
             Assert.True(shots.Count(x => MathF.Abs(x.Y) > 8f) > shots.Count * 0.55, "shot from the flank");
         }
 

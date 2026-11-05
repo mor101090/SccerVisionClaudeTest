@@ -9,9 +9,10 @@ namespace SoccerVision.Simulation.Tests
     /// <summary>The manager's tools: formations, the starting eleven, roles, individual instructions, set-piece takers and substitutions.</summary>
     public class ManagerTests
     {
-        private static MatchEngine Engine(ulong seed, string homePlan = null)
+        private static MatchEngine Engine(ulong seed, string homePlan = null, Action<TeamSetup> setup = null)
         {
             var red = DemoTeams.Red();
+            setup?.Invoke(red);
             if (homePlan != null) TeamPlan.Parse(homePlan).ApplyBeforeKickOff(red);
             return new MatchEngine(red, DemoTeams.Blue(), seed, MatchConfig.CreateDefault());
         }
@@ -158,14 +159,14 @@ namespace SoccerVision.Simulation.Tests
 
         private static readonly ulong[] Seeds = { 51, 52, 53, 54 };
 
-        private static double Avg(string plan, Func<MatchEngine, double> f, Action<MatchEngine> sample = null, int matches = 0)
+        private static double Avg(string plan, Func<MatchEngine, double> f, Action<MatchEngine> sample = null, int matches = 0, Action<TeamSetup> setup = null)
         {
             // (a rare thing - one player's long shots - needs more matches than the usual four, or a change anywhere in the engine tips it)
             var seeds = matches <= Seeds.Length ? Seeds : Seeds.Concat(Enumerable.Range(0, matches - Seeds.Length).Select(k => 300UL + (ulong)k)).ToArray();
             var r = new double[seeds.Length];
             Parallel.For(0, seeds.Length, i =>
             {
-                var e = Engine(seeds[i], plan);
+                var e = Engine(seeds[i], plan, setup);
                 if (sample == null) e.RunToEnd();
                 else while (!e.IsFinished) { e.Advance(0.25f); if (e.Phase == MatchPhase.Live) sample(e); }
                 Assert.Equal(0, e.RecoveredErrors);
@@ -187,7 +188,10 @@ namespace SoccerVision.Simulation.Tests
             // slot 5 (right midfielder): shoot from distance, dribble, tackle - more v less
             double Shots(MatchEngine e) => e.EventLog.Count(x => x.Type == MatchEventType.Shot && x.Team == 0 && x.Player == 5
                 && Math.Min(Math.Sqrt((52.5 - x.X) * (52.5 - x.X) + x.Y * x.Y), Math.Sqrt((52.5 + x.X) * (52.5 + x.X) + x.Y * x.Y)) > 18);
-            double shotsMore = Avg(Orders(5, "0.2.1.1"), Shots, null, 16), shotsLess = Avg(Orders(5, "0.0.1.1"), Shots, null, 16);
+            // (his traits off: an unselfish player - the right midfielder of the generator's realism squad drew it - hardly shoots from range
+            // whatever he is told, and the test is about the instruction)
+            void NoTraits(TeamSetup t) => t.Starters[5].Traits = PlayerTrait.None;
+            double shotsMore = Avg(Orders(5, "0.2.1.1"), Shots, null, 16, NoTraits), shotsLess = Avg(Orders(5, "0.0.1.1"), Shots, null, 16, NoTraits);
             Assert.True(shotsMore > shotsLess * 2 + 0.5, $"long shots by him: more {shotsMore:0.0} v less {shotsLess:0.0}");
             // (take-ons are few for one player: the whole team gets the instruction)
             string AllOrders(string order) => "orders=" + string.Join(",", Enumerable.Repeat(order, 11));

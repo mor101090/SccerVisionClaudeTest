@@ -12,7 +12,7 @@ Facebook and Discord built in. Plan: `docs/plans/supabase-migration.md`; cutover
   redeemed the link, not on an ordinary login. The per-email pause lives in the Server Actions. Supabase's
   password-verification hook is a paid feature, so it is not used. The sign-in form gives the same answer for a
   wrong password, an unknown address, and a pause. A password session opened after the pause began is not signed
-  in. An older session stays.
+  in. An older session stays. A password session the app did not create, including a direct Auth API grant, is not signed in.
 - **Database**: Supabase Postgres through the transaction pooler (postgres-js); users are `auth.users`, display names moved to
   `profiles.display_name`; RLS on every table (the Data API can't read them). One fresh baseline migration.
 - **Replays**: Supabase Storage (private `replays` bucket), read and written by the server only.
@@ -21,6 +21,37 @@ Facebook and Discord built in. Plan: `docs/plans/supabase-migration.md`; cutover
 - **Moving the data**: `yarn migrate:neon-to-supabase` copies users (same ids), clubs, squads, matches and replays. Old passwords
   can't be moved: password users reset theirs once (the login screen says so).
 - **CI**: e2e runs on the Supabase dev project and seeds its test accounts (`yarn e2e:seed`); the deploy migrates Supabase prod.
+
+## `feature/new-generator-squads`
+
+**The demo squads now come from the generator's realism round, and the engine is re-calibrated for them.** The generator (soccer-api.dev-spirit.com, PRs
+[#22](https://github.com/SoccerVision/soccer-vision-players-stats/pull/22) and [#27](https://github.com/SoccerVision/soccer-vision-players-stats/pull/27)) is what the
+website's "Create your team" uses too, so the engine has to play its players right.
+- **Squads**: all three levels, the medium ones too, fetched from the live API (seeds 101 / 202). Checked: what the live server returns is identical, file for file, to what
+  was tested. Average attribute: weak 44.1 -> 43.4, medium 55.2 -> 54.1, strong 70.3 -> 66.6.
+- **Why the engine needed it**: the old squads were inflated by the old generator's bugs (values drawn once per process, stats overwritten by thresholds) and the
+  engine was tuned on them. Old medium -> new: defenders' physical power 72 -> 57, midfielders' teamwork 63 -> 47, acceleration 67 -> 55, decisions 70 -> 63, aggression
+  29 -> 50; keepers' one-on-one 65 -> 72. Played as it was (100 matches): goals 2.80 -> 1.99, shots 26.8 -> 20.8, fouls 20.1 -> 23.4. Each attribute shifted back explained a part
+  (teamwork +0.3 goals, aggression +0.35, acceleration +0.15, decisions +0.2) - `SimRunner --adjust Stat=N` (new) shifts one attribute of every player.
+- **Generator decisions 42 / 50 / 58 -> 55 / 65 / 75** ([#27](https://github.com/SoccerVision/soccer-vision-players-stats/pull/27), merged and live): still loosely tied to the level
+  and spread wide; only the means, which were our design, moved to where the engine was tuned.
+- **Constants** (150 matches, two seeds): `XgScale` 0.6 -> 1.0 (the chance a player sees in a shot - the new squads made too few chances), `FoulRate` 1.4 -> 1.25 (higher
+  aggression), `RangeSaveScale` 0.3 -> 0.1, `CloseReachBase` 0.2 -> 0.3. Now: shots 26.2 (PL 25.4), on target 8.6 (8.8), fouls 21.0 (21.5), yellows 4.0 (3.44), corners 10.7 (10.4).
+  **Goals 2.4-2.5 (PL 2.83): not closed** - the keepers save 6.3 of 8.6 shots on target (real 6.0 of 8.8); no save constant moved it further. Noted as open.
+- **Winger cut-ins**: 3 stars is the generator's typical weaker foot (63% of normal players), so "a two-footed winger cuts in too" now needs 4+ stars (it was 3+, the old level 2).
+  Without it every winger cut in (18 winger shots a match, 0.3 crosses); now 5.6 shots and 7.0 crosses.
+- **Strong / weak spreads 1.2 / 0.5 -> 1.8 / 0.45, measured fairly**: each pairing played four ways - each level with both colours, in both seats - because Team A (zonal marking)
+  is far better than Team B (man-to-man) with these squads: the same strong side wins 92% as Team A and 71% as Team B. Before, the strong side was always Team A, which hid it.
+  Two seeds, 800 matches a pairing: strong v weak 81 / 17 / 3 (real 85 / 11 / 4), strong v medium 72 / 23 / 5 (73 / 17 / 10), medium v weak 53 / 29 / 19 (54 / 27 / 19).
+  The zonal / man-to-man gap itself (20 points) is not real-football sized; it is open, for a round of its own.
+- **Tests changed** (each kept its point; the old squads' particular players no longer carry it):
+  - `FasterPlayersCoverMoreGround`: stamina pinned at 80 for both runs - with the new squads distance was set by fatigue (fast 6844 m v slow 6802 m).
+  - `EveryInvertedWingerShoots...`: 2.5 cut-in shots a match (the new inverted winger: 2.9; the "three" was our design).
+  - `CutInWingersCurl...`: counts every cut-in shot (the diagnostics), and kind 8 (curled) as well as kind 2 for the flank check - the new wingers curl most of theirs.
+  - `IndividualInstructionsChange...`: the right midfielder's traits off - he drew Unselfish, which hardly shoots from range whatever he is told.
+  - `AHighPressTakesTheBallBack`: 48 matches, not 24 (the press gains +2.0 / +2.3 points over 120 matches, two seeds; 24 gave +0.7).
+  - `CornersAreVariedAndSwingBothWays`: both swings must happen; it no longer asks for more in-swingers (40 v 52 with these takers' feet).
+  - `app/src/features/team/lineup.test.ts` (the website's port of `build_teams.py`): the new Red squad's XI, bench and attributes, worked out by `build_teams.py` itself.
 
 ## `feature/weak-foot-stars`
 

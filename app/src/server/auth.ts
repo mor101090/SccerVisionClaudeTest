@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { cache } from "react";
 
+import { sessionIdOf } from "@/features/auth/password-session";
 import {
   passwordAuthenticatedAt,
   sessionStartedDuringPause,
@@ -11,6 +12,7 @@ import {
 
 import { provisionalName } from "./auth-flow";
 import { passwordPauseStartedAt } from "./login-throttle";
+import { isAllowedPasswordSession } from "./password-sessions";
 import { getProfile } from "./profiles";
 import { supabaseServer } from "./supabase";
 
@@ -31,8 +33,12 @@ export const currentUser = cache(async (): Promise<User | null> => {
   const claims = data?.claims;
   if (!claims?.sub) return null;
   const email = typeof claims.email === "string" ? claims.email : "";
-  // A password session opened after this pause began is not signed in. A session from before it,
-  // and a social session, keep working.
+  // A password grant the app did not create (a direct Auth API call) is not a session. A password
+  // session opened after this pause began is not signed in either. Social sign-in keeps working.
+  if (passwordAuthenticatedAt(claims) !== null) {
+    const sessionId = sessionIdOf(claims);
+    if (!sessionId || !(await isAllowedPasswordSession(sessionId))) return null;
+  }
   if (email) {
     const pauseStarted = await passwordPauseStartedAt(email);
     if (sessionStartedDuringPause(passwordAuthenticatedAt(claims), pauseStarted)) return null;

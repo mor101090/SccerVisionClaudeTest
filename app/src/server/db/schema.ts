@@ -82,6 +82,13 @@ export const loginAttempts = pgTable("login_attempts", {
   lockedAt: timestamp("locked_at", { withTimezone: true }),
 }).enableRLS();
 
+/** Password sessions created by a Server Action. A direct Auth API grant is not in this table. */
+export const passwordSessions = pgTable("password_sessions", {
+  sessionId: text("session_id").primaryKey(),
+  userId: uuid("user_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();
+
 // ---------------------------------------------------------------- teams
 
 export type Kit = {
