@@ -19,8 +19,8 @@ Run every step on **dev first** (Supabase dev project `mcrglsqpxyrbazwzrnzg`, Ne
    tables, the `replays` bucket, the lobby Realtime trigger and the password-lockout hook function.
 4. **Turn on the password hook.** Authentication → Hooks → Password verification attempt → Postgres function
    `public.hook_password_verification_attempt`. While an email is paused, a correct password does not clear the
-   pause, and the app ignores that password session. A wrong password still looks like invalid credentials.
-   The Server Actions own the failure counter. Do this on dev and on prod.
+   pause. A wrong password still looks like invalid credentials. The Server Actions own the failure counter and
+   block new sign-ins. Do this on dev and on prod.
 5. **Set the Vercel Production env and GitHub secrets** (see "Environment" in CLAUDE.md). Keep the Neon values until step 3 of
    the cutover.
 6. **Rehearse on dev:** delete the `yarn e2e:seed` accounts on Supabase dev, run the migration script against Neon `dev`, then `yarn e2e:seed` again. Then sign in with Google, play a

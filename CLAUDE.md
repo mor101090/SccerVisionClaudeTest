@@ -96,10 +96,10 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
 - **Auth flow** (`features/auth/actions.ts`): every sign-in path ends in `nextPathAfterSignIn()` → `/auth/finish` until the
   profile has a username + terms (`profiles` table), then `redirectTo`. Password logins are throttled per email
   (`server/login-throttle.ts`, 5 failures / 15 min), one atomic increment per attempt in the Server Actions.
-  The browser client refuses password grants (`password-grant.ts`). While an email is paused, `currentUser()`
-  ignores a password session (social sign-in still works) and `hook_password_verification_attempt`
-  (`drizzle/0003_password_lockout_hook.sql`) does not clear that pause. A wrong password gets Supabase's normal
-  invalid-credentials error either way, so the pause is not an account oracle. Enable the hook under
+  The browser client refuses password grants (`password-grant.ts`). `hook_password_verification_attempt`
+  (`drizzle/0003_password_lockout_hook.sql`) leaves a pause in place and always continues, so a wrong password
+  gets Supabase's normal invalid-credentials error whether or not the address is registered. The pause blocks
+  new sign-ins in the Server Actions and does not end a session that already exists. Enable the hook under
   Authentication → Hooks. Classify Supabase Auth errors with `classifyAuthError()`. Emails
   pending verification/reset live in an httpOnly cookie, never in URLs. Password, sign-up, code and reset flows go
   through the Server Actions. The browser client refuses password grants (`password-grant.ts`); it is only for social
