@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isRecoverySession } from "./recovery-session";
+import { isPasswordSession, isRecoverySession } from "./recovery-session";
 
 const NOW = 1_700_000_000;
 
@@ -29,5 +29,14 @@ describe("isRecoverySession", () => {
     );
     expect(isRecoverySession({ amr: [] }, NOW)).toBe(false);
     expect(isRecoverySession(null, NOW)).toBe(false);
+  });
+});
+
+describe("isPasswordSession", () => {
+  it("is only a password grant", () => {
+    expect(isPasswordSession({ amr: [{ method: "password", timestamp: NOW }] })).toBe(true);
+    expect(isPasswordSession({ amr: [{ method: "oauth", timestamp: NOW }] })).toBe(false);
+    expect(isPasswordSession({ amr: [{ method: "otp", timestamp: NOW }] })).toBe(false);
+    expect(isPasswordSession(null)).toBe(false);
   });
 });

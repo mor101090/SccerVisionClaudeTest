@@ -1,7 +1,7 @@
--- While an email is paused, a correct password does not get a session, including a direct call to the
--- Auth API. A wrong password is left to Supabase (its normal invalid-credentials error), so the pause
--- is not a signal that the address is registered. The Server Actions own the counter
--- (app/src/server/login-throttle.ts, same email hash): this hook only reads it.
+-- While an email is paused, a correct password does not clear the pause. Wrong passwords are left to
+-- Supabase's normal invalid-credentials response, for a registered address and an unknown one alike,
+-- so the pause is not an account oracle. The Server Actions own the counter
+-- (app/src/server/login-throttle.ts). This hook only reads it.
 -- Enable it in Authentication → Hooks → Password verification attempt.
 
 CREATE OR REPLACE FUNCTION public.hook_password_verification_attempt(event jsonb)
@@ -16,7 +16,7 @@ DECLARE
   attempt_key text;
   prev_locked timestamptz;
 BEGIN
-  -- Wrong password: same response whether or not the address is registered.
+  -- A wrong password, or a call with no user, gets Supabase's normal result.
   IF coalesce(event->>'user_id', '') = '' OR NOT coalesce((event->>'valid')::boolean, false) THEN
     RETURN jsonb_build_object('decision', 'continue');
   END IF;
@@ -40,13 +40,9 @@ BEGIN
   FROM public.login_attempts AS la
   WHERE la.key = attempt_key;
 
-  -- Correct password during a pause: no session. The message matches a wrong password.
+  -- Correct password during a pause: do not clear the counter. The app refuses the session.
   IF prev_locked IS NOT NULL AND prev_locked > now() THEN
-    RETURN jsonb_build_object(
-      'decision', 'reject',
-      'message', 'Invalid login credentials',
-      'should_logout_user', false
-    );
+    RETURN jsonb_build_object('decision', 'continue');
   END IF;
 
   DELETE FROM public.login_attempts WHERE key = attempt_key;

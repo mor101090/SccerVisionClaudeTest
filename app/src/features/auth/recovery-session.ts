@@ -31,3 +31,13 @@ export function isRecoverySession(
   }
   return true;
 }
+
+/** A session created by a password grant. Social and recovery sessions are not. */
+export function isPasswordSession(claims: { amr?: unknown } | null | undefined): boolean {
+  const amr = claims?.amr;
+  if (!Array.isArray(amr) || amr.length === 0) return false;
+  return amr.every((entry) => {
+    if (!entry || typeof entry !== "object" || !("method" in entry)) return false;
+    return (entry as { method?: unknown }).method === "password";
+  });
+}

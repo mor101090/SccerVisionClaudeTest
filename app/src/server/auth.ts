@@ -4,7 +4,10 @@ import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { cache } from "react";
 
+import { isPasswordSession } from "@/features/auth/recovery-session";
+
 import { provisionalName } from "./auth-flow";
+import { lockedMinutes } from "./login-throttle";
 import { getProfile } from "./profiles";
 import { supabaseServer } from "./supabase";
 
@@ -16,8 +19,8 @@ export type User = { id: string; email: string; name: string };
  * else the email's local part. Cached per request.
  */
 export const currentUser = cache(async (): Promise<User | null> => {
-  // Stop prerendering here, in our code: the session is per request, and getClaims() reads the clock (token expiry),
-  // which Next.js rejects during prerender (also in the runtime-prefetch stage, where cookies() alone resolves).
+  // Stop prerendering here, in our code: the session is per request, and getClaims() reads the clock
+  // (token expiry), which Next.js rejects during prerender, including the runtime-prefetch stage.
   await cookies();
   await connection();
   const supabase = await supabaseServer();
@@ -25,6 +28,9 @@ export const currentUser = cache(async (): Promise<User | null> => {
   const claims = data?.claims;
   if (!claims?.sub) return null;
   const email = typeof claims.email === "string" ? claims.email : "";
+  // A password grant while this email is paused is not a session the app will use. Social sign-in
+  // still works: that is the way through the pause.
+  if (email && isPasswordSession(claims) && (await lockedMinutes(email)) > 0) return null;
   const meta = (claims.user_metadata ?? {}) as { full_name?: unknown; name?: unknown };
   const socialName =
     typeof meta.full_name === "string"
