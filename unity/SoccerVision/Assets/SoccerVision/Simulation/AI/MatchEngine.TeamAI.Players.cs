@@ -293,7 +293,7 @@ namespace SoccerVision.Simulation
                         Vec2 fromZone = goalSide - p.ShapeTarget;
                         if (fromZone.Length > r) goalSide = p.ShapeTarget + fromZone.Normalized * r;
                         float weight = ((p.Slot.Line == Line.Defence ? 0.7f : 0.55f) + (inBox ? 0.25f : 0f)) * (1f - 0.45f * loose);
-                        target = Vec2.Lerp(p.ShapeTarget, goalSide, MathUtil.Clamp01(weight * marking * ZonalPull));
+                        target = Vec2.Lerp(p.ShapeTarget, goalSide, MathUtil.Clamp01(weight * marking));
                         p.Task = PlayerTask.Mark;
                         if (inBox || Vec2.Distance(p.Pos, goalSide) > 4f) urgency = 0.85f;
                     }
