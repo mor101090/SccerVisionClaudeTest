@@ -18,9 +18,6 @@ const serverSchema = z.object({
   DATABASE_URL: z.url().optional(),
   // Supabase secret key (sb_secret_…): server-only admin calls (Storage, e2e seeding). Never sent to browsers.
   SUPABASE_SECRET_KEY: z.string().min(1).optional(),
-  // Neon Realtime (live SQL over WebSocket). The URL is sent to the browser by the seal endpoint.
-  NEON_REALTIME_URL: z.url().optional(),
-  NEON_REALTIME_SECRET: z.string().min(1).optional(),
   /** Soccer Vision team generator (squads for Create your team). */
   SQUAD_API_URL: z.url().default("https://soccer-api.dev-spirit.com"),
 });

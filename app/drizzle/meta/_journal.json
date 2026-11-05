@@ -15,6 +15,13 @@
       "when": 1793882033431,
       "tag": "0001_storage_buckets",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793882120577,
+      "tag": "0002_lobby_realtime",
+      "breakpoints": true
     }
   ]
 }
