@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { AuthShell, AuthTitle } from "@/features/auth/auth-shell";
+import { AuthFormSkeleton } from "@/features/auth/auth-skeleton";
 import { VerifyForm } from "@/features/auth/verify-form";
 import { getPendingEmail } from "@/server/auth-flow";
 
@@ -38,7 +39,14 @@ async function Verify() {
 export default function Page() {
   return (
     <AuthShell hero="verify">
-      <Suspense fallback={<AuthTitle title="Check your inbox" />}>
+      <Suspense
+        fallback={
+          <>
+            <AuthTitle title="Check your inbox" />
+            <AuthFormSkeleton code extraButtons={1} />
+          </>
+        }
+      >
         <Verify />
       </Suspense>
     </AuthShell>

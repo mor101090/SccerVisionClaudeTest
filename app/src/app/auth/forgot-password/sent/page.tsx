@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AuthShell, AuthTitle } from "@/features/auth/auth-shell";
+import { AuthFormSkeleton } from "@/features/auth/auth-skeleton";
 import { ResetSent } from "@/features/auth/recovery-forms";
 import { getPendingEmail } from "@/server/auth-flow";
 
@@ -17,7 +18,14 @@ async function Sent() {
 export default function Page() {
   return (
     <AuthShell hero="recovery">
-      <Suspense fallback={<AuthTitle title="Check your email" />}>
+      <Suspense
+        fallback={
+          <>
+            <AuthTitle title="Check your email" />
+            <AuthFormSkeleton notice text={2} extraButtons={1} />
+          </>
+        }
+      >
         <Sent />
       </Suspense>
     </AuthShell>

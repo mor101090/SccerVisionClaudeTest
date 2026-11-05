@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AuthShell, AuthTitle } from "@/features/auth/auth-shell";
+import { AuthFormSkeleton } from "@/features/auth/auth-skeleton";
+import { signedInWith } from "@/features/auth/linking";
 import { safeRedirect } from "@/features/auth/policy";
-import { isSocialProvider, PROVIDER_LABEL } from "@/features/auth/providers";
+import { PROVIDER_LABEL, type SocialProvider } from "@/features/auth/providers";
 import { FinishForm, type ProviderAccount } from "@/features/auth/social-forms";
 import { currentUser } from "@/server/auth";
 import { getProfile, isComplete } from "@/server/profiles";
@@ -12,11 +14,20 @@ import { supabaseServer } from "@/server/supabase";
 
 export const metadata: Metadata = { title: "Almost there" };
 
-/** The social provider this user signed in with, if any ("email" = email/password). */
-async function providerOf(user: { name: string; email: string }): Promise<ProviderAccount> {
+/**
+ * The social provider this session came from (the identity used most recently), and the account's other social
+ * providers: a same-email sign-in is added to the existing account, so there can be several.
+ */
+async function providerOf(user: {
+  name: string;
+  email: string;
+}): Promise<{ account: ProviderAccount; others: SocialProvider[] }> {
   const { data } = await (await supabaseServer()).auth.getUserIdentities();
-  const provider = data?.identities.map((i) => i.provider).find(isSocialProvider);
-  return provider ? { provider, name: user.name, email: user.email } : null;
+  const { current, others } = signedInWith(data?.identities ?? []);
+  return {
+    account: current ? { provider: current, name: user.name, email: user.email } : null,
+    others,
+  };
 }
 
 function suggest(name: string): string {
@@ -32,7 +43,7 @@ async function Finish({ searchParams }: { searchParams: Promise<{ redirectTo?: s
     const { redirectTo } = await searchParams;
     redirect(safeRedirect(redirectTo));
   }
-  const account = await providerOf(user);
+  const { account } = await providerOf(user);
   return (
     <>
       <AuthTitle title="Almost there">
@@ -53,7 +64,14 @@ async function Finish({ searchParams }: { searchParams: Promise<{ redirectTo?: s
 export default function Page(props: PageProps<"/auth/finish">) {
   return (
     <AuthShell hero="social">
-      <Suspense fallback={<AuthTitle title="Almost there" />}>
+      <Suspense
+        fallback={
+          <>
+            <AuthTitle title="Almost there" />
+            <AuthFormSkeleton card fields={2} checkbox />
+          </>
+        }
+      >
         <Finish searchParams={props.searchParams as Promise<{ redirectTo?: string }>} />
       </Suspense>
     </AuthShell>

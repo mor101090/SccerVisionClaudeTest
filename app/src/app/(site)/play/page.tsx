@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { Loading, Skeleton } from "@/components/ui/skeleton";
 import { currentUser } from "@/server/auth";
 import { getProfile } from "@/server/profiles";
 import { engineTeamFor, getTeam } from "@/server/teams";
@@ -35,7 +36,14 @@ export default function PlayPage() {
   return (
     <main className="flex flex-1 flex-col items-center gap-6 p-4 sm:p-8">
       <h1 className="text-2xl font-semibold">Match</h1>
-      <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      <Suspense
+        fallback={
+          <Loading className="flex w-full max-w-4xl flex-col items-center gap-4">
+            <Skeleton className="h-8 w-72" />
+            <Skeleton className="aspect-[105/68] w-full rounded-lg" />
+          </Loading>
+        }
+      >
         <Match />
       </Suspense>
     </main>

@@ -11,7 +11,16 @@ import { passwordPauseStartedAt } from "@/server/login-throttle";
 import { isAllowedPasswordSession } from "@/server/password-sessions";
 
 /** Member pages: signed-out visitors go to the login screen. /auth/finish needs a session to pick a username. */
-const PROTECTED = ["/account", "/matches", "/teams", "/leagues", "/lobby", "/team", "/auth/finish"];
+const PROTECTED = [
+  "/account",
+  "/settings",
+  "/matches",
+  "/teams",
+  "/leagues",
+  "/lobby",
+  "/team",
+  "/auth/finish",
+];
 
 const isProtected = (path: string) => PROTECTED.some((p) => path === p || path.startsWith(`${p}/`));
 

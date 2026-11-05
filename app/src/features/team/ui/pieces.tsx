@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/brand";
 import { FeatureCheckIcon } from "@/components/ui/icons";
 import type { KitPick } from "@/server/db/schema";
 
@@ -126,10 +127,7 @@ export function ScoreboardPreview({ home, homeColor }: { home: string; homeColor
         </span>
       </div>
       <div className="flex h-[21px] w-fit items-center gap-2 bg-muted pr-3 pl-2 text-[12.5px] font-medium text-white">
-        <span className="font-extrabold tracking-tight">
-          <span>Soccer</span>
-          <span className="text-accent-ink">Vision</span>
-        </span>
+        <BrandLogo className="h-3.5" />
         League match
       </div>
     </div>

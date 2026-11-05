@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { formText } from "@/lib/form";
+import { accountForGoogleSignIn, type ExistingAccount } from "@/server/account-match";
 import { currentUser } from "@/server/auth";
 import {
   clearPendingEmail,
@@ -15,6 +16,7 @@ import {
   setPendingEmail,
   setRecoveryUser,
 } from "@/server/auth-flow";
+import { verifyGoogleIdToken } from "@/server/google-token";
 import { clearFailures, lockedMinutes, recordFailure } from "@/server/login-throttle";
 import { allowPasswordSession, forgetPasswordSession } from "@/server/password-sessions";
 import {
@@ -28,6 +30,7 @@ import { supabaseServer } from "@/server/supabase";
 import { getTeam } from "@/server/teams";
 
 import { classifyAuthError, type AuthError } from "./auth-errors";
+import { canDisconnect, justAutoLinked, signUpMethod } from "./linking";
 import { sessionIdFromAccessToken } from "./password-session";
 import {
   fieldErrors,
@@ -39,6 +42,7 @@ import {
   signUpSchema,
   verifySchema,
 } from "./policy";
+import { isSocialProvider } from "./providers";
 import { isRecoverySession } from "./recovery-session";
 
 /** Result of every auth form action. `fields` holds per-field messages, `error` a banner. */
@@ -357,6 +361,86 @@ export async function linkSignInAction(
   }
   await allowPasswordSession(sessionId, data.user.id);
   return { ok: true, values };
+}
+
+// ------------------------------------------------------------------ settings: disconnect a provider
+
+/**
+ * Settings → Connected accounts → Disconnect. Connecting happens in the browser (linkIdentity follows the provider
+ * redirect); disconnecting is a Server Action so the session and the last-identity rule are checked on the server.
+ */
+export async function unlinkProviderAction(form: FormData): Promise<void> {
+  const user = await currentUser();
+  if (!user) redirect("/auth/sign-in?redirectTo=/settings");
+  const provider = formText(form, "provider");
+  if (!isSocialProvider(provider)) redirect("/settings?unlinkError=failed");
+
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase.auth.getUserIdentities();
+  if (error || !data) {
+    logAuthError("identities", error);
+    redirect("/settings?unlinkError=failed");
+  }
+  const identity = data.identities.find((i) => i.provider === provider);
+  if (!identity) redirect(`/settings?unlinked=${provider}`);
+  if (!canDisconnect(data.identities.length)) redirect("/settings?unlinkError=last");
+
+  const { error: unlinkError } = await supabase.auth.unlinkIdentity(identity);
+  if (unlinkError) {
+    logAuthError("unlink", unlinkError);
+    redirect("/settings?unlinkError=failed");
+  }
+  // The access token still lists the old provider until it is refreshed.
+  await supabase.auth.refreshSession();
+  redirect(`/settings?unlinked=${provider}`);
+}
+
+// ------------------------------------------------------------------ same email, another sign-in method
+
+/**
+ * Before a Google sign-in is handed to Supabase (which would merge it into an existing account with the same
+ * verified email): is there such an account? The token is verified here (signature, audience, nonce, verified email),
+ * so only the owner of that address learns about its account.
+ */
+export async function googleAccountCheckAction(
+  token: string,
+  nonce: string,
+): Promise<{ existing: ExistingAccount | null; email: string } | { error: true }> {
+  if (typeof token !== "string" || typeof nonce !== "string") return { error: true };
+  const google = await verifyGoogleIdToken(token, nonce);
+  if (!google) return { error: true };
+  return { existing: await accountForGoogleSignIn(google.email), email: google.email };
+}
+
+/**
+ * "Don't connect" after Supabase merged a Facebook/Discord sign-in into an existing account: remove that new
+ * identity again and sign out. Only the identity this session just added, within the confirmation window, and
+ * never the account's last way in.
+ */
+export async function rejectAutoLinkAction(form: FormData): Promise<void> {
+  const user = await currentUser();
+  if (!user) redirect("/auth/sign-in");
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase.auth.getUserIdentities();
+  if (error || !data) redirect("/auth/sign-in?error=social");
+  const linked = justAutoLinked(data.identities, Date.now());
+  const identity = data.identities.find((i) => i.identity_id === formText(form, "identityId"));
+  if (!linked || !identity || identity.identity_id !== linked.identityId) {
+    redirect(
+      `/auth/callback?redirectTo=${encodeURIComponent(safeRedirect(form.get("redirectTo")))}`,
+    );
+  }
+  if (!canDisconnect(data.identities.length)) redirect("/auth/sign-in?error=social");
+  const others = data.identities.filter((i) => i.identity_id !== identity.identity_id);
+  const { error: unlinkError } = await supabase.auth.unlinkIdentity(identity);
+  if (unlinkError) logAuthError("unlink after merge", unlinkError);
+  const { data: claims } = await supabase.auth.getClaims();
+  const sessionId =
+    typeof claims?.claims?.session_id === "string" ? claims.claims.session_id : null;
+  if (sessionId) await forgetPasswordSession(sessionId);
+  await supabase.auth.signOut();
+  const via = encodeURIComponent(signUpMethod(others));
+  redirect(`/auth/sign-in?notConnected=${linked.provider}&via=${via}`);
 }
 
 // ------------------------------------------------------------------ sign out

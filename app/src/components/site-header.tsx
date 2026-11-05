@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { Brand, HeaderBar } from "@/components/brand";
+import { Skeleton } from "@/components/ui/skeleton";
 import { signOutAction } from "@/features/auth/actions";
 import { currentUser } from "@/server/auth";
 
@@ -26,6 +27,9 @@ async function UserNav() {
       <span className="text-muted" data-testid="user-name">
         {user.name}
       </span>
+      <Link href="/settings" className="text-muted hover:text-text">
+        Settings
+      </Link>
       <form action={signOutAction}>
         <button type="submit" className="text-muted hover:text-text">
           Sign out
@@ -44,7 +48,15 @@ export function SiteHeader() {
           Play
         </Link>
       </nav>
-      <Suspense fallback={<span className="text-muted">…</span>}>
+      <Suspense
+        fallback={
+          <div aria-hidden className="flex items-center gap-4">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-14" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        }
+      >
         <UserNav />
       </Suspense>
     </HeaderBar>

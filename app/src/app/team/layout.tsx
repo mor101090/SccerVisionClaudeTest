@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Brand, HeaderBar } from "@/components/brand";
 import { signOutAction } from "@/features/auth/actions";
 import { initialsOf } from "@/features/team/ui/pieces";
+import { ManagerSkeleton } from "@/features/team/ui/team-skeleton";
 import { currentUser } from "@/server/auth";
 
 import heroTeam from "../../../public/auth/hero-team.jpg";
@@ -38,7 +39,7 @@ export default function TeamLayout({ children }: { children: React.ReactNode }) 
       <HeaderBar>
         <Brand />
         <span className="flex-1" />
-        <Suspense fallback={null}>
+        <Suspense fallback={<ManagerSkeleton />}>
           <Manager />
         </Suspense>
       </HeaderBar>

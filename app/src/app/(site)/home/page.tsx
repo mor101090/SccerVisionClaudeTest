@@ -1,14 +1,15 @@
 import Link from "next/link";
 
+import { BrandLogo } from "@/components/brand";
+
 const secondary =
   "rounded-lg border border-border bg-panel-2 px-5 py-2.5 font-semibold text-text hover:bg-panel";
 
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
-      <h1 className="text-4xl font-extrabold tracking-tight">
-        <span className="text-text">Soccer</span>
-        <span className="text-accent">Vision</span>
+      <h1>
+        <BrandLogo className="h-24 sm:h-32" priority />
       </h1>
       <p className="max-w-md text-muted">
         Football management with a deterministic match engine running in your browser.

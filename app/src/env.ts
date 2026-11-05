@@ -27,6 +27,12 @@ const clientSchema = z.object({
   // Supabase project URL and publishable key (sb_publishable_…): safe in the browser, RLS guards the data.
   NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1).optional(),
+  // Google OAuth web client ID (public). Set: Google sign-in returns to this site (/auth/google) with an ID token, so
+  // Google's screens name this site. Unset: Google sign-in goes through Supabase's redirect flow.
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID: z
+    .string()
+    .regex(/^[\w-]+\.apps\.googleusercontent\.com$/)
+    .optional(),
 });
 
 const isServer = typeof window === "undefined";
@@ -53,6 +59,7 @@ export const clientEnv = parse(clientSchema, {
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
 });
 
 export const serverEnv = isServer

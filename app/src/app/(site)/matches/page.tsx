@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { Loading, Skeleton } from "@/components/ui/skeleton";
 import { currentUser } from "@/server/auth";
 import { listMatches } from "@/server/matches";
 
@@ -55,7 +56,18 @@ export default function MatchesPage() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4 text-zinc-50 sm:p-8">
       <h1 className="text-2xl font-semibold">My matches</h1>
-      <Suspense fallback={<p className="text-zinc-500">Loading…</p>}>
+      <Suspense
+        fallback={
+          <Loading className="divide-y divide-border rounded border border-border">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center justify-between gap-4 px-4 py-3">
+                <Skeleton className="h-4 w-56" />
+                <Skeleton className="h-3.5 w-40" />
+              </div>
+            ))}
+          </Loading>
+        }
+      >
         <MatchList />
       </Suspense>
     </main>

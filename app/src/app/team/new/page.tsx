@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { SquadSkeleton } from "@/features/team/ui/team-skeleton";
 import { loadStep } from "@/server/team-flow";
 
 async function Go(): Promise<null> {
@@ -11,7 +12,7 @@ async function Go(): Promise<null> {
 /** /team/new opens the step the manager has reached. */
 export default function Page() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<SquadSkeleton />}>
       <Go />
     </Suspense>
   );

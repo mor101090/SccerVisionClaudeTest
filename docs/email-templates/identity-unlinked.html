@@ -1,0 +1,63 @@
+<!--
+  Supabase → Authentication → Emails → Security notifications → "Identity unlinked" (turn the notification on)
+  Subject: A sign-in method was removed from your Soccer Vision account
+  Sent when Google / Facebook / Discord is disconnected: Settings → Disconnect, or "Don't connect" after Supabase merged a
+  same-email sign-in (that user gets "linked" then "removed").
+  {{ .Provider }} is the raw provider id; the if-chain turns it into its label (falls back to the id).
+
+  Colors: email clients ignore stylesheets and CSS variables, so every color is written as the hex VALUE of a token in
+  app/src/app/globals.css, by the roles of the Login reference screen. email-templates.test.ts fails on any other hex.
+    #17062e  color/bg          (--mor-dark-purple)   page background
+    #252735  color/panel-2     (--mor-search-bar)    card
+    #2a3142  color/panel       (--mor-dark-blue)     header bar; also color/button, color/divider
+    #dde9ff  color/text        (--mor-button-text)   headings; button label (color/button-text); header divider
+    #798ba9  color/muted       (--mor-line)          body and footer text
+    #39445b  color/border      (--mor-pressed-button) card and button stroke
+    #626ed4  color/link        (--mor-bright-purple) links
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="color-scheme" content="dark" />
+    <meta name="supported-color-schemes" content="dark" />
+  </head>
+  <body style="margin:0;padding:0;background:#17062e;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#17062e;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#252735;border:1px solid #39445b;border-radius:14px;overflow:hidden;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <tr>
+              <td style="background:#2a3142;padding:18px 28px;border-bottom:1px solid #dde9ff;">
+                <img src="https://soccer.dev-spirit.com/brand/logo-email.png" width="200" height="58" alt="Soccer Vision" style="display:block;border:0;height:auto;" />
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px;">
+                <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;font-weight:800;color:#dde9ff;">Sign-in method removed</h1>
+                <p style="margin:0 0 16px;font-size:15px;line-height:1.45;color:#798ba9;">
+                  <strong style="color:#dde9ff;">{{ if eq .Provider "google" }}Google{{ else if eq .Provider "facebook" }}Facebook{{ else if eq .Provider "discord" }}Discord{{ else }}{{ .Provider }}{{ end }}</strong>
+                  was disconnected from your Soccer Vision account ({{ .Email }}). You can't log in with it anymore; your
+                  other sign-in methods, club and matches are unchanged.
+                </p>
+                <p style="margin:0 0 24px;font-size:15px;line-height:1.45;color:#798ba9;">
+                  Wasn't you? Reset your password and check your connected accounts.
+                </p>
+                <p style="margin:0;">
+                  <a href="https://soccer.dev-spirit.com/settings" style="display:inline-block;padding:12px 22px;border:1px solid #39445b;border-radius:8px;background:#2a3142;color:#dde9ff;font-size:15px;font-weight:600;text-decoration:none;">
+                    Review connected accounts
+                  </a>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 28px;border-top:1px solid #2a3142;font-size:12px;line-height:1.45;color:#798ba9;">
+                You get this email for every change to how you log in. Soccer Vision by Devspirit ·
+                <a href="https://soccer.dev-spirit.com" style="color:#626ed4;text-decoration:none;">soccer.dev-spirit.com</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

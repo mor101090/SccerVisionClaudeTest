@@ -12,15 +12,29 @@ import { TextField } from "@/components/ui/text-field";
 
 import { signInAction } from "./actions";
 import { AuthFooter } from "./auth-shell";
+import { isSocialProvider, PROVIDER_LABEL } from "./providers";
 import { SocialButtons } from "./social-buttons";
 import { RedirectField, useAuthForm } from "./use-auth-form";
 
-/** Banners for arrivals from other flows (?reset=1, ?verified=1, ?error=social). */
+/** Shown back from ?via= only when it names a real sign-in method (never echo arbitrary text). */
+const KNOWN_METHODS = new Set(["Google", "Facebook", "Discord", "email and password"]);
+
+/** Banners for arrivals from other flows (?reset=1, ?verified=1, ?error=social, ?notConnected=). */
 function ArrivalNotice() {
   const q = useSearchParams();
   if (q.get("reset"))
     return <Alert tone="success">Password updated. Login with your new password.</Alert>;
   if (q.get("verified")) return <Alert tone="success">Email verified. Login to continue.</Alert>;
+  const notConnected = q.get("notConnected");
+  if (notConnected && isSocialProvider(notConnected)) {
+    const via = q.get("via");
+    const how = via && KNOWN_METHODS.has(via) ? ` Log in with ${via} to use your account.` : "";
+    return (
+      <Alert tone="info">
+        {PROVIDER_LABEL[notConnected]} wasn&apos;t connected to your account.{how}
+      </Alert>
+    );
+  }
   if (q.get("error") === "social") {
     return (
       <Alert tone="error">Google sign-in didn&apos;t finish. Try again or use your email.</Alert>

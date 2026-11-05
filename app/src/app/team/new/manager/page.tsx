@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { ManagerForm } from "@/features/team/ui/manager-form";
 import { Stepper, TeamCard } from "@/features/team/ui/pieces";
+import { TeamFormSkeleton } from "@/features/team/ui/team-skeleton";
 import { countryFromRequest, getCountries } from "@/server/countries";
 import { loadStep } from "@/server/team-flow";
 
@@ -30,7 +31,7 @@ export default function Page() {
         title="Tell us about you, coach"
         subtitle="It's time to start your journey as a manager and create your own team."
       >
-        <Suspense fallback={null}>
+        <Suspense fallback={<TeamFormSkeleton fields={4} />}>
           <Step />
         </Suspense>
       </TeamCard>

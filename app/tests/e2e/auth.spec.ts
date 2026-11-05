@@ -13,7 +13,8 @@ test.describe.serial("auth", () => {
   test("wrong password shows the banner and keeps the email", async ({ page }) => {
     await fillSignIn(page, TEST_USER.email, "definitely-wrong-password");
     await expect(
-      page.getByRole("alert").filter({ hasText: "Wrong email or password" }),
+      // The banner, not the field note under Password (both say "Wrong email or password").
+      page.getByRole("alert").filter({ hasText: "reset your password once" }),
     ).toBeVisible();
     await expect(page.getByLabel("Email address")).toHaveValue(TEST_USER.email);
     await expect(page).toHaveURL(/\/auth\/sign-in/);
@@ -109,6 +110,38 @@ test.describe.serial("auth", () => {
     await page.getByRole("button", { name: "Google" }).click();
     const url = new URL((await authorize).url());
     expect(url.searchParams.get("redirect_to")).toContain("/auth/callback");
+  });
+
+  test("settings lists the social providers and Connect links one to this account", async ({
+    page,
+  }) => {
+    await ensureSignedIn(page, TEST_USER);
+    await page.getByRole("link", { name: "Settings" }).click();
+    await expect(page.getByRole("heading", { name: "Connected accounts" })).toBeVisible();
+    for (const provider of ["google", "facebook", "discord"]) {
+      await expect(page.getByTestId(`provider-${provider}`)).toContainText("Not connected");
+    }
+    // Connect goes to Supabase's identity-linking endpoint (needs the session), back to /settings via the callback.
+    const authorize = page.waitForRequest((r) =>
+      r.url().includes("/auth/v1/user/identities/authorize"),
+    );
+    await page.getByRole("button", { name: "Connect Discord" }).click();
+    const url = new URL((await authorize).url());
+    expect(url.searchParams.get("provider")).toBe("discord");
+    expect(url.searchParams.get("redirect_to")).toContain(
+      "/auth/callback?redirectTo=%2Fsettings%3Flinking%3Ddiscord",
+    );
+  });
+
+  test("a failed Connect comes back to settings with the reason", async ({ page }) => {
+    await ensureSignedIn(page, TEST_USER);
+    await page.goto(
+      "/auth/callback?redirectTo=%2Fsettings%3Flinking%3Dgoogle&error=server_error&error_code=identity_already_exists",
+    );
+    await expect(page).toHaveURL(/\/settings\?linking=google&linkError=identity_already_exists/);
+    await expect(
+      page.getByRole("alert").filter({ hasText: "already used by another Soccer Vision account" }),
+    ).toBeVisible();
   });
 
   test("a crafted redirect never leaves the site", async ({ page }) => {

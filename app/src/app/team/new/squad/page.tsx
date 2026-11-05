@@ -5,6 +5,7 @@ import { NAME_POOLS } from "@/features/team/generator";
 import { Generating } from "@/features/team/ui/generating";
 import { Stepper } from "@/features/team/ui/pieces";
 import { SquadView } from "@/features/team/ui/squad-view";
+import { SquadSkeleton } from "@/features/team/ui/team-skeleton";
 import { loadStep } from "@/server/team-flow";
 import { getSquad } from "@/server/teams";
 
@@ -41,7 +42,7 @@ export default function Page() {
   return (
     <>
       <Stepper current="squad" />
-      <Suspense fallback={null}>
+      <Suspense fallback={<SquadSkeleton />}>
         <Step />
       </Suspense>
     </>
