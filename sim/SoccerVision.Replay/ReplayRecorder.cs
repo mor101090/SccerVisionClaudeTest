@@ -27,10 +27,18 @@ namespace SoccerVision.Replay
     /// </summary>
     public sealed class ReplayRecorder
     {
-        /// <summary>Stats row: the time, 14 team stats, the energy left of each of the 22 players (0-100), then each one's rating x10 (10-100).</summary>
-        public const int StatsLength = 15 + 22 + 22;
+        /// <summary>Stats row: the time, 14 team stats, the energy left of each of the 22 players (0-100), then each one's rating x10 (10-100), then the
+        /// passes and completed passes of each team as over a real 90 minutes (see PassesAs90).</summary>
+        public const int StatsLength = 15 + 22 + 22 + 4;
         private const int PlayerBase = 9;
         private const int PlayerStride = 5;
+        /// <summary>
+        /// A count that grows with the time played, as over a real 90 minutes: the engine plays the match in compressed time (2,430 sim seconds of
+        /// true-speed football shown as 90 clock minutes at the default pace), so it makes about 2.3 times fewer passes than a real match in the
+        /// same clock time - shown scaled, as the distance covered already is (real: about 434 open-play passes a team, StatsBomb, see CLAIMS.md).
+        /// </summary>
+        private int PassesAs90(int n) => (int)MathF.Round(n * _engine.Config.ClockSecondsPerSimSecond);
+
         /// <summary>... then the ball that went out and rolls on beyond the lines: x, y (decimetres), height (cm; -1: none).</summary>
         public static readonly int FrameLength = PlayerBase + 22 * PlayerStride + 3 * 3 + 3 + 4 + 22;
 
@@ -171,7 +179,7 @@ namespace SoccerVision.Replay
             b.Append(",\"away\":");
             Team(b, e.Away, finalStats);
             b.Append(",\"frameLayout\":\"t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked,8=caught offside,16=sliding,32=on the ground,64=injured)] x22, then officials [x*10, y*10, flag] x3\"");
-            b.Append(",\"statsLayout\":\"t*100, possession home/away (s*10), shots h/a, on target h/a, tackles h/a, tackles won h/a, dribbles h/a, dribbles won h/a, then the energy left of the 22 players (0-100)\"");
+            b.Append(",\"statsLayout\":\"t*100, possession home/away (s*10), shots h/a, on target h/a, tackles h/a, tackles won h/a, dribbles h/a, dribbles won h/a, then the energy left of the 22 players (0-100), their ratings x10, then passes h/a and completed passes h/a as over a real 90 minutes\"");
             return b.ToString();
         }
 
@@ -304,6 +312,7 @@ namespace SoccerVision.Replay
                     foreach (var p in _engine.AllPlayers) _stats.Add((int)MathF.Round(p.Energy * 100f));
                     _engine.UpdateRatings();
                     foreach (var p in _engine.AllPlayers) _stats.Add(p.Record != null ? (int)MathF.Round(p.Record.Rating * 10f) : 0);
+                    _stats.Add(PassesAs90(hs.Passes)); _stats.Add(PassesAs90(aw.Passes)); _stats.Add(PassesAs90(hs.PassesCompleted)); _stats.Add(PassesAs90(aw.PassesCompleted));
                 }
                 if (_engine.Phase == MatchPhase.HalfTimeBreak) continue;
                 AppendFrame();

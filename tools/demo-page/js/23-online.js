@@ -168,10 +168,11 @@
       var L2 = m.len, out = [], i;
       for (i = 0; i < m.frames.length; i += L2) Array.prototype.push.apply(out, swapFrame(m.frames.slice(i, i + L2)));
       var ev = JSON.parse(m.events).map(function (e) { if (e.team === 0 || e.team === 1) e.team = 1 - e.team; if (e.p != null) e.p = swapIndex(e.p); if (e.o != null) e.o = swapIndex(e.o); return e; });
-      var SL = 15 + 22 + 22, st = m.stats.slice();
+      var SL = 15 + 22 + 22 + 4, st = m.stats.slice();
       for (i = 0; i + SL <= st.length; i += SL) {
         for (var k = 1; k < 15; k += 2) { st[i + k] = m.stats[i + k + 1]; st[i + k + 1] = m.stats[i + k]; }
         for (k = 0; k < 22; k++) { st[i + 15 + swapIndex(k)] = m.stats[i + 15 + k]; st[i + 37 + swapIndex(k)] = m.stats[i + 37 + k]; }
+        for (k = 59; k < 63; k += 2) { st[i + k] = m.stats[i + k + 1]; st[i + k + 1] = m.stats[i + k]; } // (passes, completed passes: home / away)
       }
       var fin = null; if (m.final) { try { fin = JSON.stringify(swapHeader(JSON.parse(m.final))); } catch (x) {} }
       return { len: L2, frames: out, events: JSON.stringify(ev), stats: st, finished: m.finished, final: fin };

@@ -2,6 +2,35 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/passing-tempo`
+
+**Passes in the match facts, tiki-taka at Barcelona's real pace, and the game 5% slower.**
+- **Real passing, counted** (`tools/calibration/passing_tempo.py`, [StatsBomb open data](https://github.com/statsbomb/open-data); open play only - throw-ins, goal kicks,
+  corners, free kicks and kick-offs left out):
+  | per team per match | Premier League 2015/16 (380 matches) | Guardiola's Barcelona, La Liga 2010/11 (33) | its opponents |
+  |---|---|---|---|
+  | passes | 434 | 738 | 275 |
+  | completed | 77.5% | 88.5% | 71.2% |
+  | mean length | 19.0 m | 16.7 m | 19.7 m |
+  | passes a possession run | 4.35 | 7.12 | 3.10 |
+  | seconds between passes in a run | 3.60 | 3.09 | 3.52 |
+  | share of the match's passes | - | 72.5% | 27.5% |
+
+  (2009/10 and 2011/12 Barcelona: 616 and 702 passes, 68% and 70.5% of the match's passes.) The 747 passes a match quoted by fan sites for 2010/11 is confirmed.
+- **Why the engine's pass count looked low**: the match is 2,430 sim seconds of football at true speed shown as 90 clock minutes (2,309 at the new pace), so anything counted
+  over time is about 2.3 times lower than in a real match - the distance covered was already scaled for this, the passes were not. Scaled, an ordinary team makes about 460 passes
+  (real 434). The share between the teams was already right: a possession side v an ordinary one 72% of the passes (Barcelona 72.5%).
+- **Passes in the match facts**: two new rows, *Passes* and *Pass accuracy*, shown as over a real 90 minutes (`ReplayRecorder.PassesAs90`; the stats row is 4 numbers longer - the
+  demo page and the online swap read the new length).
+- **Tiki-taka at Barcelona's pace** (`MatchEngine.PatientTouch` = 0.6): a team that chose to keep the ball (possession, short passing) takes a touch and looks up before it moves
+  the ball on, outside the final third. Barcelona pass 14% faster than a Premier League side in a run (3.09 v 3.60 s); the engine's possession side passed 29% faster than an
+  ordinary one, now 13% (60 matches, seed 500: 4.58 -> 5.59 clock s). Possession side v an ordinary one: 61.9% -> 67.3% of the time, 482 -> 450 passes (scaled about 1,050 -
+  still above Barcelona's 738), shots 13.8 -> 11.0. Larger values (1.0-2.0) were tried: fewer passes, but the share of the ball went past Barcelona's and the shots fell further.
+- **The game 5% slower** (`MatchConfig.MotionSpeed` 2.025 -> 1.924; the Unity controller had the old 2.25, now the same): the players and the ball move 5% slower on screen; the
+  clock and the real length of a half are unchanged. Goals a match 2.99 -> 2.75 (150 matches, seed 500; real Premier League 2.83), fouls and cards about the same.
+- **Not done**: an ordinary team passes faster than a real one in true-speed seconds (2.8 v 3.6 s) and builds up in fewer passes per shot (15 v 34 real, unscaled) - that is the
+  pace of the whole engine, a separate round.
+
 ## `feature/possession-quality`
 
 **Possession now follows the score, and a random match keeps each team's style.** Item 2 of the list of wrong statements ("possession near 50% in every pairing") was

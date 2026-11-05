@@ -27,7 +27,7 @@ namespace SoccerVision.Simulation
         /// Sim seconds played per real second. 1 = players move at true speed; above 1 looks like a gently
         /// fast-forwarded broadcast and packs more football into the 10 real minutes.
         /// </summary>
-        public float MotionSpeed = 2.025f; // 90% of the original 2.25: the "right" match pace (playtested)
+        public float MotionSpeed = 1.924f; // 95% of 2.025 (itself 90% of the original 2.25): the match pace, playtested - the clock and the real length of a half are unchanged
         /// <summary>The competition: a league match ends after 90 minutes; a cup tie that is level goes to penalties; a league
         /// cup tie that is level plays extra time (with one more substitution and opportunity) and then penalties.</summary>
         public Competition Competition = Competition.League;

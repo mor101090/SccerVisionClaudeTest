@@ -145,7 +145,7 @@
       if (e.type === "ShootoutKick") SO_KICKS.push(e);
       if (e.type === "ExtraTime") { if (e.detail === 2) et2T = e.t; else et1T = e.t; }
     });
-    var SL = 15 + 22 + 22; // the time, 14 team stats, the energy left of the 22 players, their ratings x10
+    var SL = 15 + 22 + 22 + 4; // the time, 14 team stats, the energy left of the 22 players, their ratings x10, passes and completed passes h/a (as over 90 minutes)
     for (i = 0; i < m.stats.length; i += SL) R.stats.push(Array.prototype.slice.call(m.stats, i, i + SL));
     if (F.length) { if (F.length === n) { t0 = F[0][0] / 100; t = t0; lastT = t0; seek.min = t0; } tEnd = F[F.length - 1][0] / 100; seek.max = tEnd; }
     if (m.finished) finished = true;
@@ -171,8 +171,10 @@
     var st = null, ST = R.stats || [];
     for (var q = 0; q < ST.length && ST[q][0] / 100 <= t; q++) st = ST[q];
     st = st || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    function acc(done, all) { return all > 0 ? Math.round(done / all * 100) + "%" : "-"; }
     var possTotal = st[1] + st[2], hp = possTotal > 0 ? Math.round(st[1] / possTotal * 100) : 50;
     var rows = [["Possession", [hp + "%", (100 - hp) + "%"]], ["Shots", [st[3], st[4]]], ["Shots on target", [st[5], st[6]]],
+                ["Passes", [st[59] || 0, st[60] || 0]], ["Pass accuracy", [acc(st[61], st[59]), acc(st[62], st[60])]],
                 ["Tackles", [st[7], st[8]]], ["Tackles won", [st[9], st[10]]], ["Dribbles", [st[11], st[12]]], ["Dribbles won", [st[13], st[14]]],
                 ["Saves", c.Save], ["Corners", c.Corner], ["Fouls", c.Foul], ["Offsides", c.Offside], ["Yellow cards", c.YellowCard], ["Red cards", c.RedCard]];
     $("facts").innerHTML = rows.map(function (r) { return "<tr><td>" + r[1][0] + '</td><td class="l">' + r[0] + "</td><td>" + r[1][1] + "</td></tr>"; }).join("");

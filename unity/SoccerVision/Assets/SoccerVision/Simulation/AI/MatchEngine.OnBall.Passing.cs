@@ -70,6 +70,13 @@ namespace SoccerVision.Simulation
             float score = d == 0 ? 0f : -ScorePatience * TeamAgent.ScoreEffect * MathF.Sign(d) * (MathF.Abs(d) == 1 ? 1f : 0.4f);
             return style + quality - pressed + score;
         }
+        /// <summary>
+        /// The extra time (sim s) a patient team takes on the ball after controlling it, per point of style patience (possession + short passing = 1.5).
+        /// Real passing (see tools/calibration/passing_tempo.py and CLAIMS.md): a possession side passes about 1.7 times as often as an ordinary one -
+        /// Guardiola's Barcelona about 747 passes a match against about 434 for a Premier League side (secondary source); without it the engine's
+        /// possession side passed 2.4 times as often.
+        /// </summary>
+        public static float PatientTouch = 0.6f;
         /// <summary>The score's part of a team's patience at one goal apart (see <see cref="Patience"/>).</summary>
         public static float ScorePatience = 1f;
 

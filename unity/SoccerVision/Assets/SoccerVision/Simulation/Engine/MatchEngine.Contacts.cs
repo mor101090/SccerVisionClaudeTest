@@ -351,6 +351,9 @@ namespace SoccerVision.Simulation
             _penaltyKickTime = -1f;
             float tempo = TempoNow(p.Team);
             p.DecisionTimer = MathUtil.Clamp(0.1f + 0.3f * (1f - MathUtil.A(p.Attr.BallControl)) + relSpeed * 0.012f - 0.08f * (tempo - 0.5f), 0.08f, 0.6f);
+            // A team that chose to keep the ball (possession, short passing) takes a touch and looks up before it moves the ball on, outside the
+            // final third: it keeps the ball by being patient, not by passing twice as fast as everybody else (see PatientTouch).
+            if (!changeOfPossession && p.Team.Forward(Ball.Pos) < 17.5f) { Patience(p.Team, out float styleOnly); if (styleOnly > 0f) p.DecisionTimer += PatientTouch * styleOnly; }
             // First time: a pass into the box at a good angle - a good finisher has already set his body and opened his
             // foot, and he hits it now, before the keeper and the defenders can close him down (no touch to control it).
             if (!changeOfPossession && !p.IsGoalkeeper && Ball.LastPasser != null && Ball.LastPasser != p && Ball.LastPasser.Team == p.Team && SimTime - Ball.LastPassTime < 3f)

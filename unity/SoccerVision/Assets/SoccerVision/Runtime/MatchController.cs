@@ -19,7 +19,7 @@ namespace SoccerVision.Runtime
         [Tooltip("Real seconds of the half-time break.")]
         public float halftimeRealSeconds = 120f;
         [Tooltip("Football seconds simulated per real second (motion speed).")]
-        public float motionSpeed = 2.25f;
+        public float motionSpeed = 1.924f; // (the engine default, see MatchConfig.MotionSpeed)
 
         [Header("Presentation")]
         public bool showHud = true;

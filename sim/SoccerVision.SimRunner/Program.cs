@@ -61,6 +61,7 @@ for (int i = 0; i < args.Length; i++)
         case "--swap": swap = true; break;
         case "--scoreeffect": TeamAgent.ScoreEffect = float.Parse(args[++i]); break; // (experiment: how strongly the score changes the way a team plays)
         case "--scorepatience": MatchEngine.ScorePatience = float.Parse(args[++i]); break; // (experiment)
+        case "--patienttouch": MatchEngine.PatientTouch = float.Parse(args[++i]); break; // (experiment: the time a patient team takes on the ball)
         case "--chest": MatchEngine.ChestControlHeight = float.Parse(args[++i]); break; // (experiment: 0 = no chest control, as before)
         case "--shootkeeper": MatchEngine.ShootBeforeKeeper = float.Parse(args[++i]); break; // (experiment)
         case "--midshots": MatchEngine.MidRangeShotAppetite = float.Parse(args[++i]); break; // (experiment)
