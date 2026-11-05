@@ -2,6 +2,27 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/goals-and-marking-gap`
+
+**The two open items of the squads round: goals 2.4-2.5 v 2.83, and zonal marking beating man-to-man by 20+ points.** They turned out to be one problem seen twice.
+- **What the measurement showed** (`mark4.sh`: medium v medium in all four marking pairings, 150 matches each, two seeds; Team A is the home side): with the new squads a zonal
+  defence concedes about 1.0 goals a team and a man-to-man one about 1.3, and man-to-man leaks shots (29.3 a match both ways v 23.4 for zonal v zonal; strikers' shots 16.9 v 10.9).
+  Goals a match: zonal v zonal 1.9-2.0, zonal v man 2.4, man v zonal 2.5-2.7, man v man 3.05-3.15. The default match is the mixed pairing, which is why it sat at 2.4-2.5.
+  Zonal beat man-to-man, seats pooled, by +23 (seed 700, 300 matches a pairing) and +26 (seed 900) points of win share.
+- **Man-to-man stands tighter**: `ManMarkGapScale` 0.4 (the gap he gives his man was 1.1-4.1 m times (2 - marking skill)). Alone: gap +14 (0.6), +10 (0.3, one seed), +16.5 (0.4, seed 900).
+- **Zonal areas smaller**: `ZoneRadiusScale` 0.75 (9 / 10.5 m). A man who arrives between two zones is nobody's and only the shape covers him - the real weakness of a zonal side.
+  With both: gap +10.5 (seed 700) and +6.7 (seed 900). A radius of 0.6 was no better (+10.2). **Tried and dropped**: how hard a zonal defender steps to his man (`--zonalpull`, 0.7 and 1.4):
+  no effect on goals (zonal v zonal 1.79 / 1.87 against 1.92) or on the gap.
+- **Goals**: `SaveBase` (the save chance of a shot with no difficulty, before skill) 0.98 -> 0.90. Averaged over the four pairings, two seeds: goals 2.30 / 2.43 -> **2.74 / 2.79** (PL 2.83),
+  shots 24.6 (25.4), on target 8.0 (8.8), saves 5.3-5.4, fouls 21.2-21.3 (21.5), penalty conversion 74-76% (75-80%). Steps measured on seed 900: 0.98 -> 2.43, 0.95 -> 2.55, 0.92 -> 2.73.
+- **After both changes the zonal / man-to-man gap is +13.7 (seed 700) and +6.7 (seed 900): about 10 points, from about 25.** Noise is about 5 points a cell at 150 matches, so this is
+  "much smaller, not zero". Man v man (2.9-3.1 goals, 26.7 shots) is still livelier than zonal v zonal (2.4-2.5 goals, 23 shots).
+- **Strength spreads 1.8 / 0.45 -> 1.25 / 0.38**: the higher goal rate made the strong side win too much (strong v medium 83 / 14 / 3). Each pairing four ways, two seeds, 300 matches a seed:
+  strong v weak 85.2 / 13.5 / 1.3 (real 85 / 11 / 4), strong v medium 75.7 / 20.8 / 3.8 (73 / 17 / 10), medium v weak 56.9 / 25.0 / 18.2 (54 / 27 / 19).
+  **Still open**: the favourite almost never loses (1.3% and 3.8% against 4% and 10%) and the underdog scores about half what real underdogs do (0.33 v 0.63, 0.49 v 0.84).
+  That is match-to-match variance, not squad strength.
+- **Tests**: TESTS_LINE
+
 ## `feature/new-generator-squads`
 
 **The demo squads now come from the generator's realism round, and the engine is re-calibrated for them.** The generator (soccer-api.dev-spirit.com, PRs
