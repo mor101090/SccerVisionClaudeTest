@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON tools/ensure-assets.ts && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
