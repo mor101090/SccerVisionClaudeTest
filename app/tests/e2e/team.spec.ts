@@ -85,7 +85,8 @@ test("create your team and play a match with it", async ({ page }) => {
   await drawer.getByRole("button", { name: "Close" }).click();
 
   await page.getByRole("button", { name: "Start playing →" }).click();
-  await page.waitForURL("**/play");
+  await page.waitForURL("**/home");
+  await page.goto("/play");
 
   // The engine fields the club at home.
   const mine = page.getByRole("button", { name: /^Play with / });

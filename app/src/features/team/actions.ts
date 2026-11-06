@@ -143,7 +143,12 @@ async function run(
     if (err instanceof TeamError || err instanceof SquadApiError) return { error: err.message };
     throw err;
   }
-  if (revalidate) revalidatePath("/team/new/squad");
+  if (revalidate) {
+    revalidatePath("/team/new/squad");
+    revalidatePath("/squad");
+    revalidatePath("/home");
+    revalidatePath("/tactics");
+  }
   return null;
 }
 
@@ -181,5 +186,5 @@ export async function startPlayingAction(): Promise<TeamFormState> {
   const user = await requireUser();
   const r = await run(() => finishTeam(user.id));
   if (r?.error) return r;
-  redirect("/play");
+  redirect("/home");
 }

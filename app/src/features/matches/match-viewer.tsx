@@ -33,7 +33,9 @@ type SaveState =
 const STAGED_SEED = 7274;
 
 /** `myTeam`: the manager's own club (engine squad text); "Play with …" fields it at home against the computer. */
-export function MatchViewer({ myTeam }: { myTeam?: { name: string; text: string } | null } = {}) {
+export function MatchViewer({
+  myTeam,
+}: { myTeam?: { name: string; text: string; plan?: string | null } | null } = {}) {
   const client = useRef<EngineClient | null>(null);
   const live = useRef<LiveReplay | null>(null);
   const source = useRef<ReplaySource | null>(null);
@@ -94,7 +96,7 @@ export function MatchViewer({ myTeam }: { myTeam?: { name: string; text: string 
     },
   });
 
-  const start = useCallback(async (mode: MatchMode, homeTeam?: string) => {
+  const start = useCallback(async (mode: MatchMode, homeTeam?: string, plan?: string | null) => {
     const c = client.current;
     if (!c) return;
     const seed = mode === "staged" ? STAGED_SEED : Math.floor(Math.random() * 2147483646) + 1;
@@ -111,6 +113,7 @@ export function MatchViewer({ myTeam }: { myTeam?: { name: string; text: string 
       engineVersion: c.version ?? "unknown",
       conditions,
       ...(homeTeam ? { homeSquad: homeTeam } : {}),
+      ...(homeTeam && plan ? { homePlan: plan } : {}),
     };
     setEvents([]);
     setError(null);
@@ -122,7 +125,15 @@ export function MatchViewer({ myTeam }: { myTeam?: { name: string; text: string 
     resetBall();
     setStatus("simulating");
     await c.start(
-      { seed, mode, ...conditions, lead: 0, ...(homeTeam ? { homeTeam } : {}) },
+      {
+        seed,
+        mode,
+        ...conditions,
+        lead: 0,
+        ...(homeTeam ? { homeTeam } : {}),
+        // The club's saved tactics (/tactics) for its own live match.
+        ...(homeTeam && plan ? { plan } : {}),
+      },
       {
         onHeader: (l) => {
           live.current = l;
@@ -183,7 +194,7 @@ export function MatchViewer({ myTeam }: { myTeam?: { name: string; text: string 
             type="button"
             className="rounded-lg bg-button px-4 py-2 font-semibold text-button-text enabled:hover:bg-border disabled:opacity-45"
             disabled={busy}
-            onClick={() => void start("live", myTeam.text)}
+            onClick={() => void start("live", myTeam.text, myTeam.plan)}
           >
             Play with {myTeam.name}
           </button>

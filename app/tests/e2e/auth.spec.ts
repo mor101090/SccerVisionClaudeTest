@@ -26,7 +26,15 @@ test.describe.serial("auth", () => {
     await ensureSignedIn(page, TEST_USER);
     await page.reload();
     await expect(page.getByTestId("user-name")).toHaveText(TEST_USER.username);
-    await page.getByRole("button", { name: "Sign out" }).click();
+    // Signed in with a club: the app shell (profile menu → Log out → confirm). Without one: Create your team's "Log out".
+    const menu = page.getByRole("button", { name: "Account menu" });
+    if (await menu.isVisible()) {
+      await menu.click();
+      await page.getByRole("button", { name: "Log out" }).click();
+      await page.getByRole("button", { name: "Sign out" }).click();
+    } else {
+      await page.getByRole("button", { name: "Log out" }).click();
+    }
     // Signed out: back to the default site, the classic game.
     await page.waitForURL((url) => url.pathname === "/classic/index.html");
     await page.goto("/play");
@@ -125,7 +133,14 @@ test.describe.serial("auth", () => {
     page,
   }) => {
     await ensureSignedIn(page, TEST_USER);
-    await page.getByRole("link", { name: "Settings" }).click();
+    // Settings sits in the account menu of the app shell (Create your team has no menu: go there directly).
+    const menu = page.getByRole("button", { name: "Account menu" });
+    if (await menu.isVisible()) {
+      await menu.click();
+      await page.getByRole("link", { name: "Settings" }).click();
+    } else {
+      await page.goto("/settings");
+    }
     await expect(page.getByRole("heading", { name: "Connected accounts" })).toBeVisible();
     for (const provider of ["google", "facebook", "discord"]) {
       await expect(page.getByTestId(`provider-${provider}`)).toContainText("Not connected");
@@ -163,7 +178,7 @@ test.describe.serial("auth", () => {
       await page.goto(`/auth/callback?redirectTo=${to}`);
       await page.waitForLoadState();
       expect(page.url(), to).not.toContain("evil.example");
-      expect(new URL(page.url()).pathname, to).toBe("/play");
+      expect(new URL(page.url()).pathname, to).toMatch(/^\/(home|team\/new)/);
     }
   });
 });

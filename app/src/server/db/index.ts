@@ -11,8 +11,9 @@ function createDb() {
   const url = serverEnv.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");
   // DATABASE_URL is Supabase's transaction pooler (Supavisor, port 6543): it does not support
-  // prepared statements, and each serverless instance needs only a few connections.
-  const client = postgres(url, { prepare: false, max: 5 });
+  // prepared statements. Connections are cheap there; 10 lets the sidebar's parallel route prefetches
+  // (each a handful of queries) run side by side instead of queuing behind each other.
+  const client = postgres(url, { prepare: false, max: 10 });
   return drizzle({ client, schema, casing: "snake_case" });
 }
 

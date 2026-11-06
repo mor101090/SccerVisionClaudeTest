@@ -45,9 +45,25 @@ export function passkeyErrorMessage(error: unknown, action: "signin" | "create")
   }
 }
 
-/** True when this browser can use passkeys at all. */
+/** The relying party every passkey is bound to. Changing it breaks every existing passkey. */
+export const PASSKEY_RP_ID = "soccer.dev-spirit.com";
+
+/** True on the relying party or a subdomain of it: the only hosts where a passkey ceremony can succeed. */
+export function passkeyHostAllowed(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return host === PASSKEY_RP_ID || host.endsWith(`.${PASSKEY_RP_ID}`);
+}
+
+/**
+ * True when passkeys can work here: the browser supports WebAuthn and the page is on the relying party's host.
+ * Elsewhere (localhost, *.vercel.app) every ceremony fails with an RP ID error, so passkey UI stays hidden.
+ */
 export function passkeysSupported(): boolean {
-  return typeof window !== "undefined" && typeof window.PublicKeyCredential === "function";
+  return (
+    typeof window !== "undefined" &&
+    typeof window.PublicKeyCredential === "function" &&
+    passkeyHostAllowed(window.location.hostname)
+  );
 }
 
 /** True when the browser can offer passkeys in the email field's autofill (WebAuthn Conditional UI). */

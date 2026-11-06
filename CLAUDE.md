@@ -2,7 +2,8 @@
 
 Football-management game. A deterministic C# match engine runs in the browser as .NET 8 WebAssembly.
 The site is a Next.js fullstack app (`app/`) backed by Supabase. **The classic game is the default site:** `/` redirects to
-`/classic/index.html` (built from `tools/demo-page/`, where Mor's game flow lives); the Next.js landing page is `/home`.
+`/classic/index.html` (built from `tools/demo-page/`, where Mor's game flow lives). `/home` is the landing page for visitors
+and the manager's homepage (dashboard) once signed in.
 
 ## Repo map
 
@@ -95,7 +96,8 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   the tokens in `src/app/globals.css` (Figma "Primitives (Mor)" → `--mor-*`, "SoccerVision Web" → semantic `--color-*`);
   the reference for color roles is the Login screen (node 541-2333). Never hard-code hex in components.
 - **Auth flow** (`features/auth/actions.ts`): every sign-in path ends in `nextPathAfterSignIn()` → `/auth/finish` until the
-  profile has a username + terms (`profiles` table), then `redirectTo`. Password logins are throttled per email
+  profile has a username + terms (`profiles` table), then `redirectTo` (default `HOME_PATH` = `/home`, which sends a
+  manager without a finished club to `/team/new`). Password logins are throttled per email
   (`server/login-throttle.ts`, 5 failures / 15 min), one atomic increment per attempt in the Server Actions.
   Supabase's password-verification hook is a paid feature, so the app does not use it. The sign-in form gives the
   same wrong-email-or-password answer for a wrong password, an unknown address, and a pause. A password session
@@ -136,10 +138,22 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   decrement; one player per XI slot (`players_team_starter_uq`). A match played with the club is saved with
   `home_team_id` + `home_squad` (the UseHomeTeam text, checked by `/api/matches` against the stored club).
 
+- **Homepage & app shell** (Figma group "Homepage flow", node 594-15448): `(app)/` routes (home, squad, tactics, games,
+  training, coaches, transfer, rules, forum, league, rankings, finances, stadium, notifications, messages, search) share
+  the sidebar + top bar (`components/app-shell/`); visitors get the site header instead. Club pages guard with
+  `loadClub()` (`server/team-flow.ts`). Homepage data: `server/home.ts`, display rules `features/home/rules.ts`. League,
+  fixtures, standings, ratings, finances, fans, stadium, offers, staff, training, forum and inbox tables
+  (`drizzle/0006_club_world.sql`) start empty: **no row = the new-club state** (an empty state, never an invented number).
+  Tactics (`features/tactics/`) edit `teams.plan` in the engine's TeamPlan text; formations are generated from
+  `Formation.cs` (`formations.ts`), encodings and tactic locks follow the classic page. `/play` passes the saved plan.
+  The forum is read-only: only `profiles.is_admin` users may post (checked in `features/forum/actions.ts`); admins are
+  set in Supabase (`update profiles set is_admin = true where username = '…'`), never by the app.
+
 ## app/src layout
 
 ```
-app/              (site)/: home play matches lobby terms settings · team/new/: manager club kits squad · auth/: sign-in sign-up verify-email forgot-password[/sent]
+app/              (app)/: home squad tactics games training coaches transfer rules forum league rankings finances
+                  stadium notifications messages search play matches lobby terms settings · platform/ (classic → app) · team/new/: manager club kits squad · auth/: sign-in sign-up verify-email forgot-password[/sent]
                   reset-password finish link-account callback error · api/*
 components/       shared UI: brand/header, ui/ (button, text-field, checkbox, alert, icons)
 features/<domain> auth, matches, lobby (client UI, zod schemas, server actions)

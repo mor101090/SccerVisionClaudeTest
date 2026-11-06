@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    // Keep pages the manager just visited for 30s, so going back and forth between tabs is instant. Server Actions
+    // that change data revalidate the affected paths, which drops these copies.
+    staleTimes: { dynamic: 30 },
+  },
   // Country flags on the manager step (features/team/countries.ts).
   images: { remotePatterns: [new URL("https://flagcdn.com/**")] },
   turbopack: {

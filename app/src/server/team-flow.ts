@@ -3,8 +3,8 @@ import "server-only";
 import { redirect } from "next/navigation";
 
 import { currentUser } from "./auth";
-import { getProfile, isComplete } from "./profiles";
-import { currentStep, getTeam, type Step } from "./teams";
+import { getProfile, isComplete, profileForRequest } from "./profiles";
+import { currentStep, getTeam, type Step, teamForRequest } from "./teams";
 
 const ORDER: Step[] = ["manager", "club", "kits", "squad"];
 
@@ -15,10 +15,22 @@ const ORDER: Step[] = ["manager", "club", "kits", "squad"];
 export async function loadStep(step: Step) {
   const user = await currentUser();
   if (!user) redirect(`/auth/sign-in?redirectTo=${encodeURIComponent(`/team/new/${step}`)}`);
-  const profile = await getProfile(user.id);
+  const [profile, team] = await Promise.all([profileForRequest(user.id), teamForRequest(user.id)]);
   if (!isComplete(profile)) redirect(`/auth/finish?redirectTo=${encodeURIComponent("/team/new")}`);
-  const team = await getTeam(user.id);
   const reached = currentStep(profile, team);
   if (ORDER.indexOf(step) > ORDER.indexOf(reached)) redirect(`/team/new/${reached}`);
   return { user, profile: profile!, team, reached };
+}
+
+/**
+ * For the club pages (Squad, Tactics, …): signed out → login (back here after), no username → "Almost there",
+ * no finished club → Create your team.
+ */
+export async function loadClub(path: string) {
+  const user = await currentUser();
+  if (!user) redirect(`/auth/sign-in?redirectTo=${encodeURIComponent(path)}`);
+  const [profile, team] = await Promise.all([getProfile(user.id), getTeam(user.id)]);
+  if (!isComplete(profile)) redirect(`/auth/finish?redirectTo=${encodeURIComponent(path)}`);
+  if (!team || team.status !== "ready") redirect("/team/new");
+  return { user, profile: profile!, team };
 }

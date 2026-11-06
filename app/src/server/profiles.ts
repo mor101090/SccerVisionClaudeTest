@@ -1,6 +1,8 @@
 import "server-only";
 
 import { eq, sql } from "drizzle-orm";
+import { cacheLife } from "next/cache";
+import { cache } from "react";
 
 import { db, schema } from "./db";
 import { isUniqueViolation } from "./db/errors";
@@ -10,9 +12,17 @@ const { profiles } = schema;
 export type Profile = typeof profiles.$inferSelect;
 
 export async function getProfile(userId: string): Promise<Profile | null> {
+  "use cache: private";
+  cacheLife("minutes");
   const [row] = await db().select().from(profiles).where(eq(profiles.userId, userId));
   return row ?? null;
 }
+
+/**
+ * getProfile once per request (layout, page and currentUser share one query). Renders only: a Server Action that
+ * writes the profile and reads it back must call getProfile.
+ */
+export const profileForRequest = cache(getProfile);
 
 /** True once the account has a username and accepted the terms (the "Almost there" step is done). */
 export function isComplete(p: Profile | null): boolean {

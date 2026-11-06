@@ -7,7 +7,13 @@ import { PasskeyIcon } from "@/components/ui/icons";
 import { Loading, Skeleton } from "@/components/ui/skeleton";
 
 import { approvePasskeyAction, listPasskeysAction, reauthenticateAction } from "./actions";
-import { deviceLabel, loggedInRecently, passkeyErrorMessage, passkeysSupported } from "./passkeys";
+import {
+  deviceLabel,
+  loggedInRecently,
+  PASSKEY_RP_ID,
+  passkeyErrorMessage,
+  passkeysSupported,
+} from "./passkeys";
 import { supabaseBrowser } from "./supabase-client";
 
 type Passkey = {
@@ -284,7 +290,11 @@ export function PasskeySettings() {
           </button>
         </div>
       ) : (
-        <p className="text-sm text-muted">Passkeys aren&apos;t available in this browser yet.</p>
+        <p className="text-sm text-muted">
+          {typeof window !== "undefined" && typeof window.PublicKeyCredential === "function"
+            ? `Passkeys only work on ${PASSKEY_RP_ID}.`
+            : "Passkeys aren't available in this browser yet."}
+        </p>
       )}
     </div>
   );

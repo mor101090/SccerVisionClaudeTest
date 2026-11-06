@@ -10,6 +10,7 @@ import {
   offerDismissedKey,
   passkeyErrorKind,
   passkeyErrorMessage,
+  passkeyHostAllowed,
   shouldOfferPasskey,
 } from "./passkeys";
 
@@ -157,5 +158,17 @@ describe("passkeyUsedAt", () => {
   it("returns null when no passkey was used around that time", () => {
     expect(passkeyUsedAt([{ id: "old", last_used_at: "2026-11-01T10:00:00Z" }], at)).toBeNull();
     expect(passkeyUsedAt([{ id: "new" }], at)).toBeNull();
+  });
+});
+
+describe("passkeyHostAllowed", () => {
+  it("allows only the relying party and its subdomains", () => {
+    expect(passkeyHostAllowed("soccer.dev-spirit.com")).toBe(true);
+    expect(passkeyHostAllowed("SOCCER.dev-spirit.com")).toBe(true);
+    expect(passkeyHostAllowed("www.soccer.dev-spirit.com")).toBe(true);
+    expect(passkeyHostAllowed("localhost")).toBe(false);
+    expect(passkeyHostAllowed("soccer-vision-git-x.vercel.app")).toBe(false);
+    expect(passkeyHostAllowed("evilsoccer.dev-spirit.com")).toBe(false);
+    expect(passkeyHostAllowed("dev-spirit.com")).toBe(false);
   });
 });

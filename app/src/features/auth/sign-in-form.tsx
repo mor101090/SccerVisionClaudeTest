@@ -48,7 +48,7 @@ function ArrivalNotice() {
   }
   if (q.get("error") === "social") {
     return (
-      <Alert tone="error">Google sign-in didn&apos;t finish. Try again or use your email.</Alert>
+      <Alert tone="error">Social sign-in didn&apos;t finish. Try again or use your email.</Alert>
     );
   }
   return null;

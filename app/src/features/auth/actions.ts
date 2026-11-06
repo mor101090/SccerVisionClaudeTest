@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { formText } from "@/lib/form";
@@ -500,6 +501,7 @@ export async function signOutAction(): Promise<void> {
   const { data } = await supabase.auth.getClaims();
   const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
   if (sessionId) await forgetSession(sessionId, data?.claims);
+  revalidatePath("/", "layout");
   await supabase.auth.signOut();
   redirect("/");
 }
@@ -513,6 +515,7 @@ export async function reauthenticateAction(form: FormData): Promise<void> {
   const { data } = await supabase.auth.getClaims();
   const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
   if (sessionId) await forgetSession(sessionId, data?.claims);
+  revalidatePath("/", "layout");
   await supabase.auth.signOut();
   redirect(
     `/auth/sign-in?reauth=1&redirectTo=${encodeURIComponent(safeRedirect(form.get("redirectTo")))}`,
@@ -525,6 +528,7 @@ export async function switchAccountAction(): Promise<void> {
   const { data } = await supabase.auth.getClaims();
   const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
   if (sessionId) await forgetSession(sessionId, data?.claims);
+  revalidatePath("/", "layout");
   await supabase.auth.signOut();
   redirect("/auth/sign-in");
 }

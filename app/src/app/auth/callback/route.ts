@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { justAutoLinked } from "@/features/auth/linking";
 import { passkeyAuthenticatedAt } from "@/features/auth/passkeys";
-import { safeRedirect } from "@/features/auth/policy";
+import { HOME_PATH, safeRedirect } from "@/features/auth/policy";
 import { currentUser } from "@/server/auth";
 import { nextPathAfterSignIn } from "@/server/auth-flow";
 import { vetPasskeySession } from "@/server/passkeys";
@@ -57,5 +57,5 @@ export async function GET(request: NextRequest) {
   const here = new URL(request.url);
   // Still signed in after a provider error: a Connect (linkIdentity) from Settings failed. Pass the reason on.
   if (user && providerError) target.searchParams.set("linkError", providerError.slice(0, 64));
-  return NextResponse.redirect(target.origin === here.origin ? target : new URL("/play", here));
+  return NextResponse.redirect(target.origin === here.origin ? target : new URL(HOME_PATH, here));
 }

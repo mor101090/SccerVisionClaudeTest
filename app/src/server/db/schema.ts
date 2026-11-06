@@ -64,6 +64,10 @@ export const profiles = pgTable(
     nationality: text("nationality"),
     /** The manager who invited this one (step 1 of Create your team). */
     invitedBy: uuid("invited_by").references(() => authUsers.id, { onDelete: "set null" }),
+    /** When the manager finished or skipped the homepage tour. Null: show it on the next visit. */
+    onboardingSeenAt: timestamp("onboarding_seen_at", { withTimezone: true }),
+    /** Soccer Vision staff: may post in the forum (read-only for everyone else). Set in Supabase, never by the app. */
+    isAdmin: boolean("is_admin").notNull().default(false),
     ...timestamps,
   },
   (t) => [uniqueIndex("profiles_username_lower_uq").on(sql`lower(${t.username})`)],
@@ -345,4 +349,326 @@ export const lobbyInputs = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("lobby_inputs_seq_uq").on(t.lobbyId, t.seq)],
+).enableRLS();
+
+// ---------------------------------------------------------------- club world (homepage data)
+/*
+ * League play, money, ratings, fans, stadiums, transfers, staff, training and the inbox. A brand-new club has no
+ * rows in these tables: every reader treats "no row" as the new-club state (see server/home.ts), so the tables can
+ * fill in feature by feature without the homepage changing shape.
+ */
+
+export const seasonStatus = pgEnum("season_status", ["preseason", "active", "break", "finished"]);
+
+/** One game-wide season. `break` is the off week between the last round and the next season. */
+export const seasons = pgTable(
+  "seasons",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    number: integer("number").notNull(),
+    status: seasonStatus("status").notNull().default("preseason"),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("seasons_number_uq").on(t.number)],
+).enableRLS();
+
+export const competition = pgEnum("competition", ["league", "cup", "friendly"]);
+export const fixtureStatus = pgEnum("fixture_status", [
+  "scheduled",
+  "live",
+  "finished",
+  "postponed",
+]);
+
+/** A scheduled match. A side without a club id is the computer (`homeName` / `awayName` say who). */
+export const fixtures = pgTable(
+  "fixtures",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    seasonId: uuid("season_id").references(() => seasons.id, { onDelete: "set null" }),
+    leagueId: uuid("league_id").references(() => leagues.id, { onDelete: "cascade" }),
+    competition: competition("competition").notNull(),
+    /** League round or cup round, 1-based. Null for friendlies. */
+    round: smallint("round"),
+    homeTeamId: uuid("home_team_id").references(() => teams.id, { onDelete: "set null" }),
+    awayTeamId: uuid("away_team_id").references(() => teams.id, { onDelete: "set null" }),
+    homeName: text("home_name").notNull(),
+    awayName: text("away_name").notNull(),
+    kickoffAt: timestamp("kickoff_at", { withTimezone: true }).notNull(),
+    status: fixtureStatus("status").notNull().default("scheduled"),
+    homeScore: smallint("home_score"),
+    awayScore: smallint("away_score"),
+    matchId: uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [
+    index("fixtures_home_kickoff_idx").on(t.homeTeamId, t.kickoffAt),
+    index("fixtures_away_kickoff_idx").on(t.awayTeamId, t.kickoffAt),
+    index("fixtures_league_round_idx").on(t.leagueId, t.round),
+  ],
+).enableRLS();
+
+/** League table row, kept up to date when a league fixture finishes. `form`: last five results, newest last ("WWDLW"). */
+export const standings = pgTable(
+  "standings",
+  {
+    leagueId: uuid("league_id")
+      .notNull()
+      .references(() => leagues.id, { onDelete: "cascade" }),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    position: smallint("position").notNull(),
+    played: smallint("played").notNull().default(0),
+    won: smallint("won").notNull().default(0),
+    drawn: smallint("drawn").notNull().default(0),
+    lost: smallint("lost").notNull().default(0),
+    goalsFor: smallint("goals_for").notNull().default(0),
+    goalsAgainst: smallint("goals_against").notNull().default(0),
+    points: smallint("points").notNull().default(0),
+    form: text("form").notNull().default(""),
+    updatedAt: timestamps.updatedAt,
+  },
+  (t) => [
+    primaryKey({ columns: [t.leagueId, t.teamId] }),
+    index("standings_team_idx").on(t.teamId),
+  ],
+).enableRLS();
+
+/** World rating. A club is unranked (no row) until it has played RATED_AFTER matches. */
+export const teamRatings = pgTable("team_ratings", {
+  teamId: uuid("team_id")
+    .primaryKey()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  rating: integer("rating").notNull(),
+  worldRank: integer("world_rank").notNull(),
+  /** Rank at the previous weekly update (Monday); null on the first one. */
+  previousRank: integer("previous_rank"),
+  ...timestamps,
+}).enableRLS();
+
+/** Balance in whole euros. No row: finances have not started (no league season played yet). */
+export const clubFinances = pgTable("club_finances", {
+  teamId: uuid("team_id")
+    .primaryKey()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  balance: integer("balance").notNull(),
+  ...timestamps,
+}).enableRLS();
+
+export const financeKind = pgEnum("finance_kind", [
+  "tickets",
+  "sponsors",
+  "tv",
+  "prize",
+  "player_wages",
+  "staff_wages",
+  "transfer",
+  "construction",
+]);
+
+/** One income (positive) or expense (negative) in whole euros, booked to the week it happened in. */
+export const financeEntries = pgTable(
+  "finance_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    weekOf: timestamp("week_of", { withTimezone: true }).notNull(),
+    kind: financeKind("kind").notNull(),
+    amount: integer("amount").notNull(),
+    note: text("note"),
+    createdAt: timestamps.createdAt,
+  },
+  (t) => [index("finance_entries_team_week_idx").on(t.teamId, t.weekOf)],
+).enableRLS();
+
+/** Supporters. No row: mood comes from the last five results (server/home.ts). */
+export const clubFans = pgTable("club_fans", {
+  teamId: uuid("team_id")
+    .primaryKey()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  /** 1 (furious) … 5 (euphoric). */
+  mood: smallint("mood").notNull(),
+  members: integer("members").notNull().default(0),
+  ...timestamps,
+}).enableRLS();
+
+/** Home ground. No row: it opens with league play. */
+export const stadiums = pgTable("stadiums", {
+  teamId: uuid("team_id")
+    .primaryKey()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  capacity: integer("capacity").notNull(),
+  roof: boolean("roof").notNull().default(false),
+  seasonTickets: integer("season_tickets").notNull().default(0),
+  /** Whole euros. */
+  ticketPrice: integer("ticket_price").notNull(),
+  ...timestamps,
+}).enableRLS();
+
+export const offerStatus = pgEnum("offer_status", [
+  "pending",
+  "accepted",
+  "rejected",
+  "withdrawn",
+  "expired",
+]);
+
+/** A bid by `bidderTeamId` for a player of `sellerTeamId`. */
+export const transferOffers = pgTable(
+  "transfer_offers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    sellerTeamId: uuid("seller_team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    bidderTeamId: uuid("bidder_team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    status: offerStatus("status").notNull().default("pending"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    index("transfer_offers_seller_idx").on(t.sellerTeamId, t.status),
+    index("transfer_offers_bidder_idx").on(t.bidderTeamId, t.status),
+  ],
+).enableRLS();
+
+export const notificationKind = pgEnum("notification_kind", [
+  "match",
+  "transfer",
+  "training",
+  "injury",
+  "finance",
+  "club",
+  "system",
+]);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    kind: notificationKind("kind").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    /** Same-site path the notification opens. */
+    href: text("href"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamps.createdAt,
+  },
+  (t) => [index("notifications_user_created_idx").on(t.userId, t.createdAt.desc())],
+).enableRLS();
+
+/** Direct messages between managers. */
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fromUserId: uuid("from_user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    toUserId: uuid("to_user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamps.createdAt,
+  },
+  (t) => [index("messages_to_created_idx").on(t.toUserId, t.createdAt.desc())],
+).enableRLS();
+
+export const staffRole = pgEnum("staff_role", [
+  "head_coach",
+  "assistant",
+  "goalkeeping",
+  "fitness",
+  "scout",
+  "youth",
+]);
+
+/** Coaching staff. `ratings`: 1–20 per skill, e.g. { tactics: 17, motivation: 15 }. */
+export const staff = pgTable(
+  "staff",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    role: staffRole("role").notNull(),
+    name: text("name").notNull(),
+    ratings: jsonb("ratings").$type<Record<string, number>>().notNull(),
+    /** Whole euros per week. */
+    wage: integer("wage").notNull(),
+    contractUntil: timestamp("contract_until", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("staff_team_role_uq").on(t.teamId, t.role)],
+).enableRLS();
+
+/** The weekly training plan: one focus per weekday (0 = Monday). Intensity 0–100; 0 is rest. */
+export const trainingPlans = pgTable(
+  "training_plans",
+  {
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    weekday: smallint("weekday").notNull(),
+    focus: text("focus").notNull(),
+    intensity: smallint("intensity").notNull(),
+    updatedAt: timestamps.updatedAt,
+  },
+  (t) => [primaryKey({ columns: [t.teamId, t.weekday] })],
+).enableRLS();
+
+export const forumCategory = pgEnum("forum_category", [
+  "general",
+  "tactics",
+  "transfers",
+  "friendlies",
+  "bugs",
+]);
+
+export const forumThreads = pgTable(
+  "forum_threads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    category: forumCategory("category").notNull(),
+    title: text("title").notNull(),
+    lastPostAt: timestamp("last_post_at", { withTimezone: true }).notNull().defaultNow(),
+    replies: integer("replies").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [index("forum_threads_last_post_idx").on(t.lastPostAt.desc())],
+).enableRLS();
+
+export const forumPosts = pgTable(
+  "forum_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => forumThreads.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    ...timestamps,
+  },
+  (t) => [index("forum_posts_thread_idx").on(t.threadId, t.createdAt)],
 ).enableRLS();

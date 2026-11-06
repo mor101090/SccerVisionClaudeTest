@@ -3,6 +3,8 @@ import "server-only";
 import { randomInt } from "node:crypto";
 
 import { and, asc, eq, gt, or, sql } from "drizzle-orm";
+import { cacheLife } from "next/cache";
+import { cache } from "react";
 
 import { engineAttributeMap, positionLabel, toEngineTeam } from "@/features/team/engine-team";
 import type { GeneratorPlayer, NamePool } from "@/features/team/generator";
@@ -30,11 +32,15 @@ export type SquadPlayer = {
 export class TeamError extends Error {}
 
 export async function getTeam(userId: string): Promise<TeamRow | null> {
+  "use cache: private";
+  cacheLife("minutes");
   const [t] = await db().select().from(teams).where(eq(teams.ownerId, userId));
   return t ?? null;
 }
 
 export async function getSquad(teamId: string): Promise<SquadPlayer[]> {
+  "use cache: private";
+  cacheLife("minutes");
   const rows = await db()
     .select()
     .from(players)
@@ -47,6 +53,10 @@ export async function getSquad(teamId: string): Promise<SquadPlayer[]> {
     p: withStars(generatorPlayerSchema.parse(r.profile)),
   }));
 }
+
+/** getTeam / getSquad once per request, shared by the layout and the page. Renders only (not after a write). */
+export const teamForRequest = cache(getTeam);
+export const squadForRequest = cache(getSquad);
 
 /** The furthest step this manager may open: manager → club → kits → squad. */
 export type Step = "manager" | "club" | "kits" | "squad";
@@ -264,7 +274,7 @@ export async function finishTeam(userId: string): Promise<void> {
 export async function engineTeamFor(
   team: TeamRow | null,
   manager: string,
-): Promise<{ name: string; text: string } | null> {
+): Promise<{ name: string; text: string; plan: string | null } | null> {
   if (!team || team.status !== "ready" || !team.kits) return null;
   const squad = await getSquad(team.id);
   const starters = squad
@@ -283,5 +293,5 @@ export async function engineTeamFor(
     starters: starters.map((s) => s.p),
     bench: bench.slice(0, 9).map((s) => s.p),
   });
-  return { name: team.name, text };
+  return { name: team.name, text, plan: team.plan };
 }
