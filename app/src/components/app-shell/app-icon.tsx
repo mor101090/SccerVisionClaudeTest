@@ -155,6 +155,39 @@ const PATHS = {
       <path d="m7 15 4-4 3 3 6-6" />
     </>
   ),
+  pause: <path d="M8 5v14M16 5v14" />,
+  swap: <path d="M7 20V4M3 8l4-4 4 4M17 4v16M21 16l-4 4-4-4" />,
+  flag: <path d="M5 21V4M5 4h11l-2 4 2 4H5" />,
+  info: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4M12 8h.01" />
+    </>
+  ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="4" />
+    </>
+  ),
+  card: <rect x="7" y="3" width="10" height="18" rx="2" />,
+  whistle: (
+    <>
+      <circle cx="9" cy="14" r="6" />
+      <path d="M13 10h8v4h-5" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21a7 7 0 0 1 14 0M16 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3" />
+    </>
+  ),
+  cloud: <path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.8A6 6 0 1 0 6 18.9h11.5z" />,
+  skipBack: <path d="M19 20 9 12l10-8zM5 19V5" />,
+  skipForward: <path d="m5 4 10 8-10 8zM19 5v14" />,
+  star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2-5.5-2.9-5.5 2.9 1-6.2L3 9.6l6.2-.9z" />,
+  bolt: <path d="M13 2 4 14h7l-1 8 9-12h-7z" />,
 } as const;
 
 export type IconName = keyof typeof PATHS;

@@ -16,7 +16,7 @@ async function Manager() {
   return (
     <div className="flex items-center gap-4">
       <span
-        className="flex size-8 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-ink"
+        className="flex size-8 items-center justify-center rounded-full bg-accent text-xs font-bold text-on-accent"
         aria-hidden
       >
         {initialsOf(user.name)}

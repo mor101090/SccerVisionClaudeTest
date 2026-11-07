@@ -2,16 +2,14 @@
 
 import dynamic from "next/dynamic";
 
-// The canvas renderer touches `document` at module load: browser only.
-const MatchViewer = dynamic(
-  () => import("@/features/matches/match-viewer").then((m) => m.MatchViewer),
-  { ssr: false, loading: () => <p className="text-muted">Loading…</p> },
-);
+import type { HubData } from "@/features/match-day/play-hub";
 
-export function PlayClient({
-  myTeam,
-}: {
-  myTeam?: { name: string; text: string; plan?: string | null } | null;
-}) {
-  return <MatchViewer myTeam={myTeam} />;
+// The canvas renderer touches `document` at module load: browser only.
+const MatchDay = dynamic(() => import("@/features/match-day/match-day").then((m) => m.MatchDay), {
+  ssr: false,
+  loading: () => <p className="text-muted">Loading…</p>,
+});
+
+export function PlayClient({ data }: { data: HubData }) {
+  return <MatchDay data={data} />;
 }

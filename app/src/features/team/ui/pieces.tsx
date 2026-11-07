@@ -160,13 +160,13 @@ export function Stepper({ current }: { current: StepId }) {
               <span
                 className={`flex size-7 items-center justify-center rounded-full text-[13px] font-bold ${
                   done
-                    ? "bg-accent text-accent-ink"
+                    ? "bg-accent text-on-accent"
                     : now
                       ? "border-2 border-accent bg-panel-2 text-accent"
                       : "border border-border bg-panel-2 text-muted"
                 }`}
               >
-                {done ? <FeatureCheckIcon className="text-accent-ink" /> : i + 1}
+                {done ? <FeatureCheckIcon className="text-on-accent" /> : i + 1}
               </span>
               <span
                 className={`hidden text-sm sm:inline ${now ? "font-semibold text-text" : done ? "text-text" : "text-muted"}`}

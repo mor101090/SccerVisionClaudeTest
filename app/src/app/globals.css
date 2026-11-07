@@ -42,8 +42,10 @@
   --color-panel-2: var(--mor-search-bar);
   --color-text: var(--mor-button-text);
   --color-muted: var(--mor-line);
-  --color-accent: var(--mor-green);
+  --color-accent: var(--mor-blue);
+  /* Dark ink on light fills (white / yellow shirts, chips). Text on an accent (blue) fill uses on-accent. */
   --color-accent-ink: var(--mor-dark-purple);
+  --color-on-accent: var(--color-white);
   --color-goal: var(--mor-light-green);
   --color-foul: var(--mor-red);
   --color-card: var(--mor-yellow);
@@ -52,6 +54,11 @@
   --color-border: var(--mor-pressed-button);
   --color-divider: var(--mor-dark-blue);
   --color-white: #ffffff;
+  --color-success: var(--mor-light-green);
+  --color-warning: var(--mor-orange);
+  --color-danger: var(--mor-red);
+  --color-overlay: var(--mor-black);
+  --color-selected: var(--mor-bright-purple);
 
   /* Interactive roles (reference screen: Login, node 541-2333) */
   --color-link: var(--mor-bright-purple);

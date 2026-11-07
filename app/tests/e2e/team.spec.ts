@@ -89,18 +89,15 @@ test("create your team and play a match with it", async ({ page }) => {
   await page.waitForURL("**/home");
   await page.goto("/play");
 
-  // The engine fields the club at home.
-  const mine = page.getByRole("button", { name: /^Play with / });
-  await expect(mine).toBeEnabled({ timeout: 60_000 });
-  const club = (await mine.textContent())!.replace("Play with ", "");
-  await mine.click();
-  // The scoreboard names the club (exact text: not the "Play with …" button), and the match runs to full time.
-  await expect(page.getByText(club, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
-  await page.getByRole("button", { name: "64×" }).click();
+  // The engine fields the club at home: the match setup shows its saved tactics.
+  await expect(page.getByText("Saved tactics", { exact: true })).toBeVisible();
+  await page.getByRole("radio", { name: "Instant result" }).click();
+  const start = page.getByRole("button", { name: "Start match" });
+  await expect(start).toBeEnabled({ timeout: 60_000 });
+  await start.click();
+  const report = page.getByTestId("full-time");
+  await expect(report).toBeVisible({ timeout: 150_000 });
   await shot(page, "7-play");
-  const save = page.getByRole("button", { name: "Save match" });
-  await expect(save).toBeVisible({ timeout: 150_000 });
   // Saved with the club: the server accepts it only when the squad played is the stored one.
-  await save.click();
   await expect(page.getByTestId("saved")).toBeVisible({ timeout: 30_000 });
 });

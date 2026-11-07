@@ -2,9 +2,25 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feat/match-day`
+
+**Match day screens from Figma** (section "Match day & more – screens").
+
+- **/play** is a Play hub (computer / online / replay, match setup with Watch live or Instant result and opponent strength,
+  recent results) → **Pre-match** (both line-ups, opponent report, mentality, Kick off) → full-screen **Live match**
+  (score bar with scorers, pitch with weather and goal banners, timeline with event markers, Commentary / Stats /
+  Ratings tabs, momentum, mentality + touchline instructions, Substitutions and Tactics drawers) → **Half-time**
+  dialog → **Full-time report** (player of the match, stats, key moments, ratings; saved automatically).
+- In-match changes are real engine plan edits (line, width, tempo, tackling) and substitutions, applied at the next
+  stoppage; the saved tactics don't change.
+- **/matches/[id]** replay in the same layout: scrubber, jump between key moments (← →), saved stats and ratings.
+- Accent colour is blue (matches Figma); the old `match-viewer` and `replay-player` are removed.
+- Not in this change: the online lobby screens (create/join, waiting room, connection lost) — separate PR.
+
 ## `fix/qa-audit`
 
 **Fixes from the QA and UX audit** (two merged reviews: `docs/qa/2026-11-06-qa-ux-audit.md`, with a fix-status table).
+
 - **Classic page (the default site)**: doctype, `lang`, viewport and icons - it rendered in quirks mode as a shrunken 980 px desktop page on phones; its
   phone CSS now applies. "Start match" waits visibly for the engine (a press before it was ready was dropped). The kits screen opens at the top.
   The `hidden` attribute always wins (CSS overrode it: the second set of mode buttons and "Opponent strength" showed online). Settings: no
@@ -18,6 +34,7 @@ Each round of changes is developed on its own branch, named after what it change
 ## `chore/phase3-cleanup`
 
 **Phase 3: cleanup and debugging, no gameplay change.** Full record (fixes, checks, remaining debt): `docs/phase-3-cleanup.md`.
+
 - **Daily e2e red since Nov 5**: `team.spec.ts` waited for the "Squad complete" celebration even when the test account already had its club; `match.spec.ts`
   still expected sign-in to land on `/play`. Both fixed.
 - **Messages**: opening Messages now marks them read, so the top bar badge clears (nothing ever did).
@@ -28,6 +45,7 @@ Each round of changes is developed on its own branch, named after what it change
 ## `chore/close-loose-ends`
 
 **Loose ends from the earlier lists, closed; nothing in the engine's play changes.** Deferred by the user and taken off the list: the league setting, the branches in the old repo.
+
 - **Classic page header**: no "engine demo" kicker and no static "Team A v Team B" / "4-4-2 v 4-4-2" line; the title shows the match's own team names (set when the match begins), the page
   title is "SoccerVision". The random and staged matches are still played by the engine's demo teams, whose names are "Team A" and "Team B" - a naming choice, not changed here.
 - **`faces/manifest.json` 404**: the page asked for it on every load and no build ever shipped it. `yarn classic:build` now ships an empty one (or the real one if `docs/faces` has it);
@@ -43,6 +61,7 @@ Each round of changes is developed on its own branch, named after what it change
 ## `feature/goals-and-marking-gap`
 
 **The two open items of the squads round: goals 2.4-2.5 v 2.83, and zonal marking beating man-to-man by 20+ points.** They turned out to be one problem seen twice.
+
 - **What the measurement showed** (`mark4.sh`: medium v medium in all four marking pairings, 150 matches each, two seeds; Team A is the home side): with the new squads a zonal
   defence concedes about 1.0 goals a team and a man-to-man one about 1.3, and man-to-man leaks shots (29.3 a match both ways v 23.4 for zonal v zonal; strikers' shots 16.9 v 10.9).
   Goals a match: zonal v zonal 1.9-2.0, zonal v man 2.4, man v zonal 2.5-2.7, man v man 3.05-3.15. The default match is the mixed pairing, which is why it sat at 2.4-2.5.
@@ -73,6 +92,7 @@ Each round of changes is developed on its own branch, named after what it change
 
 **From Neon to Supabase: Auth, Postgres, Storage and Realtime.** Neon Managed Auth has no Facebook provider; Supabase Auth has Google,
 Facebook and Discord built in. Plan: `docs/plans/supabase-migration.md`; cutover: `docs/runbooks/supabase-cutover.md`.
+
 - **Login**: Google, Facebook (no longer "coming soon") and Discord. Email sign-up keeps the 6-digit code, the reset link keeps its
   screens; the per-email lockout and the anti-enumeration answers are unchanged (Server Actions on `@supabase/ssr`).
   The browser client refuses password grants. A reset changes the password only on the recovery session that
@@ -94,6 +114,7 @@ Facebook and Discord built in. Plan: `docs/plans/supabase-migration.md`; cutover
 **The demo squads now come from the generator's realism round, and the engine is re-calibrated for them.** The generator (soccer-api.dev-spirit.com, PRs
 [#22](https://github.com/SoccerVision/soccer-vision-players-stats/pull/22) and [#27](https://github.com/SoccerVision/soccer-vision-players-stats/pull/27)) is what the
 website's "Create your team" uses too, so the engine has to play its players right.
+
 - **Squads**: all three levels, the medium ones too, fetched from the live API (seeds 101 / 202). Checked: what the live server returns is identical, file for file, to what
   was tested. Average attribute: weak 44.1 -> 43.4, medium 55.2 -> 54.1, strong 70.3 -> 66.6.
 - **Why the engine needed it**: the old squads were inflated by the old generator's bugs (values drawn once per process, stats overwritten by thresholds) and the
@@ -126,6 +147,7 @@ website's "Create your team" uses too, so the engine has to play its players rig
 ([guide](https://www.magicgameworld.com/?p=128993)); Football Manager keeps a hidden 1-20 number and shows a word (very weak ... very strong,
 [guide](https://sortitoutsi.net/content/67409/training-a-players-weaker-foot-guide)); for Football Manager Pro / Top Eleven no description was found. We use stars,
 as the team generator already does.
+
 - **The squads** (`tools/teams/build_teams.py`): each foot in stars, the strong one 5, the other the generator's `weak_foot_stars`. The medium squads were saved before
   the generator had stars and carry only its 1-3 level: it becomes stars the way the generator's own 138 players show it - level 1 = 1 star (9%) or 2 (91%), 2 = 3,
   3 = 4 (87%) or 5 (13%) - fixed by the player's id. All the other values of every player are unchanged (checked field by field). The six squads now hold 1 to 5 stars
@@ -143,22 +165,25 @@ as the team generator already does.
 ## `feature/passing-tempo`
 
 **Passes in the match facts, tiki-taka at Barcelona's real pace, and the game 5% slower.**
+
 - **Real passing, counted** (`tools/calibration/passing_tempo.py`, [StatsBomb open data](https://github.com/statsbomb/open-data); open play only - throw-ins, goal kicks,
   corners, free kicks and kick-offs left out):
-  | per team per match | Premier League 2015/16 (380 matches) | Guardiola's Barcelona, La Liga 2010/11 (33) | its opponents |
-  |---|---|---|---|
-  | passes | 434 | 738 | 275 |
-  | completed | 77.5% | 88.5% | 71.2% |
-  | mean length | 19.0 m | 16.7 m | 19.7 m |
-  | passes a possession run | 4.35 | 7.12 | 3.10 |
-  | seconds between passes in a run | 3.60 | 3.09 | 3.52 |
-  | share of the match's passes | - | 72.5% | 27.5% |
+
+  | per team per match              | Premier League 2015/16 (380 matches) | Guardiola's Barcelona, La Liga 2010/11 (33) | its opponents |
+  | ------------------------------- | ------------------------------------ | ------------------------------------------- | ------------- |
+  | passes                          | 434                                  | 738                                         | 275           |
+  | completed                       | 77.5%                                | 88.5%                                       | 71.2%         |
+  | mean length                     | 19.0 m                               | 16.7 m                                      | 19.7 m        |
+  | passes a possession run         | 4.35                                 | 7.12                                        | 3.10          |
+  | seconds between passes in a run | 3.60                                 | 3.09                                        | 3.52          |
+  | share of the match's passes     | -                                    | 72.5%                                       | 27.5%         |
 
   (2009/10 and 2011/12 Barcelona: 616 and 702 passes, 68% and 70.5% of the match's passes.) The 747 passes a match quoted by fan sites for 2010/11 is confirmed.
+
 - **Why the engine's pass count looked low**: the match is 2,430 sim seconds of football at true speed shown as 90 clock minutes (2,309 at the new pace), so anything counted
   over time is about 2.3 times lower than in a real match - the distance covered was already scaled for this, the passes were not. Scaled, an ordinary team makes about 460 passes
   (real 434). The share between the teams was already right: a possession side v an ordinary one 72% of the passes (Barcelona 72.5%).
-- **Passes in the match facts**: two new rows, *Passes* and *Pass accuracy*, shown as over a real 90 minutes (`ReplayRecorder.PassesAs90`; the stats row is 4 numbers longer - the
+- **Passes in the match facts**: two new rows, _Passes_ and _Pass accuracy_, shown as over a real 90 minutes (`ReplayRecorder.PassesAs90`; the stats row is 4 numbers longer - the
   demo page and the online swap read the new length).
 - **Tiki-taka at Barcelona's pace** (`MatchEngine.PatientTouch` = 0.6): a team that chose to keep the ball (possession, short passing) takes a touch and looks up before it moves
   the ball on, outside the final third. Barcelona pass 14% faster than a Premier League side in a run (3.09 v 3.60 s); the engine's possession side passed 29% faster than an
@@ -180,18 +205,21 @@ as the team generator already does.
 
 **Possession now follows the score, and a random match keeps each team's style.** Item 2 of the list of wrong statements ("possession near 50% in every pairing") was
 fixed for style and quality in the possession round; this round checks what was left against real match data, not against articles.
+
 - **Real data, counted** (`tools/calibration/possession_tiers.py`, [StatsBomb open data](https://github.com/statsbomb/open-data): every match of the 2015/16 Premier League and
   La Liga, 380 each; possession as each side's share of the passes - how Opta works out the published figure - and as its share of the time on the ball, which agree within a point):
-  | | Premier League 2015/16 | La Liga 2015/16 |
-  |---|---|---|
-  | top two v bottom three | 53.8% | 60.4% |
-  | top two v 7th-14th | 49.9% | 62.1% |
-  | 7th-14th v bottom three | 52.9% | 50.4% |
-  | 7th-14th v 7th-14th, match to match (10% - 90%) | 36 - 64 | 38 - 62 |
-  | a goal down / level / a goal up | 55.7 / 50 / 44.3 | 56.7 / 50 / 43.3 |
-  | two or more down / up | 52.9 / 47.1 | 51.6 / 48.4 |
+
+  |                                                 | Premier League 2015/16 | La Liga 2015/16  |
+  | ----------------------------------------------- | ---------------------- | ---------------- |
+  | top two v bottom three                          | 53.8%                  | 60.4%            |
+  | top two v 7th-14th                              | 49.9%                  | 62.1%            |
+  | 7th-14th v bottom three                         | 52.9%                  | 50.4%            |
+  | 7th-14th v 7th-14th, match to match (10% - 90%) | 36 - 64                | 38 - 62          |
+  | a goal down / level / a goal up                 | 55.7 / 50 / 44.3       | 56.7 / 50 / 43.3 |
+  | two or more down / up                           | 52.9 / 47.1            | 51.6 / 48.4      |
 
   One season a league, and the tier cells are small (12 to 48 matches): possession follows a club's style more than its table place (Leicester won the 2015/16 league with 42%).
+
 - **What the engine did** (`SimRunner --poss`, which now also prints the pass share, the share by the score and the teams' passing quality; `--random` plays the game's random
   match - both managers pick a random plan and change the tactics during the match): with the default tactics, possession by level was too strong (strong v weak 62%, medium v weak 60%)
   because both teams play the same style; the score did nothing (a goal down: 49.5%); and in a random match every team played nearly the default style after six minutes.
@@ -223,17 +251,20 @@ fixed for style and quality in the possession round; this round checks what was 
 ## `feature/phone-tabs`
 
 **On a phone the page is no longer one endless scroll (it was about 4,950 px).** A narrow screen (760 px or less) shows one part at a time:
-- **Page tabs** under the pitch: *Manager* / *Commentary* / *Match facts*.
-- **Team Tactics** has its own three tabs: *Formation* / *Squad* / *Instructions* (the formation board, the whole squad table, the sliders and style
+
+- **Page tabs** under the pitch: _Manager_ / _Commentary_ / _Match facts_.
+- **Team Tactics** has its own three tabs: _Formation_ / _Squad_ / _Instructions_ (the formation board, the whole squad table, the sliders and style
   buttons - they were stacked one under the other).
 - The manager's own tab row (Team Tactics, Player Instruction, Corners, ...) is one scrolling row instead of three lines.
 - The squad table fits the screen width, so the Rating column is no longer behind a sideways scroll; the IN / OUT cards fade out at the right edge to
   show that they go on.
 - Tablet and desktop are unchanged (the tab rows are hidden above 760 px). CSS, template and a few lines of JS - no engine change.
   Measured on a 390 px screen: the manager view is about 3,000 px, the commentary view about 1,300 px.
+
 ## `feature/feedback-ui-ref-switch`
 
 **The referee, the long ball to a free man, and the phone.**
+
 - **The referee shows a card in front of the player.** He used to hold it up from wherever he was. Now, with play stopped, he goes to the player (a little faster than his
   running pace) and shows it a metre and a half from him, and stays with him while he holds it up; the restart waits for him. Over 60 matches 186 of 203 cards were shown beside
   the player; the rest he showed after about 8 seconds of walking (the player kept moving away) - a longer walk made the red after a second yellow come too late. The red after a second yellow comes the usual interval after he has shown the yellow (if he is still walking to the player, it waits for him).
@@ -262,19 +293,20 @@ fixed for style and quality in the possession round; this round checks what was 
 **The match statistics, checked against ten Premier League seasons (counted) and StatsBomb (shot mechanics).** 200 matches on each of two seeds (4242 and 9001); real
 numbers from `tools/calibration/real_leagues.py` (football-data.co.uk, 3,800 matches) and `tools/calibration/compare.py` (StatsBomb open data, 194 matches).
 
-| per match | before | now (seed 4242 / 9001) | real |
-|---|---|---|---|
-| goals | 2.70 | 2.91 / 2.91 | 2.83 |
-| shots | 30.1 | 26.3 / 26.6 | 25.4 |
-| shots on target | 11.0 | 9.4 / 9.6 | 8.8 |
-| saves | 8.4 | 6.6 / 6.8 | about 6 (on target minus goals) |
-| xG (what the shots were worth) | 3.81 | 2.65 / 2.82 | about the goals |
-| fouls | 16.5 | 21.2 / 21.3 | 21.5 |
-| yellow cards | 2.6 | 3.4 / 3.6 | 3.44 |
-| penalties | 0.27 | 0.27 / 0.33 | 0.26 (StatsBomb) |
-| goals from the six-yard box | 11% | 20% | 21% (StatsBomb) |
+| per match                      | before | now (seed 4242 / 9001) | real                            |
+| ------------------------------ | ------ | ---------------------- | ------------------------------- |
+| goals                          | 2.70   | 2.91 / 2.91            | 2.83                            |
+| shots                          | 30.1   | 26.3 / 26.6            | 25.4                            |
+| shots on target                | 11.0   | 9.4 / 9.6              | 8.8                             |
+| saves                          | 8.4    | 6.6 / 6.8              | about 6 (on target minus goals) |
+| xG (what the shots were worth) | 3.81   | 2.65 / 2.82            | about the goals                 |
+| fouls                          | 16.5   | 21.2 / 21.3            | 21.5                            |
+| yellow cards                   | 2.6    | 3.4 / 3.6              | 3.44                            |
+| penalties                      | 0.27   | 0.27 / 0.33            | 0.26 (StatsBomb)                |
+| goals from the six-yard box    | 11%    | 20%                    | 21% (StatsBomb)                 |
 
 **Why, and what changed** (each found by measuring first; the diagnostics now count shots and their outcome by zone and kind - `shot.zh.*`, `goal.zh.*`, `outcome.*`):
+
 - **Tap-ins were saved.** A shot from inside the six-yard box scored 11% of the time (real: 31%), and keepers saved 44% of them. A keeper reached as far (3.2 m) against a shot
   from 4 m as against one from 20 m. Now his reach follows the time he has: a shot that is on him in a quarter of a second or less (about his reaction time) leaves him 20% of
   his reach (what his body covers), rising to his full dive at 0.6 s (`CloseReachBase = 0.2`).
@@ -309,33 +341,35 @@ the box 9% (real 13%) and fewer shots from there (6.5 against 9.7); headed goals
 
 **Checked against eight real leagues, and the home advantage measured properly.** Real results, 10 seasons (2015/16 - 2024/25) of
 [football-data.co.uk](https://www.football-data.co.uk/data.php): Premier League, Ligue 1, Eredivisie, Bundesliga, La Liga, Serie A, Primeira Liga, Scottish Premiership.
+
 - **Home advantage is real and the engine has it.** Real: home wins 43-45%, draws 23-26%, away wins 28-33% in every league (the Premier League 44 / 23 / 32, goals 1.55 - 1.28); in
   2020/21, with empty stadiums, the edge vanished (38% home, 40% away). The earlier "58 / 25 / 17" in our matches was not home advantage but Team A being the better side (zonal v
   man-to-man marking); `SimRunner --swap` puts the same two squads in the other seats, and pooling both seats (600 matches each):
 
-  | the same tactic for both teams | home win | draw | away win | goals home - away | home edge |
-  |---|---|---|---|---|---|
-  | default (A zonal, B man-to-man) | 41% | 23% | 36% | 1.42 - 1.29 | +5 points, +0.12 goals |
-  | both zonal, normal tackling | 41% | 31% | 28% | 1.06 - 0.86 | +12 points, +0.20 goals |
-  | both man-to-man, get stuck in | 46% | 22% | 32% | 1.75 - 1.43 | +13 points, +0.32 goals |
-  | both counter-attack, direct | 46% | 21% | 34% | 1.75 - 1.39 | +12 points, +0.36 goals |
+  | the same tactic for both teams  | home win | draw | away win | goals home - away | home edge               |
+  | ------------------------------- | -------- | ---- | -------- | ----------------- | ----------------------- |
+  | default (A zonal, B man-to-man) | 41%      | 23%  | 36%      | 1.42 - 1.29       | +5 points, +0.12 goals  |
+  | both zonal, normal tackling     | 41%      | 31%  | 28%      | 1.06 - 0.86       | +12 points, +0.20 goals |
+  | both man-to-man, get stuck in   | 46%      | 22%  | 32%      | 1.75 - 1.43       | +13 points, +0.32 goals |
+  | both counter-attack, direct     | 46%      | 21%  | 34%      | 1.75 - 1.39       | +12 points, +0.36 goals |
 
   (Real: +12 points, +0.27 goals.) Nothing to change; only the default pairing, where the two sides are not the same team, shows less.
+
 - **Are France and the Netherlands different?** Mostly not. The champion of a season: wins 72-80% of its matches, 2.35-2.54 points a game, in every league (Premier League 75%,
   Ligue 1 74%, Eredivisie 77%, Primeira Liga 80%); the bottom three win 15-22%. Single clubs over ten seasons: Paris SG 73% (goals 2.52 - 0.85), Ajax 71%, PSV 72%, Man City 70%,
   Celtic 75%, Benfica 75%. A little more top-heavy in the Netherlands, Portugal and Scotland, not in France.
 - **The three tiers, from the table** (strong = the top two, medium = 7th-14th, weak = the bottom three; the stronger side's win / draw / loss %, both seats; counted by
   `tools/calibration/real_leagues.py`, which anyone can run again):
 
-  | | strong v weak | strong v medium | medium v weak |
-  |---|---|---|---|
-  | Premier League | 89 / 8 / 3 | 72 / 16 / 11 | 61 / 24 / 15 |
-  | Ligue 1 | 81 / 14 / 5 | 68 / 20 / 12 | 55 / 25 / 21 |
-  | Eredivisie | 88 / 8 / 4 | 78 / 15 / 7 | 53 / 27 / 20 |
-  | Bundesliga | 78 / 16 / 7 | 71 / 17 / 12 | 50 / 29 / 20 |
-  | La Liga | 84 / 12 / 3 | 69 / 18 / 13 | 54 / 29 / 16 |
-  | Serie A | 83 / 13 / 3 | 70 / 20 / 10 | 58 / 25 / 18 |
-  | Primeira Liga | 90 / 8 / 2 | 82 / 13 / 5 | 47 / 31 / 22 |
+  |                         | strong v weak                      | strong v medium               | medium v weak                 |
+  | ----------------------- | ---------------------------------- | ----------------------------- | ----------------------------- |
+  | Premier League          | 89 / 8 / 3                         | 72 / 16 / 11                  | 61 / 24 / 15                  |
+  | Ligue 1                 | 81 / 14 / 5                        | 68 / 20 / 12                  | 55 / 25 / 21                  |
+  | Eredivisie              | 88 / 8 / 4                         | 78 / 15 / 7                   | 53 / 27 / 20                  |
+  | Bundesliga              | 78 / 16 / 7                        | 71 / 17 / 12                  | 50 / 29 / 20                  |
+  | La Liga                 | 84 / 12 / 3                        | 69 / 18 / 13                  | 54 / 29 / 16                  |
+  | Serie A                 | 83 / 13 / 3                        | 70 / 20 / 10                  | 58 / 25 / 18                  |
+  | Primeira Liga           | 90 / 8 / 2                         | 82 / 13 / 5                   | 47 / 31 / 22                  |
   | **all seven (counted)** | **85 / 11 / 4, goals 2.82 - 0.63** | **73 / 17 / 10, 2.31 - 0.84** | **54 / 27 / 19, 1.69 - 0.98** |
 
   (An earlier version of this table was made with a slightly different "medium" for the 18-team leagues, and its last row was averaged by hand, not counted: it said 84 / 71 / 55. The
@@ -345,6 +379,7 @@ the box 9% (real 13%) and fewer shots from there (6.5 against 9.7); headed goals
   120% of the way from the medium one to the generator's excellent squad and the weak ones 50% (`TeamStrengthScaling.StrongSpread / WeakSpread`, attributes capped at 99):
   strong v weak 79%, strong v medium 63%, medium v weak 56% (150 matches a seat, both seats pooled; real: 85 / 73 / 54). The middle is right; the top two are under (the engine's
   strong squad also scores fewer goals than a real top side: 1.8 against 2.3 for strong v medium - not changed here).
+
 - Not built, offered: a league setting (Premier League, Ligue 1, Eredivisie, ...) that sets these gaps from the table above - the differences between the leagues are small (the table).
 
 ## `feature/possession-realism`
@@ -354,6 +389,7 @@ about 10 seconds, whoever they were - a park-the-bus team had 50% of the ball, a
 a high press moved it by 2-5 points. Real football: the most possession-heavy side of a Premier League season has about 64-70% of the ball, and a match above
 80% has happened only a handful of times (Liverpool 83.1% against Sheffield United in 2024 is the record,
 [StatMuse](https://statmuse.com/fc/ask/most-possession-in-a-premier-league-game-by-a-team), [Khel Now](https://khelnow.com/football/top-five-instances-teams-ball-possession)).
+
 - **Patience** (`Patience()` in `MatchEngine.OnBall.Passing.cs`): how much a team wants to keep the ball = its style (+1 possession, +0.5 short passing, -0.5 direct
   passing, -0.5 counter-attack, -0.5 park the bus) + how much better its passers are than the other team's (the starting eleven's mean of passing, ball control, composure
   and decisions; nothing for a gap under 4 points, up to +-1.8) - how hard the other side presses (a high press -0.6, and -2 for every point of pressing intensity above the
@@ -368,32 +404,34 @@ a high press moved it by 2-5 points. Real football: the most possession-heavy si
   [verticality](https://the-footballanalyst.com/verticality-in-possession-football-tactics-explained/),
   [possession style](https://www.soccerhelp.com/terms/soccer-possession-style.shtml)): possession is not winning (at the 2022 men's World Cup the teams with less of the ball won 26
   games to 23 and took 1.45 points a game to 1.31; Spain had 82% and lost to Japan, Leicester won the league on 42%) - so a possession side here gets **no better chances** than the
-  others (xG 1.5 to 1.4 against a default side, 1.5 to 1.4 against a counter-attacking one), only the ball; a safe sideways or backward pass has almost no *value* (PV) - the retention
+  others (xG 1.5 to 1.4 against a default side, 1.5 to 1.4 against a counter-attacking one), only the ball; a safe sideways or backward pass has almost no _value_ (PV) - the retention
   bonus is the style's, a deliberate price for control, and it stops at the halfway line; vertical play is faster and riskier (the direct and counter styles lose the ball sooner);
   and a possession style is played "only as far up the field as the skill allows" - the quality term.
 - **What it does** (80 matches, seed 900, medium squads; home v away):
 
-  | home v away | home possession | passes (home / away) | pass completion | shots | xG | goals | possession match to match (min - max) |
-  |---|---|---|---|---|---|---|---|
-  | default v default | 50.7% | 210 / 197 | 80% / 77% | 18.2 / 11.8 | 2.6 / 1.2 | 2.0 / 0.7 | 44 - 57 |
-  | possession + short passing v default | **65.4%** | 588 / 147 | 93% / 74% | 13.8 / 12.4 | 1.5 / 1.4 | 1.1 / 0.8 | 58 - 73 |
-  | possession + short v counter-attack + direct | **71.4%** | 695 / 115 | 94% / 70% | 13.8 / 11.2 | 1.5 / 1.4 | 1.0 / 1.3 | 63 - 80 |
-  | possession + short + high press + aggression v park the bus + counter + direct | 60.9% | 339 / 116 | 89% / 75% | 28.3 / 4.9 | 3.0 / 0.5 | 2.3 / 0.5 | 53 - 71 |
-  | default v possession + short + high press + aggression | 40.7% | 129 / 364 | 70% / 87% | 18.4 / 16.7 | 2.9 / 0.8 | 1.8 / 0.5 | 28 - 47 |
-  | high press (aggression 0.8) v default | 53.8% | 209 / 148 | 79% / 71% | 19.3 / 11.6 | 2.6 / 1.4 | 2.2 / 0.9 | 49 - 59 |
+  | home v away                                                                    | home possession | passes (home / away) | pass completion | shots       | xG        | goals     | possession match to match (min - max) |
+  | ------------------------------------------------------------------------------ | --------------- | -------------------- | --------------- | ----------- | --------- | --------- | ------------------------------------- |
+  | default v default                                                              | 50.7%           | 210 / 197            | 80% / 77%       | 18.2 / 11.8 | 2.6 / 1.2 | 2.0 / 0.7 | 44 - 57                               |
+  | possession + short passing v default                                           | **65.4%**       | 588 / 147            | 93% / 74%       | 13.8 / 12.4 | 1.5 / 1.4 | 1.1 / 0.8 | 58 - 73                               |
+  | possession + short v counter-attack + direct                                   | **71.4%**       | 695 / 115            | 94% / 70%       | 13.8 / 11.2 | 1.5 / 1.4 | 1.0 / 1.3 | 63 - 80                               |
+  | possession + short + high press + aggression v park the bus + counter + direct | 60.9%           | 339 / 116            | 89% / 75%       | 28.3 / 4.9  | 3.0 / 0.5 | 2.3 / 0.5 | 53 - 71                               |
+  | default v possession + short + high press + aggression                         | 40.7%           | 129 / 364            | 70% / 87%       | 18.4 / 16.7 | 2.9 / 0.8 | 1.8 / 0.5 | 28 - 47                               |
+  | high press (aggression 0.8) v default                                          | 53.8%           | 209 / 148            | 79% / 71%       | 19.3 / 11.6 | 2.6 / 1.4 | 2.2 / 0.9 | 49 - 59                               |
 
   A top possession side now passes 600-700 times and completes 93-94% (a top real side: 700-900 passes, about 90%). Matches reach 80% possession (the tail), a typical
   possession side 65-72%. A park-the-bus team still keeps the ball more than a real one would (time wasting is part of that style in the engine; not changed).
   **Not changed but seen**: the counter-attack style is strong in the engine - against a default side it takes 2.6 xG to 1.4 on 45% of the ball; that was so before this round.
+
 - **Quality**: strong and weak squads (see the team strength round) now also differ in how much of the ball they have: strong v weak 61%, medium v weak 61%, strong v medium 54%
   (both seats, 200 matches each; real football: top v bottom roughly 60-65%). Because keeping the ball costs the stronger side some attacks, the strong and weak squads are
   moved 80% of the way from the medium one instead of 60% (then re-fitted to eight leagues, see `feature/league-calibration`: strong 120%, weak 50%) and the results stay where the real data are:
 
-  | stronger v weaker (both seats, 200 matches each) | stronger wins | draw | loses | goals | real football |
-  |---|---|---|---|---|---|
-  | strong v weak | 82% | 14% | 4% | 2.55 - 0.32 | top four v bottom three 80%, 2.6 - 0.6; top two 89% |
-  | medium v weak | 64% | 21% | 15% | 1.91 - 0.62 | big favourite 68%, 2.14 - 0.86 |
-  | strong v medium | 62% | 19% | 19% | 1.88 - 0.78 | clear favourite 57%, 1.84 - 1.04 |
+  | stronger v weaker (both seats, 200 matches each) | stronger wins | draw | loses | goals       | real football                                       |
+  | ------------------------------------------------ | ------------- | ---- | ----- | ----------- | --------------------------------------------------- |
+  | strong v weak                                    | 82%           | 14%  | 4%    | 2.55 - 0.32 | top four v bottom three 80%, 2.6 - 0.6; top two 89% |
+  | medium v weak                                    | 64%           | 21%  | 15%   | 1.91 - 0.62 | big favourite 68%, 2.14 - 0.86                      |
+  | strong v medium                                  | 62%           | 19%  | 19%   | 1.88 - 0.78 | clear favourite 57%, 1.84 - 1.04                    |
+
 - **Tests** (`PossessionStyleTests`): two ordinary teams share the ball (46-55%); a possession side keeps it (60-78%) and shoots at least 80% as often as its opponent; a counter side
   against a possession side has 20-40%; a high press takes the ball back (more than 1.5 points above the plain side); a strong team has more than 54% against a weak one with no
   tactic. `SimRunner --poss` prints all of this (per team: possession, passes, completion, tackles won, interceptions, shots, goals, xG, possessions, seconds per possession,
@@ -402,64 +440,68 @@ a high press moved it by 2-5 points. Real football: the most possession-heavy si
 ## `feature/team-strength`
 
 **Weak, medium and strong teams** (squads from the team generator API, <https://soccer-api.dev-spirit.com/docs>, v2).
+
 - **Medium is the squad the game always had** - nothing measured before changes (`GeneratedTeams.cs` is untouched except one word: its player helper is
   now `internal`). **Weak** and **Strong** are the same two teams (seeds 101 and 202) made at the API's `weaker` and `excellent` level
   (`data/teams/api/`, built into `GeneratedTeamLevels.cs` with `build_teams.py --levels-dir data/teams/api`). The same builder picks the eleven and
   the bench exactly as it did for the medium squads. The API's own `normal` level is not used: it is the same as ours (below).
-- **Where to choose**: "Play the computer" asks *Your team* and *Opponent* (weak / medium / strong); in the developer view the gear has *Home squad* and
-  *Away squad* (changing one replays the match). Online games are always medium. SimRunner: `--home-strength weak|medium|strong --away-strength ...`;
+- **Where to choose**: "Play the computer" asks _Your team_ and _Opponent_ (weak / medium / strong); in the developer view the gear has _Home squad_ and
+  _Away squad_ (changing one replays the match). Online games are always medium. SimRunner: `--home-strength weak|medium|strong --away-strength ...`;
   the engine: `DemoTeams.Red(seed, TeamStrength)`, the WASM `Start(..., homeStrength, awayStrength)`. SimRunner also prints home win / draw / away win %.
 - **How the squads compare** (the eleven that start, mean attribute out of 100; speed; finishing of midfielders and forwards):
 
-  | squad | all | defenders | midfielders | forwards | keeper | speed | finishing |
-  |---|---|---|---|---|---|---|---|
-  | weak (API *weaker*) | 44.8 | 43.4 | 45.5 | 44.7 | 47.5 | 52 | 48 |
-  | **medium (ours)** | **57.1** | 55.7 | 59.0 | 55.8 | 57.5 | 67 | 65 |
-  | medium (API *normal*, for comparison) | 56.1 | 55.5 | 56.4 | 55.1 | 59.7 | 64 | 64 |
-  | strong (API *excellent*) | 71.2 | 68.8 | 73.0 | 70.5 | 74.6 | 85 | 83 |
+  | squad                                 | all      | defenders | midfielders | forwards | keeper | speed | finishing |
+  | ------------------------------------- | -------- | --------- | ----------- | -------- | ------ | ----- | --------- |
+  | weak (API _weaker_)                   | 44.8     | 43.4      | 45.5        | 44.7     | 47.5   | 52    | 48        |
+  | **medium (ours)**                     | **57.1** | 55.7      | 59.0        | 55.8     | 57.5   | 67    | 65        |
+  | medium (API _normal_, for comparison) | 56.1     | 55.5      | 56.4        | 55.1     | 59.7   | 64    | 64        |
+  | strong (API _excellent_)              | 71.2     | 68.8      | 73.0        | 70.5     | 74.6   | 85    | 83        |
 
   Our own squads are within about 1 point of the API's normal level everywhere, so "medium" is what the API calls normal.
+
 - **How far apart the teams are - checked against real football.** The generator's weaker / excellent squads, used as they are, made the stronger side win
   94% of the time (a medium team against a weak one) - far more than the real game. Real numbers, from 10 Premier League seasons (3,800 matches,
   <https://www.football-data.co.uk/englandm.php>, results and Pinnacle closing odds with the margin taken out):
 
-  | real Premier League, 2015/16 - 2024/25 | favourite wins | draw | favourite loses | goals fav - underdog |
-  |---|---|---|---|---|
-  | all matches | home 44% | 23% | away 32% | 1.55 - 1.28 (home - away) |
-  | clear favourite (55-60% in the odds) | 57% | 22% | 21% | 1.84 - 1.04 |
-  | big favourite (60-70%) | 68% | 19% | 12% | 2.14 - 0.86 |
-  | huge favourite (80%+) | 88% | 7% | 5% | 2.93 - 0.60 |
-  | top four at home v bottom three | 80% | 14% | 6% | 2.59 - 0.62 |
-  | top two (either seat) v bottom three | 89% | 8% | 3% | |
+  | real Premier League, 2015/16 - 2024/25 | favourite wins | draw | favourite loses | goals fav - underdog      |
+  | -------------------------------------- | -------------- | ---- | --------------- | ------------------------- |
+  | all matches                            | home 44%       | 23%  | away 32%        | 1.55 - 1.28 (home - away) |
+  | clear favourite (55-60% in the odds)   | 57%            | 22%  | 21%             | 1.84 - 1.04               |
+  | big favourite (60-70%)                 | 68%            | 19%  | 12%             | 2.14 - 0.86               |
+  | huge favourite (80%+)                  | 88%            | 7%   | 5%              | 2.93 - 0.60               |
+  | top four at home v bottom three        | 80%            | 14%  | 6%              | 2.59 - 0.62               |
+  | top two (either seat) v bottom three   | 89%            | 8%   | 3%              |                           |
 
   So each weak / strong squad is moved only **60%** of the way from the medium squad towards the generator's (`TeamStrengthScaling.Spread = 0.6`, the same
   player in the same slot; tried 0.3 / 0.45 / 0.6 over 100 matches per pairing and both seats). The stronger side's results, both seats pooled
   (150 matches per seat, seed 500; the home edge cancels out; with Spread 0.6, before the possession round - see that round for the final 0.8 table):
 
-  | stronger v weaker | stronger wins | draw | loses | goals stronger - weaker | real football |
-  |---|---|---|---|---|---|
-  | strong v weak | 81% | 12% | 6% | 2.57 - 0.42 | top four v bottom three 80%, 2.6 - 0.6; top two 89% |
-  | medium v weak | 69% | 17% | 14% | 2.25 - 0.68 | big favourite 68%, 2.14 - 0.86 |
-  | strong v medium | 60% | 18% | 22% | 1.78 - 0.81 | clear favourite 57%, 1.84 - 1.04 |
+  | stronger v weaker | stronger wins | draw | loses | goals stronger - weaker | real football                                       |
+  | ----------------- | ------------- | ---- | ----- | ----------------------- | --------------------------------------------------- |
+  | strong v weak     | 81%           | 12%  | 6%    | 2.57 - 0.42             | top four v bottom three 80%, 2.6 - 0.6; top two 89% |
+  | medium v weak     | 69%           | 17%  | 14%   | 2.25 - 0.68             | big favourite 68%, 2.14 - 0.86                      |
+  | strong v medium   | 60%           | 18%  | 22%   | 1.78 - 0.81             | clear favourite 57%, 1.84 - 1.04                    |
 
   All nine pairings (home v away; goals home - away; shots home - away; home win / draw / away win %):
 
-  | home v away | goals | shots | result % |
-  |---|---|---|---|
-  | weak v weak | 1.58 - 0.75 | 12.9 - 6.4 | 59 / 23 / 18 |
-  | weak v medium | 0.89 - 1.49 | 8.2 - 15.6 | 25 / 25 / 51 |
-  | weak v strong | 0.69 - 1.83 | 5.4 - 21.3 | 13 / 21 / 66 |
-  | medium v weak | 3.00 - 0.46 | 24.9 - 4.6 | 87 / 9 / 3 |
+  | home v away                               | goals           | shots           | result %         |
+  | ----------------------------------------- | --------------- | --------------- | ---------------- |
+  | weak v weak                               | 1.58 - 0.75     | 12.9 - 6.4      | 59 / 23 / 18     |
+  | weak v medium                             | 0.89 - 1.49     | 8.2 - 15.6      | 25 / 25 / 51     |
+  | weak v strong                             | 0.69 - 1.83     | 5.4 - 21.3      | 13 / 21 / 66     |
+  | medium v weak                             | 3.00 - 0.46     | 24.9 - 4.6      | 87 / 9 / 3       |
   | **medium v medium (baseline, unchanged)** | **1.89 - 0.87** | **18.4 - 12.4** | **58 / 25 / 17** |
-  | medium v strong | 1.23 - 1.31 | 14.5 - 17.6 | 37 / 23 / 40 |
-  | strong v weak | 3.30 - 0.15 | 31.4 - 2.2 | 95 / 4 / 1 |
-  | strong v medium | 2.25 - 0.39 | 25.3 - 8.3 | 81 / 13 / 7 |
-  | strong v strong | 1.62 - 0.82 | 19.6 - 15.2 | 55 / 29 / 17 |
+  | medium v strong                           | 1.23 - 1.31     | 14.5 - 17.6     | 37 / 23 / 40     |
+  | strong v weak                             | 3.30 - 0.15     | 31.4 - 2.2      | 95 / 4 / 1       |
+  | strong v medium                           | 2.25 - 0.39     | 25.3 - 8.3      | 81 / 13 / 7      |
+  | strong v strong                           | 1.62 - 0.82     | 19.6 - 15.2     | 55 / 29 / 17     |
 
   Possession stayed near 50% in every pairing - which is **not** how real football works (a team's share of the ball follows its style and its quality; see the possession round, which changes it). It was written here as if it were realistic; it was a limit of the engine. **Correction (see `feature/league-calibration`)**: the note that stood here - that the home edge between equal teams was bigger than the real one - was wrong. 58 / 25 / 17 was Team A's own edge over Team B (zonal v man-to-man marking, a better squad), not home advantage; with the two squads swapped between the seats the home edge is the real size (+12 points of win share, +0.2 to +0.3 goals).
+
 - Tests: `TeamStrengthTests` (valid squads at every strength; medium unchanged; each step at least 5 attribute points; the stronger side scores more and wins more than it loses, 48
   matches per pairing, both seats; the biggest mismatch stays between 62% and 92%, not a massacre). Verified in the browser: choosing the strengths in the page reaches the engine and the squads that
   come back differ (speed 84 v 50 with strong at home and weak away).
+
 ## `fix/landscape-layout`
 
 **A phone on its side: the pitch fills the screen's height and the controls sit beside it.** Before (a live match in a 1000 x 375 frame): a small pitch in the middle with big empty
@@ -471,6 +513,7 @@ unchanged. CSS only.
 ## `fix/layout-responsive`
 
 **The page checked at four sizes (phone upright / on its side, tablet, desktop) and the ugly parts fixed.**
+
 - **Line-up card on an upright phone**: the logo sat on top of the team name, the title wrapped into the logo, the little pitch lay over the list
   and the list was cut off. Now (in any narrow pitch box): list on the left, little pitch on the right, all eleven names visible, nothing overlaps.
 - **Phone on its side**: the pitch was taller than the screen. It now fits the screen height (title shrinks to one slim line).
@@ -481,6 +524,7 @@ unchanged. CSS only.
 ## `fix/player-size-by-height`
 
 **Smaller player circles, sized by the player's height.**
+
 - The minimum player circle is a little smaller (5.4 CSS px radius instead of 6.2), so they crowd each other less on a phone.
 - A player's circle now follows his height: 180 cm is the base size, each 10 cm more or less is about 6% bigger or smaller (165 cm: 91%,
   195 cm: 109%, capped at 88%..112%). Numbers are fitted to the circle as before. Drawing only - no engine change, no effect on results.
@@ -488,9 +532,10 @@ unchanged. CSS only.
 ## `fix/mobile-pitch-resolution`
 
 **A sharp pitch on a phone, and shirt numbers that fit their circle.**
-- **The blur**: the page lowers its drawing quality when it thinks the device is slow, and it judged that by the time *between* frames. A phone
+
+- **The blur**: the page lowers its drawing quality when it thinks the device is slow, and it judged that by the time _between_ frames. A phone
   in low-power mode (or a busy browser) shows 30 frames a second, which looked like "slow" - so the pitch was drawn at 1x pixel density on a 3x
-  screen. It now judges by how long *the page* takes to draw a frame (a real slowdown still reduces effects and frame rate), and the pitch never
+  screen. It now judges by how long _the page_ takes to draw a frame (a real slowdown still reduces effects and frame rate), and the pitch never
   drops below 1.5x pixel density.
 - **The numbers**: a shirt number had a minimum size of 8 canvas pixels, while a player is a 3 px speck on a phone-width pitch (the whole pitch is
   ~370 px wide), so the number spilled out of the circle. Now a player is never smaller than 6.2 CSS pixels in radius (about 12 px across - they
@@ -501,22 +546,26 @@ unchanged. CSS only.
   what the pitch is really drawn at: `pitch 744x563 (2x) · quality 0 · 20 fps · 2.2 ms`.
 - Checked at 420 px wide, 3x density, with 30 frames a second forced: before, the pitch canvas had 1 pixel per CSS pixel and the numbers were
   unreadable; now it has 2 per CSS pixel and each number is inside its circle.
+
 ## `feature/corner-routine-attack-tab`
 
 **The corner routine is in the Attack tab.** The right- and left-side routine choosers (varied, near post, far post, penalty spot, pulled
 back, short) were in Corners -> Takers, with the list of who takes them; the routine is where the corner is aimed, so it now sits in
 Corners -> Attack, above the set-up of who stands where. Takers keeps the taker lists and the zones. Checked in a browser: both
 selectors are in the Attack tab, none is left in Takers, and a changed routine is kept after the redraw.
+
 ## `feature/board-drag-circle`
 
 **Dragging a player on the formation board**: the circle now comes along under the mouse - his shirt colours, his number and his name, the
 size it has on the board, centred on the pointer - so it is plain that he is really being carried (it used to be a small grey label
 hanging off the cursor). The place he left shows a faint, dashed circle (it was a half-faded dot with its label). Checked in a browser:
 the carried circle is centred on the pointer to the pixel, the left-behind dot is at 30% with a dashed outline, and it is gone on release.
+
 ## `feature/crowd-sounds`
 
 **The crowd, properly.** What the crowd does for each event now lives in one place, `web/src/audio/crowdReactions.ts`, and is checked
 without a browser (`npm run check:audio` in `web/`: 26 scenarios, plus a loudness check for every reaction).
+
 - **The applause could not be heard at all**: the recording is very quiet (peak 0.12, a thirteenth of the others) and played at a
   further-reduced level. It is now lifted (x10) - every reaction that uses it was silent before: a saved shot, a shot turned round the
   post, the woodwork, a blocked shot, a draw at full time.
@@ -532,6 +581,7 @@ without a browser (`npm run check:audio` in `web/`: 26 scenarios, plus a loudnes
   FullTime event). `FinalWhistleTests` checks that the crowd is told the result exactly once, in league, cup and league cup.
 - Checked in a real browser (Playwright): all seven recordings decode, nine events in a row produce the expected reactions, no errors.
   I cannot listen to it myself - the levels were checked by measurement (`MEASURED_LEVEL`), not by ear.
+
 ## `feature/attack-rebounds-2`
 
 **Rebounds, the second round - a rebound shot now converts as often as a real one.** The engine takes as many rebound shots as reality (1.1 a
@@ -539,16 +589,17 @@ match against 1.34) but scored half as many (about 10% against 21%). New counter
 shots **died in the crowd** - 54% were blocked (22% of all shots are) and 35% missed - and the keeper saved three in four of those on target
 (reality: about three in five), although their xG (0.18) said they should convert at 18%. Three changes, all for the follow-up shot only
 (the same team's shot within 3 s, within 14 m of goal):
+
 - **A gap through the defenders**: each defender is, 55% of the time, caught moving or unsighted for a follow-up shot, so he does not get a leg
   in the way (decided once per shot and per defender, from a hash - no random numbers drawn). Blocked: 54% -> about 30% of rebound shots.
 - **A cleaner finish**: the aim error is 35% smaller (he is already set, the keeper and the defenders are still recovering). Misses 35% -> 27%.
 - **The keeper is still getting up**: his chance to stop it is x0.7 (he has just made a save).
-200-plus matches on three seeds: rebound goals **0.14 -> 0.23-0.27 a match** (real 0.28), rebound conversion **10% -> 20-26%** (real 21%),
-share of open-play goals 5% -> 9-10% (real 12%); goals 2.64-2.79 a match (was 2.6-2.7), shots 29.7-30.2 (unchanged), first-time goals 53-56%.
-Tried first: only the gap (blocks fell, but the shots were saved or missed instead - goals did not move); only the sharper finish (same).
-Tests: the full suite passed 227 of 228; the one failure, `IndividualInstructionsChangeHowAPlayerPlays` (one player's long shots, 3.8 against 1.8 where
-it needs more than 4.1), averaged only four matches - too few for something this rare, so any change in the engine could tip it. It now
-averages sixteen and passes.
+  200-plus matches on three seeds: rebound goals **0.14 -> 0.23-0.27 a match** (real 0.28), rebound conversion **10% -> 20-26%** (real 21%),
+  share of open-play goals 5% -> 9-10% (real 12%); goals 2.64-2.79 a match (was 2.6-2.7), shots 29.7-30.2 (unchanged), first-time goals 53-56%.
+  Tried first: only the gap (blocks fell, but the shots were saved or missed instead - goals did not move); only the sharper finish (same).
+  Tests: the full suite passed 227 of 228; the one failure, `IndividualInstructionsChangeHowAPlayerPlays` (one player's long shots, 3.8 against 1.8 where
+  it needs more than 4.1), averaged only four matches - too few for something this rare, so any change in the engine could tip it. It now
+  averages sixteen and passes.
 
 ## `feature/teams-api`
 
@@ -559,6 +610,7 @@ The squads the game uses now are not changed - that changes every match and the 
 (`fetch_teams.py --out data/teams red-rovers:SEED blue-falcons:SEED`, then `build_teams.py`, then the full suite). Tried: two squads
 of 23 (seeds 101 and 202) build into 20-man squads. Noted: `GeneratedTeams.cs` in the repository was not made by the present
 `build_teams.py` (it lacks the `Order` list the script writes) - that was so before.
+
 ## `feature/attack-rebounds`
 
 **The rebound is hit first time**: a ball that comes back off the keeper, the post or a defender a moment after his team's shot, within
@@ -581,6 +633,7 @@ barely changed them (30.6 -> 29.7); the engine's attacks reach the box more ofte
 **Online play with a six-digit code, kits of your own, and a connection that comes back.** After two hours of picking line-ups the
 match did not kick off: the direct connection between the two browsers had dropped without a word, and there was no way back
 without a new invite. Now:
+
 - **Start screen**: "Play the computer" or "Play a friend online". Online, you pick only your own kits - your kit, a second kit (worn
   if your friend's shirt looks like yours) and your goalkeeper - and then **Create a game** (you get a six-digit code, or a link with
   it) or **Join a game** (type in your friend's code). The two find each other through the free PeerJS broker (0.peerjs.com): it only
@@ -601,13 +654,14 @@ is none; four STUN servers instead of one provider; the page says what the conne
 networks") and, after 30 s or when it fails, why (mobile data, work or school networks) and what to try; a reply code for an invite
 that was already used, or a page that was reloaded, gets its own message; both players are told to keep the page open. A TURN relay
 for networks that cannot connect directly can be given in the address (`?turn=turn:host:3478,user,password`).
+
 ## `feature/player-names`
 
 **Realistic player names from the Onomaverse names datasets** (<https://onomaverse.com/datasets>, CC BY 4.0 - the notice is in
 `THIRD_PARTY_NOTICES.md` and in the code as `NameAttribution`).
+
 - `tools/names/build_onomaverse_names.py` reads three files of the release (given-name frequency, surname frequency, name gender
-  inference) and writes `Simulation/Names/OnomaverseNameData.cs`: for **37 countries** the most common **male** first names (up to
-  300) and surnames (up to 500) with their frequency weights - Spain, Germany, France, Italy, England, Brazil, Argentina, Portugal,
+  inference) and writes `Simulation/Names/OnomaverseNameData.cs`: for **37 countries** the most common **male** first names (up to 300) and surnames (up to 500) with their frequency weights - Spain, Germany, France, Italy, England, Brazil, Argentina, Portugal,
   the Netherlands, Croatia, Belgium, Switzerland, Austria, Denmark, Sweden, Norway, Poland, Czechia, Ireland, the USA, Turkey,
   Mexico, Colombia, Uruguay, Chile, Peru, Bolivia, Costa Rica, Panama, Nigeria, Ghana, Cameroon, Egypt, South Africa, Canada,
   Finland and Russia. A name recorded for both sexes counts with the share of its bearers that are male (Andrea in Italy: yes; Ana,
@@ -635,6 +689,7 @@ for networks that cannot connect directly can be given in the address (`?turn=tu
   Venezuela, Australia, South Korea. Thin countries (Norway, Czechia, Russia, Sweden, Denmark, Finland...) say so in their note.
   Not Onomaverse: the Croatian surnames (the release's 29 are nearly all not Croatian) - a short list of common Croatian surnames.
 - A sample of 20 names per country: `tools/names/SAMPLE_NAMES.md`. Tests: `NameGenerationTests` (16).
+
 ## `feature/attack-calibration`
 
 **Phase 0 of the attack redesign: real football as the yardstick.** `tools/calibration` (see its README): `statsbomb_targets.py`
@@ -642,21 +697,22 @@ reads 194 matches of complete 2015/16 league seasons (Premier League, La Liga, S
 matches there are) from the **StatsBomb open data** (<https://github.com/hudl/open-data>; data: StatsBomb) and writes
 `targets.json`; `compare.py` puts the engine next to it. Where the engine stands (100 matches) against the real thing:
 
-| | engine | real |
-|---|---|---|
-| goals / shots / on target a match | 2.94 / 35.3 / 14.0 | 2.53 / 24.8 / 8.3 |
-| foot goals in open play hit first time | **15%** | **55%** |
-| open-play goals with no pass before them | **46%** | 14% |
-| open-play goals from a rebound | 2.5% | 12% |
-| open-play goals after a ground pass or cut-back | 17% | 30% |
-| foot shots with the keeper under 3 m away | **18.5%** | 3.9% |
-| goals from the six-yard box / the rest of the box / outside | 26 / 62 / 12% | 21 / 66 / 13% |
-| headers / penalties of all goals | 20 / 8% | 14 / 7% |
+|                                                             | engine             | real              |
+| ----------------------------------------------------------- | ------------------ | ----------------- |
+| goals / shots / on target a match                           | 2.94 / 35.3 / 14.0 | 2.53 / 24.8 / 8.3 |
+| foot goals in open play hit first time                      | **15%**            | **55%**           |
+| open-play goals with no pass before them                    | **46%**            | 14%               |
+| open-play goals from a rebound                              | 2.5%               | 12%               |
+| open-play goals after a ground pass or cut-back             | 17%                | 30%               |
+| foot shots with the keeper under 3 m away                   | **18.5%**          | 3.9%              |
+| goals from the six-yard box / the rest of the box / outside | 26 / 62 / 12%      | 21 / 66 / 13%     |
+| headers / penalties of all goals                            | 20 / 8%            | 14 / 7%           |
 
 The engine's goals come too often from a player carrying the ball on to the keeper and too seldom from a first-time finish after a
 pass or from a rebound - the next phases are about that.
 
 **Phases 1-2, first round** (measured against the same 194 matches):
+
 - **The first-time finish**: a pass into the box (now up to 20 m out and 17 m wide of the middle) at a good angle is hit first time
   far more often - a finisher is set more readily (35-90%, by finishing and composure), the shot is weighed much higher while he is
   set and carrying it on is not an option then. Foot goals in open play hit first time: 15% -> **46%** (real 55%).
@@ -671,6 +727,7 @@ pass or from a rebound - the next phases are about that.
   after through balls (4.5 against 0.8); rebounds are shot as often as in reality but scored half as often.
 
 **Phases 1-2, second round - fewer, better shots** (200 matches, two seeds, against the same 194 matches):
+
 - **A shot that does not go in gives the ball away**: that cost is now weighed in the box too (it was only outside it), so a 4%
   chance from a tight angle is not worth more than keeping the ball for a better one (half the cost when he is set for a first-time
   finish). Outside the box the cost of a poor shot is higher as well.
@@ -687,6 +744,7 @@ pass or from a rebound - the next phases are about that.
   (phase 3, off-ball positioning) - and rebounds (3-5% of goals, real 12%).
 
 **Phase 3, first round - where the attackers stand** (100 matches):
+
 - **Box roles when the cross is on**: each man attacks his own zone - the near post just outside the six-yard box, the far post,
   beyond the far post (the far winger), the cut-back zone at the edge of the box (the ball-side midfielder), and the **late run**:
   the other midfielder waits at the edge for the second ball and only arrives at the penalty spot when the carrier is near the
@@ -704,6 +762,7 @@ pass or from a rebound - the next phases are about that.
   box, and the second ball after a save.
 
 **Phase 3, second round - not on to the keeper** (200 matches, two seeds):
+
 - New counters (`shot.k3.*`) showed what the shots with the keeper under 3 m away were: two in three against a keeper standing
   still on his line - the forward had carried it right up to him (from the side of the six-yard box, along the by-line), or took a
   touch on to him after a pass.
@@ -722,6 +781,7 @@ the same 100 matches: 2.92 goals, 30.4 shots).
 hit first time over 30%, and 5-45% of decisions going to a near-equal option.
 
 **Phase 4 - natural variation** (200 matches, two seeds):
+
 - **His own leanings**: every player is a little more of a shooter, a dribbler, a passer or a crosser than the next man with the
   same numbers (x0.88-1.12 on what that option is worth to him, fixed for the match). It is taken from his own make-up - the
   phases that already give his running its wobble - so it uses no random draw and a replayed match stays the same.
@@ -741,7 +801,7 @@ hit first time over 30%, and 5-45% of decisions going to a near-equal option.
     then (before, a goal or the whistle in those 2.5 seconds could lose it altogether).
   - A booking for simulation (the diver): the card was given with the play going on. Now the referee stops the play, books the
     diver with the play stopped, and gives an indirect free kick to the other side (Law 12).
-  Over 40 matches: 118 cards, none shown while the play went on. Test: `CardTimingTests`.
+    Over 40 matches: 118 cards, none shown while the play went on. Test: `CardTimingTests`.
 - **Goals that look like football** (researched: in the Premier League 2024-25 11.5% of the goals came from outside the box, the
   lowest share on record; in the World Cup 2018 about six in ten from open play; headers 13-19%). Measured over 100 matches with a
   new goal breakdown (zone, finish, the pass before it, a rebound, how far the keeper was):
@@ -903,32 +963,32 @@ Groundwork for portraits that are made once for each player, and for club crests
 - **Three tests that had been failing on `main` (not caused by the cleanup)**: the full run that followed the finishing round
   ended with four failures (one of them fixed in the next commit), and I read it halfway through and pushed to `main`
   without waiting for the end. Now:
-  - *Momentum after a goal*: the test measured the level afterwards, which depends on where the team started; it now
+  - _Momentum after a goal_: the test measured the level afterwards, which depends on where the team started; it now
     measures the swing the goal causes.
-  - *Cut-in curlers*: the traits and the finishing rule had halved them (21 -> 7 per 12 matches). The winger who is cutting inside
+  - _Cut-in curlers_: the traits and the finishing rule had halved them (21 -> 7 per 12 matches). The winger who is cutting inside
     now keeps running at the full-back (the finishing rule leaves his dribble alone) and shoots a little more readily; about 15
     curlers in 24 matches (0.6 a match); the test counts 24 matches.
-  - *The diver*: 16 matches instead of 6 (a rare event).
+  - _The diver_: 16 matches instead of 6 (a rare event).
 - **Reorganisation, no change in behaviour - proved, not assumed.**
-  - *A fingerprint tool*: `SimRunner --golden` plays 20 fixed matches (leagues, the staged match as the page runs it, rain,
+  - _A fingerprint tool_: `SimRunner --golden` plays 20 fixed matches (leagues, the staged match as the page runs it, rain,
     snow and wind, night, cup and league cup with shoot-outs, random plans, computer managers) through the replay recorder and
     hashes every frame, event and statistics row. The fingerprint is `21195E340097B26F` before the cleanup, after it and after
     each step below (the cut-in change above is a change of behaviour, made after them: the fingerprint from then on is `5662DC3522CDEFF8`).
-  - *The engine*: the four largest files, 1100-1800 lines each, split by topic into files of 130-620 lines (moves of whole
+  - _The engine_: the four largest files, 1100-1800 lines each, split by topic into files of 130-620 lines (moves of whole
     methods with their comments, nothing rewritten): `OnBall` (decision, `.Passing`, `.Dribbling`, `.Shooting`), `TeamAI`
     (shape, `.Marking`, `.Pressing`, `.Players`, `.Movement`), `SetPieces` (start, `.Layout`, `.Execution`), `Contacts`
     (control and headers, `.Goalkeeper`, `.Tackles`). The map is in TECHNICAL_OVERVIEW.
-  - *The demo page*: the 3300-line `match-template.html` is `template.html` (the markup) plus `css/NN-topic.css` (10 files) and
+  - _The demo page_: the 3300-line `match-template.html` is `template.html` (the markup) plus `css/NN-topic.css` (10 files) and
     `js/NN-topic.js` (25 files, one per topic); the build puts them back together at the `@include` lines, and the assembled
     page is identical to the old template byte for byte.
   - TECHNICAL_OVERVIEW brought up to date (the frame is 157 numbers, the file map, the fingerprint, the page's parts).
 
 ## `feature/online-play`
 
-- **Play a friend online** (user mode). After the kits: *Play the computer* or *Invite a friend*. The host gets an invite
+- **Play a friend online** (user mode). After the kits: _Play the computer_ or _Invite a friend_. The host gets an invite
   link and sends it (WhatsApp, mail...); the friend opens it, picks his own kit and keeper (nothing that looks like the
   host's kit or keeper is offered) and gets a reply code to send back; the host pastes it and the two are connected. Both
-  pick their eleven, formation and instructions; the match kicks off when both have pressed *Start match*.
+  pick their eleven, formation and instructions; the match kicks off when both have pressed _Start match_.
   - The host's browser runs the engine (a new "online" mode: no computer manager for the away team) and streams the match
     to the friend as it is played; the friend's instructions and changes go back to the engine for the away team (new
     engine calls `SetPlanFor` / `SubstituteFor`).
@@ -977,9 +1037,9 @@ Groundwork for portraits that are made once for each player, and for club crests
 
 The human side of the match - players that behave like people, not robots:
 
-- **Twelve more traits** (Traits tab): *attacks every high ball*, *holds his position*, *roams*, *runs in behind*, *presses
-  relentlessly*, *saves his energy*, *leader*, *big-game player*, *fragile*, *draws fouls*, and for keepers *bold* (off his
-  line, claims crosses) and *stays on his line*. Never two that contradict (holds position / roams or runs in behind,
+- **Twelve more traits** (Traits tab): _attacks every high ball_, _holds his position_, _roams_, _runs in behind_, _presses
+  relentlessly_, _saves his energy_, _leader_, _big-game player_, _fragile_, _draws fouls_, and for keepers _bold_ (off his
+  line, claims crosses) and _stays on his line_. Never two that contradict (holds position / roams or runs in behind,
   presses / saves energy, bold / stays on the line, leader / draws fouls). The cool-headed trait was left out - there is the
   composure skill - and so was age-related tiring - stamina is the skill that does it.
   Effects: the roamer drifts up to 4 m (7 in possession) towards the ball and leaves a hole; the position-holder does not
@@ -1059,16 +1119,16 @@ guides), so the players move like a team rather than like robots:
   ball (two for a keeper), weighted by his position and skills, regenerated with the squad each match, never two that
   contradict each other (cuts inside v back to goal, outside of the foot v weaker foot, dribbler v unselfish, long shots
   v unselfish). They tip his choices in the engine:
-  1. *Cuts inside and shoots* - from the flank he always comes inside, and shoots more after the cut.
-  2. *Loves to dribble* - runs with the ball far more often.
-  3. *Sets up his team-mates* - fewer shots, looks for the better-placed man.
-  4. *Outside of the foot* - the trivela instead of the weaker foot.
-  5. *Uses his weaker foot* - does not shift onto the strong foot, and his weaker one is a grade better.
-  6. *Likes tricks* - backheels, dummies, fake shots and backheel finishes more often.
-  7. *Goes in hard* - only for an aggressive player (70+; the trait gives him it): more tackles and slides, more fouls.
-  8. *Shoots from distance* - has a go from range.
-  9. *Switches the play* - values the long ball to the other flank.
-  10. *Back to goal* - holds it up, stronger in the body, lays it off to the runners.
+  1. _Cuts inside and shoots_ - from the flank he always comes inside, and shoots more after the cut.
+  2. _Loves to dribble_ - runs with the ball far more often.
+  3. _Sets up his team-mates_ - fewer shots, looks for the better-placed man.
+  4. _Outside of the foot_ - the trivela instead of the weaker foot.
+  5. _Uses his weaker foot_ - does not shift onto the strong foot, and his weaker one is a grade better.
+  6. _Likes tricks_ - backheels, dummies, fake shots and backheel finishes more often.
+  7. _Goes in hard_ - only for an aggressive player (70+; the trait gives him it): more tackles and slides, more fouls.
+  8. _Shoots from distance_ - has a go from range.
+  9. _Switches the play_ - values the long ball to the other flank.
+  10. _Back to goal_ - holds it up, stronger in the body, lays it off to the runners.
 - The traits are in the replay header (`traits` per player). Tests: counts and conflicts, determinism, and that dribblers
   dribble, long-range shooters shoot, hard tacklers slide and foul, unselfish players shoot less.
 - Commentary test updated for names-only commentary.
@@ -1293,6 +1353,7 @@ guides), so the players move like a team rather than like robots:
   Roles change where the player stands (in and out of possession), his runs, pressing, tackling, passing choices
   (through balls, long balls, the target man as the outlet), crossing, cutting inside, and the keeper's position, sorties
   and claims. "Auto" plays as before.
+
 - **Individual instructions** per player: long shots (more / mixed / less), dribbling (a lot / mixed / little),
   aggression (very aggressive / mixed / gentle). Tested: more long shots, more dribbles, more fouls.
 - **Set-piece takers**: choose who takes the corners, the free kicks at goal and the penalties (Auto: the best one on the
@@ -1429,16 +1490,16 @@ defence, the third-man principle, set-piece coaching, cover shadows, dynamic adv
 ## `feature/tactic-styles-feet-restarts`
 
 - **Tactics you choose, not slide** (the panel under the pitch; the engine reads them through `TeamTactics.Effective()`):
-  - **Defence**: *Balanced*; *High press* (wins the ball high, a high line and hard pressing, but tires the legs ~40%
-    faster); *Offside trap* (the whole line takes a step up together to leave the forwards offside - 5 caught offside a
-    match instead of 1 - and now and then one man misses the step, so the trap fails); *Park the bus* (a deep bunker, narrow, one
+  - **Defence**: _Balanced_; _High press_ (wins the ball high, a high line and hard pressing, but tires the legs ~40%
+    faster); _Offside trap_ (the whole line takes a step up together to leave the forwards offside - 5 caught offside a
+    match instead of 1 - and now and then one man misses the step, so the trap fails); _Park the bus_ (a deep bunker, narrow, one
     forward left up, wasting time - the back line 19 m from goal instead of 33, and the legs stay fresh).
-  - **Attack**: *Mixed*; *Crosses into the box* (the wide men deliver from everywhere wide, more men in the box - 17
-    crosses a match instead of 9); *Runs in behind* (through balls and runs, 20 through balls instead of 11); *Long
-    shots* (from 20-30 m, 19 shots from 18 m+ instead of 8).
-  - **Extra tactic**: *Possession* (short passing, no gambles, 4.7 long balls instead of 9); *Time wasting* (restarts
-    taken 1.9x slower, the keeper and the carrier take their time, the clock runs); *Counter-attacks* (win it in your own
-    half and break at once, everybody forward, through balls); *Relentless pressure* (everybody up round the box,
+  - **Attack**: _Mixed_; _Crosses into the box_ (the wide men deliver from everywhere wide, more men in the box - 17
+    crosses a match instead of 9); _Runs in behind_ (through balls and runs, 20 through balls instead of 11); _Long
+    shots_ (from 20-30 m, 19 shots from 18 m+ instead of 8).
+  - **Extra tactic**: _Possession_ (short passing, no gambles, 4.7 long balls instead of 9); _Time wasting_ (restarts
+    taken 1.9x slower, the keeper and the carrier take their time, the clock runs); _Counter-attacks_ (win it in your own
+    half and break at once, everybody forward, through balls); _Relentless pressure_ (everybody up round the box,
     full-backs and centre-backs high, crosses and shots - and it tires the legs).
   - The board shows the shape and the arrows of the chosen styles. The computer manager uses them too (balls in behind
     against a high press, crosses against a bunker, a bunker and time wasting when it leads late, relentless pressure
@@ -1556,12 +1617,12 @@ defence, the third-man principle, set-piece coaching, cover shadows, dynamic adv
   - finally an even 30 frames a second, instead of stuttering below 60.
 - **Measured** in a headless browser with no graphics card (frames a second, before → after):
 
-  | View | Demo page | React |
-  | --- | --- | --- |
-  | Sunny day | 24 → 46 | 60 |
-  | Night | 44 → 56-60 | 59 |
-  | Snow | 20 → 43 | 46 |
-  | Rain on a neglected pitch | 30 → 33-42 | – |
+  | View                      | Demo page  | React |
+  | ------------------------- | ---------- | ----- |
+  | Sunny day                 | 24 → 46    | 60    |
+  | Night                     | 44 → 56-60 | 59    |
+  | Snow                      | 20 → 43    | 46    |
+  | Rain on a neglected pitch | 30 → 33-42 | –     |
 
   A device with a graphics card is faster still.
 
@@ -1573,7 +1634,7 @@ defence, the third-man principle, set-piece coaching, cover shadows, dynamic adv
   - **Open**: no shade;
   - **Main stand**: a slanting band of shade along the far touchline, with the steps of the roof trusses;
   - **Bowl**: the curved roof shades the top and the left of the pitch.
-  Same in the demo page, React and Unity.
+    Same in the demo page, React and Unity.
 - **Night no longer drops frames**: every frame used to add four full-screen light gradients on top of the darkness.
   The floodlit darkness is now drawn once per screen size and laid over as a single image. Cloud shadows are drawn
   into an image an eighth of the size. The canvas resolution is capped at 2× on 3× phone screens. In a headless
@@ -1642,7 +1703,7 @@ defence, the third-man principle, set-piece coaching, cover shadows, dynamic adv
     - neglected pitch: about 15% mud;
     - in rain, puddles cover about 2% of an average pitch and about 9% of a neglected one;
     - a perfect pitch drains, so no puddles.
-    The renderers draw this same map, so the ball stops in the puddles you see.
+      The renderers draw this same map, so the ball stops in the puddles you see.
   - **Rain**: the ball skids on and keeps its pace (rolling resistance 35% lower, a lower bounce that skids on). Ball
     control, first touches, dribbles and shots are a little harder. Players lose grip and slip now and then (a player
     on the ball loses it). Slides go further. Keepers spill more.
@@ -1845,14 +1906,14 @@ defence, the third-man principle, set-piece coaching, cover shadows, dynamic adv
   - all the ways of striking a shot occur, and chips and the outside of the boot are rare.
 - **Calibration over 200 matches** (real-world reference in brackets):
 
-  | Measure | Result |
-  |---|---|
-  | Goals | 3.34 (2.97) |
-  | Shots | 33.9 (25.9) |
-  | Yellow cards | 4.2 (4.2) |
-  | Red cards | 0.15 (0.10-0.15) |
-  | Offsides | 3.2 (3.4) |
-  | Added time | 3.4 + 4.0 min |
+  | Measure      | Result           |
+  | ------------ | ---------------- |
+  | Goals        | 3.34 (2.97)      |
+  | Shots        | 33.9 (25.9)      |
+  | Yellow cards | 4.2 (4.2)        |
+  | Red cards    | 0.15 (0.10-0.15) |
+  | Offsides     | 3.2 (3.4)        |
+  | Added time   | 3.4 + 4.0 min    |
 
 ## `feature/freekick-box-fullbacks-wingers-stamina`
 
@@ -1919,12 +1980,12 @@ instructions chosen in the previous round: Marking (red zonal, blue man-to-man) 
     - Commentary: "... reads it and steps in front of ...".
   - The pressing player curves his run so his body also blocks the carrier's nearest forward pass (cover shadow).
 - **Body play**:
-  - *Shielding the ball out*: a ball rolling out of play for our restart (goal kick, throw-in), with an opponent
+  - _Shielding the ball out_: a ball rolling out of play for our restart (goal kick, throw-in), with an opponent
     chasing it, is not played. The defender who gets there first puts his body between the ball and the chaser and
     escorts it out.
     - The chaser is held off according to physical strength.
     - Commentary: "... shields it out from ... for a goal kick".
-  - *Shoulder to shoulder*: two opponents racing side by side for a loose ball lean into each other. The stronger,
+  - _Shoulder to shoulder_: two opponents racing side by side for a loose ball lean into each other. The stronger,
     taller and more determined one holds his line and gets there first; the other is knocked off stride.
     - Rarely, it's a careless push (a foul).
     - Commentary: "... muscles ... off the ball".
@@ -1932,7 +1993,7 @@ instructions chosen in the previous round: Marking (red zonal, blue man-to-man) 
   team-mate takes up a position about 6 m diagonally behind the presser, on the inside (cover). The far-side full-back
   tucks in so there is no gap through the middle (balance).
 - **A disciplined back line**:
-  - Each team has a *defensive chemistry* score, built from its defenders' Teamwork, Positioning and Decisions.
+  - Each team has a _defensive chemistry_ score, built from its defenders' Teamwork, Positioning and Decisions.
   - With good chemistry the back four:
     - stays flat;
     - steps up together when the opponent has to turn back or plays the ball backwards;
@@ -1954,22 +2015,22 @@ instructions chosen in the previous round: Marking (red zonal, blue man-to-man) 
   - a player who ran or slid past a line just before a goal is brought back onto the pitch during the celebration.
 - **Calibration over 200 matches** (both teams together; real-world reference in brackets):
 
-  | Measure | Result |
-  |---|---|
-  | Goals | 3.27 (2.97) |
-  | Shots | 31.6 (25.9) |
-  | Offsides | 3.8 (3.4) |
-  | Pass completion | 80% (80-85%) |
-  | Yellow cards | 4.2 (4.2) |
-  | Through balls | 28, of which 9 arrive |
-  | Passes into space | 17, about half arrive |
-  | Interceptions where the defender read the pass | 20 |
-  | Balls shielded out | 3 |
-  | Shoulder duels won | 28 |
-
+  | Measure                                        | Result                |
+  | ---------------------------------------------- | --------------------- |
+  | Goals                                          | 3.27 (2.97)           |
+  | Shots                                          | 31.6 (25.9)           |
+  | Offsides                                       | 3.8 (3.4)             |
+  | Pass completion                                | 80% (80-85%)          |
+  | Yellow cards                                   | 4.2 (4.2)             |
+  | Through balls                                  | 28, of which 9 arrive |
+  | Passes into space                              | 17, about half arrive |
+  | Interceptions where the defender read the pass | 20                    |
+  | Balls shielded out                             | 3                     |
+  | Shoulder duels won                             | 28                    |
   - Switching each feature off in turn (150 matches each) shows that none of them raises the goal count by itself:
     3.09 goals with all of them off, 3.21 with all on, within noise.
   - Together they cut shots from 37 to 32 per match.
+
 - Tests:
   - both teams read passes, shield balls out and win shoulder duels;
   - a back line with better understanding holds a flatter line;
@@ -1979,11 +2040,11 @@ instructions chosen in the previous round: Marking (red zonal, blue man-to-man) 
 
 - **Added time** box on the scoreboard: white text instead of green (demo page, React, Unity).
 - **Marking systems** (new team instruction `Marking`; red plays zonal, blue man-to-man):
-  - *Zonal*: each defender and midfielder owns an area around his place in the block (about 9 m for defenders, 10.5 m
+  - _Zonal_: each defender and midfielder owns an area around his place in the block (about 9 m for defenders, 10.5 m
     for midfielders), which moves with the ball. He picks up the most dangerous opponent who enters it and stays
     goal-side, but never leaves his zone. When the runner moves on, he is handed over to the next zone.
     `MarkingSwitches` counts the hand-overs.
-  - *Man-to-man*: when the ball is lost, the four defenders take the four most advanced opponents and the midfielders
+  - _Man-to-man_: when the ball is lost, the four defenders take the four most advanced opponents and the midfielders
     take the next ones, nearest first. Each keeps his man for the whole defensive phase and follows him out of position.
     He stays tight and goal-side (about 1.3 m, 0.9 m in the box, looser when the ball is far away), and a poorer
     `Marking` attribute gives the man more room. The strikers don't mark. If a man is sent off, his marker picks up a
@@ -2009,16 +2070,17 @@ instructions chosen in the previous round: Marking (red zonal, blue man-to-man) 
   (before, a slider change would have reset it).
 - **Calibration over 150 matches** (real-world reference in brackets):
 
-  | Measure | This version | Real world | Before |
-  |---|---|---|---|
-  | Goals | 3.01 | 2.97 | |
-  | Fouls | 21.9 | 22.1 | |
-  | Yellow cards | about 4.4 | 4.2 | |
-  | Red cards | 0.16 | 0.10–0.15 | |
-  | Tackle attempts | 106 | | 108 |
-  | – of which slides | about 10 | | |
+  | Measure           | This version | Real world | Before |
+  | ----------------- | ------------ | ---------- | ------ |
+  | Goals             | 3.01         | 2.97       |        |
+  | Fouls             | 21.9         | 22.1       |        |
+  | Yellow cards      | about 4.4    | 4.2        |        |
+  | Red cards         | 0.16         | 0.10–0.15  |        |
+  | Tackle attempts   | 106          |            | 108    |
+  | – of which slides | about 10     |            |        |
 
   Slide fouls are about 20% of slides. Most tackle attempts now come from take-on duels.
+
 - Tests (`DefendingTests`):
   - man-markers keep their man and stay close to him;
   - zonal markers stay in their zone and hand over;

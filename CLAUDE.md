@@ -147,6 +147,14 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   (`drizzle/0006_club_world.sql`) start empty: **no row = the new-club state** (an empty state, never an invented number).
   Tactics (`features/tactics/`) edit `teams.plan` in the engine's TeamPlan text; formations are generated from
   `Formation.cs` (`formations.ts`), encodings and tactic locks follow the classic page. `/play` passes the saved plan.
+  **Match day** (`features/match-day/`, Figma section "Match day & more – screens"): `/play` is one client session
+  (`use-match.ts`): Play hub → Pre-match (engine started with `hold`, header = line-ups) → full-screen Live (lead 20,
+  the viewer reports progress; half-time pauses playback) → Full-time report (auto-saved). Mentality and touchline
+  instructions are plan edits (`mentality.ts`: line / width / tempo / tackling, within `applyLocks`), sent with
+  `setPlan`; substitutions go through `substitute` and leave the pending list on the engine's Substitution /
+  SubstitutionRequest events. All read-outs (stats rows, ratings, scorers, momentum) are in `derive.ts`; no invented
+  numbers. `/matches/[id]` uses the same layout (`replay-view.tsx`). The accent colour is blue (`--color-accent` =
+  `--mor-blue`); text on an accent fill uses `text-on-accent`, `accent-ink` stays the dark ink for light fills.
   The forum is read-only: only `profiles.is_admin` users may post (checked in `features/forum/actions.ts`); admins are
   set in Supabase (`update profiles set is_admin = true where username = '…'`), never by the app.
 

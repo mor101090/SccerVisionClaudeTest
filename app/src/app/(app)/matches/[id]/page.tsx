@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 
 import { MatchSkeleton } from "@/components/ui/skeleton";
+import type { FinalHeader } from "@/features/match-day/full-time";
 import { currentUser } from "@/server/auth";
 import { getMatch } from "@/server/matches";
 
@@ -18,25 +19,29 @@ async function Replay({ params }: { params: Promise<{ id: string }> }) {
   if (!z.uuid().safeParse(id).success) notFound();
   const match = await getMatch(user.id, id);
   if (!match) notFound();
+  const day = match.playedAt.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
   return (
     <>
-      <h1 className="text-2xl font-semibold">
+      <h1 className="sr-only">
         {match.homeName} {match.homeScore} – {match.awayScore} {match.awayName}
       </h1>
-      <p className="text-sm text-zinc-500">
-        {match.mode} · seed {match.seed} · engine {match.engineVersion}
-      </p>
-      <ReplayClient matchId={match.id} />
+      <ReplayClient
+        matchId={match.id}
+        summary={(match.summary as FinalHeader) ?? null}
+        label={`Replay · seed ${match.seed} · ${day}`}
+      />
     </>
   );
 }
 
 export default function ReplayPage({ params }: PageProps<"/matches/[id]">) {
   return (
-    <div className="flex flex-1 flex-col items-center gap-4 text-zinc-50">
-      <Suspense fallback={<MatchSkeleton />}>
-        <Replay params={params} />
-      </Suspense>
-    </div>
+    <Suspense fallback={<MatchSkeleton />}>
+      <Replay params={params} />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 
 import type { SaveMatchInput } from "@/features/matches/match-schema";
 import { REPLAY_CONTENT_TYPE } from "@/features/matches/replay-codec";
@@ -58,6 +58,11 @@ export async function listMatches(userId: string, limit = 50) {
     .where(eq(matches.userId, userId))
     .orderBy(desc(matches.playedAt))
     .limit(limit);
+}
+
+export async function countMatches(userId: string): Promise<number> {
+  const [row] = await db().select({ n: count() }).from(matches).where(eq(matches.userId, userId));
+  return row?.n ?? 0;
 }
 
 /** A match only its owner can read. */
