@@ -57,15 +57,16 @@ test("create your team and play a match with it", async ({ page }) => {
     await page.waitForURL("**/team/new/squad");
   }
 
-  // Generating (first time): 22/22, the "Squad complete" celebration, then the squad.
-  await expect(page.getByRole("heading", { name: /squad complete/i })).toBeVisible({
-    timeout: 60_000,
-  });
-  await expect(page.getByText("22/22 players signed", { exact: false })).toBeVisible();
-  await shot(page, "4-squad-complete");
-  await expect(page.getByRole("heading", { name: "Suggested XI · 4-4-2" })).toBeVisible({
-    timeout: 60_000,
-  });
+  // Generating (first time): 22/22, the "Squad complete" celebration, then the squad. An account that already has
+  // its club (every run after the first: the seed keeps the club) opens straight on the squad.
+  const complete = page.getByRole("heading", { name: /squad complete/i });
+  const squad = page.getByRole("heading", { name: "Suggested XI · 4-4-2" });
+  await expect(complete.or(squad)).toBeVisible({ timeout: 60_000 });
+  if (await complete.isVisible()) {
+    await expect(page.getByText("22/22 players signed", { exact: false })).toBeVisible();
+    await shot(page, "4-squad-complete");
+  }
+  await expect(squad).toBeVisible({ timeout: 60_000 });
   await expect(page.locator("tbody tr")).toHaveCount(22);
   await shot(page, "5-squad");
 

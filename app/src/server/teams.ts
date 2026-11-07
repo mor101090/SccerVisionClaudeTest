@@ -21,7 +21,6 @@ import { generateSquad } from "./squad-api";
 const { teams, players, matches } = schema;
 
 export type TeamRow = typeof teams.$inferSelect;
-export type PlayerRow = typeof players.$inferSelect;
 export type SquadPlayer = {
   id: string;
   starterSlot: number | null;
@@ -56,7 +55,6 @@ export async function getSquad(teamId: string): Promise<SquadPlayer[]> {
 
 /** getTeam / getSquad once per request, shared by the layout and the page. Renders only (not after a write). */
 export const teamForRequest = cache(getTeam);
-export const squadForRequest = cache(getSquad);
 
 /** The furthest step this manager may open: manager → club → kits → squad. */
 export type Step = "manager" | "club" | "kits" | "squad";

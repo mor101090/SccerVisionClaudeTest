@@ -66,3 +66,13 @@ export function FieldSkeleton({ helper = false }: { helper?: boolean }) {
 export function ButtonSkeleton({ className = "w-full" }: { className?: string }) {
   return <Skeleton className={`h-11 rounded-lg ${className}`} />;
 }
+
+/** A match page while it loads: the scoreboard line and the pitch (play, replay, online match). */
+export function MatchSkeleton() {
+  return (
+    <Loading className="flex w-full max-w-4xl flex-col items-center gap-4">
+      <Skeleton className="h-8 w-72" />
+      <Skeleton className="aspect-[105/68] w-full rounded-lg" />
+    </Loading>
+  );
+}

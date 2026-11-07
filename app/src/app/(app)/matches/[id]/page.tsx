@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { z } from "zod";
 
-import { Loading, Skeleton } from "@/components/ui/skeleton";
+import { MatchSkeleton } from "@/components/ui/skeleton";
 import { currentUser } from "@/server/auth";
 import { getMatch } from "@/server/matches";
 
@@ -34,14 +34,7 @@ async function Replay({ params }: { params: Promise<{ id: string }> }) {
 export default function ReplayPage({ params }: PageProps<"/matches/[id]">) {
   return (
     <div className="flex flex-1 flex-col items-center gap-4 text-zinc-50">
-      <Suspense
-        fallback={
-          <Loading className="flex w-full max-w-4xl flex-col items-center gap-4">
-            <Skeleton className="h-8 w-72" />
-            <Skeleton className="aspect-[105/68] w-full rounded-lg" />
-          </Loading>
-        }
-      >
+      <Suspense fallback={<MatchSkeleton />}>
         <Replay params={params} />
       </Suspense>
     </div>

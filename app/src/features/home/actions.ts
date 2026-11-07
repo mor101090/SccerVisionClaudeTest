@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/server/auth";
+import { markMessagesRead } from "@/server/club-world";
 import { db, schema } from "@/server/db";
 
 /** Marks every notification of the signed-in manager as read ("Mark all as read"). */
@@ -13,6 +14,13 @@ export async function markNotificationsReadAction(): Promise<void> {
     .update(schema.notifications)
     .set({ readAt: new Date() })
     .where(and(eq(schema.notifications.userId, user.id), isNull(schema.notifications.readAt)));
+  revalidatePath("/", "layout");
+}
+
+/** Opening Messages reads them: clears the unread badge in the top bar. */
+export async function markMessagesReadAction(): Promise<void> {
+  const user = await requireUser();
+  await markMessagesRead(user.id);
   revalidatePath("/", "layout");
 }
 

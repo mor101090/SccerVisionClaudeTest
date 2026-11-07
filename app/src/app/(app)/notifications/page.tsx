@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { PageSkeleton } from "@/components/app-shell/shell-skeleton";
@@ -12,6 +13,7 @@ import { allNotifications } from "@/server/club-world";
 export const metadata: Metadata = { title: "Notifications" };
 
 async function Notifications() {
+  await connection(); // fresh per request: other people write this list (and it shows "2m ago")
   const user = await currentUser();
   if (!user) redirect("/auth/sign-in?redirectTo=/notifications");
   const rows = await allNotifications(user.id);

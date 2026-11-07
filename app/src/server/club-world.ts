@@ -90,8 +90,7 @@ export async function trainingOf(teamId: string) {
 
 /** Pending offers for the club's players (incoming) and by the club (outgoing). */
 export async function offersOf(teamId: string) {
-  "use cache: private";
-  cacheLife("minutes");
+  // Not cached: other people write these (senders, buyers, the game), so a cached copy hides new items.
   const select = {
     id: transferOffers.id,
     amount: transferOffers.amount,
@@ -161,8 +160,7 @@ export async function forumThread(id: string) {
 }
 
 export async function allNotifications(userId: string) {
-  "use cache: private";
-  cacheLife("minutes");
+  // Not cached: other people write these (senders, buyers, the game), so a cached copy hides new items.
   return db()
     .select()
     .from(notifications)
@@ -172,8 +170,7 @@ export async function allNotifications(userId: string) {
 }
 
 export async function inbox(userId: string) {
-  "use cache: private";
-  cacheLife("minutes");
+  // Not cached: other people write these (senders, buyers, the game), so a cached copy hides new items.
   return db()
     .select({
       id: messages.id,

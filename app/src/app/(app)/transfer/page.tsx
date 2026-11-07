@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { PageSkeleton } from "@/components/app-shell/shell-skeleton";
@@ -32,6 +33,7 @@ function OfferList({ offers, empty, verb }: { offers: Offer[]; empty: string; ve
 }
 
 async function Transfer() {
+  await connection(); // fresh per request: other people write this list (and it shows "2m ago")
   const { team } = await loadClub("/transfer");
   const { incoming, outgoing } = await offersOf(team.id);
   return (

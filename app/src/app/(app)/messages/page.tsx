@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { PageSkeleton } from "@/components/app-shell/shell-skeleton";
 import { Card, EmptyState, PageHeader } from "@/components/app-shell/ui";
 import { initials } from "@/features/home/rules";
+import { MarkMessagesRead } from "@/features/messages/mark-read";
 import { relativeTime } from "@/lib/relative-time";
 import { currentUser } from "@/server/auth";
 import { inbox } from "@/server/club-world";
@@ -12,12 +14,14 @@ import { inbox } from "@/server/club-world";
 export const metadata: Metadata = { title: "Messages" };
 
 async function Messages() {
+  await connection(); // fresh per request: other people write this list (and it shows "2m ago")
   const user = await currentUser();
   if (!user) redirect("/auth/sign-in?redirectTo=/messages");
   const rows = await inbox(user.id);
   return (
     <>
       <PageHeader crumb="Messages" title="Messages" />
+      {rows.some((m) => !m.readAt) && <MarkMessagesRead />}
       <Card className="gap-0!">
         {rows.length === 0 ? (
           <EmptyState icon="mail" title="No messages yet">

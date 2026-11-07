@@ -36,8 +36,6 @@ const TONE_FILL: Record<Tone, string> = {
   info: "bg-info",
   muted: "bg-border",
 };
-export const toneText = (t: Tone) => TONE_TEXT[t];
-export const toneFill = (t: Tone) => TONE_FILL[t];
 export type { Tone };
 
 export function Card({

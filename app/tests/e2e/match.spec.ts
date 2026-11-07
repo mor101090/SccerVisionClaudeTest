@@ -7,6 +7,8 @@ test("play a match, save it, find it in My matches, watch the replay", async ({ 
   test.setTimeout(180_000);
 
   await ensureSignedIn(page, TEST_USER);
+  // Signing in lands on the homepage; the match screen is /play.
+  await page.goto("/play");
 
   // Engine (WASM worker) loads, then the whole match is simulated.
   const random = page.getByRole("button", { name: "Random match" });

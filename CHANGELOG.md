@@ -2,6 +2,16 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `chore/phase3-cleanup`
+
+**Phase 3: cleanup and debugging, no gameplay change.** Full record (fixes, checks, remaining debt): `docs/phase-3-cleanup.md`.
+- **Daily e2e red since Nov 5**: `team.spec.ts` waited for the "Squad complete" celebration even when the test account already had its club; `match.spec.ts`
+  still expected sign-in to land on `/play`. Both fixed.
+- **Messages**: opening Messages now marks them read, so the top bar badge clears (nothing ever did).
+- **Fresh lists**: messages, notifications and transfer offers are no longer cached per user; a new one shows on the next load instead of minutes later.
+- **Cleanup**: unused exports removed; one `MatchSkeleton` instead of three copies.
+- **Tests**: `yarn check` 113 / 113; Playwright 14 / 14 without online, online 2 / 2; engine determinism and replay tests 14 / 14.
+
 ## `chore/close-loose-ends`
 
 **Loose ends from the earlier lists, closed; nothing in the engine's play changes.** Deferred by the user and taken off the list: the league setting, the branches in the old repo.
