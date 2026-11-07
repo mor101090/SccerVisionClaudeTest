@@ -134,9 +134,30 @@
   });
   document.querySelectorAll(".mtabs button").forEach(function (b) {
     b.addEventListener("click", function () {
-      document.querySelectorAll(".mtabs button").forEach(function (o) { o.setAttribute("aria-selected", String(o === b)); });
+      document.querySelectorAll(".mtabs button").forEach(function (o) { o.setAttribute("aria-selected", String(o === b)); o.tabIndex = o === b ? 0 : -1; });
       document.querySelectorAll(".mtab").forEach(function (p) { p.hidden = p.getAttribute("data-pane") !== b.dataset.tab; });
+      b.scrollIntoView({ block: "nearest", inline: "nearest" });
     });
+  });
+  // the manager tabs: one Tab stop, arrow keys move between them (the tab pattern); on a phone the strip scrolls
+  // sideways, and a fade on the edge says there is more
+  document.querySelectorAll(".mtabs").forEach(function (strip) {
+    var tabs = [].slice.call(strip.querySelectorAll("button"));
+    tabs.forEach(function (o) { o.tabIndex = o.getAttribute("aria-selected") === "true" ? 0 : -1; });
+    strip.addEventListener("keydown", function (e) {
+      var i = tabs.indexOf(document.activeElement), n = tabs.length, j = -1;
+      if (i < 0) return;
+      if (e.key === "ArrowRight") j = (i + 1) % n; else if (e.key === "ArrowLeft") j = (i - 1 + n) % n;
+      else if (e.key === "Home") j = 0; else if (e.key === "End") j = n - 1;
+      if (j < 0) return;
+      e.preventDefault(); tabs[j].focus(); tabs[j].click();
+    });
+    function edges() {
+      strip.classList.toggle("more-start", strip.scrollLeft > 2);
+      strip.classList.toggle("more-end", strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 2);
+    }
+    strip.addEventListener("scroll", edges, { passive: true }); window.addEventListener("resize", edges); edges();
+    if (window.ResizeObserver) new ResizeObserver(edges).observe(strip);
   });
   $("kickoff").addEventListener("click", function () {
     if (!R || KICKED) return;

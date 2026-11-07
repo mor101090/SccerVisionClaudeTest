@@ -38,12 +38,21 @@
   function engineSettings(seed) {
     return { weather: SET.weather, maintenance: SET.maint === "2" ? 1 : SET.maint === "1" ? .5 : 0, wind: SET.wind === "1" ? 12 : 0, windAngle: (seed * 97 % 360) * Math.PI / 180, night: !!SET.night };
   }
+  // "Start match" works only once the engine has sent the match (beginMatch). Until then it says so and cannot be
+  // pressed - a press before that used to be dropped without a word.
+  function kickoffReady(ready, failed) {
+    var b = $("kickoff");
+    if (!ready && !b.disabled) b.dataset.label = b.textContent;
+    b.disabled = !ready; b.setAttribute("aria-busy", String(!ready && !failed));
+    b.textContent = ready ? (b.dataset.label || "Start match") : failed ? "The match engine did not load - reload the page" : "Preparing the match...";
+  }
   function startMatch(mode, seed, resumeRel) {
     MODE = mode; currentSeed = seed; token++; var mine = token;
     LIVE_T = 0; setRewound(false);
     KICKED = mode !== "live"; PENDING = []; SEL = null;
     if (mode === "live" && USER_PLAN) { PLAN = USER_PLAN; TAC = USER_TAC; } // (your own team - not the one a random match showed)
     $("prematch").hidden = mode !== "live";
+    if (mode === "live") kickoffReady(false);
     document.body.classList.toggle("live", mode === "live");
     document.querySelectorAll(".modes button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === mode)); });
     if (mode === "live") { speed = 1; document.querySelectorAll("[data-speed]").forEach(function (o) { o.setAttribute("aria-pressed", String(o.getAttribute("data-speed") === "1")); }); }
@@ -54,5 +63,5 @@
       var c = engineSettings(seed);
       worker.postMessage({ cmd: "stop", token: mine });
       worker.postMessage({ cmd: "start", token: mine, mode: ONLINE === "host" ? "online" : mode, seed: seed, weather: c.weather, maintenance: c.maintenance, wind: c.wind, windAngle: c.windAngle, night: c.night, competition: SET.comp || "League", homeStrength: ONLINE ? "medium" : SET.hstr || "medium", awayStrength: ONLINE ? "medium" : SET.astr || "medium", lead: mode === "live" ? 20 : 0, plan: planString(), hold: mode === "live" });
-    }, function () {});
+    }, function () { if (mine === token && mode === "live") kickoffReady(false, true); });
   }

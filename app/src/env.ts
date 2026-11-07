@@ -33,6 +33,8 @@ const clientSchema = z.object({
     .string()
     .regex(/^[\w-]+\.apps\.googleusercontent\.com$/)
     .optional(),
+  // Support address for "Contact Us" on the auth screens. Unset: the link is not shown.
+  NEXT_PUBLIC_SUPPORT_EMAIL: z.email().optional(),
 });
 
 const isServer = typeof window === "undefined";
@@ -60,6 +62,7 @@ export const clientEnv = parse(clientSchema, {
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+  NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
 });
 
 export const serverEnv = isServer

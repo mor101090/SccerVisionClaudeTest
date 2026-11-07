@@ -95,3 +95,9 @@ td.l { color: var(--muted); }
 .wopts a { color: inherit; text-decoration: none; cursor: pointer; }
 .wopts a.platform { grid-column: 1 / -1; border-color: #626ed4; }
 .wopts a.platform:hover { background: rgba(98,110,212,.18); }
+
+/* While a start screen (welcome, kits, online) covers the page, the match page under it does not scroll. */
+body:has(> .welcome:not([hidden])) { overflow: hidden; }
+
+/* "Start match" while the engine prepares the match (kickoffReady in 07-match.js) */
+#kickoff:disabled { opacity: .6; cursor: progress; }

@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ShellClient } from "@/components/app-shell/shell-client";
 import { ShellSkeleton } from "@/components/app-shell/shell-skeleton";
 import { SiteHeader } from "@/components/site-header";
+import { SkipLink } from "@/components/ui/skip-link";
 import { PasskeyOffer } from "@/features/auth/passkey-offer";
 import { currentUser } from "@/server/auth";
 import { getShellData } from "@/server/shell";
@@ -13,15 +14,18 @@ async function Shell({ children }: { children: React.ReactNode }) {
   if (!user) {
     return (
       <>
+        <SkipLink />
         <SiteHeader />
-        <div className="flex flex-1 flex-col gap-5 p-4 md:p-7">{children}</div>
+        <main id="main" className="flex flex-1 flex-col gap-5 p-4 md:p-7">
+          {children}
+        </main>
         <PasskeyOffer />
       </>
     );
   }
   const data = await getShellData(user);
   return (
-    <ShellClient data={data}>
+    <ShellClient data={data} skipLink={<SkipLink />}>
       {children}
       <PasskeyOffer />
     </ShellClient>

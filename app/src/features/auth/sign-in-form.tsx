@@ -88,6 +88,7 @@ export function SignInForm() {
           autoComplete="current-password"
           placeholder="Your password"
           error={f.password}
+          quietError={!!state?.error}
           required
         />
         <div className="flex items-center justify-between">

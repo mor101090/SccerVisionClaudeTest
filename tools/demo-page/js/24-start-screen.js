@@ -182,8 +182,10 @@
     $("kTitle").textContent = mode === "online" ? "Your kits for the online game" : "Your kits";
     $("kitStrength").hidden = mode === "online"; syncStrength();
     $("kitGo").hidden = mode === "online"; $("kitHost").hidden = $("kitJoin").hidden = mode !== "online"; $("kitInvite").hidden = true;
-    $("kitNext").textContent = mode === "online" ? "Your friend picks his own kits. If his shirt looks like yours, one of you wears the second kit - you both see it before the match." : "Next: your eleven, the formation and the instructions - then start the match.";
-    $("welcome").hidden = true; drawKitPicker(); $("kitSetup").hidden = false; (mode === "online" ? $("kitHost") : $("kitGo")).focus();
+    $("kitNext").textContent = mode === "online" ? "Your friend picks their own kits. If their shirt looks like yours, one of you wears the second kit - you both see it before the match." : "Next: your eleven, the formation and the instructions - then start the match.";
+    $("welcome").hidden = true; drawKitPicker(); $("kitSetup").hidden = false;
+    // the main button gets the focus, but the screen opens at its top (the kits), not scrolled down to the button
+    (mode === "online" ? $("kitHost") : $("kitGo")).focus({ preventScroll: true }); $("kitSetup").scrollTop = 0;
   }
   $("asUser").addEventListener("click", function () { openKits("computer"); });
   $("asOnline").addEventListener("click", function () {
@@ -195,7 +197,7 @@
       $("kitSetup").hidden = true; $("online").hidden = false;
       $("oText").textContent = "Preparing your reply code...";
       NET.answer({ home: KIT.home, gk: KIT.gk }).then(function (code) {
-        $("oText").textContent = "Send this code back to your friend. The match opens here as soon as he connects.";
+        $("oText").textContent = "Send this code back to your friend. The match opens here as soon as they connect.";
         $("oAnswer").value = code; $("oAnswerBox").hidden = false; NET.status("Waiting for your friend... keep this page open until the match starts.");
       }, function (e) { $("oText").textContent = "Could not make the reply code: " + e.message; });
       return;
@@ -228,7 +230,7 @@
     $("kitSetup").hidden = true; $("online").hidden = false;
     $("oText").textContent = "Preparing your invite...";
     NET.invite({ home: KIT.home, gk: KIT.gk }).then(function (link) {
-      $("oText").textContent = "Your friend opens the link, picks his kit and sends you back a reply code. Keep this page open (a new page needs a new invite).";
+      $("oText").textContent = "Your friend opens the link, picks their kit and sends you back a reply code. Keep this page open (a new page needs a new invite).";
       $("oLink").value = link; $("oLinkBox").hidden = false; $("oReplyBox").hidden = false;
     }, function (e) { $("oText").textContent = "Could not prepare the invite: " + e.message; });
   });
@@ -283,7 +285,7 @@
     $("kitSetup").hidden = true; $("online").hidden = false;
     $("oText").textContent = "Creating your game...";
     NET.hostGame(kits, function (code) {
-      $("oText").textContent = "Tell your friend this code. He opens SoccerVision, picks his kit, chooses \"Join a game\" and types it in. Keep this page open.";
+      $("oText").textContent = "Tell your friend this code. They open SoccerVision, pick their kit, choose \"Join a game\" and type it in. Keep this page open.";
       $("oCode").textContent = code.slice(0, 3) + " " + code.slice(3); $("oCodeBox").hidden = false;
       $("oCodeLink").textContent = "Or send him this link: " + location.origin + location.pathname + "#game=" + code;
       NET.status("Waiting for your friend to join...");
@@ -299,7 +301,8 @@
     $("kitSetup").hidden = true; $("online").hidden = false;
     $("oText").textContent = "Type in the six-digit code your friend gives you.";
     $("oJoinBox").hidden = false; $("oJoinCode").focus();
-    var pre = /#game=(\d{6})/.exec(location.hash); if (pre) { $("oJoinCode").value = pre[1]; }
+    // from an invite link (#game=123456) the code is known: join at once (the field stays there if it fails)
+    var pre = /#game=(\d{6})/.exec(location.hash); if (pre) { $("oJoinCode").value = pre[1]; joinNow(); }
   });
   function joinNow() {
     var code = $("oJoinCode").value.replace(/\D/g, "");
@@ -345,7 +348,7 @@
   function gameFromLink() {
     if (!/#game=\d{6}/.test(location.hash)) return false;
     if (!window.RTCPeerConnection) return false;
-    openKits("online"); $("kitHost").hidden = true; $("kitJoin").focus();
+    openKits("online"); $("kitHost").hidden = true; $("kitJoin").focus({ preventScroll: true }); $("kitSetup").scrollTop = 0;
     return true;
   }
   if (!joinFromLink() && !gameFromLink()) $("asUser").focus();

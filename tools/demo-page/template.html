@@ -1,6 +1,10 @@
+<!doctype html>
+<html lang="en">
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SoccerVision</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="/icon.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800&display=swap">
@@ -24,7 +28,7 @@
     <h2 id="wTitle">How do you want to play?</h2>
     <div class="wopts">
       <button type="button" id="asUser" class="main"><b>Play the computer</b><span>Pick your home, away and keeper kits and your eleven - then play a live match against the computer.</span></button>
-      <button type="button" id="asOnline" class="main"><b>Play a friend online</b><span>Pick your kit, then create a game (you get a six-digit code for your friend) or join one with his code.</span></button>
+      <button type="button" id="asOnline" class="main"><b>Play a friend online</b><span>Pick your kit, then create a game (you get a six-digit code for your friend) or join one with theirs.</span></button>
       <button type="button" id="asDev"><b>Developer</b><span>Everything there is: the staged, random and live matches and every setting.</span></button>
       <a id="toPlatform" class="main platform" href="/platform"><b>Real website platform</b><span>Log in to manage your club: homepage, squad, tactics and your saved matches.</span></a>
     </div>
@@ -37,7 +41,7 @@
     <div class="kits" id="kitBlocks"></div>
     <div class="kit crest" id="crestBox">
       <h3><span id="crestPreview" class="crest-prev" aria-hidden="true"></span>Club crest</h3>
-      <div class="orow"><input id="crestPrompt" maxlength="200" placeholder="Describe your crest: a red falcon on a blue shield" autocomplete="off"><button type="button" id="crestGo">Create</button><button type="button" id="crestClear" hidden>Remove</button></div>
+      <div class="orow"><input id="crestPrompt" maxlength="200" aria-label="Describe your club crest" placeholder="Describe your crest: a red falcon on a blue shield" autocomplete="off"><button type="button" id="crestGo" aria-label="Create the crest">Create</button><button type="button" id="crestClear" hidden>Remove</button></div>
       <small id="crestNote"></small>
     </div>
     <div class="kstr" id="kitStrength"><span class="l">Your team</span><div class="seg" data-str="hstr"><button type="button" data-v="weak">Weak</button><button type="button" data-v="medium">Medium</button><button type="button" data-v="strong">Strong</button></div><span class="l">Opponent</span><div class="seg" data-str="astr"><button type="button" data-v="weak">Weak</button><button type="button" data-v="medium">Medium</button><button type="button" data-v="strong">Strong</button></div></div>
@@ -116,11 +120,11 @@
       <div class="settings-head"><span>Settings<span class="dev">DEV</span></span><button id="settingsClose" type="button" aria-label="Close settings">✕</button></div>
       <div class="srow user-only" id="soundRow"><span class="l">Sound</span><div class="seg"><button type="button" id="sndOff" aria-pressed="true">Off</button><button type="button" id="sndOn" aria-pressed="false">On</button></div></div>
       <div class="srow dev-only"><label for="pace">Match pace</label><div class="colors"><input id="pace" type="range" min="50" max="100" step="5" value="100" style="flex:1"><span id="paceText" style="min-width:3.2em;text-align:right">100%</span></div></div>
-      <h3>Pitch</h3>
+      <h3 class="dev-only">Pitch</h3>
       <div class="srow dev-only"><span class="l">Grass</span><div class="seg" data-set="grass"><button type="button" data-v="along">Stripes along</button><button type="button" data-v="across">Stripes across</button><button type="button" data-v="circles">Circles</button></div></div>
       <div class="srow dev-only"><span class="l">Upkeep</span><div class="seg" data-set="maint"><button type="button" data-v="2">Perfect</button><button type="button" data-v="1">Average</button><button type="button" data-v="0">Neglected</button></div></div>
       <div class="srow dev-only"><label for="netColor">Goal nets</label><div class="colors"><input id="netColor" type="color" value="#ebf0eb"></div></div>
-      <h3>Weather</h3>
+      <h3 class="dev-only">Weather</h3>
       <div class="srow dev-only"><span class="l">Sky</span><div class="seg" data-set="weather"><button type="button" data-v="Sunny">Sunny</button><button type="button" data-v="Cloudy">Cloudy</button><button type="button" data-v="Rain">Rain</button><button type="button" data-v="Snow">Snow</button></div></div>
       <div class="srow dev-only"><span class="l">Snow lines</span><div class="seg" data-set="snowLines"><button type="button" data-v="yellow">Yellow</button><button type="button" data-v="orange">Orange</button><button type="button" data-v="blue">Blue</button></div></div>
       <div class="srow dev-only"><span class="l">Snow cover</span><div class="seg" data-set="snowCover"><button type="button" data-v="cleared">Cleared pitch</button><button type="button" data-v="covered">Covered (white)</button></div></div>
@@ -130,9 +134,10 @@
       <div class="srow dev-only"><span class="l">Home squad</span><div class="seg" data-set="hstr"><button type="button" data-v="weak">Weak</button><button type="button" data-v="medium">Medium</button><button type="button" data-v="strong">Strong</button></div></div>
       <div class="srow dev-only"><span class="l">Away squad</span><div class="seg" data-set="astr"><button type="button" data-v="weak">Weak</button><button type="button" data-v="medium">Medium</button><button type="button" data-v="strong">Strong</button></div></div>
       <div class="srow dev-only"><span class="l">Kick-off</span><div class="seg" data-set="night"><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div></div>
-      <h3>Team colours</h3>
+      <h3>Display</h3>
       <div class="srow"><span class="l">Gestures and emotions</span><div class="seg" data-set="gest"><button type="button" data-v="0">Off</button><button type="button" data-v="1">On</button></div></div>
       <div class="srow"><span class="l">Colour-blind</span><div class="seg" data-set="cb"><button type="button" data-v="0">Off</button><button type="button" data-v="1">On</button></div></div>
+      <h3 class="dev-only">Team colours</h3>
       <div class="srow dev-only"><span class="l"></span><div class="colors"><small>shirt · edge · numbers · boots</small></div></div>
       <div class="srow dev-only"><span class="l" id="homeLabel">Home</span><div class="colors"><input id="homeP" type="color" aria-label="Home shirt colour" title="Shirt"><input id="homeS" type="color" aria-label="Home trim colour" title="Trim"><input id="homeN" type="color" aria-label="Home number colour" title="Numbers"><input id="homeB" type="color" aria-label="Home boots colour" title="Boots"></div></div>
       <div class="srow dev-only"><span class="l" id="homeGkLabel">Home keeper</span><div class="colors"><input id="homeG" type="color" aria-label="Home goalkeeper shirt colour" title="Shirt"><input id="homeGS" type="color" aria-label="Home goalkeeper trim colour" title="Trim"><input id="homeGN" type="color" aria-label="Home goalkeeper number colour" title="Number"></div></div>

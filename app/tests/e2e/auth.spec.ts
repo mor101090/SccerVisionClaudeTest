@@ -35,8 +35,9 @@ test.describe.serial("auth", () => {
     } else {
       await page.getByRole("button", { name: "Log out" }).click();
     }
-    // Signed out: back to the default site, the classic game.
-    await page.waitForURL((url) => url.pathname === "/classic/index.html");
+    // Signed out: the landing page (with Login), not the classic game.
+    await page.waitForURL((url) => url.pathname === "/home");
+    await expect(page.getByRole("link", { name: "Login" })).toBeVisible();
     await page.goto("/play");
     await expect(page.getByRole("link", { name: "Login" })).toBeVisible();
   });

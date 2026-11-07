@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  async rewrites() {
+    // Browsers ask for /favicon.ico on pages without an icon link (and some always do): serve the app icon.
+    return [{ source: "/favicon.ico", destination: "/icon.png" }];
+  },
   async redirects() {
     // The classic game is the default site (Mor's flow lives in tools/demo-page); the Next.js landing page is /home.
     // It uses relative URLs (sounds/...), so it is served at its file path.

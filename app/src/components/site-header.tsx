@@ -11,7 +11,10 @@ async function UserNav() {
   const user = await currentUser();
   if (!user) {
     return (
-      <Link href="/auth/sign-in" className="font-semibold text-link hover:underline">
+      <Link
+        href="/auth/sign-in"
+        className="inline-flex min-h-6 items-center font-semibold text-link hover:underline"
+      >
         Login
       </Link>
     );
@@ -44,7 +47,7 @@ export function SiteHeader() {
     <HeaderBar>
       <nav className="flex flex-1 items-center gap-6">
         <Brand />
-        <Link href="/play" className="hover:underline">
+        <Link href="/play" className="inline-flex min-h-6 items-center hover:underline">
           Play
         </Link>
       </nav>

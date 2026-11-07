@@ -78,7 +78,7 @@ export function Card({
           {link && (
             <Link
               href={link.href}
-              className="inline-flex items-center gap-0.5 text-[13px] font-semibold text-link hover:underline"
+              className="inline-flex min-h-6 items-center gap-0.5 text-[13px] font-semibold text-link hover:underline"
             >
               {link.label}
               <AppIcon name="chevronRight" size={14} />
@@ -104,13 +104,13 @@ export function PageHeader({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <div className="flex min-w-0 flex-1 basis-72 flex-col gap-1">
         {crumb && (
           <nav
             aria-label="Breadcrumb"
             className="flex items-center gap-1 text-xs font-medium text-muted"
           >
-            <Link href="/home" className="hover:text-text">
+            <Link href="/home" className="inline-flex min-h-6 items-center hover:text-text">
               Home
             </Link>
             <AppIcon name="chevronRight" size={12} />

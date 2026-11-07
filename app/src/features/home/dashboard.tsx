@@ -455,7 +455,7 @@ export function Dashboard({ d }: { d: HomeData }) {
   return (
     <>
       <div className="flex animate-sv-enter flex-wrap items-center gap-4">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex min-w-0 flex-1 basis-72 flex-col gap-1">
           <Greeting name={d.manager.username ?? d.manager.name} />
           <p className="text-sm text-muted">{sub}</p>
         </div>

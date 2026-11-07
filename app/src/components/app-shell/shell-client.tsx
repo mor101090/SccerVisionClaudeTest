@@ -697,7 +697,16 @@ function OfflineBanner() {
 }
 
 /** The signed-in app frame: sidebar (icon rail on tablets, a drawer on phones), top bar, page. */
-export function ShellClient({ data, children }: { data: ShellData; children: React.ReactNode }) {
+export function ShellClient({
+  data,
+  skipLink,
+  children,
+}: {
+  data: ShellData;
+  /** Rendered first, before the sidebar (keyboard: skip to the content). */
+  skipLink?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   const path = usePathname();
   const [drawer, setDrawer] = useState(false);
   const collapsed = useSyncExternalStore(subscribeSidebar, readSidebar, () => false);
@@ -718,6 +727,7 @@ export function ShellClient({ data, children }: { data: ShellData; children: Rea
   }
   return (
     <div className="flex min-h-dvh bg-bg text-text">
+      {skipLink}
       <div
         className={`sticky top-0 z-40 hidden h-dvh w-[76px] shrink-0 transition-[width] duration-200 ease-[cubic-bezier(.2,0,0,1)] md:block ${collapsed ? "" : "xl:w-[232px]"}`}
       >
@@ -758,7 +768,9 @@ export function ShellClient({ data, children }: { data: ShellData; children: Rea
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar data={data} onMenu={() => setDrawer(true)} />
         <OfflineBanner />
-        <main className="flex flex-1 flex-col gap-5 p-4 pb-24 md:p-7">{children}</main>
+        <main id="main" className="flex flex-1 flex-col gap-5 p-4 pb-24 md:p-7">
+          {children}
+        </main>
         <MobileTabs path={path} />
       </div>
     </div>

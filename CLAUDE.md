@@ -57,7 +57,8 @@ Engine tests (repo root): `dotnet test sim/` takes **28–45 minutes**. Run a fi
 | Production                               | Production                                    | prod                                          |
 
 Env (`app/src/env.ts`): `DATABASE_URL` (transaction pooler, :6543), `DATABASE_URL_UNPOOLED` (direct, :5432, migrations only),
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (server only: Storage, seeding).
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (server only: Storage, seeding),
+`NEXT_PUBLIC_SUPPORT_EMAIL` (optional: "Contact Us" on the auth screens; unset hides the link).
 
 **PRs are checked, `main` is deployed.** `.github/workflows/pr.yml` runs these checks on every PR, all required by the
 `main` ruleset (`.github/rulesets/main.json`: PR required, no reviews, no force push/deletion):

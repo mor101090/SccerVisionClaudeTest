@@ -27,7 +27,7 @@
 .sb-lcup text { font: 700 23px/1 "Barlow Condensed", "Arial Narrow", sans-serif; text-anchor: middle; dominant-baseline: central; }
 .sb.lcup .sb-sub { background: #3a4058; }
 .topctl { position: absolute; right: 2.2%; top: 2.4%; display: flex; align-items: center; gap: .5em; font-size: clamp(18px, 2.6cqi, 32px); }
-.topctl button.icon { background: none; border: 0; padding: .1em; color: #fff; line-height: 0; border-radius: 6px; }
+.topctl button.icon { background: none; border: 0; padding: .1em; color: #fff; line-height: 0; border-radius: 6px; min-width: 24px; min-height: 24px; display: inline-flex; align-items: center; justify-content: center; } /* 24px targets */
 .topctl button.icon:hover { background: rgba(0,0,0,.15); }
 .topctl svg { height: 1.1em; width: 1.1em; display: block; filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
 .topctl #play svg { width: 2.2em; }

@@ -12,6 +12,8 @@ type Props = Omit<React.InputHTMLAttributes<HTMLInputElement>, "className"> & {
   error?: React.ReactNode;
   /** Adds the eye toggle for password inputs. */
   revealable?: boolean;
+  /** The error is shown but not announced: a banner above the form already announces the same thing. */
+  quietError?: boolean;
   children?: React.ReactNode;
 };
 
@@ -24,6 +26,7 @@ export function TextField({
   helper,
   error,
   revealable,
+  quietError,
   disabled,
   type,
   id,
@@ -63,7 +66,7 @@ export function TextField({
             onClick={() => setShown((s) => !s)}
             aria-label={shown ? "Hide password" : "Show password"}
             aria-pressed={shown}
-            className="-mr-1 rounded p-1 text-muted hover:text-field-ink focus-visible:outline-2 focus-visible:outline-link"
+            className="-mr-3.5 flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-field-ink focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-link"
           >
             <EyeIcon />
           </button>
@@ -73,7 +76,7 @@ export function TextField({
       {note && (
         <p
           id={noteId}
-          role={error ? "alert" : undefined}
+          role={error && !quietError ? "alert" : undefined}
           className={`text-xs leading-[1.45] ${error ? "text-foul" : "text-muted"}`}
         >
           {note}

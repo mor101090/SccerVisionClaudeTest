@@ -232,8 +232,16 @@ export function MatchViewer({
 
       <Scoreboard hud={hud} />
 
-      <div ref={wrap} className="w-full overflow-hidden rounded bg-green-900">
+      <div ref={wrap} className="relative w-full overflow-hidden rounded bg-green-900">
         <canvas ref={canvas} className="block w-full" aria-label="Match pitch" />
+        {/* Before the first match the pitch is an empty green box: say what to do. */}
+        {(status === "loading" || status === "ready") && (
+          <p className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm font-medium text-white/85">
+            {status === "loading"
+              ? "Loading the match engine…"
+              : "Pick a match above: the engine plays it here."}
+          </p>
+        )}
       </div>
 
       <div className="text-sm text-zinc-400" aria-live="polite">

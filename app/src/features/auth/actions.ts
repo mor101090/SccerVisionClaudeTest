@@ -43,6 +43,7 @@ import { sessionIdFromAccessToken } from "./password-session";
 import {
   fieldErrors,
   finishSchema,
+  HOME_PATH,
   forgotSchema,
   resetSchema,
   safeRedirect,
@@ -503,7 +504,8 @@ export async function signOutAction(): Promise<void> {
   if (sessionId) await forgetSession(sessionId, data?.claims);
   revalidatePath("/", "layout");
   await supabase.auth.signOut();
-  redirect("/");
+  // The site's landing page (/home shows it to visitors), not "/": that opens the classic game.
+  redirect(HOME_PATH);
 }
 
 /**

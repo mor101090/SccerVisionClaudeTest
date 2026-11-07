@@ -8,7 +8,7 @@ const secondary =
 /** The public landing for visitors who are not signed in (signed-in managers get the dashboard). */
 export function Landing() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
       <h1>
         <BrandLogo className="h-24 sm:h-32" priority />
       </h1>
@@ -16,10 +16,14 @@ export function Landing() {
         Football management with a deterministic match engine running in your browser.
       </p>
       <div className="flex flex-wrap justify-center gap-3">
+        {/* The one call to action that keeps what you build: an account and a club. */}
         <Link
-          href="/play"
+          href="/auth/sign-up"
           className="rounded-lg bg-button px-5 py-2.5 font-semibold text-button-text hover:bg-border"
         >
+          Create your club
+        </Link>
+        <Link href="/play" className={secondary}>
           Play a match
         </Link>
         <Link href="/lobby" className={secondary}>
@@ -30,6 +34,12 @@ export function Landing() {
           Classic game
         </a>
       </div>
-    </main>
+      <p className="text-sm text-muted">
+        Have a club?{" "}
+        <Link href="/auth/sign-in" className="font-semibold text-link hover:underline">
+          Log in
+        </Link>
+      </p>
+    </div>
   );
 }

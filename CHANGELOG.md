@@ -2,6 +2,19 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `fix/qa-audit`
+
+**Fixes from the QA and UX audit** (two merged reviews: `docs/qa/2026-11-06-qa-ux-audit.md`, with a fix-status table).
+- **Classic page (the default site)**: doctype, `lang`, viewport and icons - it rendered in quirks mode as a shrunken 980 px desktop page on phones; its
+  phone CSS now applies. "Start match" waits visibly for the engine (a press before it was ready was dropped). The kits screen opens at the top.
+  The `hidden` attribute always wins (CSS overrode it: the second set of mode buttons and "Opponent strength" showed online). Settings: no
+  empty sections, Escape closes. Manager tabs: fade on the clipped edge, arrow keys. An invite link joins at once. Neutral copy for the friend.
+- **App**: unsaved Tactics ask before you leave; Tactics tabs are a real tab widget; page headers no longer squeeze the title on phones; visitor
+  pages have `<main>` and every page a skip link; auth forms focus the first invalid field and announce a wrong password once; 44 px
+  show-password button; 24 px link targets. "Contact Us" mails `NEXT_PUBLIC_SUPPORT_EMAIL` (hidden until set; it pointed at a private repo).
+  Logout lands on `/home`. The landing leads with "Create your club". `/favicon.ico`, `robots.txt`, `sitemap.xml`.
+- **Tests**: `tests/e2e/qa-regressions.spec.ts` (11). `yarn check` 113 / 113; e2e 14 / 16 + 11 / 11 (the 2 failures are fixed by PR #16).
+
 ## `chore/phase3-cleanup`
 
 **Phase 3: cleanup and debugging, no gameplay change.** Full record (fixes, checks, remaining debt): `docs/phase-3-cleanup.md`.
