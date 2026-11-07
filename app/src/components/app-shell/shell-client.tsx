@@ -580,7 +580,10 @@ function TopBar({ data, onMenu }: { data: ShellData; onMenu: () => void }) {
             </div>
             {(
               [
-                ["home", "Club profile", "/squad"],
+                ["user", "My profile", "/profile"],
+                ["home", "Club settings", "/club/settings"],
+                ["gift", "Invite a friend", "/invite"],
+                ["heart", "Support the game", "/support"],
                 ["settings", "Settings", "/settings"],
                 ["rules", "Help & rules", "/rules"],
               ] as [IconName, string, string][]

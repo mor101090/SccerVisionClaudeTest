@@ -37,6 +37,12 @@ const PROTECTED = [
   "/notifications",
   "/messages",
   "/search",
+  "/profile",
+  "/managers",
+  "/clubs",
+  "/club",
+  "/invite",
+  "/support",
 ];
 
 const isProtected = (path: string) => PROTECTED.some((p) => path === p || path.startsWith(`${p}/`));

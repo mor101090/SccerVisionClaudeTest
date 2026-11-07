@@ -115,3 +115,23 @@ export async function saveManager(
     throw err;
   }
 }
+
+export type ProfileEdit = {
+  displayName: string;
+  username: string;
+  nationality: string;
+  bio: string | null;
+  favouriteClub: string | null;
+  showProfile: boolean;
+  showHistory: boolean;
+};
+
+/** Edit profile: everything other managers see. The username stays unique ignoring case. */
+export async function updateProfile(userId: string, edit: ProfileEdit): Promise<void> {
+  try {
+    await db().update(profiles).set(edit).where(eq(profiles.userId, userId));
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new UsernameTakenError();
+    throw err;
+  }
+}

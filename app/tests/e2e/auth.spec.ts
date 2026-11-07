@@ -138,7 +138,7 @@ test.describe.serial("auth", () => {
     const menu = page.getByRole("button", { name: "Account menu" });
     if (await menu.isVisible()) {
       await menu.click();
-      await page.getByRole("link", { name: "Settings" }).click();
+      await page.getByRole("link", { name: "Settings", exact: true }).click();
     } else {
       await page.goto("/settings");
     }

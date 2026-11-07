@@ -2,6 +2,30 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feat/profile-clubs-leagues`
+
+**Profile, clubs and leagues from Figma** (section "Profile, clubs & leagues – screens").
+
+- **Profile**: your profile (record, recent matches, achievements, support and invite cards), edit profile (name,
+  username, country, favourite club, about, privacy switches), achievements (12, all computed from saved matches),
+  another manager's profile (head-to-head, private profiles respected).
+- **Invite a friend**: link to copy and share, the people you invited and whether they played; `/i/<username>` landing
+  that remembers the inviter for Create your team.
+- **Support the game**: one-time donations through Stripe Checkout (`STRIPE_SECRET_KEY`), Supporter badge; no donor
+  names or amounts are shown to anyone else.
+- **Club settings** (name, short name, city, ground, crest description, kits link, delete with typed confirmation),
+  **another club** (overview + squad: positions, ages, overall only), **leagues** (browse, follow, a league's table,
+  fixtures and results).
+- **404 and error pages**; the account menu gains My profile, Club settings, Invite a friend, Support the game;
+  search results link to clubs and managers.
+- DB (`drizzle/0008`, additive): profile bio / favourite club / visibility, club city / ground, `donations`,
+  `league_follows`.
+- Tests: `features/profile/achievements.test.ts` (5), `tests/e2e/profile.spec.ts` (5).
+- **Server hardening** (`docs/server.md`): an index for every foreign key (`drizzle/0009`, 14 indexes), the
+  `rls_auto_enable()` event-trigger function no longer callable through the REST API (Supabase advisor warnings
+  gone), profile pages read only the records arrays of saved matches, request-level dedupe of manager / club lookups,
+  CSP `form-action` allows the Stripe Checkout redirect.
+
 ## `feat/match-day`
 
 **Match day screens from Figma** (section "Match day & more – screens").

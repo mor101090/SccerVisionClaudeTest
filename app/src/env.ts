@@ -19,6 +19,8 @@ const serverSchema = z.object({
   // Supabase secret key (sb_secret_…): server-only admin calls (Storage, e2e seeding). Never sent to browsers.
   SUPABASE_SECRET_KEY: z.string().min(1).optional(),
   /** Soccer Vision team generator (squads for Create your team). */
+  /** Stripe secret key for donations (/support). Unset: the donate button explains donations aren't open yet. */
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
   SQUAD_API_URL: z.url().default("https://soccer-api.dev-spirit.com"),
 });
 

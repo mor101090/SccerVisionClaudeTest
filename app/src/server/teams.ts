@@ -293,3 +293,32 @@ export async function engineTeamFor(
   });
   return { name: team.name, text, plan: team.plan };
 }
+
+// ------------------------------------------------------------------ club settings
+
+export type ClubDetails = {
+  name: string;
+  shortName: string;
+  city: string | null;
+  stadiumName: string | null;
+  crestPrompt: string | null;
+};
+
+/** Club settings: name, short name, home city, ground and crest. Squad and kits are edited in their own pages. */
+export async function updateClubDetails(userId: string, d: ClubDetails): Promise<void> {
+  const crest: Crest = { kind: "shield", ...(d.crestPrompt ? { prompt: d.crestPrompt } : {}) };
+  const res = await db()
+    .update(teams)
+    .set({ name: d.name, shortName: d.shortName, city: d.city, stadiumName: d.stadiumName, crest })
+    .where(eq(teams.ownerId, userId))
+    .returning({ id: teams.id });
+  if (!res.length) throw new TeamError("You have no club yet.");
+}
+
+/**
+ * Deletes the manager's club: players, tactics, standings and club rows go with it (foreign keys cascade). Saved
+ * matches stay in My Games with the club unlinked; the profile stays.
+ */
+export async function deleteClub(userId: string): Promise<void> {
+  await db().delete(teams).where(eq(teams.ownerId, userId));
+}

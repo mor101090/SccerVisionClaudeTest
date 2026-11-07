@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -47,12 +48,17 @@ async function Results({ searchParams }: { searchParams: Promise<{ q?: string }>
           <Card title={`Clubs (${found.clubs.length})`}>
             <ul className="flex flex-col gap-2">
               {found.clubs.map((c) => (
-                <li key={c.id} className="flex items-center gap-3 text-sm">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-info text-[11px] font-bold text-white">
-                    {initials(c.name)}
-                  </span>
-                  <span className="font-semibold text-text">{c.name}</span>
-                  <span className="text-muted">{c.shortName}</span>
+                <li key={c.id}>
+                  <Link
+                    href={`/clubs/${c.id}`}
+                    className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-1 text-sm hover:bg-panel"
+                  >
+                    <span className="flex size-8 items-center justify-center rounded-full bg-info text-[11px] font-bold text-white">
+                      {initials(c.name)}
+                    </span>
+                    <span className="font-semibold text-text">{c.name}</span>
+                    <span className="text-muted">{c.shortName}</span>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -60,11 +66,16 @@ async function Results({ searchParams }: { searchParams: Promise<{ q?: string }>
           <Card title={`Managers (${found.managers.length})`}>
             <ul className="flex flex-col gap-2">
               {found.managers.map((m) => (
-                <li key={m} className="flex items-center gap-3 text-sm">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-link text-[11px] font-bold text-white">
-                    {initials(m)}
-                  </span>
-                  <span className="font-semibold text-text">{m}</span>
+                <li key={m}>
+                  <Link
+                    href={`/managers/${m}`}
+                    className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-1 text-sm hover:bg-panel"
+                  >
+                    <span className="flex size-8 items-center justify-center rounded-full bg-link text-[11px] font-bold text-white">
+                      {initials(m)}
+                    </span>
+                    <span className="font-semibold text-text">{m}</span>
+                  </Link>
                 </li>
               ))}
             </ul>

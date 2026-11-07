@@ -42,7 +42,9 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           {
             key: "Content-Security-Policy",
-            value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+            // Stripe Checkout: the donation form's (no-JS) POST is redirected there.
+            value:
+              "frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com",
           },
           {
             key: "Permissions-Policy",

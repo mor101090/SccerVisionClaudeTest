@@ -15,6 +15,7 @@ and the manager's homepage (dashboard) once signed in.
 | `tools/demo-page/`                                   | Classic single-page game. Built into `app/public/classic/` by `yarn classic:build`.                                 |
 | `web/`                                               | Legacy React/Vite shell (Unity WebGL + replay viewer). Not deployed; replay code was copied into `app/src/engine/`. |
 | `data/`                                              | Static teams and names JSON.                                                                                        |
+| `docs/server.md`                                     | Server layers, routes, DB, caching, performance and security rules.                                                 |
 | `docs/ARCHITECTURE.md`                               | Engine/bridge architecture. Read before touching engine contracts.                                                  |
 
 ## Stack (app/)
@@ -58,7 +59,8 @@ Engine tests (repo root): `dotnet test sim/` takes **28–45 minutes**. Run a fi
 
 Env (`app/src/env.ts`): `DATABASE_URL` (transaction pooler, :6543), `DATABASE_URL_UNPOOLED` (direct, :5432, migrations only),
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (server only: Storage, seeding),
-`NEXT_PUBLIC_SUPPORT_EMAIL` (optional: "Contact Us" on the auth screens; unset hides the link).
+`NEXT_PUBLIC_SUPPORT_EMAIL` (optional: "Contact Us" on the auth screens; unset hides the link),
+`STRIPE_SECRET_KEY` (optional: donations on /support through Stripe Checkout; unset shows "Donations aren't open yet").
 
 **PRs are checked, `main` is deployed.** `.github/workflows/pr.yml` runs these checks on every PR, all required by the
 `main` ruleset (`.github/rulesets/main.json`: PR required, no reviews, no force push/deletion):
@@ -155,6 +157,17 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   SubstitutionRequest events. All read-outs (stats rows, ratings, scorers, momentum) are in `derive.ts`; no invented
   numbers. `/matches/[id]` uses the same layout (`replay-view.tsx`). The accent colour is blue (`--color-accent` =
   `--mor-blue`); text on an accent fill uses `text-on-accent`, `accent-ink` stays the dark ink for light fills.
+  **Profile, clubs & leagues** (Figma section "Profile, clubs & leagues – screens"; `features/profile/`, `server/managers.ts`,
+  `server/profile-page.ts`, `server/leagues.ts`, `server/donations.ts`): `/profile` (+ `/edit`, `/achievements`),
+  `/managers/[username]`, `/clubs/[id]` (?tab=squad), `/club/settings` (name, short name, city, ground, crest text;
+  delete club after typing its name), `/leagues`, `/leagues/[id]`, `/invite`, `/i/[username]` (public), `/support`,
+  `/support/thanks`. Record and achievements are computed from saved matches only (`features/profile/achievements.ts`,
+  tested); the manager is the home side unless only the away name is their club's. Other managers see positions, ages
+  and overall ratings, never attributes or fitness; `profiles.show_profile` / `show_history` hide the profile / results.
+  Invites reuse `profiles.invited_by`: `/api/invite?u=` stores the inviter in the httpOnly `sv_invite` cookie (30 days)
+  and Create your team step 1 prefills it. Donations: one-time Stripe Checkout (REST, no SDK); `/support/thanks` reads
+  the session back (paid + `client_reference_id` = this user) and inserts it once (`donations.stripe_session_id`
+  unique). Donor names and totals are never shown publicly.
   The forum is read-only: only `profiles.is_admin` users may post (checked in `features/forum/actions.ts`); admins are
   set in Supabase (`update profiles set is_admin = true where username = '…'`), never by the app.
 
@@ -162,7 +175,8 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
 
 ```
 app/              (app)/: home squad tactics games training coaches transfer rules forum league rankings finances
-                  stadium notifications messages search play matches lobby terms settings · platform/ (classic → app) · team/new/: manager club kits squad · auth/: sign-in sign-up verify-email forgot-password[/sent]
+                  stadium notifications messages search play matches lobby terms settings profile managers clubs club
+                  leagues invite i support · platform/ (classic → app) · team/new/: manager club kits squad · auth/: sign-in sign-up verify-email forgot-password[/sent]
                   reset-password finish link-account callback error · api/*
 components/       shared UI: brand/header, ui/ (button, text-field, checkbox, alert, icons)
 features/<domain> auth, matches, lobby (client UI, zod schemas, server actions)

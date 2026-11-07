@@ -68,9 +68,20 @@ export const profiles = pgTable(
     onboardingSeenAt: timestamp("onboarding_seen_at", { withTimezone: true }),
     /** Soccer Vision staff: may post in the forum (read-only for everyone else). Set in Supabase, never by the app. */
     isAdmin: boolean("is_admin").notNull().default(false),
+    /** "About you" on the profile, up to 120 characters. */
+    bio: text("bio"),
+    /** The real club the manager supports (free text, optional). */
+    favouriteClub: text("favourite_club"),
+    /** Other managers may open this profile (/managers/<username>). Off: only the club page shows. */
+    showProfile: boolean("show_profile").notNull().default(true),
+    /** Other managers see this manager's saved match results. */
+    showHistory: boolean("show_history").notNull().default(true),
     ...timestamps,
   },
-  (t) => [uniqueIndex("profiles_username_lower_uq").on(sql`lower(${t.username})`)],
+  (t) => [
+    uniqueIndex("profiles_username_lower_uq").on(sql`lower(${t.username})`),
+    index("profiles_invited_by_idx").on(t.invitedBy),
+  ],
 ).enableRLS();
 
 /**
@@ -151,6 +162,9 @@ export const teams = pgTable(
     /** Generator nationalities the players are named from (american, israel, spanish). */
     namePools: jsonb("name_pools").$type<string[]>(),
     formation: text("formation").notNull().default("4-4-2"),
+    /** Home city and ground name, edited in Club settings (optional). */
+    city: text("city"),
+    stadiumName: text("stadium_name"),
     /** Seed of the current squad at the team generator (same seed + options = same squad). */
     squadSeed: integer("squad_seed"),
     /** New squads allowed before the first match. */
@@ -226,7 +240,10 @@ export const leagueMembers = pgTable(
       .references(() => teams.id, { onDelete: "cascade" }),
     joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.leagueId, t.teamId] })],
+  (t) => [
+    primaryKey({ columns: [t.leagueId, t.teamId] }),
+    index("league_members_team_idx").on(t.teamId),
+  ],
 ).enableRLS();
 
 // ---------------------------------------------------------------- matches
@@ -277,6 +294,8 @@ export const matches = pgTable(
   (t) => [
     index("matches_user_played_idx").on(t.userId, t.playedAt.desc()),
     index("matches_league_idx").on(t.leagueId),
+    index("matches_home_team_idx").on(t.homeTeamId),
+    index("matches_away_team_idx").on(t.awayTeamId),
   ],
 ).enableRLS();
 
@@ -319,6 +338,9 @@ export const lobbies = pgTable(
     uniqueIndex("lobbies_active_code_uq")
       .on(t.code)
       .where(sql`${t.status} in ('open', 'ready', 'playing')`),
+    index("lobbies_host_idx").on(t.hostId),
+    index("lobbies_guest_idx").on(t.guestId),
+    index("lobbies_match_idx").on(t.matchId),
   ],
 ).enableRLS();
 
@@ -348,7 +370,10 @@ export const lobbyInputs = pgTable(
     frame: integer("frame"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("lobby_inputs_seq_uq").on(t.lobbyId, t.seq)],
+  (t) => [
+    uniqueIndex("lobby_inputs_seq_uq").on(t.lobbyId, t.seq),
+    index("lobby_inputs_user_idx").on(t.userId),
+  ],
 ).enableRLS();
 
 // ---------------------------------------------------------------- club world (homepage data)
@@ -407,6 +432,8 @@ export const fixtures = pgTable(
     index("fixtures_home_kickoff_idx").on(t.homeTeamId, t.kickoffAt),
     index("fixtures_away_kickoff_idx").on(t.awayTeamId, t.kickoffAt),
     index("fixtures_league_round_idx").on(t.leagueId, t.round),
+    index("fixtures_season_idx").on(t.seasonId),
+    index("fixtures_match_idx").on(t.matchId),
   ],
 ).enableRLS();
 
@@ -541,6 +568,7 @@ export const transferOffers = pgTable(
   (t) => [
     index("transfer_offers_seller_idx").on(t.sellerTeamId, t.status),
     index("transfer_offers_bidder_idx").on(t.bidderTeamId, t.status),
+    index("transfer_offers_player_idx").on(t.playerId),
   ],
 ).enableRLS();
 
@@ -587,7 +615,10 @@ export const messages = pgTable(
     readAt: timestamp("read_at", { withTimezone: true }),
     createdAt: timestamps.createdAt,
   },
-  (t) => [index("messages_to_created_idx").on(t.toUserId, t.createdAt.desc())],
+  (t) => [
+    index("messages_to_created_idx").on(t.toUserId, t.createdAt.desc()),
+    index("messages_from_idx").on(t.fromUserId),
+  ],
 ).enableRLS();
 
 export const staffRole = pgEnum("staff_role", [
@@ -654,7 +685,10 @@ export const forumThreads = pgTable(
     replies: integer("replies").notNull().default(0),
     ...timestamps,
   },
-  (t) => [index("forum_threads_last_post_idx").on(t.lastPostAt.desc())],
+  (t) => [
+    index("forum_threads_last_post_idx").on(t.lastPostAt.desc()),
+    index("forum_threads_author_idx").on(t.authorId),
+  ],
 ).enableRLS();
 
 export const forumPosts = pgTable(
@@ -670,5 +704,52 @@ export const forumPosts = pgTable(
     body: text("body").notNull(),
     ...timestamps,
   },
-  (t) => [index("forum_posts_thread_idx").on(t.threadId, t.createdAt)],
+  (t) => [
+    index("forum_posts_thread_idx").on(t.threadId, t.createdAt),
+    index("forum_posts_author_idx").on(t.authorId),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------- support (donations)
+
+/**
+ * A donation paid through Stripe Checkout, recorded once when the manager returns to /support/thanks (the Checkout
+ * session is read back from Stripe; the session id makes the write idempotent). Amount in cents.
+ */
+export const donations = pgTable(
+  "donations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    stripeSessionId: text("stripe_session_id").notNull(),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull(),
+    /** Show the Supporter badge on the profile. */
+    showBadge: boolean("show_badge").notNull().default(true),
+    createdAt: timestamps.createdAt,
+  },
+  (t) => [
+    uniqueIndex("donations_session_uq").on(t.stripeSessionId),
+    index("donations_user_idx").on(t.userId),
+  ],
+).enableRLS();
+
+/** Leagues a manager follows (Leagues → Follow). */
+export const leagueFollows = pgTable(
+  "league_follows",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    leagueId: uuid("league_id")
+      .notNull()
+      .references(() => leagues.id, { onDelete: "cascade" }),
+    createdAt: timestamps.createdAt,
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.leagueId] }),
+    index("league_follows_league_idx").on(t.leagueId),
+  ],
 ).enableRLS();
