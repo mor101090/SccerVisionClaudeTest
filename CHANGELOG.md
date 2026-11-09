@@ -2,6 +2,13 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/ball-parameters` (stage 12)
+
+**Ball physics, stage 12: every parameter classified.** **The match does not change.**
+- `docs/BALL_PARAMETERS.md`: every parameter of the ball's physics (the ball, the air, flight, the ground, the foot, collisions, deformation, the integrator) with its value, its class (A standardised, B measured, C derived, D approximation, E unknown) and its source. 62 rows: 5 A, 11 B, 11 C, 28 D, 7 E.
+- The E list, what needs calibration, in order of how much it matters: the ground's restitution slope, the spin of a laces drive, ball-post and ball-body friction, the kick spin error, the inertia factor (a D with no measurement), the knuckleball, pressure in the bounce.
+- **Tests**: `BallParameterTests` (8): every field of the six model classes has a row; every row has a class; the summary counts them.
+
 ## `feature/ball-test-bench` (stage 11)
 
 **Ball physics, stage 11: the test bench.** Details: `docs/BALL_PHYSICS.md`; the table: `docs/BALL_TEST_BENCH.md`. **The match does not change.**
