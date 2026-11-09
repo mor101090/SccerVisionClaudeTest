@@ -148,6 +148,9 @@ namespace SoccerVision.Simulation
         private string _lastPassKindForShot(TeamAgent team) => _lastTeamPassKind[team.Index] ?? "Pass";
         private readonly string[] _lastTeamPassKind = new string[2];
 
+        /// <summary>How much wider a fully contested header goes (a defender at 0.5 m or closer), as a share of its aim error (class D).</summary>
+        public static float HeaderContestError = 0.6f;
+
         private void ExecuteShot(PlayerAgent p, bool header, bool penalty, float xg, bool volley = false, bool bicycle = false)
         {
             // (the chance the player weighed was scaled for his decision, XgScale; the shot's real worth - the statistic, the momentum, the commentary - is the unscaled one)
@@ -374,6 +377,16 @@ namespace SoccerVision.Simulation
             // (the techniques for the weaker side already price in which foot is used)
             if (tech == ShotTechnique.Power || tech == ShotTechnique.PlacedNear || tech == ShotTechnique.PlacedFar) sigmaA *= WeakFootFactor(p, dir);
             if (volley) sigmaA *= 1.35f;
+            if (header)
+            {
+                // A header with a defender jumping with him (within 1.5 m) is not placed, it is got to: the closer the challenge, the wider it goes
+                // (class D). Without it a contested header was aimed as a free one is, and headed goals were a fifth of all goals and more.
+                float nd = 99f;
+                foreach (var o in team.Opponent.Players) if (!o.SentOff && !o.IsGoalkeeper) nd = MathF.Min(nd, Vec2.Distance(o.Pos, from));
+                float contest = MathUtil.Clamp01((1.5f - nd) / 1.0f);
+                sigmaA *= 1f + HeaderContestError * contest;
+                if (CollectDiagnostics && contest > 0.5f) Count("shot.header.contested");
+            }
             sigmaA *= accuracy;
             if (keeper != null && !penalty && Vec2.Distance(keeper.Pos, from) < 14f) sigmaA *= 1f + 0.5f * (1f - composure); // (cool in front of the keeper)
             if (openGoal) sigmaA *= 0.2f;
