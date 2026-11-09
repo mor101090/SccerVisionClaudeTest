@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "Football management with a deterministic match engine.",
 };
 
-/** Root shell only. Each route group brings its own header: (site) and auth. */
+/** Root shell only. Each route group brings its own header: (app) (sidebar + top bar, or the site header for visitors), auth and team. */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>

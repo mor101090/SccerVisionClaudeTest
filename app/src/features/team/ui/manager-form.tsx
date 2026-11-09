@@ -14,8 +14,11 @@ export function ManagerForm({
   username,
   nationality,
   countries,
+  invitedBy,
 }: {
   username: string;
+  /** From an invite link (/i/<username>), if the manager opened one. */
+  invitedBy?: string;
   nationality: string | null;
   /** From flagcdn.com, loaded on the server. */
   countries: Country[];
@@ -47,8 +50,8 @@ export function ManagerForm({
         label="User that invited you (optional)"
         name="invitedBy"
         placeholder="Their username"
-        defaultValue={state?.values?.invitedBy}
-        helper="You both get a bonus scout report."
+        defaultValue={state?.values?.invitedBy ?? invitedBy}
+        helper="They earn the Recruiter badge once you play your first match."
         error={f.invitedBy}
       />
       <Button type="submit" disabled={pending}>

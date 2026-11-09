@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    // Keep pages the manager just visited for 30s, so going back and forth between tabs is instant. Server Actions
+    // that change data revalidate the affected paths, which drops these copies.
+    staleTimes: { dynamic: 30 },
+  },
   // Country flags on the manager step (features/team/countries.ts).
   images: { remotePatterns: [new URL("https://flagcdn.com/**")] },
   turbopack: {
@@ -12,6 +17,10 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  async rewrites() {
+    // Browsers ask for /favicon.ico on pages without an icon link (and some always do): serve the app icon.
+    return [{ source: "/favicon.ico", destination: "/icon.png" }];
   },
   async redirects() {
     // The classic game is the default site (Mor's flow lives in tools/demo-page); the Next.js landing page is /home.
@@ -33,7 +42,9 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           {
             key: "Content-Security-Policy",
-            value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+            // Stripe Checkout: the donation form's (no-JS) POST is redirected there.
+            value:
+              "frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com",
           },
           {
             key: "Permissions-Policy",

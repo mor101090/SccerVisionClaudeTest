@@ -3,7 +3,9 @@ import { Suspense } from "react";
 
 import { Brand, HeaderBar } from "@/components/brand";
 import { signOutAction } from "@/features/auth/actions";
+import { PasskeyOffer } from "@/features/auth/passkey-offer";
 import { initialsOf } from "@/features/team/ui/pieces";
+import { ManagerSkeleton } from "@/features/team/ui/team-skeleton";
 import { currentUser } from "@/server/auth";
 
 import heroTeam from "../../../public/auth/hero-team.jpg";
@@ -14,7 +16,7 @@ async function Manager() {
   return (
     <div className="flex items-center gap-4">
       <span
-        className="flex size-8 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-ink"
+        className="flex size-8 items-center justify-center rounded-full bg-accent text-xs font-bold text-on-accent"
         aria-hidden
       >
         {initialsOf(user.name)}
@@ -38,7 +40,7 @@ export default function TeamLayout({ children }: { children: React.ReactNode }) 
       <HeaderBar>
         <Brand />
         <span className="flex-1" />
-        <Suspense fallback={null}>
+        <Suspense fallback={<ManagerSkeleton />}>
           <Manager />
         </Suspense>
       </HeaderBar>
@@ -60,6 +62,7 @@ export default function TeamLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
       </div>
+      <PasskeyOffer />
     </>
   );
 }

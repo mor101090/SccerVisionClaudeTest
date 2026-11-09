@@ -3,6 +3,8 @@ import "server-only";
 import { randomInt } from "node:crypto";
 
 import { and, asc, eq, gt, or, sql } from "drizzle-orm";
+import { cacheLife } from "next/cache";
+import { cache } from "react";
 
 import { engineAttributeMap, positionLabel, toEngineTeam } from "@/features/team/engine-team";
 import type { GeneratorPlayer, NamePool } from "@/features/team/generator";
@@ -19,7 +21,6 @@ import { generateSquad } from "./squad-api";
 const { teams, players, matches } = schema;
 
 export type TeamRow = typeof teams.$inferSelect;
-export type PlayerRow = typeof players.$inferSelect;
 export type SquadPlayer = {
   id: string;
   starterSlot: number | null;
@@ -30,11 +31,15 @@ export type SquadPlayer = {
 export class TeamError extends Error {}
 
 export async function getTeam(userId: string): Promise<TeamRow | null> {
+  "use cache: private";
+  cacheLife("minutes");
   const [t] = await db().select().from(teams).where(eq(teams.ownerId, userId));
   return t ?? null;
 }
 
 export async function getSquad(teamId: string): Promise<SquadPlayer[]> {
+  "use cache: private";
+  cacheLife("minutes");
   const rows = await db()
     .select()
     .from(players)
@@ -47,6 +52,9 @@ export async function getSquad(teamId: string): Promise<SquadPlayer[]> {
     p: withStars(generatorPlayerSchema.parse(r.profile)),
   }));
 }
+
+/** getTeam / getSquad once per request, shared by the layout and the page. Renders only (not after a write). */
+export const teamForRequest = cache(getTeam);
 
 /** The furthest step this manager may open: manager → club → kits → squad. */
 export type Step = "manager" | "club" | "kits" | "squad";
@@ -264,7 +272,7 @@ export async function finishTeam(userId: string): Promise<void> {
 export async function engineTeamFor(
   team: TeamRow | null,
   manager: string,
-): Promise<{ name: string; text: string } | null> {
+): Promise<{ name: string; text: string; plan: string | null } | null> {
   if (!team || team.status !== "ready" || !team.kits) return null;
   const squad = await getSquad(team.id);
   const starters = squad
@@ -283,5 +291,34 @@ export async function engineTeamFor(
     starters: starters.map((s) => s.p),
     bench: bench.slice(0, 9).map((s) => s.p),
   });
-  return { name: team.name, text };
+  return { name: team.name, text, plan: team.plan };
+}
+
+// ------------------------------------------------------------------ club settings
+
+export type ClubDetails = {
+  name: string;
+  shortName: string;
+  city: string | null;
+  stadiumName: string | null;
+  crestPrompt: string | null;
+};
+
+/** Club settings: name, short name, home city, ground and crest. Squad and kits are edited in their own pages. */
+export async function updateClubDetails(userId: string, d: ClubDetails): Promise<void> {
+  const crest: Crest = { kind: "shield", ...(d.crestPrompt ? { prompt: d.crestPrompt } : {}) };
+  const res = await db()
+    .update(teams)
+    .set({ name: d.name, shortName: d.shortName, city: d.city, stadiumName: d.stadiumName, crest })
+    .where(eq(teams.ownerId, userId))
+    .returning({ id: teams.id });
+  if (!res.length) throw new TeamError("You have no club yet.");
+}
+
+/**
+ * Deletes the manager's club: players, tactics, standings and club rows go with it (foreign keys cascade). Saved
+ * matches stay in My Games with the club unlinked; the profile stays.
+ */
+export async function deleteClub(userId: string): Promise<void> {
+  await db().delete(teams).where(eq(teams.ownerId, userId));
 }

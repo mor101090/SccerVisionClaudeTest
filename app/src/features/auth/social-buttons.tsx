@@ -4,9 +4,13 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 
+import { BrandMark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { SpinnerIcon } from "@/components/ui/icons";
+import { clientEnv } from "@/env";
 
+import { SocialButtonsSkeleton } from "./auth-skeleton";
+import { startGoogle } from "./google-id";
 import { safeRedirect } from "./policy";
 import { PROVIDER_LABEL, SOCIAL_PROVIDERS, type SocialProvider } from "./providers";
 import { supabaseBrowser } from "./supabase-client";
@@ -56,9 +60,7 @@ function ConnectingDialog({
             unoptimized
           />
           <SpinnerIcon className="animate-spin motion-reduce:animate-none" />
-          <span className="flex size-9 items-center justify-center rounded-lg bg-accent text-sm leading-none font-extrabold text-bg">
-            SV
-          </span>
+          <BrandMark size={36} />
         </div>
         <h2 id="connecting-title" className="text-lg leading-[1.45] font-bold text-text">
           Connecting to {label}...
@@ -84,6 +86,12 @@ function SocialButtonsInner() {
     cancelled.current = false;
     setMessage(null);
     setConnecting(provider);
+    const googleClientId = clientEnv.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (provider === "google" && googleClientId) {
+      // Google on this site's own domain (google-id.ts): Google's screens name this site, not Supabase.
+      await startGoogle(googleClientId, "signin", safeRedirect(redirectTo));
+      return;
+    }
     const { error } = await supabaseBrowser().auth.signInWithOAuth({
       provider,
       options: { redirectTo: socialCallbackURL(redirectTo) },
@@ -131,7 +139,7 @@ function SocialButtonsInner() {
 /** Figma "social": Google + Facebook buttons, 12px gap (plus Discord, same style). */
 export function SocialButtons() {
   return (
-    <Suspense fallback={<div className="h-11" />}>
+    <Suspense fallback={<SocialButtonsSkeleton />}>
       <SocialButtonsInner />
     </Suspense>
   );

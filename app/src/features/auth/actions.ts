@@ -1,8 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { formText } from "@/lib/form";
+import { accountForGoogleSignIn, type ExistingAccount } from "@/server/account-match";
 import { currentUser } from "@/server/auth";
 import {
   clearPendingEmail,
@@ -15,7 +17,14 @@ import {
   setPendingEmail,
   setRecoveryUser,
 } from "@/server/auth-flow";
+import { verifyGoogleIdToken } from "@/server/google-token";
 import { clearFailures, lockedMinutes, recordFailure } from "@/server/login-throttle";
+import {
+  approvedPasskeyList,
+  approvePasskey,
+  forgetPasskeySession,
+  passkeysDisabled,
+} from "@/server/passkeys";
 import { allowPasswordSession, forgetPasswordSession } from "@/server/password-sessions";
 import {
   acceptTerms,
@@ -28,10 +37,13 @@ import { supabaseServer } from "@/server/supabase";
 import { getTeam } from "@/server/teams";
 
 import { classifyAuthError, type AuthError } from "./auth-errors";
+import { canDisconnect, justAutoLinked, signUpMethod } from "./linking";
+import { passkeyAuthenticatedAt } from "./passkeys";
 import { sessionIdFromAccessToken } from "./password-session";
 import {
   fieldErrors,
   finishSchema,
+  HOME_PATH,
   forgotSchema,
   resetSchema,
   safeRedirect,
@@ -39,6 +51,7 @@ import {
   signUpSchema,
   verifySchema,
 } from "./policy";
+import { isSocialProvider } from "./providers";
 import { isRecoverySession } from "./recovery-session";
 
 /** Result of every auth form action. `fields` holds per-field messages, `error` a banner. */
@@ -55,6 +68,12 @@ const RATE_LIMITED = "Too many requests. Wait a minute and try again.";
 /** Same answer for a wrong password, an unknown address, and a pause, so the pause is not an account oracle. */
 const WRONG_PASSWORD =
   "Wrong email or password. We upgraded our login: if you signed up with email before, reset your password once.";
+
+/** Drop the app's record of a session on sign-out (the passkey table only for passkey sessions). */
+async function forgetSession(sessionId: string, claims: { amr?: unknown } | null | undefined) {
+  await forgetPasswordSession(sessionId);
+  if (passkeyAuthenticatedAt(claims) !== null) await forgetPasskeySession(sessionId);
+}
 
 /** Unexpected auth failures: status and code only, never user input. */
 function logAuthError(step: string, e: AuthError): void {
@@ -359,15 +378,150 @@ export async function linkSignInAction(
   return { ok: true, values };
 }
 
+// ------------------------------------------------------------------ settings: disconnect a provider
+
+/**
+ * Settings → Connected accounts → Disconnect. Connecting happens in the browser (linkIdentity follows the provider
+ * redirect); disconnecting is a Server Action so the session and the last-identity rule are checked on the server.
+ */
+export async function unlinkProviderAction(form: FormData): Promise<void> {
+  const user = await currentUser();
+  if (!user) redirect("/auth/sign-in?redirectTo=/settings");
+  const provider = formText(form, "provider");
+  if (!isSocialProvider(provider)) redirect("/settings?unlinkError=failed");
+
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase.auth.getUserIdentities();
+  if (error || !data) {
+    logAuthError("identities", error);
+    redirect("/settings?unlinkError=failed");
+  }
+  const identity = data.identities.find((i) => i.provider === provider);
+  if (!identity) redirect(`/settings?unlinked=${provider}`);
+  if (!canDisconnect(data.identities.length)) redirect("/settings?unlinkError=last");
+
+  const { error: unlinkError } = await supabase.auth.unlinkIdentity(identity);
+  if (unlinkError) {
+    logAuthError("unlink", unlinkError);
+    redirect("/settings?unlinkError=failed");
+  }
+  // The access token still lists the old provider until it is refreshed.
+  await supabase.auth.refreshSession();
+  redirect(`/settings?unlinked=${provider}`);
+}
+
+// ------------------------------------------------------------------ same email, another sign-in method
+
+/**
+ * Before a Google sign-in is handed to Supabase (which would merge it into an existing account with the same
+ * verified email): is there such an account? The token is verified here (signature, audience, nonce, verified email),
+ * so only the owner of that address learns about its account.
+ */
+export async function googleAccountCheckAction(
+  token: string,
+  nonce: string,
+): Promise<{ existing: ExistingAccount | null; email: string } | { error: true }> {
+  if (typeof token !== "string" || typeof nonce !== "string") return { error: true };
+  const google = await verifyGoogleIdToken(token, nonce);
+  if (!google) return { error: true };
+  return { existing: await accountForGoogleSignIn(google.email), email: google.email };
+}
+
+/**
+ * "Don't connect" after Supabase merged a Facebook/Discord sign-in into an existing account: remove that new
+ * identity again and sign out. Only the identity this session just added, within the confirmation window, and
+ * never the account's last way in.
+ */
+export async function rejectAutoLinkAction(form: FormData): Promise<void> {
+  const user = await currentUser();
+  if (!user) redirect("/auth/sign-in");
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase.auth.getUserIdentities();
+  if (error || !data) redirect("/auth/sign-in?error=social");
+  const linked = justAutoLinked(data.identities, Date.now());
+  const identity = data.identities.find((i) => i.identity_id === formText(form, "identityId"));
+  if (!linked || !identity || identity.identity_id !== linked.identityId) {
+    redirect(
+      `/auth/callback?redirectTo=${encodeURIComponent(safeRedirect(form.get("redirectTo")))}`,
+    );
+  }
+  if (!canDisconnect(data.identities.length)) redirect("/auth/sign-in?error=social");
+  const others = data.identities.filter((i) => i.identity_id !== identity.identity_id);
+  const { error: unlinkError } = await supabase.auth.unlinkIdentity(identity);
+  if (unlinkError) logAuthError("unlink after merge", unlinkError);
+  const { data: claims } = await supabase.auth.getClaims();
+  const sessionId =
+    typeof claims?.claims?.session_id === "string" ? claims.claims.session_id : null;
+  if (sessionId) await forgetSession(sessionId, claims?.claims);
+  await supabase.auth.signOut();
+  const via = encodeURIComponent(signUpMethod(others));
+  redirect(`/auth/sign-in?notConnected=${linked.provider}&via=${via}`);
+}
+
+// ------------------------------------------------------------------ passkeys
+
+/**
+ * Approve the passkey the browser just registered (Settings, or the offer). The recent-login rule is checked here,
+ * on the verified session token: a passkey registered by a stale session is deleted and the user asked to log in.
+ */
+export async function approvePasskeyAction(
+  passkeyId: string,
+): Promise<{ ok: true } | { ok: false; needsLogin: boolean }> {
+  const user = await currentUser();
+  if (!user || typeof passkeyId !== "string" || passkeyId.length > 64) {
+    return { ok: false, needsLogin: true };
+  }
+  const result = await approvePasskey(user.id, passkeyId);
+  return result === "approved" ? { ok: true } : { ok: false, needsLogin: result === "needs_login" };
+}
+
+/** Settings → Passkeys: the user's passkeys, marked approved; never-approved ones past the window are removed. */
+export async function listPasskeysAction(): Promise<
+  | {
+      passkeys: {
+        id: string;
+        friendly_name?: string;
+        created_at: string;
+        last_used_at?: string;
+        approved: boolean;
+      }[];
+    }
+  | { error: "disabled" | "failed" }
+> {
+  const user = await currentUser();
+  if (!user) return { error: "failed" };
+  const passkeys = await approvedPasskeyList(user.id);
+  if (passkeys === null) return { error: (await passkeysDisabled()) ? "disabled" : "failed" };
+  return { passkeys };
+}
+
 // ------------------------------------------------------------------ sign out
 
 export async function signOutAction(): Promise<void> {
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getClaims();
   const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
-  if (sessionId) await forgetPasswordSession(sessionId);
+  if (sessionId) await forgetSession(sessionId, data?.claims);
+  revalidatePath("/", "layout");
   await supabase.auth.signOut();
-  redirect("/");
+  // The site's landing page (/home shows it to visitors), not "/": that opens the classic game.
+  redirect(HOME_PATH);
+}
+
+/**
+ * "Log in again" before a sensitive step (adding a passkey): sign out, then back to the login screen, which returns
+ * to `redirectTo` with a fresh session.
+ */
+export async function reauthenticateAction(form: FormData): Promise<void> {
+  const supabase = await supabaseServer();
+  const { data } = await supabase.auth.getClaims();
+  const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
+  if (sessionId) await forgetSession(sessionId, data?.claims);
+  revalidatePath("/", "layout");
+  await supabase.auth.signOut();
+  redirect(
+    `/auth/sign-in?reauth=1&redirectTo=${encodeURIComponent(safeRedirect(form.get("redirectTo")))}`,
+  );
 }
 
 /** "Change" / "Use a different account": sign out and start over at the login screen. */
@@ -375,7 +529,8 @@ export async function switchAccountAction(): Promise<void> {
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getClaims();
   const sessionId = typeof data?.claims?.session_id === "string" ? data.claims.session_id : null;
-  if (sessionId) await forgetPasswordSession(sessionId);
+  if (sessionId) await forgetSession(sessionId, data?.claims);
+  revalidatePath("/", "layout");
   await supabase.auth.signOut();
   redirect("/auth/sign-in");
 }

@@ -11,18 +11,18 @@ export async function fillSignIn(page: Page, email: string, password: string): P
 
 /** Completes the "Almost there" step (username + terms) if this account has not done it yet. */
 async function finishProfileIfAsked(page: Page, user: User): Promise<void> {
-  await page.waitForURL(/\/(play|auth\/finish)/, { timeout: 15_000 });
+  await page.waitForURL(/\/(home|team\/new|auth\/finish)/, { timeout: 15_000 });
   if (!page.url().includes("/auth/finish")) return;
   await page.getByLabel("Username").fill(user.username);
   const terms = page.getByLabel(/I have read and agree/);
   if (await terms.isVisible()) await terms.check();
   await page.getByRole("button", { name: "Create account & build my team" }).click();
-  await page.waitForURL("**/play");
+  await page.waitForURL(/\/(home|team\/new)/);
 }
 
 /**
  * Signs in an existing test account on the shared dev branch (accounts are verified there).
- * Lands on /play with the profile complete.
+ * Lands on /home (or Create your team without a club) with the profile complete.
  */
 export async function ensureSignedIn(page: Page, user: User): Promise<void> {
   await fillSignIn(page, user.email, user.password);

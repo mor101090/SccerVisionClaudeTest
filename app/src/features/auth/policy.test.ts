@@ -78,20 +78,20 @@ describe("passwordStrength", () => {
 describe("safeRedirect", () => {
   it("allows only same-site paths", () => {
     expect(safeRedirect("/matches")).toBe("/matches");
-    expect(safeRedirect("//evil.com")).toBe("/play");
-    expect(safeRedirect("/\\evil.com")).toBe("/play");
-    expect(safeRedirect("https://evil.com")).toBe("/play");
-    expect(safeRedirect(null)).toBe("/play");
+    expect(safeRedirect("//evil.com")).toBe("/home");
+    expect(safeRedirect("/\\evil.com")).toBe("/home");
+    expect(safeRedirect("https://evil.com")).toBe("/home");
+    expect(safeRedirect(null)).toBe("/home");
   });
 
   it("refuses paths a browser turns into another site", () => {
-    expect(safeRedirect("/\t/evil.com")).toBe("/play");
-    expect(safeRedirect("/\n/evil.com")).toBe("/play");
-    expect(safeRedirect("/\r\n/evil.com")).toBe("/play");
-    expect(safeRedirect("/a\\b")).toBe("/play");
-    expect(safeRedirect("/.//evil.com")).toBe("/play");
-    expect(safeRedirect("/a/..//evil.com")).toBe("/play");
-    expect(safeRedirect("/%2e//evil.com")).toBe("/play");
+    expect(safeRedirect("/\t/evil.com")).toBe("/home");
+    expect(safeRedirect("/\n/evil.com")).toBe("/home");
+    expect(safeRedirect("/\r\n/evil.com")).toBe("/home");
+    expect(safeRedirect("/a\\b")).toBe("/home");
+    expect(safeRedirect("/.//evil.com")).toBe("/home");
+    expect(safeRedirect("/a/..//evil.com")).toBe("/home");
+    expect(safeRedirect("/%2e//evil.com")).toBe("/home");
     expect(safeRedirect("/%2F%2Fevil.com")).toBe("/%2F%2Fevil.com"); // stays a path here
   });
 

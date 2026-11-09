@@ -2,7 +2,8 @@
 
 Football-management game. A deterministic C# match engine runs in the browser as .NET 8 WebAssembly.
 The site is a Next.js fullstack app (`app/`) backed by Supabase. **The classic game is the default site:** `/` redirects to
-`/classic/index.html` (built from `tools/demo-page/`, where Mor's game flow lives); the Next.js landing page is `/home`.
+`/classic/index.html` (built from `tools/demo-page/`, where Mor's game flow lives). `/home` is the landing page for visitors
+and the manager's homepage (dashboard) once signed in.
 
 ## Repo map
 
@@ -14,6 +15,7 @@ The site is a Next.js fullstack app (`app/`) backed by Supabase. **The classic g
 | `tools/demo-page/`                                   | Classic single-page game. Built into `app/public/classic/` by `yarn classic:build`.                                 |
 | `web/`                                               | Legacy React/Vite shell (Unity WebGL + replay viewer). Not deployed; replay code was copied into `app/src/engine/`. |
 | `data/`                                              | Static teams and names JSON.                                                                                        |
+| `docs/server.md`                                     | Server layers, routes, DB, caching, performance and security rules.                                                 |
 | `docs/ARCHITECTURE.md`                               | Engine/bridge architecture. Read before touching engine contracts.                                                  |
 
 ## Stack (app/)
@@ -36,8 +38,9 @@ The site is a Next.js fullstack app (`app/`) backed by Supabase. **The classic g
 ## Commands (run in `app/`)
 
 ```bash
-yarn assets:build   # engine WASM + classic page (needs .NET 8 SDK, python3). Run once, and after engine changes.
-yarn dev            # dev server
+yarn dev            # dev server. First builds the engine WASM + classic page if missing or their sources changed
+                    # (tools/ensure-assets.ts; needs .NET 8 SDK + python3, else it warns and starts anyway; SKIP_ASSETS=1 skips)
+yarn assets:build   # force a rebuild of engine WASM + classic page
 yarn check          # lint + typecheck + format check + unit tests (run before every PR)
 yarn test:e2e       # Playwright (starts dev server on :3100). Test users from tests/e2e/fixtures.ts on Supabase dev (`yarn e2e:seed`).
 yarn build
@@ -55,7 +58,9 @@ Engine tests (repo root): `dotnet test sim/` takes **28–45 minutes**. Run a fi
 | Production                               | Production                                    | prod                                          |
 
 Env (`app/src/env.ts`): `DATABASE_URL` (transaction pooler, :6543), `DATABASE_URL_UNPOOLED` (direct, :5432, migrations only),
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (server only: Storage, seeding).
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (server only: Storage, seeding),
+`NEXT_PUBLIC_SUPPORT_EMAIL` (optional: "Contact Us" on the auth screens; unset hides the link),
+`STRIPE_SECRET_KEY` (optional: donations on /support through Stripe Checkout; unset shows "Donations aren't open yet").
 
 **PRs are checked, `main` is deployed.** `.github/workflows/pr.yml` runs these checks on every PR, all required by the
 `main` ruleset (`.github/rulesets/main.json`: PR required, no reviews, no force push/deletion):
@@ -94,7 +99,8 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   the tokens in `src/app/globals.css` (Figma "Primitives (Mor)" → `--mor-*`, "SoccerVision Web" → semantic `--color-*`);
   the reference for color roles is the Login screen (node 541-2333). Never hard-code hex in components.
 - **Auth flow** (`features/auth/actions.ts`): every sign-in path ends in `nextPathAfterSignIn()` → `/auth/finish` until the
-  profile has a username + terms (`profiles` table), then `redirectTo`. Password logins are throttled per email
+  profile has a username + terms (`profiles` table), then `redirectTo` (default `HOME_PATH` = `/home`, which sends a
+  manager without a finished club to `/team/new`). Password logins are throttled per email
   (`server/login-throttle.ts`, 5 failures / 15 min), one atomic increment per attempt in the Server Actions.
   Supabase's password-verification hook is a paid feature, so the app does not use it. The sign-in form gives the
   same wrong-email-or-password answer for a wrong password, an unknown address, and a pause. A password session
@@ -108,6 +114,19 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   for the recovery session that redeemed the token (or a retry of that same session), never for an ordinary login.
   `currentUser()` returns `{ id, email, name }` (JWT via `getClaims()`; name from `profiles.display_name` / username).
   Users moved from Neon have no password (Better Auth hashes can't be imported): they reset it once.
+  **Connected accounts** (`/settings`, `features/auth/connected-accounts.tsx`, `linking.ts`): Connect = browser
+  `linkIdentity` → `/auth/callback` → `/settings?linking=<p>` (success is read from the identities, a provider error
+  arrives as `linkError`); Disconnect = `unlinkProviderAction`, refused for the last identity. Needs Supabase
+  "Allow manual linking" ON (else `manual_linking_disabled`). Same-email verified sign-ins are linked automatically.
+  **Passkeys** (`features/auth/passkeys.ts`, `passkey-sign-in.tsx`, `passkey-settings.tsx`, `passkey-offer.tsx`): Supabase
+  WebAuthn (beta), relying party `soccer.dev-spirit.com` only (they can't work on localhost or *.vercel.app; changing
+  the RP ID breaks every passkey). Login: "Log in with a passkey" + autofill on the email field (`username webauthn`),
+  then `/auth/callback`. Settings → Passkeys: add / rename / remove. Supabase lets any valid session register a
+  passkey through its API, so the server enforces the 10-minute recent-login rule (`server/passkeys.ts`): the browser
+  registers, then `approvePasskeyAction` approves it (`approved_passkeys`) or deletes it. A passkey session (AMR method
+  `passkey`) counts only after `/auth/callback` vetted it (`passkey_sessions`, like `password_sessions`): the passkey
+  it used must be approved, else that passkey is deleted and the session signed out. After a fresh non-passkey sign-in, users without one get a
+  dismissible "Log in faster next time?" offer.
 - **Create your team** (`/team/new/{manager,club,kits,squad}`, `features/team/`, `server/teams.ts`): squads come from the
   team generator API (`SQUAD_API_URL`, POST `/api/v2/team`, 2 GK · 5 FB · 5 DEF · 5 MID · 2 WNG · 3 ST). The XI picker
   `features/team/lineup.ts` and attribute mapping `engine-team.ts` are ports of `tools/teams/build_teams.py`;
@@ -122,10 +141,42 @@ Delete that statement from the generated SQL (see `drizzle/0000_supabase_baselin
   decrement; one player per XI slot (`players_team_starter_uq`). A match played with the club is saved with
   `home_team_id` + `home_squad` (the UseHomeTeam text, checked by `/api/matches` against the stored club).
 
+- **Homepage & app shell** (Figma group "Homepage flow", node 594-15448): `(app)/` routes (home, squad, tactics, games,
+  training, coaches, transfer, rules, forum, league, rankings, finances, stadium, notifications, messages, search) share
+  the sidebar + top bar (`components/app-shell/`); visitors get the site header instead. Club pages guard with
+  `loadClub()` (`server/team-flow.ts`). Homepage data: `server/home.ts`, display rules `features/home/rules.ts`. League,
+  fixtures, standings, ratings, finances, fans, stadium, offers, staff, training, forum and inbox tables
+  (`drizzle/0006_club_world.sql`) start empty: **no row = the new-club state** (an empty state, never an invented number).
+  Tactics (`features/tactics/`) edit `teams.plan` in the engine's TeamPlan text; formations are generated from
+  `Formation.cs` (`formations.ts`), encodings and tactic locks follow the classic page. `/play` passes the saved plan.
+  **Match day** (`features/match-day/`, Figma section "Match day & more – screens"): `/play` is one client session
+  (`use-match.ts`): Play hub → Pre-match (engine started with `hold`, header = line-ups) → full-screen Live (lead 20,
+  the viewer reports progress; half-time pauses playback) → Full-time report (auto-saved). Mentality and touchline
+  instructions are plan edits (`mentality.ts`: line / width / tempo / tackling, within `applyLocks`), sent with
+  `setPlan`; substitutions go through `substitute` and leave the pending list on the engine's Substitution /
+  SubstitutionRequest events. All read-outs (stats rows, ratings, scorers, momentum) are in `derive.ts`; no invented
+  numbers. `/matches/[id]` uses the same layout (`replay-view.tsx`). The accent colour is blue (`--color-accent` =
+  `--mor-blue`); text on an accent fill uses `text-on-accent`, `accent-ink` stays the dark ink for light fills.
+  **Profile, clubs & leagues** (Figma section "Profile, clubs & leagues – screens"; `features/profile/`, `server/managers.ts`,
+  `server/profile-page.ts`, `server/leagues.ts`, `server/donations.ts`): `/profile` (+ `/edit`, `/achievements`),
+  `/managers/[username]`, `/clubs/[id]` (?tab=squad), `/club/settings` (name, short name, city, ground, crest text;
+  delete club after typing its name), `/leagues`, `/leagues/[id]`, `/invite`, `/i/[username]` (public), `/support`,
+  `/support/thanks`. Record and achievements are computed from saved matches only (`features/profile/achievements.ts`,
+  tested); the manager is the home side unless only the away name is their club's. Other managers see positions, ages
+  and overall ratings, never attributes or fitness; `profiles.show_profile` / `show_history` hide the profile / results.
+  Invites reuse `profiles.invited_by`: `/api/invite?u=` stores the inviter in the httpOnly `sv_invite` cookie (30 days)
+  and Create your team step 1 prefills it. Donations: one-time Stripe Checkout (REST, no SDK); `/support/thanks` reads
+  the session back (paid + `client_reference_id` = this user) and inserts it once (`donations.stripe_session_id`
+  unique). Donor names and totals are never shown publicly.
+  The forum is read-only: only `profiles.is_admin` users may post (checked in `features/forum/actions.ts`); admins are
+  set in Supabase (`update profiles set is_admin = true where username = '…'`), never by the app.
+
 ## app/src layout
 
 ```
-app/              (site)/: home play matches lobby terms · team/new/: manager club kits squad · auth/: sign-in sign-up verify-email forgot-password[/sent]
+app/              (app)/: home squad tactics games training coaches transfer rules forum league rankings finances
+                  stadium notifications messages search play matches lobby terms settings profile managers clubs club
+                  leagues invite i support · platform/ (classic → app) · team/new/: manager club kits squad · auth/: sign-in sign-up verify-email forgot-password[/sent]
                   reset-password finish link-account callback error · api/*
 components/       shared UI: brand/header, ui/ (button, text-field, checkbox, alert, icons)
 features/<domain> auth, matches, lobby (client UI, zod schemas, server actions)

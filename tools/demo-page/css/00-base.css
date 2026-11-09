@@ -24,6 +24,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; } /* the code hides with the attribute; no component display rule may undo it */
 html, body { background: var(--ground); color: var(--text); }
 body { font: 15px/1.5 var(--body); }
 .wrap {

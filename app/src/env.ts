@@ -19,6 +19,8 @@ const serverSchema = z.object({
   // Supabase secret key (sb_secret_…): server-only admin calls (Storage, e2e seeding). Never sent to browsers.
   SUPABASE_SECRET_KEY: z.string().min(1).optional(),
   /** Soccer Vision team generator (squads for Create your team). */
+  /** Stripe secret key for donations (/support). Unset: the donate button explains donations aren't open yet. */
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
   SQUAD_API_URL: z.url().default("https://soccer-api.dev-spirit.com"),
 });
 
@@ -27,6 +29,14 @@ const clientSchema = z.object({
   // Supabase project URL and publishable key (sb_publishable_…): safe in the browser, RLS guards the data.
   NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1).optional(),
+  // Google OAuth web client ID (public). Set: Google sign-in returns to this site (/auth/google) with an ID token, so
+  // Google's screens name this site. Unset: Google sign-in goes through Supabase's redirect flow.
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID: z
+    .string()
+    .regex(/^[\w-]+\.apps\.googleusercontent\.com$/)
+    .optional(),
+  // Support address for "Contact Us" on the auth screens. Unset: the link is not shown.
+  NEXT_PUBLIC_SUPPORT_EMAIL: z.email().optional(),
 });
 
 const isServer = typeof window === "undefined";
@@ -53,6 +63,8 @@ export const clientEnv = parse(clientSchema, {
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+  NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
 });
 
 export const serverEnv = isServer

@@ -57,10 +57,16 @@ test("create your team and play a match with it", async ({ page }) => {
     await page.waitForURL("**/team/new/squad");
   }
 
-  // Generating (first time) then the squad.
-  await expect(page.getByRole("heading", { name: "Suggested XI · 4-4-2" })).toBeVisible({
-    timeout: 60_000,
-  });
+  // Generating (first time): 22/22, the "Squad complete" celebration, then the squad. An account that already has
+  // its club (every run after the first: the seed keeps the club) opens straight on the squad.
+  const complete = page.getByRole("heading", { name: /squad complete/i });
+  const squad = page.getByRole("heading", { name: "Suggested XI · 4-4-2" });
+  await expect(complete.or(squad)).toBeVisible({ timeout: 60_000 });
+  if (await complete.isVisible()) {
+    await expect(page.getByText("22/22 players signed", { exact: false })).toBeVisible();
+    await shot(page, "4-squad-complete");
+  }
+  await expect(squad).toBeVisible({ timeout: 60_000 });
   await expect(page.locator("tbody tr")).toHaveCount(22);
   await shot(page, "5-squad");
 
@@ -80,20 +86,18 @@ test("create your team and play a match with it", async ({ page }) => {
   await drawer.getByRole("button", { name: "Close" }).click();
 
   await page.getByRole("button", { name: "Start playing →" }).click();
-  await page.waitForURL("**/play");
+  await page.waitForURL("**/home");
+  await page.goto("/play");
 
-  // The engine fields the club at home.
-  const mine = page.getByRole("button", { name: /^Play with / });
-  await expect(mine).toBeEnabled({ timeout: 60_000 });
-  const club = (await mine.textContent())!.replace("Play with ", "");
-  await mine.click();
-  // The scoreboard names the club (exact text: not the "Play with …" button), and the match runs to full time.
-  await expect(page.getByText(club, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
-  await page.getByRole("button", { name: "64×" }).click();
+  // The engine fields the club at home: the match setup shows its saved tactics.
+  await expect(page.getByText("Saved tactics", { exact: true })).toBeVisible();
+  await page.getByRole("radio", { name: "Instant result" }).click();
+  const start = page.getByRole("button", { name: "Start match" });
+  await expect(start).toBeEnabled({ timeout: 60_000 });
+  await start.click();
+  const report = page.getByTestId("full-time");
+  await expect(report).toBeVisible({ timeout: 150_000 });
   await shot(page, "7-play");
-  const save = page.getByRole("button", { name: "Save match" });
-  await expect(save).toBeVisible({ timeout: 150_000 });
   // Saved with the club: the server accepts it only when the squad played is the stored one.
-  await save.click();
   await expect(page.getByTestId("saved")).toBeVisible({ timeout: 30_000 });
 });

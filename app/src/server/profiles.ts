@@ -1,6 +1,8 @@
 import "server-only";
 
 import { eq, sql } from "drizzle-orm";
+import { cacheLife } from "next/cache";
+import { cache } from "react";
 
 import { db, schema } from "./db";
 import { isUniqueViolation } from "./db/errors";
@@ -10,9 +12,17 @@ const { profiles } = schema;
 export type Profile = typeof profiles.$inferSelect;
 
 export async function getProfile(userId: string): Promise<Profile | null> {
+  "use cache: private";
+  cacheLife("minutes");
   const [row] = await db().select().from(profiles).where(eq(profiles.userId, userId));
   return row ?? null;
 }
+
+/**
+ * getProfile once per request (layout, page and currentUser share one query). Renders only: a Server Action that
+ * writes the profile and reads it back must call getProfile.
+ */
+export const profileForRequest = cache(getProfile);
 
 /** True once the account has a username and accepted the terms (the "Almost there" step is done). */
 export function isComplete(p: Profile | null): boolean {
@@ -100,6 +110,26 @@ export async function saveManager(
             : {}),
         },
       });
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new UsernameTakenError();
+    throw err;
+  }
+}
+
+export type ProfileEdit = {
+  displayName: string;
+  username: string;
+  nationality: string;
+  bio: string | null;
+  favouriteClub: string | null;
+  showProfile: boolean;
+  showHistory: boolean;
+};
+
+/** Edit profile: everything other managers see. The username stays unique ignoring case. */
+export async function updateProfile(userId: string, edit: ProfileEdit): Promise<void> {
+  try {
+    await db().update(profiles).set(edit).where(eq(profiles.userId, userId));
   } catch (err) {
     if (isUniqueViolation(err)) throw new UsernameTakenError();
     throw err;

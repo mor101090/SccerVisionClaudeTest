@@ -135,7 +135,7 @@
         var quiet = Date.now() - lastSeen; DBG.quiet = quiet; DBG.beats = (DBG.beats || 0) + 1;
         if (quiet > 9000 && !lostShown) {
           lostShown = true;
-          netState(ONLINE === "guest" ? "Connection to your friend lost - reconnecting..." : "Connection to your friend lost - waiting for him to come back...");
+          netState(ONLINE === "guest" ? "Connection to your friend lost - reconnecting..." : "Connection to your friend lost - waiting for them to come back...");
           if (ONLINE === "guest" && conn) reconnect();
         } else if (quiet < 4000 && lostShown) { lostShown = false; netState(""); }
       }, 2000);

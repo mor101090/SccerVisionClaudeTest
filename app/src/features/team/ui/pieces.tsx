@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/brand";
 import { FeatureCheckIcon } from "@/components/ui/icons";
 import type { KitPick } from "@/server/db/schema";
 
@@ -126,10 +127,7 @@ export function ScoreboardPreview({ home, homeColor }: { home: string; homeColor
         </span>
       </div>
       <div className="flex h-[21px] w-fit items-center gap-2 bg-muted pr-3 pl-2 text-[12.5px] font-medium text-white">
-        <span className="font-extrabold tracking-tight">
-          <span>Soccer</span>
-          <span className="text-accent-ink">Vision</span>
-        </span>
+        <BrandLogo className="h-3.5" />
         League match
       </div>
     </div>
@@ -162,13 +160,13 @@ export function Stepper({ current }: { current: StepId }) {
               <span
                 className={`flex size-7 items-center justify-center rounded-full text-[13px] font-bold ${
                   done
-                    ? "bg-accent text-accent-ink"
+                    ? "bg-accent text-on-accent"
                     : now
                       ? "border-2 border-accent bg-panel-2 text-accent"
                       : "border border-border bg-panel-2 text-muted"
                 }`}
               >
-                {done ? <FeatureCheckIcon className="text-accent-ink" /> : i + 1}
+                {done ? <FeatureCheckIcon className="text-on-accent" /> : i + 1}
               </span>
               <span
                 className={`hidden text-sm sm:inline ${now ? "font-semibold text-text" : done ? "text-text" : "text-muted"}`}

@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { DEFAULT_KITS } from "@/features/team/kits";
 import { KitsForm } from "@/features/team/ui/kits-form";
 import { Stepper, TeamCard } from "@/features/team/ui/pieces";
+import { TeamFormSkeleton } from "@/features/team/ui/team-skeleton";
 import { loadStep } from "@/server/team-flow";
 
 export const metadata: Metadata = { title: "Your kits" };
@@ -22,7 +23,7 @@ export default function Page() {
         title="Your kits"
         subtitle="Pick the shirt, trim, socks and number for each kit. Colours too close to another kit are greyed out."
       >
-        <Suspense fallback={null}>
+        <Suspense fallback={<TeamFormSkeleton fields={2} />}>
           <Step />
         </Suspense>
       </TeamCard>

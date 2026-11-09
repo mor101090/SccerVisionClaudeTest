@@ -101,8 +101,11 @@ export function fieldErrors(error: z.ZodError): Record<string, string> {
   return out;
 }
 
+/** Where a signed-in manager lands by default: the homepage (it sends a manager without a club to Create your team). */
+export const HOME_PATH = "/home";
+
 /** Only same-site relative paths; anything else falls back to the default. */
-export function safeRedirect(value: unknown, fallback = "/play"): string {
+export function safeRedirect(value: unknown, fallback = HOME_PATH): string {
   const v = typeof value === "string" ? value : "";
   // Browsers drop tabs/newlines and read "\" as "/" in URLs ("/\t/evil.com" is "//evil.com"): refuse both outright,
   // then accept only a path that stays on this origin once parsed.

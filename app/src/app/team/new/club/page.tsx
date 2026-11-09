@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { ClubForm } from "@/features/team/ui/club-form";
 import { Stepper, TeamCard } from "@/features/team/ui/pieces";
+import { TeamFormSkeleton } from "@/features/team/ui/team-skeleton";
 import { loadStep } from "@/server/team-flow";
 
 export const metadata: Metadata = { title: "Name your club" };
@@ -35,7 +36,7 @@ export default function Page() {
         title="Name your club"
         subtitle="This is what fans, opponents and the scoreboard will see."
       >
-        <Suspense fallback={null}>
+        <Suspense fallback={<TeamFormSkeleton fields={4} />}>
           <Step />
         </Suspense>
       </TeamCard>

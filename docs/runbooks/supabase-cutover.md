@@ -10,9 +10,14 @@ Run every step on **dev first** (Supabase dev project `mcrglsqpxyrbazwzrnzg`, Ne
    - Custom SMTP (Resend, sender "Soccer-Vision by Devspirit" `no-reply@dev-spirit.com`), plus the two templates below.
    - Providers Google, Facebook and Discord, with the redirect `https://<prod-ref>.supabase.co/auth/v1/callback`
      added to each OAuth app.
+   - Passkeys (Authentication → Passkeys): on; Relying Party ID `soccer.dev-spirit.com`, origin
+     `https://soccer.dev-spirit.com`, display name `Soccer Vision`. Never change the RP ID once users have passkeys.
    - Data API: remove `public` from the exposed schemas.
    - Realtime → Settings: turn off "Allow public access" (only private channels; lobbies use `lobby:<id>`).
-2. **Email templates** (Auth → Email Templates):
+2. **Email templates** (Auth → Email Templates). Paste the HTML and subject from `docs/email-templates/`
+   (`confirm-signup.html`, `reset-password.html`, and under Security notifications, turned on: `identity-linked.html`,
+   `identity-unlinked.html`); never leave Supabase's defaults (they link instead of showing the code, and mention
+   Supabase):
    - Confirm signup: show the code `{{ .Token }}` (the site asks for the 6-digit code).
    - Reset password: link to `{{ .RedirectTo }}?token={{ .TokenHash }}`.
 3. **Migrate the prod schema:** `DATABASE_URL_UNPOOLED=<prod direct url> yarn db:migrate` from `app/`. This creates the

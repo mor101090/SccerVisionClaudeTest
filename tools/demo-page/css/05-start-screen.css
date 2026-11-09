@@ -7,10 +7,10 @@
 .welcome h2 { margin: 0; font: 800 clamp(22px, 4vw, 34px)/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
 .welcome p { margin: 0; color: var(--muted); }
 .wopts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; width: 100%; }
-.wopts button { display: grid; gap: 8px; padding: 22px 18px; text-align: left; border-radius: 12px; border: 2px solid var(--rule); background: rgba(38,44,64,.9); }
-.wopts button b { font: 800 24px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
-.wopts button span { font: 500 14px/1.4 var(--body); color: #c9cdd8; }
-.wopts button:focus-visible, .wopts button.main { border-color: var(--amber); }
+.wopts button, .wopts a { display: grid; gap: 8px; padding: 22px 18px; text-align: left; border-radius: 12px; border: 2px solid var(--rule); background: rgba(38,44,64,.9); }
+.wopts button b, .wopts a b { font: 800 24px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.wopts button span, .wopts a span { font: 500 14px/1.4 var(--body); color: #c9cdd8; }
+.wopts button:focus-visible, .wopts button.main, .wopts a:focus-visible, .wopts a.main { border-color: var(--amber); }
 .kits { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; width: 100%; }
 .kit { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--rule); border-radius: 10px; background: rgba(30,34,48,.7); text-align: left; }
 .kit h3 { margin: 0; display: flex; align-items: center; gap: 10px; font: 800 18px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
@@ -90,3 +90,14 @@ td.l { color: var(--muted); }
 .netstate[hidden] { display: none; }
 .netstate { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 60; background: #b3261e; color: #fff; font: 700 14px var(--body); padding: 8px 16px; border-radius: 8px; box-shadow: 0 4px 14px #0007; }
 .kstr { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px 12px; margin: 10px 0 4px; } .kstr .l { color: var(--muted); font-size: 13px; } .kstr .seg { flex-wrap: nowrap; } .kstr .seg button { flex: 1; padding: 8px 6px; font-size: 13px; }
+
+/* "Real website platform": a link to the Next.js app (/platform), styled like the options above. */
+.wopts a { color: inherit; text-decoration: none; cursor: pointer; }
+.wopts a.platform { grid-column: 1 / -1; border-color: #626ed4; }
+.wopts a.platform:hover { background: rgba(98,110,212,.18); }
+
+/* While a start screen (welcome, kits, online) covers the page, the match page under it does not scroll. */
+body:has(> .welcome:not([hidden])) { overflow: hidden; }
+
+/* "Start match" while the engine prepares the match (kickoffReady in 07-match.js) */
+#kickoff:disabled { opacity: .6; cursor: progress; }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { startTransition, Suspense, useActionState, useEffect, useState } from "react";
+import { startTransition, Suspense, useActionState, useEffect, useRef, useState } from "react";
 
 import type { AuthFormState } from "./actions";
 
@@ -14,12 +14,19 @@ type Action = (prev: AuthFormState, form: FormData) => Promise<AuthFormState>;
  */
 export function useAuthForm(action: Action) {
   const [state, dispatch, pending] = useActionState<AuthFormState, FormData>(action, null);
+  const ref = useRef<HTMLFormElement>(null);
+  // After a rejected submit, focus goes to the first field with an error (its message is read with it).
+  useEffect(() => {
+    if (state?.fields && Object.keys(state.fields).length > 0) {
+      ref.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+    }
+  }, [state]);
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     startTransition(() => dispatch(form));
   };
-  return { state, pending, formProps: { action: dispatch, onSubmit, noValidate: true } };
+  return { state, pending, formProps: { ref, action: dispatch, onSubmit, noValidate: true } };
 }
 
 function RedirectFieldInner() {

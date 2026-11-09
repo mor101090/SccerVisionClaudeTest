@@ -127,6 +127,7 @@
     if (hdr.home) hdr.home.kit = plainKit(hdr.home.kit);
     if (hdr.away) hdr.away.kit = plainKit(hdr.away.kit);
     R = hdr; F = R.frames = []; E = R.events = []; R.stats = []; teams = [R.home, R.away];
+    if (MODE === "live") kickoffReady(true);
     R.home._kit0 = R.home.kit; R.away._kit0 = R.away.kit;
     SUBS = {}; t0 = 0; tEnd = 0; secondHalfT = Infinity; addedMinutes = [0, 0, 0, 0]; et1T = Infinity; et2T = Infinity; SO_KICKS = []; finished = false;
     var comp = R.competition || "League", sbEl = document.querySelector(".sb");
@@ -239,3 +240,4 @@
   $("play").addEventListener("click", function () { setPlaying(!playing); });
   $("gear").addEventListener("click", function () { var open = $("settings").hidden; $("settings").hidden = !open; this.setAttribute("aria-expanded", String(open)); });
   $("settingsClose").addEventListener("click", function () { $("settings").hidden = true; $("gear").setAttribute("aria-expanded", "false"); $("gear").focus(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("settings").hidden) { e.preventDefault(); $("settingsClose").click(); } });

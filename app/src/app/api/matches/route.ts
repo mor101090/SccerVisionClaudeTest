@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { MAX_REPLAY_BYTES, saveMatchSchema } from "@/features/matches/match-schema";
@@ -54,6 +55,9 @@ export async function POST(request: Request) {
   }
 
   const saved = await saveMatch(user.id, parsed.data, bytes, homeTeamId);
+  // the homepage stats and My Games are cached per manager for a few minutes
+  revalidatePath("/home");
+  revalidatePath("/games");
   return NextResponse.json(saved, { status: 201 });
 }
 
