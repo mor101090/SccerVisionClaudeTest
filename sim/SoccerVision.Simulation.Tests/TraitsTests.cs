@@ -95,8 +95,10 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void UnselfishPlayersShootLess()
         {
-            var plain = Play(() => Red(PlayerTrait.None), 540, 24);
-            var givers = Play(() => Red(PlayerTrait.Unselfish), 540, 24);
+            // (96 matches: over 96 the unselfish side shoots 2.9 times fewer a match, about five standard errors; 24 matches landed on no difference at all
+            // after ball physics stage 10 changed the random course - a 24-match difference has a standard error of 1.2 shots)
+            var plain = Play(() => Red(PlayerTrait.None), 540, 96);
+            var givers = Play(() => Red(PlayerTrait.Unselfish), 540, 96);
             double s0 = plain.Average(e => e.Home.Stats.Shots), s1 = givers.Average(e => e.Home.Stats.Shots);
             Assert.True(s1 < s0, $"shots {s0:0.0} -> {s1:0.0}");
         }
