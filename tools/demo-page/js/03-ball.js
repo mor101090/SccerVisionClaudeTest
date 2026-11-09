@@ -22,6 +22,14 @@
   }
   function spinBall(S, h, dt, held) {
     if (held) { ballSpin.w = 0; ballPrev = { x: S.bx, y: S.by }; return; } // held by the keeper / carried overhead: no roll
+    var w = S.owner < 0 ? S.bw : null, wn = w ? Math.hypot(w[0], w[1], w[2]) : 0;
+    if (w && wn > 0.01 && dt > 0) {
+      // the physics' own spin (axis and direction); the visual rate is capped (0.5 rad a drawn frame) because a real 10 rev/s would strobe
+      ballSpin.ax = [w[0] / wn, w[1] / wn, w[2] / wn]; ballSpin.w = wn;
+      rotateBall(ballSpin.ax, Math.min(.5, wn * dt));
+      ballPrev = { x: S.bx, y: S.by };
+      return;
+    }
     if (ballPrev && dt > 0) {
       var dx = S.bx - ballPrev.x, dy = S.by - ballPrev.y, dist = Math.hypot(dx, dy);
       if (dist > 0.0005 && dist < 3) {

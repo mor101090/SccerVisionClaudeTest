@@ -53,11 +53,22 @@ namespace SoccerVision.Runtime
         }
 
         /// <summary>Advances the spin from the ball's movement on the ground (metres) over dt seconds; a held ball does not spin.</summary>
-        public void Spin(Vector2 pos, float height, float dt, bool held)
+        public void Spin(Vector2 pos, float height, float dt, bool held, Vector3? physical = null)
         {
             if (held)
             {
                 _w = 0f;
+                _prev = pos;
+                return;
+            }
+            if (physical.HasValue && physical.Value.magnitude > 0.01f && dt > 0f)
+            {
+                // The physics' own spin (axis and direction, rad per second of playback); the visual rate is capped (0.5 rad a drawn frame)
+                // because a real 10 rev/s would strobe on screen.
+                Vector3 w = physical.Value;
+                _axis = w.normalized;
+                _w = w.magnitude;
+                _rot = Quaternion.AngleAxis(Mathf.Min(0.5f, _w * dt) * Mathf.Rad2Deg, _axis) * _rot;
                 _prev = pos;
                 return;
             }

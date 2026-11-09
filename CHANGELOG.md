@@ -2,6 +2,17 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/ball-spin` (stage 6)
+
+**Ball physics, stage 6: the ball turns as the physics spins it.** Details: `docs/BALL_PHYSICS.md`. **The match does not change** (only the picture).
+- The rotational physics came with stages 2-5 (a 3D angular velocity, the Magnus force, the bounce and slip impulses, the spin of rolling). The three viewers still turned
+  the ball from its movement, so a curler did not turn about the vertical and a chip with backspin turned forward.
+- **Replay frames** end with the free ball's angular velocity (world axes, rad per replay second × 10); 0, 0, 0 while a player has it or with the old ground model.
+  The website, the classic page and Unity turn the ball about that axis in that direction; older replays and held balls fall back to the movement. The drawn rate stays
+  capped (0.5 rad a frame): a real 10 rev/s would strobe on a screen.
+- Changed together (the engine contract): `ReplayRecorder`, `app/src/engine/replay` and its copy in `web/src/replay`, the classic page, Unity.
+- **Tests**: `BallSpinReplayTests` (2), `replay.test.ts` (3); `yarn check` 130 / 130; the classic page plays a match in a browser with no page error. TESTS_LINE
+
 ## `feature/ball-roll` (stage 5)
 
 **Ball physics, stage 5: the ball on the ground.** Sources, classes (A-E) and numbers: `docs/BALL_PHYSICS.md`. **This changes the match, a little.**

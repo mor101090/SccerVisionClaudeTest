@@ -44,11 +44,24 @@ export class Ball3D {
     this.w = 0;
   }
 
-  /** Advances the spin from the ball's movement on the ground (metres) over dt seconds of playback. */
-  spin(x: number, y: number, height: number, dt: number, held = false) {
+  /**
+   * Advances the spin over dt seconds of playback: by the ball's physical angular velocity when the replay has it (w, world axes, rad per
+   * replay second), otherwise from its movement (rolling without slipping on the ground, a gentler turn in the air).
+   */
+  spin(x: number, y: number, height: number, dt: number, held = false, w?: [number, number, number]) {
     if (held) {
       // Held by the keeper or carried overhead for a throw-in: the ball moves with the hands and does not roll.
       this.w = 0;
+      this.prev = { x, y };
+      return;
+    }
+    const wn = w ? Math.hypot(w[0], w[1], w[2]) : 0;
+    if (w && wn > 0.01 && dt > 0) {
+      // The physics' own spin: its axis and its direction, so a curler turns about the vertical, a chip with backspin turns back. The visual
+      // rate is capped (0.5 rad a drawn frame) because a real 10 rev/s would strobe on screen.
+      this.axis = [w[0] / wn, w[1] / wn, w[2] / wn];
+      this.w = wn;
+      this.rotate(this.axis, Math.min(0.5, wn * dt));
       this.prev = { x, y };
       return;
     }

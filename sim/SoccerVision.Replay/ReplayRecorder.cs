@@ -40,7 +40,9 @@ namespace SoccerVision.Replay
         private int PassesAs90(int n) => (int)MathF.Round(n * _engine.Config.ClockSecondsPerSimSecond);
 
         /// <summary>... then the ball that went out and rolls on beyond the lines: x, y (decimetres), height (cm; -1: none).</summary>
-        public static readonly int FrameLength = PlayerBase + 22 * PlayerStride + 3 * 3 + 3 + 4 + 22;
+        /// <summary>... and last the free ball's angular velocity in world axes (x, y, z; radians per replay second x10, i.e. the physical spin times the
+        /// match pace; 0, 0, 0 while a player has it or with the old ground model), which the viewers turn the ball by (ball physics stage 6).</summary>
+        public static readonly int FrameLength = PlayerBase + 22 * PlayerStride + 3 * 3 + 3 + 4 + 22 + 3;
 
         private readonly MatchEngine _engine;
         private readonly int _fps;
@@ -178,7 +180,7 @@ namespace SoccerVision.Replay
             Team(b, e.Home, finalStats);
             b.Append(",\"away\":");
             Team(b, e.Away, finalStats);
-            b.Append(",\"frameLayout\":\"t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked,8=caught offside,16=sliding,32=on the ground,64=injured)] x22, then officials [x*10, y*10, flag] x3\"");
+            b.Append(",\"frameLayout\":\"t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked,8=caught offside,16=sliding,32=on the ground,64=injured)] x22, then officials [x*10, y*10, flag] x3, then the ball that went out [x*10, y*10, z*100], the other man of a substitution [x*10, y*10, facing*100, team*1000+shirt], each player's gesture x22, then the free ball's spin [wx, wy, wz] (rad per replay second *10)\"");
             b.Append(",\"statsLayout\":\"t*100, possession home/away (s*10), shots h/a, on target h/a, tackles h/a, tackles won h/a, dribbles h/a, dribbles won h/a, then the energy left of the 22 players (0-100), their ratings x10, then passes h/a and completed passes h/a as over a real 90 minutes\"");
             return b.ToString();
         }
@@ -366,6 +368,16 @@ namespace SoccerVision.Replay
             else { f.Add(0); f.Add(0); f.Add(0); f.Add(0); }
             // what each player is showing with his arms: kind * 100000 + fade * 1000 + angle in degrees (0: nothing)
             foreach (var p in e.AllPlayers) f.Add(e.GestureCode(p));
+            // the free ball's spin as the physics has it (rad per replay second: the sim runs MotionSpeed times faster than the replay clock)
+            if (e.Ball.IsFree && !e.Ball.InHands && e.Config.Ground != null)
+            {
+                var m = e.Ball.M;
+                // (a ball struck along the ground this very step has not been through the rolling model yet: it rolls, so show the spin of rolling)
+                var w = !m.HasWorldSpin && !m.IsAirborne ? new Vec3(-m.Vy / e.Config.Ball.RadiusM, m.Vx / e.Config.Ball.RadiusM, m.SideSpin) : m.AngularVelocity;
+                float k = 10f * e.Config.MotionSpeed;
+                f.Add((int)MathF.Round(w.X * k)); f.Add((int)MathF.Round(w.Y * k)); f.Add((int)MathF.Round(w.Z * k));
+            }
+            else { f.Add(0); f.Add(0); f.Add(0); }
         }
 
         private void AppendEvent(MatchEvent e)

@@ -275,7 +275,8 @@ namespace SoccerVision.Runtime
             _trail.emitting = false;
         }
 
-        public void Render(BallState ball, float alpha, float dt, bool inPlay = true)
+        /// <param name="motionSpeed">Sim seconds per second of play (MatchConfig.MotionSpeed): the physical spin is per sim second.</param>
+        public void Render(BallState ball, float alpha, float dt, bool inPlay = true, float motionSpeed = 1f, bool physicalSpin = false)
         {
             float x = Mathf.Lerp(ball.PrevPos.X, ball.Pos.X, alpha);
             float y = Mathf.Lerp(ball.PrevPos.Y, ball.Pos.Y, alpha);
@@ -297,7 +298,13 @@ namespace SoccerVision.Runtime
             // Held by the keeper or carried overhead for a throw-in: the ball moves with the hands and does not roll.
             // No spin while held (keeper's hands, carried overhead for a throw-in) or while play is stopped (the ball waits to be taken).
             bool held = !inPlay || (ball.Owner != null && (ball.InHands || ball.Owner.IsGoalkeeper || z > 0.4f));
-            _look.Spin(new Vector2(x, y), h, dt, held);
+            Vector3? spin = null;
+            if (physicalSpin && ball.IsFree && !ball.InHands)
+            {
+                var w = ball.M.AngularVelocity;
+                spin = new Vector3(w.X, w.Y, w.Z) * motionSpeed;
+            }
+            _look.Spin(new Vector2(x, y), h, dt, held, spin);
             _look.Winter = Atmosphere.Look.sky == Weather.Snow;
             _look.Redraw();
             Atmosphere.Shadows(new Vector2(x, y), _lights);

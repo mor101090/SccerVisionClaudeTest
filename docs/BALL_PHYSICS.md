@@ -213,6 +213,27 @@ inside the British 0.45-1.5 m/s². The passers aim with a roll table built from 
 | Passes won by the opponent | 70.0 -> 68.0 | 69.3 -> 66.7 | 69.6 -> 67.3 | - |
 | Pass completion % | 79.9 -> 79.7 | 79.8 -> 79.7 | about 79.7 | 80-85 |
 
+## Stage 6 - spin, shown as the physics has it (done)
+
+The rotational physics itself came with stages 2-5: a 3D angular velocity (stage 2), the Magnus force from it and its decay in flight (stage 3), the friction impulse that
+changes it at a bounce (stage 4), the slip that turns into rolling and the spin of rolling (stage 5). What stage 6 adds is that the viewers show it.
+
+**Before**: the three viewers (the website, the classic page, Unity) turned the ball from its movement - rolling on the ground, "a gentler spin" in the air - so a
+curler did not turn about the vertical, a chip with backspin turned forward, and a ball in the air spun whatever it was really doing. **Now**: every replay frame ends with the
+free ball's angular velocity (world axes, radians per replay second × 10: the physical spin times the match pace) and the viewers turn the ball about that axis, in that
+direction. While a player has the ball (or with the old ground model, which has no rolling spin) the frame carries 0, 0, 0 and the viewers fall back to the movement; so do
+replays saved before this (their frames end earlier). A ball struck along the ground this very step shows the spin of rolling (the rolling model has not run on it yet).
+
+**Kept as a choice**: the drawn rate is capped at 0.5 rad a drawn frame. A real shot spins at about 10 rev/s, which on a 60 Hz screen would strobe (the eye would see
+a random or a backwards turn); the axis and the direction are the physics' own.
+
+Changed together, as the engine contract requires: `ReplayRecorder` (frame length + 3), `app/src/engine/replay` (`replay.ts` reads `ball.w`, `ball3d.ts` turns by it,
+`drawPitch.ts` passes it), the same files in `web/src/replay`, the classic page (`00-core.js`, `03-ball.js`) and Unity (`Ball3DTexture.Spin`, `BallView.Render`,
+`MatchController`). The online guest view's frame swap copies the new numbers as they are (spin is not mirrored: the guest sees the same pitch).
+
+Tests: `BallSpinReplayTests` (each frame ends with the free ball's physical spin; a held ball and the old ground model write 0, 0, 0; every rolling ball turns),
+`app/src/engine/replay/replay.test.ts` (where the spin sits in the frame, read in rad per replay second, absent from older replays).
+
 ## Plan for the next stages
 
 | Stage | What | Changes the match? |
@@ -220,7 +241,7 @@ inside the British 0.45-1.5 m/s². The passers aim with a roll table built from 
 | 3 | **Done** (above). Flight: gravity, drag with Cd(Re, spin) and a drag crisis, Magnus as a vector force; knuckle side force not modelled (no coefficient model) | Yes: shots, crosses, long balls |
 | 4 | **Done** (above). Bounce: impulse model, e(v_n, surface), Coulomb friction at the contact point, spin in and out | Yes, a little |
 | 5 | **Done** (above). Rolling: slip → roll transition, rolling resistance a + b v per pitch profile (short / normal / long / wet / dry / turf) | Yes, a little |
-| 6 | Spin: 3D ω through flight, bounce and roll; torques; the renderer shows the real spin | Yes |
+| 6 | **Done** (above). 3D ω through flight, bounce and roll (stages 2-5); the viewers show the real spin | No (the picture only) |
 | 7 | Kicks: foot speed, contact point and friction → ball velocity and spin per kick type | Yes |
 | 8 | Collisions: posts, crossbar, players, keeper hands with impulses, continuous detection | Yes |
 | 9 | Deformation: a contact-time / compression model for impact losses; visual squash from the same numbers | Small |
