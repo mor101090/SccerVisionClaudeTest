@@ -57,7 +57,7 @@ namespace SoccerVision.Simulation.Tests
                 for (int i = 0; i < 1000; i++)
                 {
                     BallPhysics.Step(ref b, c, c.FixedStep);
-                    if (b.Z <= Pitch.BallRadius + 0.0005f && i > 5) break;
+                    if (b.Landed && i > 5) { drift = b.LandY; return b.LandX; } // (where it came down: since ball physics stage 10 the bounce is inside the step)
                 }
                 drift = b.Y;
                 return b.X;
