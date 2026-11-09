@@ -2,6 +2,18 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/ball-collisions` (stage 8)
+
+**Ball physics, stage 8: collisions.** Details: `docs/BALL_PHYSICS.md`. The old collisions stay available: `SimRunner --legacycollide` (`MatchConfig.Collisions = null`).
+- **One impulse for every contact** (`BallPhysics.Impact`): the stage 4 bounce about any normal, against a surface that may move - restitution on the normal speed, friction on the slip at the contact point, the spin changed with it. Tested: it is the bounce for n = +z, and it conserves angular momentum about the contact point.
+- **The goal frame** is two posts and a bar as capsules (round corners, a bar the ball can land on), and the ball is **swept** over each step: at 30 m/s it moves 0.6 m a step against a 0.17 m contact distance, so fast shots used to pass through the post. 0.13 of 0.82 frame contacts a match are ones the old end-of-step test missed.
+- Ball on the frame: e 0.85 at the FIFA drop-test speed (the ball's own rebound on concrete), falling 0.01 per m/s (0.66 for a shot square on at 25 m/s; the old model used 0.7 for everything); friction 0.3 (E).
+- **Players**: a block or a chance touch is an impulse off the body (a cylinder moving with the player), struck where the old model drew a direction - square on it comes back, at the edge it runs on, with spin. Keeper catches, parries and punches and blocked crosses stay aimed actions; the net stays a soft absorber.
+- **In the match** (800 distinct matches each): goals 2.99 -> 3.03 (noise; standard error 0.06), woodwork 0.38 -> 0.77, corners 8.8 -> 9.7 (real 10.4), shots blocked 6.24 -> 6.58, **headed share of goals 18.7% -> 21.5%** (above the real 13-19%): left for the calibration round.
+- **Correction to stage 7**: its goal rise (2.98 -> 3.10) was about 1.4 standard errors, not conclusive; a second, independent 800 matches gave 2.93 -> 2.99. The doc no longer calls it a real effect.
+- **Side effects** (measured with both models on the same seeds): the crossing style crosses 21.2 -> 18.9 a match (a block hands the winger the ball back less often; still x1.35 normal play's), so `CrossesIntoTheBoxCrossesMore` now looks at 24 matches (six landed at x1.13). Dives are unchanged over 240 matches (26 / 19 v 24 / 15 bought / booked), but 32 matches drew none bought: `BoldKeepersStandHigherAndTheDiverGoesDownNearTheBox` now looks at 64. Assertions unchanged.
+- **Tests**: `BallCollisionTests` (7). `dotnet test sim/` -> 300 / 302 before the two sample sizes above (1 h 2 m); on the final commit **Passed! 302 / 302** (1 h 10 m).
+
 ## `feature/ball-kick` (stage 7)
 
 **Ball physics, stage 7: what the foot gives the ball.** Details: `docs/BALL_PHYSICS.md`. The old kicks stay available: `SimRunner --legacykick` (`MatchConfig.Kick = null`).

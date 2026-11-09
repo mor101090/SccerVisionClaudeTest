@@ -287,12 +287,75 @@ spin ranges stand in for it), the contact time (stage 9), backspin on lofted lon
 | Free-kick goals | 0.11 | 0.11 | ~0.05-0.1 |
 | Woodwork | 0.33 | 0.38 | ~0.6-0.8 (est.) |
 
-Goals rise by 0.12 a match (4%; the seeds' spread puts that at about 1.4 standard errors, so a real but small effect): more shots on target, a few more hit the
+Goals rise by 0.12 a match (4%; the seeds' spread puts that at about 1.4 standard errors, which is not conclusive: a second, independent 800 matches measured
+during stage 8 gave 2.93 -> 2.99, +0.07, 0.8 standard errors; so a small rise at most): more shots on target, a few more hit the
 woodwork (the stronger curl brings more of them to the corners). The engine now scores 3.10 a match against the real 2.83; it was 2.95 after stage 5. The
 calibration round planned after the kick stages (with the marking gap) is where that is brought back - not by tuning the measured physics.
 
 Tests: `BallKickTests` (the curve kick spins as measured; the spin scales with the speed; the fastest strike; the coupling equals the impact model for any e; the
 speed-spin trade-off in the strikes; both kick models deterministic and the new one wired in).
+
+## Stage 8 - collisions (done)
+
+`Core/CollisionModel.cs`, `BallPhysics.Impact`, `MatchConfig.Collisions` (null: the collisions before this stage, `SimRunner --legacycollide`).
+
+**One impulse for every contact.** `BallPhysics.Impact` is the bounce of stage 4 about any contact normal n, against a surface that may move (a player
+running into the ball): the ball's normal speed relative to the surface is turned back times e; friction at the contact point r = -R n works on the slip
+u = v + w x r, up to mu x the normal impulse, and changes the spin by (r x J) / I. With n = +z it is the bounce exactly (tested), and the ball's angular
+momentum about the contact point is conserved through it (tested): the spin and the speed change together, as the physics says.
+
+**The goal frame.** Two posts and the bar are capsules (segments with the posts' 6 cm radius), so the corners where they meet are round and a ball can
+land on top of the bar. The old test looked at the end of each 0.02 s step only: a ball at 30 m/s moves 0.6 m a step while the contact distance is 0.17 m,
+so a fast shot could pass through a post. The ball's path over the step is now sampled finer than the contact distance and the first touch refined by
+bisection; the ball is put there, takes the impulse and spends the rest of the step on its new velocity. In the match, 0.13 of the 0.82 frame contacts a
+match are ones the end-of-step test would have missed.
+
+| Parameter | Value | Class |
+|---|---|---|
+| Ball on the frame, e at 6.26 m/s | 0.85: FIFA sets the ball's pressure so that it rebounds 1.45 m on concrete from 2.0 m (Test Manual I, 2024); a steel or aluminium post is as rigid as concrete for the ball | C from A |
+| e falls with the impact speed | 0.01 per m/s (0.66 for a shot square on at 25 m/s; the old model: 0.7 for every impact) | E: the ground model's analogy with tennis balls; the football studies found (Sheffield Hallam, Loughborough, *Sports Engineering* 2022) could not be read |
+| Friction ball / post | 0.3 | E |
+| Body radius (trunk and legs as one cylinder) | 0.2 m (only the direction of the normal depends on it) | D |
+| Ball on a body, e | 0.2-0.55 for a block, 0.25-0.5 for a chance touch (the old model's drawn speed shares, now restitutions) | D |
+| Friction ball / body | 0.4 | E |
+
+**Players.** A block or an unintended touch (`BlockShot`, `Deflect`; the keeper's knock-down too) is an impulse off the player's body: a vertical cylinder
+moving with him, struck at a lateral offset drawn where the old model drew a direction (the same random numbers, in the same order). Square on, the ball
+comes back the way it came; at the edge it runs on, a little slowed, with spin from the friction. The normal tilts up by up to 30 degrees (a shin, thigh or
+chest facing up) where the old model drew a pop-up. The old deflections kept the ball's direction within 75 degrees whatever the touch.
+
+**Kept as they were** (and why): the keeper's catches, parries and punches are aimed actions (he chooses where to push the ball: round the post, over the
+bar, away from danger), with speeds of 0.3-0.5 of the shot's, which is what a soft, yielding hand gives (class D); a blocked cross is a leg swung at the
+ball towards the line, also aimed; the net stays a soft absorber (e 0.12, class D).
+
+**In the match** (800 distinct matches each: seeds 1, 1001, 2001 and 3001 x 200; standard error of the goals' mean about 0.06):
+
+| Per match | Before stage 7 | Stage 7 | Stage 8 | Real (PL) |
+|---|---|---|---|---|
+| Goals | 2.93 | 2.99 | 3.03 | 2.83 [C] |
+| Shots | 25.53 | 25.73 | 26.46 | 25.4 [C] |
+| Shots on target | 8.45 | 8.66 | 8.82 | 8.8 [C] |
+| Shots blocked | 6.21 | 6.24 | 6.58 | 6-7 |
+| Woodwork | 0.37 | 0.38 | 0.77 | ~0.6-0.8 (est.) |
+| Corners | 9.23 | 8.79 | 9.68 | 10.4 [C] |
+| Headed goals, % of goals | 17.6 | 18.7 | 21.5 | 13-19 |
+| Pass completion % | 79.8 | 80.0 | 79.7 | 80-85 |
+
+The woodwork count doubles: the posts no longer let fast shots through, and the round corners and the top of the bar now take the ball too. Blocks
+that come back off a body give more second shots and more corners. Goals move by 0.04 (noise). **The headed share of goals rises to 21.5%, above the
+real 13-19%** (the four seeds give 19.6-23.1%, so this looks real): balls lifted off a body and rebounds off the frame fall in the box. It is left for the
+calibration round with the goals and the marking gap, not tuned in the collision physics.
+
+Two tactical side effects, measured with the old collisions and the new on the same seeds (diagnostics compared counter by counter):
+- **The crossing style crosses less**: 21.2 -> 18.9 crosses a match (40 matches; normal play 13.8 -> 13.9). A block no longer sends the ball back to
+  the winger as often (crosses blocked 12.0 -> 10.4, attempts 29.1 -> 26.0, the rebound xG falls by a third), so he gets fewer second tries. The style
+  still crosses x1.35 more than normal play (x1.54 before). `CrossesIntoTheBoxCrossesMore` now looks at 24 matches; on its six it landed at x1.13.
+- **Dives**: none bought in the 32 matches of `BoldKeepersStandHigherAndTheDiverGoesDownNearTheBox`, but over 240 matches the two models agree
+  (26 bought / 19 booked v 24 / 15). It was the sample, not the physics; the test now looks at 64 matches.
+
+Tests: `BallCollisionTests` (the impact is the bounce about any normal; angular momentum about the contact point is conserved; the frame takes more from a
+harder hit and nothing is created; a 32 m/s shot at the post is always caught, which the old test missed; the bar's top and its corners are round; a glancing
+hit on the post spins the ball; both collision models deterministic and the new one wired in).
 
 ## Plan for the next stages
 
@@ -303,7 +366,7 @@ speed-spin trade-off in the strikes; both kick models deterministic and the new 
 | 5 | **Done** (above). Rolling: slip → roll transition, rolling resistance a + b v per pitch profile (short / normal / long / wet / dry / turf) | Yes, a little |
 | 6 | **Done** (above). 3D ω through flight, bounce and roll (stages 2-5); the viewers show the real spin | No (the picture only) |
 | 7 | **Done** (above). Kicks: measured spin per kick type, foot speed cap, an oncoming ball's share; contact point and friction not modelled as such | Yes |
-| 8 | Collisions: posts, crossbar, players, keeper hands with impulses, continuous detection | Yes |
+| 8 | **Done** (above). Collisions: the frame as capsules with a swept test, impulses with restitution, friction and spin against the frame and players' bodies; keeper parries stay aimed | Yes |
 | 9 | Deformation: a contact-time / compression model for impact losses; visual squash from the same numbers | Small |
 | 10 | Stability: fixed step, continuous collision against posts and ground, determinism kept | No (safety) |
 | 11 | Test bench: TESTS 2-14 with the recorded quantities (initial / final speed, spin, flight time, distance, bounce height, energy loss) | No |

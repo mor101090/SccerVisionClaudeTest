@@ -236,6 +236,38 @@ namespace SoccerVision.Simulation
         }
 
         /// <summary>
+        /// An impact against any surface (stage 8: the goal frame, a player): the bounce's impulse about the contact normal n (unit, from the
+        /// surface to the ball's centre). The surface moves with <paramref name="surfaceVelocity"/> (a player running into the ball); the ball's
+        /// speed relative to it along n is turned back times e, and friction at the contact point r = -R n works on the slip u = v + w x r, up to
+        /// mu x the normal impulse, changing the spin by (r x J) / I. Returns the normal impact speed (0 if the ball was moving away).
+        /// </summary>
+        public static float Impact(ref BallMotion b, MatchConfig c, Vec3 n, float e, float mu, Vec3 surfaceVelocity)
+        {
+            b.AdoptWorldSpin();
+            var v = new Vec3(b.Vx, b.Vy, b.Vz) - surfaceVelocity;
+            float vn = Vec3.Dot(v, n);
+            if (vn >= 0f) return 0f;
+            float R = c.Ball.RadiusM, k = c.Ball.InertiaFactor;
+            var w = new Vec3(b.Wx, b.Wy, b.Wz);
+            float jn = -(1f + e) * vn;                                   // normal impulse / m
+            var u = v - R * Vec3.Cross(w, n);                            // slip of the contact point: v + w x (-R n)
+            var ut = u - n * Vec3.Dot(u, n);
+            float us = ut.Length;
+            v += n * jn;
+            if (us > 1e-6f)
+            {
+                float dv = MathF.Min(us * k / (1f + k), mu * jn);
+                var j = ut * (-dv / us);
+                v += j;
+                w -= Vec3.Cross(n, j) / (k * R);                         // (r x J) / (k m R^2) with r = -R n
+            }
+            v += surfaceVelocity;
+            b.Vx = v.X; b.Vy = v.Y; b.Vz = v.Z;
+            b.Wx = w.X; b.Wy = w.Y; b.Wz = w.Z;
+            return -vn;
+        }
+
+        /// <summary>
         /// The ball on the ground (stage 5). While its contact still slips after a landing, sliding friction mu g works on the slip (it changes both the
         /// speed and the spin, exactly as in the bounce, until the bottom of the ball stops slipping). A rolling ball has the spin of rolling (w = z x v / R)
         /// and slows by the rolling resistance a + b v of the ground profile plus the air drag on a rolling ball (1/(1+k) of the free value, since the

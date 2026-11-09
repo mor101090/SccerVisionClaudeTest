@@ -62,7 +62,9 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void CrossesIntoTheBoxCrossesMore()
         {
-            double normal = Avg(null, e => e.Home.Stats.Crosses), crosses = Avg(t => t.Attack = AttackStyle.CrossesIntoBox, e => e.Home.Stats.Crosses);
+            // (24 matches: since the collisions of ball physics stage 8 a block no longer hands the winger the ball back as often, so the style's
+            // gain is about x1.35 over 40 matches, not x1.55; six matches landed at x1.13)
+            double normal = Avg(null, e => e.Home.Stats.Crosses, 24), crosses = Avg(t => t.Attack = AttackStyle.CrossesIntoBox, e => e.Home.Stats.Crosses, 24);
             Assert.True(crosses > normal * 1.25, $"crosses: style {crosses:0.0} v normal {normal:0.0}");
         }
 

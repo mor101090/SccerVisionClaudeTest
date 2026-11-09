@@ -448,8 +448,41 @@ namespace SoccerVision.Simulation
         {
             Vec2 v = Ball.Velocity;
             float speed = v.Length;
+            if (Config.Collisions != null && speed > 0.5f)
+            {
+                // where on the body it struck (the old model's direction draw) and how much the leg or knee tilts it up (its pop-up draw)
+                float offset = _rng.Range(-1.3f, 1.3f) / 1.3f, lift = _rng.Range(0f, popUp * 2f) / (popUp * 2f);
+                BodyImpact(p, energy, offset, lift);
+                return;
+            }
             Vec2 dir = speed > 0.5f ? (v / speed).Rotate(_rng.Range(-1.3f, 1.3f)) : Vec2.FromAngle(_rng.Range(0f, MathUtil.TwoPi));
             SetDeflection(p, dir * MathF.Max(1.5f, speed * energy), _rng.Range(0f, popUp * 2f));
+        }
+
+        /// <summary>
+        /// The ball strikes a player's body unintentionally (stage 8): the body is a vertical cylinder moving with the player, struck at a lateral
+        /// offset in [-1, 1] of its half-width (0 = square on: the ball comes back the way it came; +-1 = a glancing touch: it runs on, a little
+        /// slowed). The contact normal tilts up by up to 30 degrees (a shin, thigh or chest facing up, class D) by <paramref name="lift"/>. The
+        /// impulse is the bounce's (<see cref="BallPhysics.Impact"/>) with restitution e: a body gives far more than a post (e 0.2-0.55, the
+        /// old model's drawn speed shares, class D) and its friction puts spin on the ball.
+        /// </summary>
+        private void BodyImpact(PlayerAgent p, float e, float offset, float lift)
+        {
+            var cm = Config.Collisions;
+            Vec2 rel = Ball.Velocity - p.Vel;
+            Vec2 u = rel.LengthSq > 0.01f ? rel.Normalized : Ball.Velocity.Normalized;
+            Vec2 side = new Vec2(-u.Y, u.X);
+            offset = MathUtil.Clamp(offset, -1f, 1f);
+            Vec2 nh = -u * MathF.Sqrt(1f - offset * offset) + side * offset;
+            float tilt = 0.5236f * MathUtil.Clamp01(lift);
+            var n = new Vec3(nh.X * MathF.Cos(tilt), nh.Y * MathF.Cos(tilt), MathF.Sin(tilt));
+            var m = Ball.M;
+            BallPhysics.Impact(ref m, Config, n, e, cm.BodyFriction, new Vec3(p.Vel.X, p.Vel.Y, 0f));
+            float vz = m.Vz;
+            if (vz < 0f && Ball.Z <= Pitch.BallRadius + 0.02f) vz = 0f;   // (a ball on the ground cannot be driven into it)
+            SetDeflection(p, new Vec2(m.Vx, m.Vy), vz);
+            Ball.M.Wx = m.Wx; Ball.M.Wy = m.Wy; Ball.M.Wz = m.Wz; Ball.M.HasWorldSpin = true;
+            if (CollectDiagnostics) Count("body.impact");
         }
 
         /// <summary>A defender near the crosser, touching the cross in its first moments.</summary>
@@ -481,6 +514,14 @@ namespace SoccerVision.Simulation
             }
             Ball.IsShot = false;
             Vec2 v = Ball.Velocity;
+            if (Config.Collisions != null && v.LengthSq > 1f)
+            {
+                // the same draws: where it struck him (a block puts the body square on more often than a chance touch: +-0.9 of +-1),
+                // how much he gives (e 0.2-0.55) and how far the leg tilts it up
+                float offset = _rng.Range(-0.9f, 0.9f), e = _rng.Range(0.2f, 0.55f), lift = _rng.Range(0f, 4f) / 4f;
+                BodyImpact(p, e, offset, lift);
+                return;
+            }
             Vec2 dir = v.LengthSq > 1f ? v.Normalized.Rotate(_rng.Range(-0.9f, 0.9f)) : p.FacingDir;
             SetDeflection(p, dir * MathF.Max(3f, v.Length * _rng.Range(0.2f, 0.55f)), _rng.Range(0f, 4f));
         }
