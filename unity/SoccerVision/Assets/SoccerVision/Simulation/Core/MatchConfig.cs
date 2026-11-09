@@ -99,6 +99,14 @@ namespace SoccerVision.Simulation
         /// (one drag constant, two scalar spins), kept for comparison (`SimRunner --legacyflight`).
         /// </summary>
         public AeroModel Aero = AeroModel.Reference;
+        /// <summary>
+        /// How the pitch takes a bounce (restitution by impact speed, friction at the contact, spin in and out; see <see cref="GroundModel"/>).
+        /// Null: the bounce before the ball-physics work (one restitution, one horizontal factor, half the spin lost), kept for comparison
+        /// (`SimRunner --legacybounce`). Rain switches it to the wet profile of the same surface.
+        /// </summary>
+        public GroundModel Ground = GroundModel.NaturalDry;
+        /// <summary>The surface is football turf (artificial) rather than natural grass (picks the matching dry and wet ground profile).</summary>
+        public bool ArtificialTurf;
         /// <summary>Air density, kg/m³. Goff and Carre use 1.2 (about 20 °C at sea level); the standard atmosphere at 15 °C is 1.225 (class A/D).</summary>
         public float AirDensity = 1.2f;
         /// <summary>Dynamic viscosity of air, Pa·s: 1.85e-5 (Goff and Carre's kinematic viscosity 1.54e-5 m²/s times 1.2 kg/m³, class B).</summary>
@@ -163,6 +171,12 @@ namespace SoccerVision.Simulation
             var c = Conditions;
             if (c == null) return;
             c.Sanitize();
+            if (Ground != null)
+            {
+                // the surface, then the weather: rain wets it (the ball slides through the bounce), snow kills the bounce (class D, as before: 0.3 / 0.55 of it)
+                Ground = ArtificialTurf ? (c.IsWet ? GroundModel.ArtificialWet : GroundModel.ArtificialDry) : (c.IsWet ? GroundModel.NaturalWet : GroundModel.NaturalDry);
+                if (c.IsSnow) Ground = Ground.With(Ground.Name + ", snow", restitution: Ground.Restitution * 0.3f / 0.55f);
+            }
             if (c.IsWet)
             {
                 RollingDecel *= 0.65f;

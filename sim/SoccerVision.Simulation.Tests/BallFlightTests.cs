@@ -109,7 +109,7 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void Test7_TopspinDropsTheBallBelowTheNoSpinPath()
         {
-            // (the ground behaviour of topspin is the bounce stage; here the flight: the ball is already lower 15 m out, and by more further on)
+            // (the ground behaviour of topspin is in BallBounceTests; here the flight: the ball is already lower 12 m out, and by more further on)
             float HeightAt(float x, Vec3 w)
             {
                 var c = MatchConfig.CreateDefault();
@@ -117,10 +117,12 @@ namespace SoccerVision.Simulation.Tests
                 for (int i = 0; i < 400 && b.X < x; i++) BallPhysics.Step(ref b, c, c.FixedStep);
                 return b.Z;
             }
-            float none15 = HeightAt(15f, Vec3.Zero), top15 = HeightAt(15f, new Vec3(0f, 70f, 0f));
-            float none25 = HeightAt(25f, Vec3.Zero), top25 = HeightAt(25f, new Vec3(0f, 70f, 0f));
-            Assert.True(top15 < none15 - 0.25f, $"15 m out: topspin {top15:0.00} m, none {none15:0.00} m");
-            Assert.True(none25 - top25 > none15 - top15, $"the gap widens: {none15 - top15:0.00} m at 15 m, {none25 - top25:0.00} m at 25 m");
+            // (both points before the topspin ball comes down, so the bounce plays no part)
+            float none15 = HeightAt(12f, Vec3.Zero), top15 = HeightAt(12f, new Vec3(0f, 70f, 0f));
+            float none25 = HeightAt(20f, Vec3.Zero), top25 = HeightAt(20f, new Vec3(0f, 70f, 0f));
+            Assert.True(top25 > Pitch.BallRadius + 0.05f, $"the topspin ball is still in the air 20 m out ({top25:0.00} m)");
+            Assert.True(top15 < none15 - 0.25f, $"12 m out: topspin {top15:0.00} m, none {none15:0.00} m");
+            Assert.True(none25 - top25 > none15 - top15, $"the gap widens: {none15 - top15:0.00} m at 12 m, {none25 - top25:0.00} m at 20 m");
         }
 
         [Fact]

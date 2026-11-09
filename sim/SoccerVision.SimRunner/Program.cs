@@ -32,7 +32,7 @@ bool golden = false;
 int exportRoster = 0;
 // --home-strength / --away-strength weak|medium|strong: how good each demo squad is (medium: the squads the game always had)
 TeamStrength homeStrength = TeamStrength.Medium, awayStrength = TeamStrength.Medium;
-bool legacyFlight = false; bool swap = false; var adjusts = new List<(string Name, int Delta)>();
+bool legacyFlight = false, legacyBounce = false, artificial = false; bool swap = false; var adjusts = new List<(string Name, int Delta)>();
 for (int i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -73,7 +73,9 @@ for (int i = 0; i < args.Length; i++)
         case "--mangap": MatchEngine.ManMarkGapScale = float.Parse(args[++i]); break; // (experiment)
         case "--zoneradius": MatchEngine.ZoneRadiusScale = float.Parse(args[++i]); break; // (experiment)
         case "--savebase": MatchEngine.SaveBase = float.Parse(args[++i]); break; // (experiment: the save chance of an easy shot)
-        case "--legacyflight": legacyFlight = true; break; // (comparison: the ball flight as it was before the ball-physics work)
+        case "--legacyflight": legacyFlight = true; break;
+        case "--legacybounce": legacyBounce = true; break; // (comparison: the bounce as it was before stage 4)
+        case "--artificial": artificial = true; break; // (the pitch is football turf) // (comparison: the ball flight as it was before the ball-physics work)
         case "--closereach": MatchEngine.CloseReachBase = float.Parse(args[++i]); break; // (experiment: a keeper's reach against a shot that is on him at once)
         case "--home-strength": homeStrength = Enum.Parse<TeamStrength>(args[++i], true); break;
         case "--away-strength": awayStrength = Enum.Parse<TeamStrength>(args[++i], true); break;
@@ -115,6 +117,8 @@ MatchConfig MakeConfig()
 {
     var c = MatchConfig.CreateDefault();
     if (legacyFlight) c.Aero = null;
+    if (legacyBounce) c.Ground = null;
+    c.ArtificialTurf = artificial;
     c.HomeAdvantage = homeAdvantage;
     c.MomentumStrength = momentumStrength;
     if (motion.HasValue) c.MotionSpeed = motion.Value;

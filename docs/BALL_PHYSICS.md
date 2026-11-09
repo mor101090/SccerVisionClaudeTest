@@ -21,6 +21,10 @@ A number read only through a search result or an abstract (the full text was not
 |---|---|---|
 | [IFAB Law 2, The Ball](https://www.theifab.com/laws/latest/the-ball/) | The page itself: circumference 68-70 cm, 410-450 g "in weight at the start of the match", pressure "0.6-1.1 atmosphere (600-1,100 g/cm²) at sea level" | Class A limits in `BallSpec` |
 | Goff and Carré, [Trajectory analysis of a soccer ball](https://doi.org/10.1119/1.3197187), *Am. J. Phys.* 77(11):1020-1027, 2009 | **The full text** (a PDF copy, read page by page, figures included). Equations of motion, Re = vD/ν with ν = 1.54e-5 m²/s and D = 0.218 m, mass 0.424 kg, A = 0.0375 m², ρ = 1.2 kg/m³; Fig. 6 (wind-tunnel Cd(Re) of two series), Fig. 7 (Cd(Sp)), Fig. 8 (CL(Sp), wind tunnel and their own trajectory points), their measured no-spin range of 21.9 m at 18 m/s and 22° (Cd 0.2) and 0.17 at 19.4 m/s, the spin decay estimate, the Beckham estimate | **Class B**: the source of the flight tables. Values read from the figures by eye (±0.03 on Cd, ±0.04 on CL) |
+| FIFA, [Test Manual I](https://www.sporteimpianti.it/wp-content/uploads/2024/04/FIFA-TTM-I-Layout-v8.pdf) (football turf, April 2024) | **The text itself.** Test balls are inflated to rebound 1.45 ± 0.03 m on concrete from 2.0 m. Method 2024-01: vertical rebound of a ball dropped from 2.00 m (underside). Method 2024-02: ball roll from a 1 m, 45° ramp. Method 2024-14: angle ball rebound = speed after / before for a ball fired at 50 ± 2 km/h and 30 ± 2°, with under 3 rev/s of spin | **Class A** test methods; stage 4 (and 5) |
+| FIFA, [Natural-Pitch Rating System](https://digitalhub.fifa.com/m/58aa765dd3e85f26/original/FIFA-natural-pitch-rating-system_EN.pdf) (May 2022) | **The text itself.** "Excellent" natural pitch: vertical ball rebound 0.60-1.00 m (satisfactory 0.50-0.59 or 1.01-1.10), ball roll 4.0-10.0 m | **Class A** ranges; stage 4 (and 5) |
+| The English FA, conditions of use for artificial pitches (through a search, secondary) | FIFA Quality turf: vertical rebound 0.60-1.00 m (Quality Pro 0.60-0.85 m), angle ball rebound 45-70% dry, 45-80% wet, ball roll 4-10 m | Secondary; stage 4 |
+| J. Thomas, [Soccer Ball Interactions on Wet and Dry Turfgrasses at Various Mowing Heights](https://trace.tennessee.edu/utk_gradthes/11814), MSc thesis, University of Tennessee, 2024 | **The abstract only** (the full text is embargoed until 2027): angle ball rebound 56% (Kentucky bluegrass) and 69% (bermudagrass) dry, 74-76% lightly irrigated (63% for one); vertical rebound changed by 7 cm or less dry v wet and with mowing height; lower mowing gives a longer roll | Class B (abstract); stage 4 |
 | Asai, Kimachi, Liu, Koido, Nakayama, Goff, Hong, [Measurements of the Flight Trajectory of a Spinning Soccer Ball and the Magnus Force Acting on It](https://www.mdpi.com/2504-3900/49/1/88), *Proceedings* 49(1):88, 2020 | **Not the full text** (the publisher refuses automated downloads). Title and authors from Crossref; from the abstract through a search: time-averaged side-force coefficients 0.21, 0.24, 0.29 at time-averaged spin parameters 0.18, 0.22, 0.34 (spin parameter Sp = Rω/U), vertical spin axes, the side force falls as the ball slows | Secondary: the audit below; stage 3 |
 | Goff, Hong, Asai, [Influence of Surface Properties on Soccer Ball Trajectories](https://www.mdpi.com/2504-3900/49/1/143), *Proceedings* 49(1):143, 2020 | **Not the full text.** From search snippets: the drag coefficient depends on speed and spin; the drag crisis (a sharp fall of Cd at a critical Reynolds number) differs between balls (Jabulani, Brazuca, a smooth ball of the same size; the smooth ball has the highest critical Reynolds number); panel texture, seam width and depth matter | Secondary, qualitative only: stage 3 |
 | Paudel, Yan, [High-fidelity simulations of full-flight soccer ball aerodynamics using a monolithic overset approach](https://link.springer.com/article/10.1007/s00466-025-02705-2), *Computational Mechanics*, 2025 | The abstract (Crossref): fully coupled CFD of a spinning free kick; spin rate drives the lateral deviation, kick speed the range and flight time; a smoother ball shows a stronger Magnus effect; compared with an ODE model using empirical drag coefficients | Qualitative: why a coefficient model (not CFD) is the right tool in a game; no numbers taken |
@@ -128,12 +132,53 @@ shots 21.6 (24.0) and headed shots 1.5 (3.7) a match, because the crosses missed
 | Passes | 441.7 | 441.3 | - |
 | Pass completion % | 79.3 | 79.4 | 80-85 |
 
+## Stage 4 - the bounce (done)
+
+`Core/GroundModel.cs`, `MatchConfig.Ground` / `ArtificialTurf`, `BallPhysics.Bounce`. Tests: `BallBounceTests` (TESTS 2, 3, 13 and the ground side of 6-7).
+`MatchConfig.Ground = null` (`SimRunner --legacybounce`) is the old bounce, bit for bit.
+
+**Model**: an impulse at the contact point. Normal: v_n' = e(v_n) v_n. Tangential: the slip of the bottom of the ball u = v_t + ω × r (r = -R ẑ); friction
+acts against it with at most μ (1 + e) m v_n; the impulse that stops the slip is m |u| k / (1 + k) (k from I = k m R²). If friction can give that much, the ball
+grips and leaves rolling; otherwise it slides through. The same impulse changes the spin by (r × J) / I. So a ball with no spin landing at an angle leaves with
+topspin, backspin checks it (less speed along the ground), topspin kicks it on, and spin about the vertical axis is untouched. A bounce never adds energy (checked
+over 200 random impacts). e = sqrt(h_rebound / h_drop) for the drop test.
+
+| Parameter | Value | Class and source |
+|---|---|---|
+| Drop-test impact speed | 6.26 m/s (sqrt(2 g × 2.00 m)) | C from the FIFA method |
+| e, natural grass | 0.632 at 6.26 m/s: a 0.80 m rebound, the middle of FIFA's "excellent" 0.60-1.00 m | D inside an A range |
+| e, football turf | 0.602: 0.725 m, the middle of FIFA Quality Pro 0.60-0.85 m | D inside an A range |
+| e by impact speed | -0.01 per m/s above 6.26 m/s (+0.01 below), clamped 0.2-0.95 | **E**: no measurement for a football found; the slope is borrowed from pressurised tennis balls on a rigid plate (0.8 at 3 m/s to 0.6 at 20 m/s, Dignall 2005) |
+| e, wet | the same as dry | B: Thomas 2024 found 7 cm or less of difference |
+| μ, dry (grass and turf) | 0.6 | D: anything above about 0.45 grips in the FIFA angle test; the result (about 60%) is inside the dry range and between the thesis' 56% and 69% |
+| μ, natural wet | 0.22 | C: reproduces the thesis' 74-76% when lightly irrigated |
+| μ, turf wet | 0.25 | D: inside FIFA's wet range (45-80%) |
+| Snow | e × 0.55 (0.3 / 0.55, the old ratio) | D, as before |
+| Mud, puddles (local) | e × (1 - 0.45 mud - 0.75 water), μ × (1 - 0.15 mud - 0.35 water) | D, as before |
+| Below 1.1 m/s of normal impact the ball stops bouncing and rolls | | D, as before |
+| Ball pressure | not in the bounce yet | E: the FIFA ball is set to 1.45 m on concrete (e 0.85); a law for e(pressure) was not found |
+
+**Checked**: the FIFA drop test gives a rebound inside the excellent range on grass and inside Quality Pro on turf; the higher the drop, the smaller the fraction
+that comes back; the FIFA angle test gives 50-70% dry and 70-80% wet (the thesis: 56-69% and 74-76%); a dry bounce grips (the contact point stops slipping);
+repeated bounces lose energy every time and the ball is rolling after 3-10 bounces and under 5 s.
+
+**Match statistics, old bounce v new bounce** (both with the physical flight; `SimRunner`, 200 matches a seed, medium v medium; the old bounce reproduces stage 3 to the digit):
+
+| | seed 700 old / new | seed 900 old / new | mean old -> new | real |
+|---|---|---|---|---|
+| Goals | 2.75 / 2.90 | 3.00 / 2.94 | 2.88 -> 2.92 | 2.83 |
+| Shots | 25.1 / 26.7 | 25.9 / 25.4 | 25.5 -> 26.1 | 25.4 |
+| On target | 7.97 / 8.86 | 8.65 / 8.36 | 8.31 -> 8.61 | 8.8 |
+| Headed goals, % | 18.4 / 19.2 | 22.2 / 18.7 | 20.3 -> 19.0 | 13-19 |
+| Passes, completion % | 441 / 449, 79.4 / 79.9 | 445 / 448, 79.6 / 79.8 | +5, 79.5 -> 79.8 | 80-85 |
+| Volleys | 4.97 / 5.39 | 5.36 / 5.63 | 5.2 -> 5.5 | - |
+
 ## Plan for the next stages
 
 | Stage | What | Changes the match? |
 |---|---|---|
 | 3 | **Done** (above). Flight: gravity, drag with Cd(Re, spin) and a drag crisis, Magnus as a vector force; knuckle side force not modelled (no coefficient model) | Yes: shots, crosses, long balls |
-| 4 | Bounce: impulse model with restitution e(v_n, surface) and Coulomb friction at the contact point, spin in and out | Yes |
+| 4 | **Done** (above). Bounce: impulse model, e(v_n, surface), Coulomb friction at the contact point, spin in and out | Yes, a little |
 | 5 | Rolling: slip → roll transition, rolling resistance μr per pitch profile (short / long / wet / dry / artificial), spin decay | Yes: every pass |
 | 6 | Spin: 3D ω through flight, bounce and roll; torques; the renderer shows the real spin | Yes |
 | 7 | Kicks: foot speed, contact point and friction → ball velocity and spin per kick type | Yes |
