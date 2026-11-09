@@ -2,6 +2,16 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/ball-stability` (stage 10)
+
+**Ball physics, stage 10: the 20 ms step does what a step 200 times finer does.** Details: `docs/BALL_PHYSICS.md`.
+- **A dead landing**: a falling ball that ended a step within 0.5 mm of the grass counted as rolling and lost its bounce (about 0.2-1% of landings). Now only a ball not moving vertically rolls.
+- **The bounce inside the step**: the ball meets the grass where its path crosses it during the step, bounces there at the velocity it had then and spends the rest of the step on its new velocity (it used to bounce up to a step - 0.6 m at 30 m/s - late).
+- **The trapezoid rule**: flight and rolling move the ball on the mean of the step's start and end velocities. Landings are now within 2-3 cm of the fine step (a driven shot landed 0.55 m short), bounces within 1-2% (5-10% low), rolls within 0.3% (0.7% short).
+- **A bug of this stage's own, caught before it shipped**: with the bounce inside the step the kickers' aim (`KickSolver`) found the second bounce, and headed goals fell from 21% to 3% in 800 matches. The step now reports where the ball landed (`BallMotion.Landed` / `LandX` / `LandY` / `LandSpeed`) and a test checks the aim against the flight.
+- **In the match** (800 distinct matches each): goals 3.03 -> 2.94 (1.4 standard errors, not conclusive; real 2.83), headed share 21.4% -> 20.6%, pass completion 79.8% -> 79.7%.
+- **Tests**: `BallStabilityTests` (12): against the fine step, the dead landing, the aim, no energy gained in flight, extreme balls, and the match independent of how the host cuts its time.
+
 ## `feature/ball-deformation` (stage 9)
 
 **Ball physics, stage 9: the ball flattens.** Details: `docs/BALL_PHYSICS.md`. **The match does not change** (measured); the picture does.

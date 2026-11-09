@@ -413,6 +413,46 @@ and touches shorter; the frame's restitution falls as the measured ball's did; t
 them; the deformation does not change the match), `replay.test.ts` (the contact read from the frame, absent from older replays, the flat
 side and its depth, nothing from above for a bounce).
 
+## Stage 10 - stability (done)
+
+The ball's integrator was measured against itself at a step 200 times finer (0.1 ms, the reference), for a drop, a long ball, a driven shot, a
+chip and rolls. Three faults showed, all fixed:
+
+| Fault | Effect at the game's 20 ms step (before) | Fix | After |
+|---|---|---|---|
+| A falling ball that ended a step within 0.5 mm of the grass counted as rolling | its vertical speed was zeroed: it died on the grass without a bounce (about 0.2% of landings at 11 m/s, 1% of slow drops; every landing at a fine step) | only a ball not moving vertically (under 0.05 m/s) rolls | always bounces |
+| The bounce was taken at the end of the step | up to a step late (0.6 m at 30 m/s), at the speed the ball would have had a step later, and the rest of the step's rise lost | the ball meets the grass at the fraction of the step its path crosses it, bounces there at the velocity it had then, and spends the rest of the step on its new velocity | at the touch |
+| The ball moved on its velocity at the end of each step (semi-implicit Euler) | it fell a little early every step: a 30 m/s driven shot landed 0.55 m (a whole step) short, a 25 m/s long ball 0.37 m; bounces 5-10% low; rolls 0.7% short | it moves on the mean of the step's start and end velocities (the trapezoid rule, exact for gravity alone); a rolling ball that stops during a step moves only until it stops | landings within 2-3 cm, bounces within 1-2% (a chip's 2.3%), rolls within 0.3% |
+
+**A bug of this stage's own, caught by the match comparison.** With the bounce inside the step, the ball is already back in the air at the end
+of that step. The kickers' aim (`KickSolver.CarryDistance` / `LandingPoint`, used for every lofted pass and cross) looked for the ball on the
+grass at the end of a step, so it found the second bounce: every lofted ball came down short of its aim, and in 800 matches headed goals fell
+from 21% to 3% of goals and pass completion from 79.8% to 77.1%. The step now reports where the ball landed (`BallMotion.Landed`, `LandX`,
+`LandY`, `LandSpeed`) and the solvers use it; a test checks the solver against the flight.
+
+**Determinism.** The match does not depend on how the host cuts its time: a frame at a time (1/60 s), a quarter second or a whole second
+gives the same match, step for step (tested). The engine stays on single-precision floats and its own random stream, so the same build gives
+the same match on every machine; the browser and the server run the same WebAssembly build. (A Unity build compiles the same C# with
+IL2CPP; its maths library may round a transcendental function differently in the last bit, so a Unity replay of a match recorded in the
+browser is not guaranteed to be identical - the engine contract for a future Unity view is to play the recorded frames, not re-simulate.)
+
+| Per match (800 distinct matches each: seeds 1, 1001, 2001, 3001 x 200) | Stage 9 | Stage 10 | Real |
+|---|---|---|---|
+| Goals | 3.03 | 2.94 | 2.83 |
+| Shots | 26.33 | 26.45 | 25.4 |
+| On target | 8.83 | 8.81 | 8.8 |
+| Woodwork | 0.81 | 0.76 | |
+| Corners | 9.68 | 9.56 | 10.4 |
+| Headed goals, % of goals | 21.4 | 20.6 | 13-19 |
+| Pass completion, % | 79.8 | 79.7 | |
+
+Goals fall by 0.09 (about 1.4 standard errors: not conclusive), towards the real 2.83; nothing else moves beyond the noise.
+
+Tests: `BallStabilityTests` (the game's step lands and bounces where the fine step does, for a drop, a long ball, a driven shot and a chip; a
+falling ball just above the grass still bounces; rolls stop where the fine step stops them; the kickers' aim agrees with the flight; flight in
+still air never gains energy over 400 random launches with spin; extreme balls - 60 m/s with 300 rad/s of spin from 30 m up - stay finite,
+never go under the grass and come to rest; the match does not depend on how the host cuts its time).
+
 ## Plan for the next stages
 
 | Stage | What | Changes the match? |
@@ -424,5 +464,5 @@ side and its depth, nothing from above for a bounce).
 | 7 | **Done** (above). Kicks: measured spin per kick type, foot speed cap, an oncoming ball's share; contact point and friction not modelled as such | Yes |
 | 8 | **Done** (above). Collisions: the frame as capsules with a swept test, impulses with restitution, friction and spin against the frame and players' bodies; keeper parries stay aimed | Yes |
 | 9 | **Done** (above). Deformation: the ball as a gas spring (k = 2 pi R P) fitted to measured impacts: contact time, flattening, the frame's measured restitution slope; the viewers draw the flat cap | A little (the frame's slope) |
-| 10 | Stability: fixed step, continuous collision against posts and ground, determinism kept | No (safety) |
+| 10 | **Done** (above). Stability: the ground touch inside the step, the trapezoid rule, the dead landing fixed; determinism tested | A little (goals 3.03 -> 2.94, noise-level) |
 | 11 | Test bench: TESTS 2-14 with the recorded quantities (initial / final speed, spin, flight time, distance, bounce height, energy loss) | No |
