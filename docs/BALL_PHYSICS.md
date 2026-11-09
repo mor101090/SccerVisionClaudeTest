@@ -19,6 +19,8 @@ A number read only through a search result or an abstract (the full text was not
 
 | Source | What was read | Used for |
 |---|---|---|
+| Iga, Nunome, Inoue, Ikegami, [Basic mechanical analysis of soccer ball impact](https://ojs.ub.uni-konstanz.de/cpa/article/view/5637/5130), ISBS conference proceedings (Nagoya University) | **The text itself** (the PDF, its Table 1). A size 5 match ball (Molten Pelada 405, 22 cm, 426 g, 0.9 bar) fired at a Kistler force plate on a steel pedestal, filmed at 5000 frames a second, five speeds x five trials: in 9.05 / 11.36 / 13.68 / 16.27 / 19.46 m/s, out 7.21 / 8.90 / 10.56 / 12.25 / 14.40 m/s; contact 8.5 / 8.3 / 7.9 / 7.7 / 7.4 ms; peak flattening 2.45 / 3.13 / 3.57 / 4.03 / 4.64 cm at 3.4-3.7 ms | Stage 9: the flattening, the contact time and the frame's restitution slope (B) |
+| Tadrist, Darbois Texier, [Open questions on the impact of an inflated ball](https://arxiv.org/abs/1708.01282), arXiv 1708.01282, 2017 | **The text itself** (the PDF). Inflated balls filmed at 4000 frames a second on marble: the ball stays a spherical cap, "no increase in radius"; the gas pushes back with the pressure on the flat area, so F = 2 pi R P x (a linear spring) and the contact time is pi sqrt(m / 2 pi R P), independent of the speed for small flattening; a real ball stiffens at large flattening, so the contact shortens with the speed | Stage 9: the gas-spring model (C from A) and the flat-capped drawing |
 | [IFAB Law 2, The Ball](https://www.theifab.com/laws/latest/the-ball/) | The page itself: circumference 68-70 cm, 410-450 g "in weight at the start of the match", pressure "0.6-1.1 atmosphere (600-1,100 g/cm²) at sea level" | Class A limits in `BallSpec` |
 | Goff and Carré, [Trajectory analysis of a soccer ball](https://doi.org/10.1119/1.3197187), *Am. J. Phys.* 77(11):1020-1027, 2009 | **The full text** (a PDF copy, read page by page, figures included). Equations of motion, Re = vD/ν with ν = 1.54e-5 m²/s and D = 0.218 m, mass 0.424 kg, A = 0.0375 m², ρ = 1.2 kg/m³; Fig. 6 (wind-tunnel Cd(Re) of two series), Fig. 7 (Cd(Sp)), Fig. 8 (CL(Sp), wind tunnel and their own trajectory points), their measured no-spin range of 21.9 m at 18 m/s and 22° (Cd 0.2) and 0.17 at 19.4 m/s, the spin decay estimate, the Beckham estimate | **Class B**: the source of the flight tables. Values read from the figures by eye (±0.03 on Cd, ±0.04 on CL) |
 | FIFA, [Test Manual I](https://www.sporteimpianti.it/wp-content/uploads/2024/04/FIFA-TTM-I-Layout-v8.pdf) (football turf, April 2024) | **The text itself.** Test balls are inflated to rebound 1.45 ± 0.03 m on concrete from 2.0 m. Method 2024-01: vertical rebound of a ball dropped from 2.00 m (underside). Method 2024-02: ball roll from a 1 m, 45° ramp. Method 2024-14: angle ball rebound = speed after / before for a ball fired at 50 ± 2 km/h and 30 ± 2°, with under 3 rev/s of spin | **Class A** test methods; stage 4 (and 5) |
@@ -313,7 +315,7 @@ match are ones the end-of-step test would have missed.
 | Parameter | Value | Class |
 |---|---|---|
 | Ball on the frame, e at 6.26 m/s | 0.85: FIFA sets the ball's pressure so that it rebounds 1.45 m on concrete from 2.0 m (Test Manual I, 2024); a steel or aluminium post is as rigid as concrete for the ball | C from A |
-| e falls with the impact speed | 0.01 per m/s (0.66 for a shot square on at 25 m/s; the old model: 0.7 for every impact) | E: the ground model's analogy with tennis balls; the football studies found (Sheffield Hallam, Loughborough, *Sports Engineering* 2022) could not be read |
+| e falls with the impact speed | 0.01 per m/s (0.66 for a shot square on at 25 m/s; the old model: 0.7 for every impact). **Stage 9 replaced it with the measured 0.0056 (B, below)** | E: the ground model's analogy with tennis balls; the football studies found (Sheffield Hallam, Loughborough, *Sports Engineering* 2022) could not be read |
 | Friction ball / post | 0.3 | E |
 | Body radius (trunk and legs as one cylinder) | 0.2 m (only the direction of the normal depends on it) | D |
 | Ball on a body, e | 0.2-0.55 for a block, 0.25-0.5 for a chance touch (the old model's drawn speed shares, now restitutions) | D |
@@ -357,6 +359,44 @@ Tests: `BallCollisionTests` (the impact is the bounce about any normal; angular 
 harder hit and nothing is created; a 32 m/s shot at the post is always caught, which the old test missed; the bar's top and its corners are round; a glancing
 hit on the post spins the ball; both collision models deterministic and the new one wired in).
 
+## Stage 9 - deformation (done)
+
+**The model.** An inflated ball pressed onto a surface stays a sphere with a flat cap; it does not bulge sideways (Tadrist and Darbois Texier
+filmed it at 4000 frames a second). The air pushes back with its pressure on the flat area, A = 2 pi R x for a flattening x, so the ball is a
+spring of stiffness **k = 2 pi R P** (P the gauge pressure the Law sets) and touches for **pi sqrt(m / k)**, whatever the speed. For the
+reference ball (430 g, 69 cm, 0.85 atm) that is 59 kN/m and 8.45 ms. The measured impacts on a rigid force plate (Iga, Nunome, Inoue and
+Ikegami: a match ball at 0.9 bar, five speeds from 9 to 19.5 m/s) agree with it: the spring gives 8.2 ms for their ball, they measured
+8.5-7.4 ms, and at 13.7 m/s the spring's peak flattening is the measured one to the millimetre. A real ball stiffens as it flattens, so the
+contact shortens and the flattening grows a little slower than the spring says; the two exponents are fitted to the five measured impacts.
+
+| Quantity | Value | Class |
+|---|---|---|
+| Stiffness | k = 2 pi R P: 59 kN/m for the reference ball (41-77 kN/m over the Law's 0.6-1.1 atm) | C from A (the Law's pressure, the model of Tadrist and Darbois Texier) |
+| Contact time | pi sqrt(m / k) x (v / 11.2 m/s)^-0.19: 9.5 ms at 6 m/s, 8.2 ms at 13 m/s, 7.3 ms at 25 m/s; each measured impact within 0.1 ms | C (the spring), B (the exponent and reference: the fit to the five impacts) |
+| Peak flattening | sqrt(m / k) x dv / 1.77 x (dv / 22 m/s)^-0.15, dv the velocity change (in + out): 1.7 cm for a 10 m/s pass from rest, 4.4 cm for a 30 m/s shot from rest, 5.0 cm for a ball that hits the post square at 20 m/s (it comes back at 15.5); each measured impact within 1.5 mm | C (the spring), B (the exponent 0.85, the measured restitution 0.77) |
+| Deepest flattening drawn | 0.6 R (6.6 cm): beyond about two thirds of the radius the ball ripples; the measured ones stay below 0.45 R | D |
+| A contact | a jump in the ball's velocity of more than 2 m/s between two 20 ms steps (flight alone gives at most about 0.4 m/s a step) | D |
+| **The frame's restitution slope** | **e falls 0.0056 per m/s** of impact speed (the measured 0.797 at 9.05 m/s to 0.740 at 19.46 m/s, a straight line within 0.003): 0.75 for a shot square on the post at 25 m/s | **B** (stage 8 used 0.01, E) |
+
+The level at the FIFA drop speed stays 0.85 (C from A: FIFA's test ball); the measured ball would have been 0.81 there, within the spread of
+real match balls. The ground's slope (stage 4, 0.01 per m/s, E) is not changed: on grass the turf loses energy too, and no measurement on
+grass at match speeds was found.
+
+**What it changes.** The contact (8 ms) is shorter than the engine's step (20 ms), so the impulses stay instantaneous and the deformation does not
+change the play. Only the frame's slope does: a post hit at shot speed now gives back more of its speed (0.75 rather than 0.66 at 25 m/s).
+The engine notes every contact (about 1,050 a match: passes, traps, kicks, bounces, the frame, bodies; a catch and a throw are left out, the
+hands are soft and unmeasured) with its flattening and direction.
+
+**What you see.** Each replay frame ends with the latest contact since the previous frame (flattening in mm, direction x100); the website, the
+classic page and Unity draw the ball for that frame with a flat cap on the side that faced what it hit, at the real depth (a 30 m/s shot: a
+flat cap 40% of the radius deep). Seen from above, a bounce (pushed straight up, the cap underneath) shows nothing, which is what a camera
+above the pitch would see. The real contact lasts 8 ms; it is held for one drawn frame (about 17-40 ms), the shortest a screen can show.
+
+Tests: `BallDeformationTests` (the spring's contact time and the five measured ones; the five measured flattenings; a harder ball flattens less
+and touches shorter; the frame's restitution falls as the measured ball's did; the engine notes the contacts and the replay frame carries
+them; the deformation does not change the match), `replay.test.ts` (the contact read from the frame, absent from older replays, the flat
+side and its depth, nothing from above for a bounce).
+
 ## Plan for the next stages
 
 | Stage | What | Changes the match? |
@@ -367,6 +407,6 @@ hit on the post spins the ball; both collision models deterministic and the new 
 | 6 | **Done** (above). 3D ω through flight, bounce and roll (stages 2-5); the viewers show the real spin | No (the picture only) |
 | 7 | **Done** (above). Kicks: measured spin per kick type, foot speed cap, an oncoming ball's share; contact point and friction not modelled as such | Yes |
 | 8 | **Done** (above). Collisions: the frame as capsules with a swept test, impulses with restitution, friction and spin against the frame and players' bodies; keeper parries stay aimed | Yes |
-| 9 | Deformation: a contact-time / compression model for impact losses; visual squash from the same numbers | Small |
+| 9 | **Done** (above). Deformation: the ball as a gas spring (k = 2 pi R P) fitted to measured impacts: contact time, flattening, the frame's measured restitution slope; the viewers draw the flat cap | A little (the frame's slope) |
 | 10 | Stability: fixed step, continuous collision against posts and ground, determinism kept | No (safety) |
 | 11 | Test bench: TESTS 2-14 with the recorded quantities (initial / final speed, spin, flight time, distance, bounce height, energy loss) | No |

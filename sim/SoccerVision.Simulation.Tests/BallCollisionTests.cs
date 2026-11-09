@@ -50,7 +50,7 @@ namespace SoccerVision.Simulation.Tests
         {
             var cm = CollisionModel.Reference;
             Assert.InRange(cm.FrameRestitutionAt(6.26f), 0.849f, 0.851f);           // the FIFA drop test
-            Assert.InRange(cm.FrameRestitutionAt(25f), 0.65f, 0.67f);               // a shot square on the post
+            Assert.InRange(cm.FrameRestitutionAt(25f), 0.74f, 0.75f);               // a shot square on the post (the measured slope, stage 9)
             Assert.True(cm.FrameRestitutionAt(30f) < cm.FrameRestitutionAt(10f));
             // nothing is created: the ball leaves slower than it came, whatever the spin it brought
             var m = new BallMotion { Vx = 25f, Wz = 60f, HasWorldSpin = true };

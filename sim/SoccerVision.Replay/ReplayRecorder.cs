@@ -40,11 +40,14 @@ namespace SoccerVision.Replay
         private int PassesAs90(int n) => (int)MathF.Round(n * _engine.Config.ClockSecondsPerSimSecond);
 
         /// <summary>... then the ball that went out and rolls on beyond the lines: x, y (decimetres), height (cm; -1: none).</summary>
-        /// <summary>... and last the free ball's angular velocity in world axes (x, y, z; radians per replay second x10, i.e. the physical spin times the
-        /// match pace; 0, 0, 0 while a player has it or with the old ground model), which the viewers turn the ball by (ball physics stage 6).</summary>
-        public static readonly int FrameLength = PlayerBase + 22 * PlayerStride + 3 * 3 + 3 + 4 + 22 + 3;
+        /// <summary>... then the free ball's angular velocity in world axes (x, y, z; radians per replay second x10, i.e. the physical spin times the
+        /// match pace; 0, 0, 0 while a player has it or with the old ground model), which the viewers turn the ball by (ball physics stage 6),
+        /// and last a contact since the previous frame (ball physics stage 9): the ball's peak flattening (mm; 0: none) and the direction the
+        /// contact pushed it (x, y, z x100). The viewers draw the ball flattened on that side for the frame.</summary>
+        public static readonly int FrameLength = PlayerBase + 22 * PlayerStride + 3 * 3 + 3 + 4 + 22 + 3 + 4;
 
         private readonly MatchEngine _engine;
+        private float _lastFrameSimTime = -1f;
         private readonly int _fps;
         private float _nextStats;
         private readonly List<int> _frames = new List<int>();
@@ -180,7 +183,7 @@ namespace SoccerVision.Replay
             Team(b, e.Home, finalStats);
             b.Append(",\"away\":");
             Team(b, e.Away, finalStats);
-            b.Append(",\"frameLayout\":\"t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked,8=caught offside,16=sliding,32=on the ground,64=injured)] x22, then officials [x*10, y*10, flag] x3, then the ball that went out [x*10, y*10, z*100], the other man of a substitution [x*10, y*10, facing*100, team*1000+shirt], each player's gesture x22, then the free ball's spin [wx, wy, wz] (rad per replay second *10)\"");
+            b.Append(",\"frameLayout\":\"t*100, clockSec, phase, homeScore, awayScore, ballX*10, ballY*10, ballZ*100, ballOwner, then per player [x*10, y*10, facing*100, jumpZ*100, flags(1=sentOff,2=gk,4=booked,8=caught offside,16=sliding,32=on the ground,64=injured)] x22, then officials [x*10, y*10, flag] x3, then the ball that went out [x*10, y*10, z*100], the other man of a substitution [x*10, y*10, facing*100, team*1000+shirt], each player's gesture x22, then the free ball's spin [wx, wy, wz] (rad per replay second *10), then a contact since the previous frame [flattening mm, nx*100, ny*100, nz*100]\"");
             b.Append(",\"statsLayout\":\"t*100, possession home/away (s*10), shots h/a, on target h/a, tackles h/a, tackles won h/a, dribbles h/a, dribbles won h/a, then the energy left of the 22 players (0-100), their ratings x10, then passes h/a and completed passes h/a as over a real 90 minutes\"");
             return b.ToString();
         }
@@ -378,6 +381,15 @@ namespace SoccerVision.Replay
                 f.Add((int)MathF.Round(w.X * k)); f.Add((int)MathF.Round(w.Y * k)); f.Add((int)MathF.Round(w.Z * k));
             }
             else { f.Add(0); f.Add(0); f.Add(0); }
+            // a contact since the previous frame: the flattening (mm) and its direction (x100)
+            if (e.LastImpactTime > _lastFrameSimTime && e.LastImpactCompression > 0f)
+            {
+                var n = e.LastImpactNormal;
+                f.Add((int)MathF.Round(e.LastImpactCompression * 1000f));
+                f.Add((int)MathF.Round(n.X * 100f)); f.Add((int)MathF.Round(n.Y * 100f)); f.Add((int)MathF.Round(n.Z * 100f));
+            }
+            else { f.Add(0); f.Add(0); f.Add(0); f.Add(0); }
+            _lastFrameSimTime = e.SimTime;
         }
 
         private void AppendEvent(MatchEvent e)

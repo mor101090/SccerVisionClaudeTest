@@ -276,7 +276,13 @@ namespace SoccerVision.Runtime
         }
 
         /// <param name="motionSpeed">Sim seconds per second of play (MatchConfig.MotionSpeed): the physical spin is per sim second.</param>
-        public void Render(BallState ball, float alpha, float dt, bool inPlay = true, float motionSpeed = 1f, bool physicalSpin = false)
+        private float _shownImpact = -1f;
+
+        /// <param name="impact">The engine's latest contact (stage 9): its sim time, the direction it pushed the ball, and the flattening in metres.
+        /// It is drawn for the one frame after it happened, flattened on the side facing what the ball hit; seen from above, so a bounce
+        /// (pushed straight up, the flat cap underneath) shows nothing.</param>
+        public void Render(BallState ball, float alpha, float dt, bool inPlay = true, float motionSpeed = 1f, bool physicalSpin = false,
+                           float impactTime = -1f, Vec3 impactNormal = default, float impactCompression = 0f)
         {
             float x = Mathf.Lerp(ball.PrevPos.X, ball.Pos.X, alpha);
             float y = Mathf.Lerp(ball.PrevPos.Y, ball.Pos.Y, alpha);
@@ -306,6 +312,14 @@ namespace SoccerVision.Runtime
             }
             _look.Spin(new Vector2(x, y), h, dt, held, spin);
             _look.Winter = Atmosphere.Look.sky == Weather.Snow;
+            _look.Cut = Vector3.zero;
+            if (impactTime > _shownImpact)
+            {
+                _shownImpact = impactTime;
+                float horizontal = Mathf.Sqrt(impactNormal.X * impactNormal.X + impactNormal.Y * impactNormal.Y);
+                float depth = Mathf.Min(0.6f, impactCompression / Pitch.BallRadius) * horizontal;
+                if (depth >= 0.04f) _look.Cut = new Vector3(-impactNormal.X / horizontal, -impactNormal.Y / horizontal, depth);
+            }
             _look.Redraw();
             Atmosphere.Shadows(new Vector2(x, y), _lights);
             _shadow.transform.localPosition = new Vector3(_lights[0].x, _lights[0].y, 0f) * (Atmosphere.Look.night ? 0f : 1f);

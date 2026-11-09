@@ -96,8 +96,11 @@ export class Ball3D {
   /** High-visibility ball (orange with navy pentagons), used in the snow. */
   winter = false;
 
-  /** Draws the ball at (cx, cy). */
-  draw(ctx: CanvasRenderingContext2D, cx: number, cy: number, rad: number) {
+  /**
+   * Draws the ball at (cx, cy). cut: the ball flattened against what it hit (ball physics stage 9), as [x, y (up), depth as a fraction of the
+   * radius] of the flat side (see {@link contactCut}); an inflated ball stays a sphere with a flat cap, so the rest of the disc is unchanged.
+   */
+  draw(ctx: CanvasRenderingContext2D, cx: number, cy: number, rad: number, cut: [number, number, number] | null = null) {
     const size = Math.ceil(rad * 2) + 2;
     const c = size / 2;
     if (!this.canvas) this.canvas = document.createElement("canvas");
@@ -116,6 +119,7 @@ export class Ball3D {
         const ny = -(py + 0.5 - c) / rad;
         const r2 = nx * nx + ny * ny;
         if (r2 > 1) continue;
+        if (cut && nx * cut[0] + ny * cut[1] > 1 - cut[2]) continue;
         const nz = Math.sqrt(1 - r2);
         const bx = m[0] * nx + m[3] * ny + m[6] * nz;
         const by = m[1] * nx + m[4] * ny + m[7] * nz;
@@ -154,9 +158,38 @@ export class Ball3D {
     bctx.putImageData(img, 0, 0);
     ctx.drawImage(this.canvas, cx - c, cy - c);
     ctx.beginPath();
-    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    if (cut) {
+      // the outline round the round part, and straight across the flat cap
+      const ca = Math.atan2(-cut[1], cut[0]);
+      const ha = Math.acos(1 - cut[2]);
+      ctx.arc(cx, cy, rad, ca + ha, ca - ha + Math.PI * 2);
+      ctx.closePath();
+    } else ctx.arc(cx, cy, rad, 0, Math.PI * 2);
     ctx.lineWidth = Math.max(0.6, rad * 0.08);
     ctx.strokeStyle = this.winter ? "rgba(150,50,0,0.7)" : "rgba(0,0,0,0.45)";
     ctx.stroke();
   }
+}
+
+/** The real ball's radius, m (Law 2: a 68-70 cm circumference). */
+const BALL_RADIUS_M = 0.11;
+
+/**
+ * The flat side of a ball that hit something in this frame, seen from above (ball physics stage 9): [x, y (up), depth as a fraction of the
+ * radius], or null. contact: [flattening m, push direction x, y, z] from the replay frame. The flat side faces what the ball hit (against
+ * the push); a bounce pushes it straight up, so its flat cap is underneath and nothing shows from above. toScreen turns a pitch direction
+ * into a screen direction with y up (the pitch may be drawn flipped or rotated).
+ */
+export function contactCut(
+  contact: [number, number, number, number] | undefined,
+  toScreen: (dx: number, dy: number) => [number, number],
+): [number, number, number] | null {
+  if (!contact) return null;
+  const [depth, nx, ny] = contact;
+  const horizontal = Math.hypot(nx, ny);
+  const f = Math.min(0.6, depth / BALL_RADIUS_M) * horizontal;
+  if (f < 0.04) return null;
+  const [sx, sy] = toScreen(-nx / horizontal, -ny / horizontal);
+  const len = Math.hypot(sx, sy);
+  return len > 0 ? [sx / len, sy / len, f] : null;
 }
