@@ -453,6 +453,41 @@ falling ball just above the grass still bounces; rolls stop where the fine step 
 still air never gains energy over 400 random launches with spin; extreme balls - 60 m/s with 300 rad/s of spin from 30 m up - stay finite,
 never go under the grass and come to rest; the match does not depend on how the host cuts its time).
 
+## Stage 11 - test bench (done)
+
+`BallTestBench` runs the specification's TESTS 2-14 on the engine's own physics and records, for every scenario, the speed in and out, the
+spin in and out, the flight time, the distance, the bounce height, the energy lost and the response. The full table is
+[`docs/BALL_TEST_BENCH.md`](BALL_TEST_BENCH.md), written by `SimRunner --bench`; a test fails when the file and the physics disagree, so the
+table is always the physics as it is. TEST 1 is `BallSpecTests`; TEST 9 (the knuckleball) is listed as not built (stage 3: no model).
+
+FIFA's own tests are run the way FIFA runs them (class A ranges), and the bench meets them:
+
+| FIFA test | The bench | FIFA's range |
+|---|---|---|
+| Vertical rebound from 2.00 m, natural grass | 0.76 m | 0.60-1.00 m ("excellent") |
+| Vertical rebound from 2.00 m, football turf | 0.69 m | 0.60-0.85 m (Quality Pro) |
+| Ball roll off the 1 m, 45 degree ramp (3.2 m/s at the bottom) | 6.4 m | 4.0-10.0 m |
+| Angle ball rebound (50 km/h, 30 degrees), dry | keeps 59-60% of its speed | 45-70% (turf) |
+| Angle ball rebound, wet | keeps 72-75% | 45-80% (turf) |
+
+What the bench shows, read row by row:
+- **Drops and bounces** (TESTS 2-3): the rebound ratio falls from 0.66 (0.5 m) to 0.56 (5 m), as the impact-speed dependence of e says; each
+  bounce keeps 38-46% of the height before it.
+- **Shots** (TEST 5): 30 m/s at 15 degrees carries 35 m in 1.48 s and lands at 21 m/s; at 45 degrees drag holds it to 56 m (no drag: 92 m).
+- **Spin** (TESTS 6-8): backspin of Sp 0.1-0.2 carries a 25 m/s, 20 degree kick 42 m against 32.5 m without; topspin brings it down at
+  19-23 m. Sidespin curls a 26 m/s kick 3.75 m at 4 rev/s and 5.0 m at 10 rev/s: the curl grows more slowly than the spin because a faster
+  spin also raises the drag (the spin-dependent drag of stage 3), so the ball arrives slower and lower.
+- **The frame** (TESTS 10-11, 14): square on, a 25 m/s ball comes back at 0.73 of its speed; 12 cm off the post's centre it leaves at 82
+  degrees with 15 rev/s of spin; off the bar's underside it is driven down at 84 degrees. The post is exactly symmetric; the bar to within
+  0.15 m/s (gravity pulls the same way on both sides of it). No shot from 20 to 50 m/s passes through the post, from any of 20 step phases.
+- **Players** (TEST 12): the foot sends a still ball at 23-31 m/s by power; a 10 m/s oncoming ball adds 3 m/s. A shot striking a body square
+  on keeps 40% of its speed; near the body's edge it runs on at 54-60% and turns 117-134 degrees.
+- **Surfaces** (TEST 13): a 10 m/s roll goes 24 m on long grass, 27 m on normal, 31 m on short, 33 m on dry turf, 36-37 m wet; wet grounds
+  give back more speed in the angle rebound (they grip less).
+
+Tests: `BallTestBenchTests` (the doc is the bench's output; TESTS 2-14 are all there; FIFA's ranges; no energy created and the frame symmetric;
+spin acts as the Magnus force says; nothing passes through the post).
+
 ## Plan for the next stages
 
 | Stage | What | Changes the match? |
@@ -465,4 +500,4 @@ never go under the grass and come to rest; the match does not depend on how the 
 | 8 | **Done** (above). Collisions: the frame as capsules with a swept test, impulses with restitution, friction and spin against the frame and players' bodies; keeper parries stay aimed | Yes |
 | 9 | **Done** (above). Deformation: the ball as a gas spring (k = 2 pi R P) fitted to measured impacts: contact time, flattening, the frame's measured restitution slope; the viewers draw the flat cap | A little (the frame's slope) |
 | 10 | **Done** (above). Stability: the ground touch inside the step, the trapezoid rule, the dead landing fixed; determinism tested | A little (goals 3.03 -> 2.94, noise-level) |
-| 11 | Test bench: TESTS 2-14 with the recorded quantities (initial / final speed, spin, flight time, distance, bounce height, energy loss) | No |
+| 11 | **Done** (above). Test bench: TESTS 2-14 with the recorded quantities, FIFA's tests run as FIFA runs them, `docs/BALL_TEST_BENCH.md` | No |
