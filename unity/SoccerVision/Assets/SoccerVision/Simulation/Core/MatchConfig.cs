@@ -110,6 +110,12 @@ namespace SoccerVision.Simulation
         /// adds; see <see cref="KickModel"/>). Null: the kicks before stage 7, kept for comparison (`SimRunner --legacykick`).
         /// </summary>
         public KickModel Kick = KickModel.Reference;
+        /// <summary>
+        /// What the ball does against the goal frame and a player's body (impulses with restitution and friction that change the spin, and a swept
+        /// test so a fast ball cannot pass through a post between steps; see <see cref="CollisionModel"/>). Null: the collisions before stage 8,
+        /// kept for comparison (`SimRunner --legacycollide`).
+        /// </summary>
+        public CollisionModel Collisions = CollisionModel.Reference;
         /// <summary>The surface is football turf (artificial) rather than natural grass (picks the matching dry and wet ground profile).</summary>
         public bool ArtificialTurf;
         /// <summary>How the natural grass is cut: -1 short, 0 a normal match cut, +1 long (picks the dry natural profile; the thesis: a lower cut rolls further).</summary>

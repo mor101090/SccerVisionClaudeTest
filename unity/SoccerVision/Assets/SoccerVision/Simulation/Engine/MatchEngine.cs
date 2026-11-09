@@ -548,8 +548,9 @@ namespace SoccerVision.Simulation
                 return;
             }
 
+            var from = new Vec3(Ball.M.X, Ball.M.Y, Ball.M.Z);
             BallPhysics.Step(ref Ball.M, Config, dt);
-            CollideGoalFrames();
+            CollideGoalFrames(from, dt);
         }
 
         private void AttachBallToOwner(PlayerAgent owner)
@@ -574,9 +575,13 @@ namespace SoccerVision.Simulation
             Ball.M = new BallMotion { X = pos.X, Y = pos.Y, Z = Pitch.BallRadius, Vx = owner.Vel.X, Vy = owner.Vel.Y };
         }
 
-        /// <summary>Posts, crossbar and net. Posts are vertical cylinders, the crossbar a horizontal one.</summary>
-        private void CollideGoalFrames()
+        /// <summary>
+        /// Posts, crossbar and net. With the stage 8 collisions the frame is three capsules (two posts and the bar, joined at the corners) and the
+        /// ball is swept over the whole step; before that, posts were vertical cylinders and the bar a horizontal one, tested at the end of the step.
+        /// </summary>
+        private void CollideGoalFrames(Vec3 from, float dt)
         {
+            if (Config.Collisions != null) CollideWoodwork(from, dt);
             ref BallMotion b = ref Ball.M;
             const float r = Pitch.BallRadius;
             for (int side = -1; side <= 1; side += 2)
@@ -587,7 +592,7 @@ namespace SoccerVision.Simulation
                 if ((b.X - lineX) * side < -1.5f || (b.X - lineX) * side > Pitch.GoalDepth + 1.5f) continue;
 
                 // Posts
-                if (b.Z < Pitch.GoalHeight + Pitch.PostRadius * 2f)
+                if (Config.Collisions == null && b.Z < Pitch.GoalHeight + Pitch.PostRadius * 2f)
                 {
                     for (int py = -1; py <= 1; py += 2)
                     {
@@ -615,7 +620,7 @@ namespace SoccerVision.Simulation
                 }
 
                 // Crossbar (cylinder along Y at height GoalHeight + PostRadius)
-                if (MathF.Abs(b.Y) <= Pitch.GoalHalfWidth + Pitch.PostRadius)
+                if (Config.Collisions == null && MathF.Abs(b.Y) <= Pitch.GoalHalfWidth + Pitch.PostRadius)
                 {
                     float dx = b.X - postX;
                     float dz = b.Z - (Pitch.GoalHeight + Pitch.PostRadius);
@@ -651,10 +656,113 @@ namespace SoccerVision.Simulation
             }
         }
 
+        /// <summary>
+        /// The goal frame as capsules (stage 8): each post a segment from the ground to the bar's axis, the bar a segment between the posts' tops,
+        /// all with the posts' radius, so the corners where they meet are round. The ball's path over the step is sampled finer than the contact
+        /// distance and the first touch refined by bisection; the ball is put there, takes the impulse (<see cref="BallPhysics.Impact"/>) and
+        /// spends the rest of the step on its new velocity. One impact a step.
+        /// </summary>
+        private void CollideWoodwork(Vec3 from, float dt)
+        {
+            ref BallMotion b = ref Ball.M;
+            var to = new Vec3(b.X, b.Y, b.Z);
+            float min = Pitch.BallRadius + Pitch.PostRadius;
+            float top = Pitch.GoalHeight + Pitch.PostRadius, py = Pitch.GoalHalfWidth + Pitch.PostRadius;
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float postX = (Pitch.HalfLength + Pitch.PostRadius) * side;
+                // the whole path is far from this frame: nothing to do
+                if (MathF.Min(MathF.Abs(from.X - postX), MathF.Abs(to.X - postX)) > min + MathF.Abs(to.X - from.X)) continue;
+                if (MathF.Min(from.Z, to.Z) > top + min) continue;
+                var postA0 = new Vec3(postX, -py, -1f); var postA1 = new Vec3(postX, -py, top);
+                var postB0 = new Vec3(postX, py, -1f); var postB1 = new Vec3(postX, py, top);
+
+                float FrameDistance(Vec3 p, out Vec3 closest)
+                {
+                    float best = float.MaxValue; closest = default;
+                    Check(p, postA0, postA1, ref best, ref closest);
+                    Check(p, postB0, postB1, ref best, ref closest);
+                    Check(p, postA1, postB1, ref best, ref closest);
+                    return best;
+                }
+
+                float path = (to - from).Length;
+                int n = Math.Max(1, (int)MathF.Ceiling(path / (0.25f * min)));
+                float prevS = 0f, hitS = -1f;
+                for (int i = 0; i <= n; i++)
+                {
+                    float s = (float)i / n;
+                    if (FrameDistance(from + (to - from) * s, out _) < min) { hitS = s; break; }
+                    prevS = s;
+                }
+                if (hitS < 0f) continue;
+                if (hitS > 0f)
+                {
+                    float lo = prevS, hi = hitS;                      // lo is clear, hi touches
+                    for (int it = 0; it < 12; it++)
+                    {
+                        float mid = 0.5f * (lo + hi);
+                        if (FrameDistance(from + (to - from) * mid, out _) < min) hi = mid; else lo = mid;
+                    }
+                    hitS = lo;
+                }
+                var at = from + (to - from) * hitS;
+                float d = FrameDistance(at, out var c);
+                var normal = d > 1e-5f ? (at - c) / d : (from - c).Normalized;
+                float vn = -Vec3.Dot(new Vec3(b.Vx, b.Vy, b.Vz), normal);
+                if (vn <= 0f) return;                                // moving away (it touched on the step before): leave it on its path
+                if (d < min) at = c + normal * min;                  // (only when the step began touching)
+                b.X = at.X; b.Y = at.Y; b.Z = MathF.Max(Pitch.BallRadius, at.Z);
+                var cm = Config.Collisions;
+                BallPhysics.Impact(ref b, Config, normal, cm.FrameRestitutionAt(vn), cm.FrameFriction, Vec3.Zero);
+                float rest = (1f - hitS) * dt;
+                b.X += b.Vx * rest; b.Y += b.Vy * rest; b.Z = MathF.Max(Pitch.BallRadius, b.Z + b.Vz * rest);
+                if (Config.Ground != null && b.Z <= Pitch.BallRadius + 0.001f) b.Sliding = true;   // (a rolling ball no longer has the spin of rolling: it slips until it grips again)
+                if (CollectDiagnostics)
+                {
+                    Count("woodwork.impact");
+                    if (FrameDistance(to, out _) >= min) Count("woodwork.sweptOnly"); // (the end-of-step test would have missed it)
+                }
+                bool crossbar = MathF.Abs(c.Z - top) < 1e-3f && MathF.Abs(c.Y) < py - 1e-3f;
+                OnWoodwork(side, crossbar);
+                return;
+            }
+        }
+
+        private static void Check(Vec3 p, Vec3 a, Vec3 b, ref float best, ref Vec3 closest)
+        {
+            var ab = b - a;
+            float t = MathUtil.Clamp01(Vec3.Dot(p - a, ab) / ab.LengthSq);
+            var q = a + ab * t;
+            float d = (p - q).Length;
+            if (d < best) { best = d; closest = q; }
+        }
+
         private float _lastWoodworkTime = -10f;
+
+        /// <summary>Every contact with the frame, counted before the event's rate limit (tests).</summary>
+        internal int WoodworkContacts;
+
+        /// <summary>Tests: the free ball alone against the goal frames for a while (no players, no rules).</summary>
+        internal BallMotion TestHitFrame(BallMotion start, float seconds, out int woodwork)
+        {
+            Ball.Owner = null;
+            Ball.M = start;
+            int before = WoodworkContacts;
+            float dt = Config.FixedStep;
+            for (float t = 0f; t < seconds; t += dt)
+            {
+                var from = new Vec3(Ball.M.X, Ball.M.Y, Ball.M.Z);
+                BallPhysics.Step(ref Ball.M, Config, dt);
+                CollideGoalFrames(from, dt);
+            }
+            woodwork = WoodworkContacts - before;
+            return Ball.M;
+        }
 
         private void OnWoodwork(int side, bool crossbar)
         {
+            WoodworkContacts++;
             MarkBallChanged();
             if (SimTime - _lastWoodworkTime < 0.3f) return;
             _lastWoodworkTime = SimTime;

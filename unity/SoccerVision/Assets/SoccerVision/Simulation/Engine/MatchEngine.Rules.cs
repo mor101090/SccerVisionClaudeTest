@@ -324,8 +324,9 @@ namespace SoccerVision.Simulation
         private void StepCelebration(float dt)
         {
             _phaseTimer += dt;
+            var from = new Vec3(Ball.M.X, Ball.M.Y, Ball.M.Z);
             BallPhysics.Step(ref Ball.M, Config, dt);
-            CollideGoalFrames();
+            CollideGoalFrames(from, dt);
             if (MathF.Abs(Ball.Pos.X) > Pitch.HalfLength + Pitch.GoalDepth + 1f || MathF.Abs(Ball.Pos.Y) > Pitch.HalfWidth + 3f) Ball.Stop();
 
             var scoring = _kickOffAfterGoal.Opponent;
