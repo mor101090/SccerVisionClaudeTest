@@ -572,9 +572,14 @@ namespace SoccerVision.Simulation
             bool knuckle = fkDist > 23f && fkDist < 34f && taker.Attr.FreeKicks >= 72 && _rng.Chance(0.22f);
             if (knuckle) { aim = new Vec2(aim.X, _rng.Range(-2.4f, 2.4f)); dir = (aim - from).Normalized; curl = _rng.Gaussian(0f, 0.4f); power = 25f + 4f * skill; aimZ = _rng.Range(1.0f, 1.9f); }
             // Aim the start line away from the target so the curl brings it back.
-            Vec2 startDir = knuckle ? dir : dir.Rotate(-MathF.Sign(curl) * 0.06f);
+            Vec2 startDir = knuckle || Config.Aero != null ? dir : dir.Rotate(-MathF.Sign(curl) * 0.06f);
             float topSpin = knuckle ? 0f : _rng.Range(8f, 16f);
             float vz = KickSolver.VerticalSpeedFor(startDir * power, Pitch.BallRadius, Vec2.Distance(from, aim), aimZ, Config, curl, topSpin);
+            if (!knuckle && Config.Aero != null)
+            {
+                // the start line that the physical curl brings back onto the aim (the same integrator as the flight)
+                startDir = dir.Rotate(KickSolver.CurlYawToReach(power, Pitch.BallRadius, vz, Vec2.Distance(from, aim), Config, curl, topSpin));
+            }
             float sigma = (0.012f + 0.045f * (1f - skill)) * (knuckle ? 1.5f : 1f);
             startDir = startDir.Rotate(_rng.Gaussian(0f, sigma));
             vz += _rng.Gaussian(0f, 0.25f + 0.9f * (1f - skill));

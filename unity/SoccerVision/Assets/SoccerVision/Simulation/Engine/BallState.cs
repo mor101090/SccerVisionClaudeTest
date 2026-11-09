@@ -71,7 +71,7 @@ namespace SoccerVision.Simulation
             M.Vx = 0f;
             M.Vy = 0f;
             M.Vz = 0f;
-            M.SideSpin = 0f;
+            M.SideSpin = 0f; M.Wx = 0f; M.Wy = 0f; M.Wz = 0f; M.HasWorldSpin = false;
             M.TopSpin = 0f;
         }
 

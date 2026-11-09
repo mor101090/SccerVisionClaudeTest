@@ -94,6 +94,15 @@ namespace SoccerVision.Simulation
         // ---- Ball physics (SI units) ------------------------------------------------------------------
         /// <summary>The physical ball (mass, size, pressure, moment of inertia). See <see cref="BallSpec"/> and docs/BALL_PHYSICS.md.</summary>
         public BallSpec Ball = BallSpec.Reference;
+        /// <summary>
+        /// The physical flight model (drag by Reynolds number and spin, a vector Magnus force). Null: the model before the ball-physics work
+        /// (one drag constant, two scalar spins), kept for comparison (`SimRunner --legacyflight`).
+        /// </summary>
+        public AeroModel Aero = AeroModel.Reference;
+        /// <summary>Air density, kg/m³. Goff and Carre use 1.2 (about 20 °C at sea level); the standard atmosphere at 15 °C is 1.225 (class A/D).</summary>
+        public float AirDensity = 1.2f;
+        /// <summary>Dynamic viscosity of air, Pa·s: 1.85e-5 (Goff and Carre's kinematic viscosity 1.54e-5 m²/s times 1.2 kg/m³, class B).</summary>
+        public float AirDynamicViscosity = 1.85e-5f;
         public float Gravity = 9.81f;
         /// <summary>0.5*rho*Cd*A/m with rho=1.2, Cd=0.25, r=0.11 m, m=0.43 kg.</summary>
         public float AirDragK = 0.0133f;

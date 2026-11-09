@@ -428,7 +428,7 @@ namespace SoccerVision.Simulation
             Ball.M.Vy = horizontal.Y;
             Ball.M.Vz = vz;
             if (vz > 0f && Ball.M.Z < Pitch.BallRadius + 0.01f) Ball.M.Z = Pitch.BallRadius + 0.01f;
-            Ball.M.SideSpin = 0f;
+            Ball.M.SideSpin = 0f; Ball.M.Wx = 0f; Ball.M.Wy = 0f; Ball.M.Wz = 0f; Ball.M.HasWorldSpin = false;
             Ball.M.TopSpin = 0f;
             Ball.LastToucher = p;
             Ball.LastTouchTeam = p.Team;

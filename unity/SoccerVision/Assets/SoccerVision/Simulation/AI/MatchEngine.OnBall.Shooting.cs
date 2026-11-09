@@ -311,7 +311,7 @@ namespace SoccerVision.Simulation
             Vec2 aim = new Vec2(Pitch.HalfLength * goalSign, aimY);
             Vec2 dir = (aim - from).Normalized;
             float distToAim = Vec2.Distance(from, aim);
-            if (curlMag > 0f)
+            if (curlMag > 0f && Config.Aero == null)
             {
                 // Start wide of the target and let the curl bring it back in (the same shape as a free kick).
                 dir = dir.Rotate(-curlSign * (0.04f + 0.02f * curlMag / 10f));
@@ -320,13 +320,23 @@ namespace SoccerVision.Simulation
             float vz = KickSolver.VerticalSpeedFor(horizontal, startZ, distToAim, aimZ, Config, curlSign * curlMag, 0f);
             // Some finishes are aimed into the ground: a header nodded down so it bounces up past the keeper, a volley kept
             // down, a low drive that skips off the turf in front of him. (Bounces are hard for keepers.)
+            float distToBounce = distToAim;
             bool bouncer = !penalty && tech != ShotTechnique.Chip && distToAim > 5f
                            && ((header && startZ > 1.4f && _rng.Chance(0.25f)) || (volley && _rng.Chance(0.35f)) || (tech == ShotTechnique.Power && distToAim > 14f && _rng.Chance(0.18f)));
             if (bouncer)
             {
                 float bounceAt = MathF.Max(2f, distToAim - _rng.Range(1.5f, header ? 4.5f : 6.5f));
+                distToBounce = bounceAt;
                 vz = KickSolver.VerticalSpeedFor(horizontal, startZ, bounceAt, Pitch.BallRadius, Config, curlSign * curlMag, 0f);
                 if (CollectDiagnostics) Count("shot.bouncer");
+            }
+            if (curlMag > 0f && Config.Aero != null)
+            {
+                // Aim off by exactly what the physical curl will bring back (the integrator the flight uses), not by a fixed angle.
+                float reach = bouncer ? distToBounce : distToAim;
+                float yawShot = KickSolver.CurlYawToReach(power, startZ, vz, reach, Config, curlSign * curlMag, 0f);
+                dir = dir.Rotate(yawShot);
+                horizontal = dir * power;
             }
 
             float pressure = penalty ? 0f : Pressure(p, out _);
