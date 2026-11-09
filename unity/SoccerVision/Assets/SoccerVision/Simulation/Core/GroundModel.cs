@@ -38,12 +38,27 @@ namespace SoccerVision.Simulation
         /// </summary>
         public float Friction;
 
-        public GroundModel(string name, float restitution, float friction)
+        /// <summary>
+        /// Rolling resistance of a rolling ball, as a deceleration a + b v (m/s², v in m/s), on top of the air drag (stage 5). The linear form is the
+        /// one the IST / Kolitzus method fits to timing-gate data ("the deceleration decreases the slower the ball rolls"; Gabrielsen, Norwegian Building
+        /// Research Institute, ISSS 2004). The air drag on a rolling ball is counted separately (it slows the spin too: 1/(1+k) of the free value).
+        /// </summary>
+        public float RollA, RollB;
+        /// <summary>The roll distance this profile was fitted to: a ball leaving the FIFA / EN 12234 ramp (1 m drop) reaches the surface at 3.2 m/s (Gabrielsen) and rolls this far.</summary>
+        public float FittedRoll;
+
+        public GroundModel(string name, float restitution, float friction, float rollA = 0.408f, float rollB = 0.167f, float fittedRoll = 6.4f)
         {
             Name = name;
             Restitution = restitution;
             Friction = friction;
+            RollA = rollA;
+            RollB = rollB;
+            FittedRoll = fittedRoll;
         }
+
+        /// <summary>The rolling resistance at this speed (m/s²), without the air drag.</summary>
+        public float RollingResistance(float speed) => RollA + RollB * speed;
 
         /// <summary>The restitution of a normal impact at this speed (clamped to 0.2-0.95).</summary>
         public float RestitutionAt(float normalSpeed)
@@ -52,16 +67,27 @@ namespace SoccerVision.Simulation
         /// <summary>The rebound height (ball underside) of the FIFA drop test from 2.00 m on this surface, ignoring the air: e^2 x 2.00 m.</summary>
         public float DropTestRebound => Restitution * Restitution * 2.00f;
 
-        public GroundModel With(string name, float? restitution = null, float? friction = null)
-            => new GroundModel(name, restitution ?? Restitution, friction ?? Friction) { ReferenceImpactSpeed = ReferenceImpactSpeed, RestitutionPerMetrePerSecond = RestitutionPerMetrePerSecond };
+        public GroundModel With(string name, float? restitution = null, float? friction = null, float? rollA = null, float? rollB = null, float? fittedRoll = null)
+            => new GroundModel(name, restitution ?? Restitution, friction ?? Friction, rollA ?? RollA, rollB ?? RollB, fittedRoll ?? FittedRoll)
+               { ReferenceImpactSpeed = ReferenceImpactSpeed, RestitutionPerMetrePerSecond = RestitutionPerMetrePerSecond };
 
-        /// <summary>Natural grass, dry: e 0.632 (a 0.80 m rebound, the middle of FIFA's "excellent" 0.60-1.00 m, class D in an A range); grips (mu 0.6, class D above the grip threshold).</summary>
-        public static readonly GroundModel NaturalDry = new GroundModel("natural, dry", 0.632f, 0.6f);
-        /// <summary>Natural grass, wet: the same vertical rebound (the thesis: 7 cm or less of difference), sliding friction 0.22 (class C from the thesis' 74-76%).</summary>
-        public static readonly GroundModel NaturalWet = new GroundModel("natural, wet", 0.632f, 0.22f);
-        /// <summary>Football turf (artificial), dry: e 0.602 (0.725 m, the middle of FIFA Quality Pro's 0.60-0.85 m, class D in an A range); grips.</summary>
-        public static readonly GroundModel ArtificialDry = new GroundModel("artificial, dry", 0.602f, 0.6f);
-        /// <summary>Football turf, wet: the same rebound, sliding friction 0.25 (class D: inside the wet angle rebound range 45-80%).</summary>
-        public static readonly GroundModel ArtificialWet = new GroundModel("artificial, wet", 0.602f, 0.25f);
+        // Rolling (stage 5). Measured anchor: three natural grass fields in Norway (NBI for UEFA, 2003; "heavy slow northern European grasses",
+        // Dunlop's comment): the velocity change over 2 m timing gates from the 1 m ramp averaged 0.68 m/s (0.55-0.87; 95% CI 0.62-0.74), and the
+        // roll distance trend of the same study gives about 6.4 m for it. a = 0.408, b = 0.167 reproduce both (6.40 m and 0.72 m/s, with the air
+        // drag of a rolling ball added): class C from B. The FIFA Natural-Pitch Rating System calls 4.0-10.0 m excellent; the old engine rolled 4.1 m.
+        // Other profiles keep the measured shape (b / a) and are fitted to a roll distance chosen inside FIFA's ranges (class D).
+
+        /// <summary>Natural grass, dry, a normal match cut: the Norwegian measurements (roll 6.4 m from the 1 m ramp). e 0.632, grips (mu 0.6).</summary>
+        public static readonly GroundModel NaturalDry = new GroundModel("natural, dry", 0.632f, 0.6f, 0.408f, 0.167f, 6.4f);
+        /// <summary>Natural grass, dry, cut short (the thesis: a lower cut rolls further): 7.5 m (class D).</summary>
+        public static readonly GroundModel NaturalDryShort = new GroundModel("natural, dry, short", 0.632f, 0.6f, 0.343f, 0.140f, 7.5f);
+        /// <summary>Natural grass, dry, long: 5.5 m (class D).</summary>
+        public static readonly GroundModel NaturalDryLong = new GroundModel("natural, dry, long", 0.632f, 0.6f, 0.480f, 0.196f, 5.5f);
+        /// <summary>Natural grass, wet: the same vertical rebound, sliding friction 0.22 (the thesis' 74-76% angle rebound), a faster roll: 9.0 m (class D; the old model's wet pitch rolled about 1.4 times as far).</summary>
+        public static readonly GroundModel NaturalWet = new GroundModel("natural, wet", 0.632f, 0.22f, 0.281f, 0.115f, 9.0f);
+        /// <summary>Football turf, dry: e 0.602 (0.725 m, the middle of FIFA Quality Pro 0.60-0.85 m), grips; roll 8.0 m (class D, inside FIFA Quality 4-10 m).</summary>
+        public static readonly GroundModel ArtificialDry = new GroundModel("artificial, dry", 0.602f, 0.6f, 0.320f, 0.131f, 8.0f);
+        /// <summary>Football turf, wet: the same rebound, sliding friction 0.25, roll 9.5 m (class D).</summary>
+        public static readonly GroundModel ArtificialWet = new GroundModel("artificial, wet", 0.602f, 0.25f, 0.264f, 0.108f, 9.5f);
     }
 }

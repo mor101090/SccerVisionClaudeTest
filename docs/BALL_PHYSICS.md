@@ -25,6 +25,9 @@ A number read only through a search result or an abstract (the full text was not
 | FIFA, [Natural-Pitch Rating System](https://digitalhub.fifa.com/m/58aa765dd3e85f26/original/FIFA-natural-pitch-rating-system_EN.pdf) (May 2022) | **The text itself.** "Excellent" natural pitch: vertical ball rebound 0.60-1.00 m (satisfactory 0.50-0.59 or 1.01-1.10), ball roll 4.0-10.0 m | **Class A** ranges; stage 4 (and 5) |
 | The English FA, conditions of use for artificial pitches (through a search, secondary) | FIFA Quality turf: vertical rebound 0.60-1.00 m (Quality Pro 0.60-0.85 m), angle ball rebound 45-70% dry, 45-80% wet, ball roll 4-10 m | Secondary; stage 4 |
 | J. Thomas, [Soccer Ball Interactions on Wet and Dry Turfgrasses at Various Mowing Heights](https://trace.tennessee.edu/utk_gradthes/11814), MSc thesis, University of Tennessee, 2024 | **The abstract only** (the full text is embargoed until 2027): angle ball rebound 56% (Kentucky bluegrass) and 69% (bermudagrass) dry, 74-76% lightly irrigated (63% for one); vertical rebound changed by 7 cm or less dry v wet and with mowing height; lower mowing gives a longer roll | Class B (abstract); stage 4 |
+| M. Gabrielsen, [Ball Roll](https://www.isss-sportsurfacescience.org/downloads/documents/A7ZD60AH55_Gabrielsen_Ball_Roll.pdf.pdf), Norwegian Building Research Institute, ISSS Technical Meeting 2004 | **The text itself.** The 1 m ramp delivers the ball at 3.2 m/s; the UEFA / NBI study (2003) measured six turf systems and three natural pitches with timing gates 2 m apart starting 0.5 m from the ramp; the roll distance trend BRD = 4.3404 × VC^-0.9789 (R² 0.87); the IST / Kolitzus method fits dec = a + b v ("the deceleration decreases the slower the ball roll") | **Class B**: the source of the rolling model |
+| J. Dunlop, [comment on the NBI report](https://www.isss-sportsurfacescience.org/filemanager_net/files/pdf/comment_on_ball_roll.pdf) (ISSS, 2004) | **The text itself.** For the natural pitches of the study the velocity change was 0.55-0.87 m/s, mean 0.68 (95% CI 0.62-0.74); "heavy slow northern European grasses"; "rarely in soccer play does the ball roll to a stop" | Class B; stage 5 |
+| A British study of pitch testing (1985 standards), through a search | 90% of natural-pitch deceleration values 0.45-1.5 m/s² (the source the engine's old comment quoted without a reference) | Secondary; stage 5 |
 | Asai, Kimachi, Liu, Koido, Nakayama, Goff, Hong, [Measurements of the Flight Trajectory of a Spinning Soccer Ball and the Magnus Force Acting on It](https://www.mdpi.com/2504-3900/49/1/88), *Proceedings* 49(1):88, 2020 | **Not the full text** (the publisher refuses automated downloads). Title and authors from Crossref; from the abstract through a search: time-averaged side-force coefficients 0.21, 0.24, 0.29 at time-averaged spin parameters 0.18, 0.22, 0.34 (spin parameter Sp = Rω/U), vertical spin axes, the side force falls as the ball slows | Secondary: the audit below; stage 3 |
 | Goff, Hong, Asai, [Influence of Surface Properties on Soccer Ball Trajectories](https://www.mdpi.com/2504-3900/49/1/143), *Proceedings* 49(1):143, 2020 | **Not the full text.** From search snippets: the drag coefficient depends on speed and spin; the drag crisis (a sharp fall of Cd at a critical Reynolds number) differs between balls (Jabulani, Brazuca, a smooth ball of the same size; the smooth ball has the highest critical Reynolds number); panel texture, seam width and depth matter | Secondary, qualitative only: stage 3 |
 | Paudel, Yan, [High-fidelity simulations of full-flight soccer ball aerodynamics using a monolithic overset approach](https://link.springer.com/article/10.1007/s00466-025-02705-2), *Computational Mechanics*, 2025 | The abstract (Crossref): fully coupled CFD of a spinning free kick; spin rate drives the lateral deviation, kick speed the range and flight time; a smoother ball shows a stronger Magnus effect; compared with an ODE model using empirical drag coefficients | Qualitative: why a coefficient model (not CFD) is the right tool in a game; no numbers taken |
@@ -173,13 +176,50 @@ repeated bounces lose energy every time and the ball is rolling after 3-10 bounc
 | Passes, completion % | 441 / 449, 79.4 / 79.9 | 445 / 448, 79.6 / 79.8 | +5, 79.5 -> 79.8 | 80-85 |
 | Volleys | 4.97 / 5.39 | 5.36 / 5.63 | 5.2 -> 5.5 | - |
 
+## Stage 5 - the ball on the ground (done)
+
+`GroundModel.RollA` / `RollB`, `BallPhysics.Roll` / `RollingDeceleration`, `MatchConfig.GrassLength`. Tests: `BallRollTests` (TEST 4, TEST 13, the slip-to-roll
+transition). With `MatchConfig.Ground = null` the old ground model runs, bit for bit.
+
+**Model**: a rolling ball has the spin of rolling (ω = ẑ × v / R) and slows by the surface's rolling resistance a + b v plus the air drag, which on a rolling ball
+slows the spin too (1/(1+k) of the free value). A ball that lands still slipping at the contact (a bounce the friction could not finish, or a soft landing with
+spin) slides: friction μ g works on the slip, changing speed and spin together, until the bottom of the ball stops slipping; the angular momentum about the
+contact point is conserved meanwhile (checked: it ends at (v0 + k R ω0)/(1 + k), 3/5 of the speed for a thin shell with no spin). Ground kicks, touches and
+deflections are still treated as rolling from the start (the kick model is stage 7). Spin about the vertical dies at 3/s as before (D). Surface irregularities
+are not modelled (E): a random deflection would break the AI's predictions, which use the same integrator.
+
+| Profile | a (m/s²) | b (1/s) | Roll from the 1 m ramp (3.2 m/s) | Class |
+|---|---|---|---|---|
+| Natural, dry (normal cut) | 0.408 | 0.167 | 6.4 m; velocity change over the 2 m gates 0.72 m/s | **C from B**: fits both Norwegian measurements at once (mean ΔV 0.68, 95% CI 0.62-0.74; the study's trend gives 6.4 m for it) |
+| Natural, dry, short cut | 0.343 | 0.140 | 7.5 m | D (the thesis: a lower cut rolls further) |
+| Natural, dry, long | 0.480 | 0.196 | 5.5 m | D |
+| Natural, wet | 0.281 | 0.115 | 9.0 m | D (the old model's wet pitch rolled about 1.4 times as far) |
+| Football turf, dry / wet | 0.320 / 0.264 | 0.131 / 0.108 | 8.0 / 9.5 m | D, inside FIFA Quality 4-10 m |
+| Snow | 1.8 | 0.35 | | D, as before |
+| Worn pitch | + 0.35 × (1 - maintenance) on a | | | D, as before |
+| Old model | 0.9 | 0.14 (+ the old air drag) | 4.1 m | D: a heavy, slow pitch at FIFA's lower limit |
+
+All the profiles keep the measured shape b / a and are inside FIFA's "excellent" 4.0-10.0 m. At 3 m/s the dry natural profile decelerates the ball 1.0 m/s²,
+inside the British 0.45-1.5 m/s². The passers aim with a roll table built from the same deceleration (checked: arrival speed and time agree with the live ball).
+
+**Match statistics, stage 4 v stage 5** (200 matches a seed, medium v medium; the old ground model reproduces stage 4 to the digit):
+
+| | seed 700 | seed 900 | mean | real |
+|---|---|---|---|---|
+| Goals | 2.90 -> 3.07 | 2.94 -> 2.82 | 2.92 -> 2.95 | 2.83 |
+| Shots | 26.7 -> 25.4 | 25.4 -> 25.5 | 26.1 -> 25.5 | 25.4 |
+| On target | 8.86 -> 8.64 | 8.36 -> 8.50 | 8.61 -> 8.57 | 8.8 |
+| Headed goals, % | 19.2 -> 17.5 | 18.7 -> 16.3 | 19.0 -> 16.9 | 13-19 |
+| Passes won by the opponent | 70.0 -> 68.0 | 69.3 -> 66.7 | 69.6 -> 67.3 | - |
+| Pass completion % | 79.9 -> 79.7 | 79.8 -> 79.7 | about 79.7 | 80-85 |
+
 ## Plan for the next stages
 
 | Stage | What | Changes the match? |
 |---|---|---|
 | 3 | **Done** (above). Flight: gravity, drag with Cd(Re, spin) and a drag crisis, Magnus as a vector force; knuckle side force not modelled (no coefficient model) | Yes: shots, crosses, long balls |
 | 4 | **Done** (above). Bounce: impulse model, e(v_n, surface), Coulomb friction at the contact point, spin in and out | Yes, a little |
-| 5 | Rolling: slip → roll transition, rolling resistance μr per pitch profile (short / long / wet / dry / artificial), spin decay | Yes: every pass |
+| 5 | **Done** (above). Rolling: slip → roll transition, rolling resistance a + b v per pitch profile (short / normal / long / wet / dry / turf) | Yes, a little |
 | 6 | Spin: 3D ω through flight, bounce and roll; torques; the renderer shows the real spin | Yes |
 | 7 | Kicks: foot speed, contact point and friction → ball velocity and spin per kick type | Yes |
 | 8 | Collisions: posts, crossbar, players, keeper hands with impulses, continuous detection | Yes |

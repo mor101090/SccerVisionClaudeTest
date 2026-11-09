@@ -2,6 +2,22 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/ball-roll` (stage 5)
+
+**Ball physics, stage 5: the ball on the ground.** Sources, classes (A-E) and numbers: `docs/BALL_PHYSICS.md`. **This changes the match, a little.**
+- **Rolling** (`BallPhysics.Roll`): a rolling ball has the spin of rolling and slows by the surface's rolling resistance a + b v (the form fitted to timing-gate data
+  by the IST / Kolitzus method) plus the air drag on a rolling ball. **Slipping**: a ball that lands still slipping slides under friction μ g until it rolls,
+  speed and spin changing together (angular momentum about the contact point conserved: checked).
+- **Surfaces** (`GroundModel`, `MatchConfig.GrassLength`): natural dry a 0.408, b 0.167 - fitted to two measurements of three Norwegian natural pitches at
+  once (Gabrielsen / NBI 2004 and Dunlop's comment, both read: velocity change over 2 m gates 0.68 m/s mean, roll about 6.4 m from the 1 m ramp): the model gives
+  0.72 m/s and 6.4 m. Short, long, wet and turf profiles keep that shape, fitted to roll distances chosen inside FIFA's 4-10 m (class D). The old model rolled 4.1 m.
+- **Kept as before**: ground kicks and touches start rolling (the kick model is stage 7); surface irregularities are not modelled (E: a random deflection would break
+  the AI's predictions).
+- **Legacy kept**: `MatchConfig.Ground = null` reproduces stage 4 to the digit.
+- **Stage 4 v stage 5** (200 matches a seed, two seeds): goals 2.92 -> 2.95 (real 2.83), shots 26.1 -> 25.5 (25.4), on target 8.61 -> 8.57 (8.8), headed share
+  of goals 19.0% -> 16.9% (13-19%), passes won by the opponent 69.6 -> 67.3, pass completion about 79.7%.
+- **Tests**: `BallRollTests` (9). TESTS_LINE
+
 ## `feature/ball-bounce` (stage 4)
 
 **Ball physics, stage 4: the bounce.** Sources, classes (A-E) and numbers: `docs/BALL_PHYSICS.md`. **This changes the match, a little.**

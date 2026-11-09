@@ -18,6 +18,8 @@ namespace SoccerVision.Simulation
         /// </summary>
         public float Wx, Wy, Wz;
         public bool HasWorldSpin;
+        /// <summary>On the ground and still slipping at the contact after a landing (stage 5): friction works on it until it rolls.</summary>
+        public bool Sliding;
 
         public Vec2 Position2D => new Vec2(X, Y);
         public Vec2 Velocity2D => new Vec2(Vx, Vy);
@@ -135,9 +137,18 @@ namespace SoccerVision.Simulation
                     }
                     else
                     {
+                        // too slow to bounce: it settles onto the ground - with the stage 4 ground model the contact still takes its friction
+                        // impulse (the spin it lands with grips or slips), it just does not leave the ground again
+                        if (c.Ground != null && b.Vz < 0f) Bounce(ref b, c);
                         b.Vz = 0f;
                     }
                 }
+            }
+            else if (c.Ground != null)
+            {
+                b.Z = r;
+                b.Vz = 0f;
+                Roll(ref b, c, dt);
             }
             else
             {
@@ -166,7 +177,7 @@ namespace SoccerVision.Simulation
 
             if (c.Aero != null)
             {
-                if (b.HasWorldSpin)
+                if (b.HasWorldSpin && !(rolling && c.Ground != null)) // (on the ground the rolling model sets the spin)
                 {
                     float wd = MathF.Exp(-c.Aero.SpinDecayPerSecond * dt);
                     b.Wx *= wd; b.Wy *= wd; b.Wz *= wd;
@@ -213,6 +224,7 @@ namespace SoccerVision.Simulation
                 float toGrip = us * k / (1f + k);                         // the speed change that stops the slip
                 float limit = mu * (1f + e) * vn;                          // what friction can give (per unit mass)
                 float dv = MathF.Min(toGrip, limit);
+                b.Sliding = limit < toGrip;                                // friction ran out: it leaves (or lands) still slipping
                 float jx = -ux / us * dv, jy = -uy / us * dv;              // tangential impulse / m
                 b.Vx += jx;
                 b.Vy += jy;
@@ -221,6 +233,70 @@ namespace SoccerVision.Simulation
                 b.Wy -= jx / (k * R);
             }
             b.Vz = e * vn;
+        }
+
+        /// <summary>
+        /// The ball on the ground (stage 5). While its contact still slips after a landing, sliding friction mu g works on the slip (it changes both the
+        /// speed and the spin, exactly as in the bounce, until the bottom of the ball stops slipping). A rolling ball has the spin of rolling (w = z x v / R)
+        /// and slows by the rolling resistance a + b v of the ground profile plus the air drag on a rolling ball (1/(1+k) of the free value, since the
+        /// spin has to slow with it). Spin about the vertical axis dies away on the grass as before (3/s, class D).
+        /// </summary>
+        public static void Roll(ref BallMotion b, MatchConfig c, float dt)
+        {
+            b.AdoptWorldSpin();
+            float R = c.Ball.RadiusM, k = c.Ball.InertiaFactor;
+            if (b.Sliding)
+            {
+                float ux = b.Vx - R * b.Wy, uy = b.Vy + R * b.Wx;
+                float us = MathF.Sqrt(ux * ux + uy * uy);
+                float mu = c.Ground.Friction;
+                if (c.Surface != null) mu *= 1f - 0.15f * c.Surface.MudAt(b.X, b.Y) - 0.35f * c.Surface.WaterAt(b.X, b.Y);
+                float toGrip = us * k / (1f + k), can = mu * c.Gravity * dt;
+                float dv = MathF.Min(toGrip, can);
+                if (us > 1e-6f)
+                {
+                    float jx = -ux / us * dv, jy = -uy / us * dv;
+                    b.Vx += jx; b.Vy += jy;
+                    b.Wx += jy / (k * R); b.Wy -= jx / (k * R);
+                }
+                if (toGrip <= can) b.Sliding = false;
+            }
+            float hs = b.HorizontalSpeed;
+            if (hs > 0f)
+            {
+                float decel = RollingDeceleration(c, hs);
+                if (c.Surface != null) decel += c.Surface.ExtraRollingDecel(b.X, b.Y, hs);
+                float newHs = MathF.Max(0f, hs - decel * dt);
+                float scale = newHs / hs;
+                b.Vx *= scale;
+                b.Vy *= scale;
+            }
+            b.X += b.Vx * dt;
+            b.Y += b.Vy * dt;
+            if (!b.Sliding)
+            {
+                // rolling without slipping: w x (-R z) = v  ->  w = (-v_y, v_x, .) / R
+                b.Wx = -b.Vy / R;
+                b.Wy = b.Vx / R;
+            }
+            b.Wz *= MathF.Max(0f, 1f - 3f * dt);
+        }
+
+        /// <summary>
+        /// The deceleration of a ball rolling at this speed on a uniform pitch: the ground profile's rolling resistance (plus the extra of a worn pitch)
+        /// and the air drag, which on a rolling ball slows the spin too (1/(1+k) of the free-flight value). The rolling table the passers aim with uses it.
+        /// </summary>
+        public static float RollingDeceleration(MatchConfig c, float speed)
+        {
+            if (c.Ground == null) return c.RollingDecel + c.GrassLinearDrag * speed + c.AirDragK * speed * speed;
+            float air;
+            if (c.Aero != null)
+            {
+                float re = AeroModel.ReynoldsNumber(c.AirDensity, speed, 2f * c.Ball.RadiusM, c.AirDynamicViscosity);
+                air = 0.5f * c.AirDensity * c.Ball.CrossSectionAreaM2 / c.Ball.MassKg * c.Aero.Cd0(re) * speed * speed / (1f + c.Ball.InertiaFactor);
+            }
+            else air = c.AirDragK * speed * speed;
+            return c.Ground.RollingResistance(speed) + c.RollingWear + air;
         }
 
         /// <summary>
@@ -287,7 +363,7 @@ namespace SoccerVision.Simulation
             speeds[count] = v; dists[count] = d; times[count] = t; count++;
             while (v > 0f && count < cap)
             {
-                float decel = c.RollingDecel + c.GrassLinearDrag * v + c.AirDragK * v * v;
+                float decel = BallPhysics.RollingDeceleration(c, v);
                 v = MathF.Max(0f, v - decel * dt);
                 d += v * dt;
                 t += dt;
