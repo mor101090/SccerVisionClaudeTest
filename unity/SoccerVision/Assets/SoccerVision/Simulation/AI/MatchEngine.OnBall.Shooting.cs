@@ -149,7 +149,7 @@ namespace SoccerVision.Simulation
         private readonly string[] _lastTeamPassKind = new string[2];
 
         /// <summary>How much wider a fully contested header goes (a defender at 0.5 m or closer), as a share of its aim error (class D).</summary>
-        public static float HeaderContestError = 0.6f;
+        public static float HeaderContestError = 1.2f;
 
         private void ExecuteShot(PlayerAgent p, bool header, bool penalty, float xg, bool volley = false, bool bicycle = false)
         {
