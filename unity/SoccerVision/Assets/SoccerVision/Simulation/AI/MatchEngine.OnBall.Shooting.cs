@@ -148,8 +148,8 @@ namespace SoccerVision.Simulation
         private string _lastPassKindForShot(TeamAgent team) => _lastTeamPassKind[team.Index] ?? "Pass";
         private readonly string[] _lastTeamPassKind = new string[2];
 
-        /// <summary>How much wider a fully contested header goes (a defender at 0.5 m or closer), as a share of its aim error (class D).</summary>
-        public static float HeaderContestError = 1.2f;
+        /// <summary>How much wider a fully contested header goes (a defender at 0.5 m or closer), as a share of its aim error: 2 = three times as wide (class D; 800 matches: headed goals 0.61 -> 0.58 a match).</summary>
+        public static float HeaderContestError = 2.0f;
 
         private void ExecuteShot(PlayerAgent p, bool header, bool penalty, float xg, bool volley = false, bool bicycle = false)
         {
