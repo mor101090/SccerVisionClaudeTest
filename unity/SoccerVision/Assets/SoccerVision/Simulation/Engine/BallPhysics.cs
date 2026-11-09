@@ -26,6 +26,8 @@ namespace SoccerVision.Simulation
         /// </summary>
         public bool Landed;
         public float LandX, LandY;
+        /// <summary>The speed it came down at, in the step it <see cref="Landed"/> (before the bounce).</summary>
+        public float LandSpeed;
 
         public Vec2 Position2D => new Vec2(X, Y);
         public Vec2 Velocity2D => new Vec2(Vx, Vy);
@@ -138,7 +140,7 @@ namespace SoccerVision.Simulation
                     b.X = b.X - 0.5f * (b.Vx + ax * rest + b.Vx) * rest;
                     b.Y = b.Y - 0.5f * (b.Vy + ay * rest + b.Vy) * rest;
                     b.Z = r;
-                    b.Landed = true; b.LandX = b.X; b.LandY = b.Y;
+                    b.Landed = true; b.LandX = b.X; b.LandY = b.Y; b.LandSpeed = b.Speed;
                     if (b.Vz < -BounceThreshold && c.Ground != null)
                     {
                         Bounce(ref b, c);
