@@ -9,7 +9,7 @@ namespace SoccerVision.Simulation.Tests
     /// <summary>
     /// The engine against the real figures it was tuned to (tools/calibration/CLAIMS.md, counted by real_leagues.py: Premier League 2015/16-2024/25 -
     /// goals 2.83, shots 25.4, fouls 21.5 a match; home advantage about +12 points of win share). Medium v medium in all four marking pairings
-    /// (both systems in both seats, so neither colour nor seat is the reason), 40 matches each. The ranges are wide on purpose: they catch an
+    /// (both systems in both seats, so neither colour nor seat is the reason), 80 matches each (40 left the marking gap about 8 points of noise on its own). The ranges are wide on purpose: they catch an
     /// engine that has wandered off (goals 2.0, a marking gap of 25 points), not a change of a tenth of a goal.
     /// </summary>
     public class RealWorldPinTests
@@ -20,7 +20,7 @@ namespace SoccerVision.Simulation.Tests
 
         private static MatchEngine[] Play(MarkingStyle home, MarkingStyle away, ulong from)
         {
-            var es = new MatchEngine[40];
+            var es = new MatchEngine[80];
             Parallel.For(0, es.Length, i =>
             {
                 var red = DemoTeams.Red(); var blue = DemoTeams.Blue();
