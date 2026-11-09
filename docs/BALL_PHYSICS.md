@@ -385,7 +385,20 @@ grass at match speeds was found.
 **What it changes.** The contact (8 ms) is shorter than the engine's step (20 ms), so the impulses stay instantaneous and the deformation does not
 change the play. Only the frame's slope does: a post hit at shot speed now gives back more of its speed (0.75 rather than 0.66 at 25 m/s).
 The engine notes every contact (about 1,050 a match: passes, traps, kicks, bounces, the frame, bodies; a catch and a throw are left out, the
-hands are soft and unmeasured) with its flattening and direction.
+hands are soft and unmeasured) with its flattening and direction (18 mm on average).
+
+| Per match (800 distinct matches each: seeds 1, 1001, 2001, 3001 x 200) | Stage 8 slope (0.01) | Measured slope (0.0056) | Real |
+|---|---|---|---|
+| Goals | 3.03 | 3.03 | 2.83 |
+| Shots | 26.46 | 26.33 | 25.4 |
+| On target | 8.82 | 8.83 | 8.8 |
+| Woodwork | 0.77 | 0.76 | |
+| Corners | 9.68 | 9.68 | 10.4 |
+| Headed goals, % of goals | 21.5 | 21.4 | 13-19 |
+| Pass completion, % | 79.7 | 79.8 | |
+
+Nothing moves beyond the noise (goals' standard error is about 0.06): the frame is hit under once a match, and the slope only matters for the
+hardest hits. The stage 8 column reproduces stage 8's own figures exactly, as it should.
 
 **What you see.** Each replay frame ends with the latest contact since the previous frame (flattening in mm, direction x100); the website, the
 classic page and Unity draw the ball for that frame with a flat cap on the side that faced what it hit, at the real depth (a 30 m/s shot: a

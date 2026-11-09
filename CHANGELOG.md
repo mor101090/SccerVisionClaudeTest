@@ -2,6 +2,15 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/ball-deformation` (stage 9)
+
+**Ball physics, stage 9: the ball flattens.** Details: `docs/BALL_PHYSICS.md`. **The match does not change** (measured); the picture does.
+- **The ball as a gas spring** (`DeformationModel`): an inflated ball stays a sphere with a flat cap (Tadrist and Darbois Texier, filmed at 4000 fps), and the air pushes back with its pressure on the flat area, so k = 2 pi R P (59 kN/m for the reference ball) and the contact lasts pi sqrt(m / k) = 8.45 ms. Bent to the measured impacts of a match ball on a rigid force plate (Iga, Nunome, Inoue and Ikegami; 9-19.5 m/s): every measured contact time within 0.1 ms, every measured flattening within 1.5 mm. 1.7 cm for a 10 m/s pass, 4.4 cm for a 30 m/s shot, 5.0 cm square onto the post at 20 m/s.
+- **The frame's restitution slope** is the measured 0.0056 per m/s (B), replacing stage 8's 0.01 borrowed from tennis balls (E): 0.75 for a shot square on the post at 25 m/s. In the match (800 distinct matches each) nothing moves beyond the noise: goals 3.03 -> 3.03, woodwork 0.77 -> 0.76, headed share 21.5% -> 21.4%.
+- **The contacts on screen**: the engine notes each contact (about 1,050 a match, from the ball's velocity jump between steps; it only reads the ball), and each replay frame ends with the latest one (flattening in mm, direction x100). The website, the classic page and Unity draw the ball for that frame with a flat cap on the side that faced what it hit, at the real depth. Seen from above, a bounce shows nothing (its cap is underneath).
+- Changed together (the engine contract): `ReplayRecorder`, `app/src/engine/replay` and its copy in `web/src/replay`, the classic page, Unity (not compiled here: no Unity in this environment).
+- **Tests**: `BallDeformationTests` (6), `replay.test.ts` (+4); `BallSpinReplayTests` reads the spin 4 numbers further from the frame's end; `yarn check` 134 / 134; the classic page plays a match in a browser with no page error.
+
 ## `feature/ball-collisions` (stage 8)
 
 **Ball physics, stage 8: collisions.** Details: `docs/BALL_PHYSICS.md`. The old collisions stay available: `SimRunner --legacycollide` (`MatchConfig.Collisions = null`).
