@@ -22,11 +22,11 @@ namespace SoccerVision.Simulation
         /// <summary>The FIFA drop test's impact speed, sqrt(2 g 2.00 m) (class C).</summary>
         public float ReferenceImpactSpeed = 6.26f;
         /// <summary>
-        /// How much the restitution falls per m/s of normal impact speed above the reference: the ground model's 0.01 (class E, by analogy with
-        /// pressurised tennis balls on a rigid plate; no football measurement could be read). A shot hitting the post square at 25 m/s keeps
-        /// e = 0.66 (the old model used 0.7 for every impact).
+        /// How much the restitution falls per m/s of normal impact speed above the reference: 0.0056, measured for a match ball fired at a rigid
+        /// force plate at 9-19.5 m/s (Iga, Nunome, Inoue and Ikegami: e 0.80 -> 0.74, a straight line within 0.003; class B, stage 9). A shot
+        /// hitting the post square at 25 m/s keeps e = 0.75. (Stage 8 used 0.01, borrowed from the ground model, class E.)
         /// </summary>
-        public float RestitutionPerMetrePerSecond = 0.01f;
+        public float RestitutionPerMetrePerSecond = 0.0056f;
         /// <summary>Friction between the ball's cover and a painted post (class E: no measurement found; a value that lets a glancing hit grip a little).</summary>
         public float FrameFriction = 0.3f;
 

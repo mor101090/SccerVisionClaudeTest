@@ -60,6 +60,8 @@ const PLAYER_STRIDE = 5;
 const OFFICIAL_BASE = PLAYER_BASE + PLAYERS * PLAYER_STRIDE;
 /** The free ball's spin (x, y, z, rad per replay second x10) at the end of a frame; older replays end before it. */
 export const BALL_SPIN = OFFICIAL_BASE + 3 * 3 + 3 + 4 + PLAYERS;
+/** A contact since the previous frame (flattening mm, push direction x, y, z x100; 0 mm: none); replays before ball physics stage 9 end before it. */
+export const BALL_CONTACT = BALL_SPIN + 3;
 
 export interface Snapshot {
   t: number;
@@ -67,8 +69,8 @@ export interface Snapshot {
   phase: number;
   homeScore: number;
   awayScore: number;
-  /** w: the ball's physical spin (world axes, rad per replay second), when the replay has it and the ball is free. */
-  ball: { x: number; y: number; z: number; owner: number; w?: [number, number, number] };
+  /** w: the ball's physical spin (world axes, rad per replay second), when the replay has it and the ball is free. contact: a contact in this frame (flattening m, push direction x, y, z). */
+  ball: { x: number; y: number; z: number; owner: number; w?: [number, number, number]; contact?: [number, number, number, number] };
   players: { x: number; y: number; facing: number; jump: number; sentOff: boolean; gk: boolean; booked: boolean; offside: boolean; sliding: boolean; grounded: boolean; injured: boolean; kick: number; kickLeft: boolean }[];
   /** flag: assistant's flag up; card: the referee holding up a card (0 none, 1 yellow, 2 red). */
   officials: { x: number; y: number; flag: boolean; flagDir: number; card: number }[];
@@ -160,6 +162,9 @@ export function sample(replay: Replay, t: number): Snapshot {
       z: lerp(a[7], b[7], bk) / 100,
       owner: a[8],
       ...(a.length >= BALL_SPIN + 3 ? { w: [a[BALL_SPIN] / 10, a[BALL_SPIN + 1] / 10, a[BALL_SPIN + 2] / 10] as [number, number, number] } : {}),
+      ...(a.length >= BALL_CONTACT + 4 && a[BALL_CONTACT] > 0
+        ? { contact: [a[BALL_CONTACT] / 1000, a[BALL_CONTACT + 1] / 100, a[BALL_CONTACT + 2] / 100, a[BALL_CONTACT + 3] / 100] as [number, number, number, number] }
+        : {}),
     },
     players,
     officials,

@@ -116,6 +116,12 @@ namespace SoccerVision.Simulation
         /// kept for comparison (`SimRunner --legacycollide`).
         /// </summary>
         public CollisionModel Collisions = CollisionModel.Reference;
+        /// <summary>
+        /// How far the ball flattens in a contact and for how long it touches (a gas spring of stiffness 2 pi R P, fitted to measured impacts; see
+        /// <see cref="DeformationModel"/>). It does not change the play (the contact is shorter than a step): the engine records each contact's
+        /// flattening and direction for the viewers. Null: nothing recorded.
+        /// </summary>
+        public DeformationModel Deformation = DeformationModel.Reference;
         /// <summary>The surface is football turf (artificial) rather than natural grass (picks the matching dry and wet ground profile).</summary>
         public bool ArtificialTurf;
         /// <summary>How the natural grass is cut: -1 short, 0 a normal match cut, +1 long (picks the dry natural profile; the thesis: a lower cut rolls further).</summary>

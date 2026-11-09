@@ -1,4 +1,4 @@
-import { Ball3D } from "./ball3d";
+import { Ball3D, contactCut } from "./ball3d";
 import { type DevSettings, refColours } from "./settings";
 import { PitchLook } from "./conditions";
 import { playerAt } from "./replay";
@@ -346,7 +346,9 @@ export function drawEntities(ctx: CanvasRenderingContext2D, v: View, replay: Rep
   const owner = b.owner >= 0 ? snap.players[b.owner] : null;
   // No spin while held (keeper's hands, carried overhead for a throw-in) or while play is stopped (the ball waits to be taken).
   ball3d.spin(b.x, b.y, h, dt, snap.phase !== 0 || (owner !== null && (owner.gk || b.z > 0.4)), owner === null ? b.w : undefined);
-  ball3d.draw(ctx, bx, by - Math.min(20, h) * 0.55 * s, 0.36 * s * (1 + Math.min(20, h) * 0.07));
+  // a contact in this frame: the ball drawn flattened against what it hit (stage 9; py grows downwards, the cut's y is up)
+  const cut = contactCut(b.contact, (dx, dy) => [px(v, b.x + dx) - bx, -(py(v, b.y + dy) - by)]);
+  ball3d.draw(ctx, bx, by - Math.min(20, h) * 0.55 * s, 0.36 * s * (1 + Math.min(20, h) * 0.07), cut);
   // The nets go over a ball lying in the goal (roof netting seen from above).
   for (const side of [-1, 1]) {
     const fx = netEffects(replay, snap.t, side);

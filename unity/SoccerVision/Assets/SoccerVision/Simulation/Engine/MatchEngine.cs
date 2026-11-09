@@ -309,6 +309,7 @@ namespace SoccerVision.Simulation
             StepCount++;
             SimTime += dt;
             SavePrevious();
+            TrackImpact(); // (stage 9: reads the ball's velocity change over the last step; changes nothing)
 
             if (Clock.Running)
             {

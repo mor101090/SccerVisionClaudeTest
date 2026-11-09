@@ -7,7 +7,7 @@ namespace SoccerVision.Simulation.Tests
 {
     /// <summary>
     /// Ball physics stage 6: the viewers turn the ball by its physical spin. Each replay frame ends with the free ball's angular velocity (world
-    /// axes, rad per replay second x10); a ball a player has, or the old ground model, records 0, 0, 0 and the viewers fall back to the
+    /// axes, rad per replay second x10; since stage 9 a contact follows it, 4 numbers); a ball a player has, or the old ground model, records 0, 0, 0 and the viewers fall back to the
     /// movement. See docs/BALL_PHYSICS.md.
     /// </summary>
     public class BallSpinReplayTests
@@ -24,7 +24,7 @@ namespace SoccerVision.Simulation.Tests
                 var chunk = rec.Step(1);
                 if (chunk.FrameCount != 1) continue;
                 Assert.Equal(n, chunk.Frames.Length);
-                int wx = chunk.Frames[n - 3], wy = chunk.Frames[n - 2], wz = chunk.Frames[n - 1];
+                int wx = chunk.Frames[n - 7], wy = chunk.Frames[n - 6], wz = chunk.Frames[n - 5];
                 if (e.Ball.IsFree && !e.Ball.InHands)
                 {
                     free++;
@@ -58,7 +58,7 @@ namespace SoccerVision.Simulation.Tests
             {
                 var chunk = rec.Step(1);
                 if (chunk.FrameCount != 1) continue;
-                Assert.True(chunk.Frames[n - 3] == 0 && chunk.Frames[n - 2] == 0 && chunk.Frames[n - 1] == 0);
+                Assert.True(chunk.Frames[n - 7] == 0 && chunk.Frames[n - 6] == 0 && chunk.Frames[n - 5] == 0);
             }
         }
     }

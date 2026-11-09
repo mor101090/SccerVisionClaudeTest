@@ -91,6 +91,11 @@ namespace SoccerVision.Runtime
 
         /// <summary>High-visibility ball (glowing orange with white pentagons), used in the snow.</summary>
         public bool Winter;
+        /// <summary>
+        /// The ball flattened against what it hit (ball physics stage 9): the flat side's direction (x, y on the texture) and its depth as a fraction
+        /// of the radius (z; 0: round). An inflated ball stays a sphere with a flat cap, so the rest of the disc is unchanged.
+        /// </summary>
+        public Vector3 Cut;
 
         public void Redraw()
         {
@@ -101,7 +106,7 @@ namespace SoccerVision.Runtime
                 {
                     float nx = (px + 0.5f - c) / rad, ny = (py + 0.5f - c) / rad, r2 = nx * nx + ny * ny;
                     int o = py * _size + px;
-                    if (r2 > 1f)
+                    if (r2 > 1f || (Cut.z > 0f && nx * Cut.x + ny * Cut.y > 1f - Cut.z))
                     {
                         _px[o] = new Color32(0, 0, 0, 0);
                         continue;

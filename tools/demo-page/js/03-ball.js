@@ -20,6 +20,15 @@
     for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) o[i * 3 + j] = r[i * 3] * m[j] + r[i * 3 + 1] * m[3 + j] + r[i * 3 + 2] * m[6 + j];
     ballRot = o;
   }
+  // A contact in this frame: the flat side faces what the ball hit (against the push), seen from above (a bounce, pushed straight up, shows
+  // nothing from above: the cap is underneath). Real depth: the flattening over the ball's 0.11 m radius, times the push's horizontal part.
+  function ballCut(S) {
+    var q = S.sq; if (!q) return null;
+    var hz = Math.hypot(q[1], q[2]), f = Math.min(.6, q[0] / .11) * hz;
+    if (f < .04) return null;
+    var sx = X(S.bx - q[1] / hz) - X(S.bx), sy = -(Y(S.by - q[2] / hz) - Y(S.by)), sl = Math.hypot(sx, sy);
+    return sl > 0 ? [sx / sl, sy / sl, f] : null;
+  }
   function spinBall(S, h, dt, held) {
     if (held) { ballSpin.w = 0; ballPrev = { x: S.bx, y: S.by }; return; } // held by the keeper / carried overhead: no roll
     var w = S.owner < 0 ? S.bw : null, wn = w ? Math.hypot(w[0], w[1], w[2]) : 0;
@@ -42,7 +51,9 @@
     ballPrev = { x: S.bx, y: S.by };
   }
   var yellowBall = false;
-  function drawBall(cx, cy, rad) {
+  // cut: the ball flattened against what it hit (ball physics stage 9) - [screen x, screen y (up), depth as a fraction of the radius] of the flat
+  // side; an inflated ball stays a sphere with a flat cap (it does not bulge), so the rest of the disc is unchanged.
+  function drawBall(cx, cy, rad, cut) {
     var size = Math.ceil(rad * 2) + 2, c = size / 2;
     if (ballCv.width !== size) { ballCv.width = size; ballCv.height = size; }
     var img = ballCx.createImageData(size, size), d = img.data, m = ballRot;
@@ -51,6 +62,7 @@
     for (var py = 0; py < size; py++) for (var px = 0; px < size; px++) {
       var nx = (px + .5 - c) / rad, ny = -(py + .5 - c) / rad, r2 = nx * nx + ny * ny;
       if (r2 > 1.0) continue;
+      if (cut && nx * cut[0] + ny * cut[1] > 1 - cut[2]) continue;
       var nz = Math.sqrt(1 - r2);
       // into the ball's own frame (transpose of the rotation)
       var bx = m[0] * nx + m[3] * ny + m[6] * nz, by = m[1] * nx + m[4] * ny + m[7] * nz, bz = m[2] * nx + m[5] * ny + m[8] * nz;
@@ -74,7 +86,13 @@
     }
     ballCx.putImageData(img, 0, 0);
     ctx.drawImage(ballCv, cx - c, cy - c);
-    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.lineWidth = Math.max(.6, rad * .08); ctx.strokeStyle = yellowBall ? "rgba(150,50,0,.7)" : "rgba(0,0,0,.45)"; ctx.stroke();
+    ctx.beginPath();
+    if (cut) {
+      // the outline round the round part, and straight across the flat cap
+      var ca = Math.atan2(-cut[1], cut[0]), ha = Math.acos(1 - cut[2]);
+      ctx.arc(cx, cy, rad, ca + ha, ca - ha + Math.PI * 2); ctx.closePath();
+    } else ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    ctx.lineWidth = Math.max(.6, rad * .08); ctx.strokeStyle = yellowBall ? "rgba(150,50,0,.7)" : "rgba(0,0,0,.45)"; ctx.stroke();
   }
   // Offside: a small chequered square above the player who was caught (no text, no pole).
   // Cloth that moves the way a real flag does in a light breeze: no flapping, a slow sway of the whole flag and a soft
@@ -346,7 +364,7 @@
     var bsr = .42 * s * Math.max(.45, 1 - h * .05); castShadow(S.bx, S.by, bx, by, bsr, bsr, Math.max(.18, .6 - h * .04));
     yellowBall = SET.weather === "Snow";
     spinBall(S, h, dt, S.phase !== 0 || (S.owner >= 0 && (S.ps[S.owner].gk || S.bz > .4))); // none while held or while play is stopped
-    drawBall(bx, by - Math.min(20, h) * .55 * s, .38 * s * (1 + Math.min(20, h) * .07));
+    drawBall(bx, by - Math.min(20, h) * .55 * s, .38 * s * (1 + Math.min(20, h) * .07), ballCut(S));
     if (S.dead) {
       // the old ball rolls on behind the line until it stops (the game goes on with a new one)
       var dh = Math.max(0, S.dead.z - .11), dx = X(S.dead.x), dy = Y(S.dead.y), dr = .42 * s * Math.max(.45, 1 - dh * .05);
