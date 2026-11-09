@@ -21,7 +21,9 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void ForwardsShootBeforeTheKeeperIsOnThemAndHitItFirstTime()
         {
-            var es = new MatchEngine[16];
+            // (48 matches, not 16: an open-goal goal comes about once in ten matches, and 16 matches had none after the bounce changed - 0.10 a match
+            // with the old bounce and the new one alike over 120 matches)
+            var es = new MatchEngine[48];
             Parallel.For(0, es.Length, i =>
             {
                 es[i] = new MatchEngine(DemoTeams.Red(8800 + (ulong)i), DemoTeams.Blue(8800 + (ulong)i), 8800 + (ulong)i, MatchConfig.CreateDefault()) { CollectDiagnostics = true };

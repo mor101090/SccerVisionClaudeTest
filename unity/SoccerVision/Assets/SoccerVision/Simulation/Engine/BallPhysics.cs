@@ -112,7 +112,11 @@ namespace SoccerVision.Simulation
                 if (b.Z <= r)
                 {
                     b.Z = r;
-                    if (b.Vz < -BounceThreshold)
+                    if (b.Vz < -BounceThreshold && c.Ground != null)
+                    {
+                        Bounce(ref b, c);
+                    }
+                    else if (b.Vz < -BounceThreshold)
                     {
                         float restitution = c.GroundRestitution, friction = c.BounceFriction;
                         if (c.Surface != null)
@@ -177,6 +181,46 @@ namespace SoccerVision.Simulation
                 b.SideSpin *= decay;
                 b.TopSpin *= decay;
             }
+        }
+
+        /// <summary>
+        /// A bounce as an impulse at the contact point (stage 4). Normal: the vertical speed comes back times e(impact speed, surface).
+        /// Tangential: friction at the contact point acts against its slip (the ball's horizontal velocity plus the velocity its spin gives the
+        /// bottom of the ball), up to the Coulomb limit mu x the normal impulse; if that is enough the bottom of the ball stops slipping
+        /// (it grips and leaves rolling), otherwise it slides through. The friction impulse also changes the spin: L = I w with I = k m R^2.
+        /// A ball with no spin landing at an angle leaves with topspin; backspin bites (the ball checks); topspin kicks on. The spin about the
+        /// vertical axis is untouched (a bounce cannot reach it through a contact at the bottom).
+        /// </summary>
+        public static void Bounce(ref BallMotion b, MatchConfig c)
+        {
+            b.AdoptWorldSpin();
+            var g = c.Ground;
+            float vn = -b.Vz;                                          // normal impact speed, > 0
+            float e = g.RestitutionAt(vn), mu = g.Friction;
+            if (c.Surface != null)
+            {
+                // A ball landing in mud plugs; in a puddle it splashes down and hardly bounces (as before, class D).
+                float mud = c.Surface.MudAt(b.X, b.Y), water = c.Surface.WaterAt(b.X, b.Y);
+                e *= 1f - 0.45f * mud - 0.75f * water;
+                mu *= 1f - 0.15f * mud - 0.35f * water;
+            }
+            float R = c.Ball.RadiusM, k = c.Ball.InertiaFactor;
+            // slip of the contact point (the ground does not move): v_t + w x r, r = (0, 0, -R)
+            float ux = b.Vx - R * b.Wy, uy = b.Vy + R * b.Wx;
+            float us = MathF.Sqrt(ux * ux + uy * uy);
+            if (us > 1e-6f)
+            {
+                float toGrip = us * k / (1f + k);                         // the speed change that stops the slip
+                float limit = mu * (1f + e) * vn;                          // what friction can give (per unit mass)
+                float dv = MathF.Min(toGrip, limit);
+                float jx = -ux / us * dv, jy = -uy / us * dv;              // tangential impulse / m
+                b.Vx += jx;
+                b.Vy += jy;
+                // dw = (r x J) / I = (R J_y, -R J_x, 0) / (k m R^2)
+                b.Wx += jy / (k * R);
+                b.Wy -= jx / (k * R);
+            }
+            b.Vz = e * vn;
         }
 
         /// <summary>
