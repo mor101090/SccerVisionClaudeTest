@@ -2,6 +2,22 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/ball-physics` (stages 0-2)
+
+**Ball physics, step by step. Stages 0-2: the audit, the ball itself, its moment of inertia. The match does not change yet.** The
+full plan, every parameter's source and class (A standardised, B measured, C derived, D assumed, E needs calibration) are in
+`docs/BALL_PHYSICS.md`.
+- **Stage 0, audit** of the current model (`BallPhysics.cs`): drag uses one Cd (0.25, no source) for every speed; the curl constant
+  `MagnusK` (no source) implies a side-force coefficient of about 0.72 times the spin parameter, against 0.85-1.17 in the 2020 measurements
+  of Asai et al. (read through the abstract only: the publisher refuses automated downloads), so the engine curls the ball about 60-85% as
+  much; restitution 0.55, bounce friction 0.86, rolling resistance 0.9 m/s² and the spin decay have no source; spin is two scalars, not a 3D vector.
+- **Stage 1, the ball** (`Core/BallSpec.cs`, `MatchConfig.Ball`): a configurable reference ball of 0.430 kg and 0.690 m (inside IFAB Law 2's
+  410-450 g and 68-70 cm, read from the Law itself), radius 0.1098 m and area 0.03789 m² derived from it, inflation 0.85 atm **gauge**
+  (the Law's 0.6-1.1 is the pressure above the air; absolute = gauge + 101,325 Pa). A ball outside the Law is reported, not refused.
+- **Stage 2, moment of inertia**: I = k m R², k between a solid sphere (2/5) and a thin shell (2/3); reference 2/3 (0.003457 kg·m²),
+  because no measured value for a size 5 ball was found - class E until one is. Angular velocity and momentum are 3D (`Core/Vec3.cs`).
+- **Tests**: `BallSpecTests` (TEST 1 and the inertia checks), 6 / 6; `dotnet test sim/` -> **Passed! 254 / 254** (13 m 49 s).
+
 ## `feat/profile-clubs-leagues`
 
 **Profile, clubs and leagues from Figma** (section "Profile, clubs & leagues – screens").
