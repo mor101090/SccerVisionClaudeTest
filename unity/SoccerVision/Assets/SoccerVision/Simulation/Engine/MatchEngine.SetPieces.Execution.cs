@@ -566,7 +566,9 @@ namespace SoccerVision.Simulation
             Vec2 from = Ball.Pos;
             Vec2 dir = (aim - from).Normalized;
             float power = 22f + 5f * skill;
-            float curl = -MathF.Sign(Vec2.Cross(dir, new Vec2(0f, targetSide))) * _rng.Range(15f, 28f);
+            float curlDraw = _rng.Range(15f, 28f);
+            float curl = -MathF.Sign(Vec2.Cross(dir, new Vec2(0f, targetSide)))
+                         * (Config.Kick != null ? Config.Kick.FreeKick.Spin(0.5f * (curlDraw - 15f) / 13f + 0.5f * skill, power, Config.Ball.RadiusM) : curlDraw); // (stage 7: the measured curve-kick spin)
             // The knuckleball from long range: no spin and no curl, the ball floats and dips late (for the best strikers).
             float fkDist = Vec2.Distance(from, aim);
             bool knuckle = fkDist > 23f && fkDist < 34f && taker.Attr.FreeKicks >= 72 && _rng.Chance(0.22f);

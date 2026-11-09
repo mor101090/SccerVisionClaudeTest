@@ -31,6 +31,10 @@ A number read only through a search result or an abstract (the full text was not
 | Asai, Kimachi, Liu, Koido, Nakayama, Goff, Hong, [Measurements of the Flight Trajectory of a Spinning Soccer Ball and the Magnus Force Acting on It](https://www.mdpi.com/2504-3900/49/1/88), *Proceedings* 49(1):88, 2020 | **Not the full text** (the publisher refuses automated downloads). Title and authors from Crossref; from the abstract through a search: time-averaged side-force coefficients 0.21, 0.24, 0.29 at time-averaged spin parameters 0.18, 0.22, 0.34 (spin parameter Sp = Rω/U), vertical spin axes, the side force falls as the ball slows | Secondary: the audit below; stage 3 |
 | Goff, Hong, Asai, [Influence of Surface Properties on Soccer Ball Trajectories](https://www.mdpi.com/2504-3900/49/1/143), *Proceedings* 49(1):143, 2020 | **Not the full text.** From search snippets: the drag coefficient depends on speed and spin; the drag crisis (a sharp fall of Cd at a critical Reynolds number) differs between balls (Jabulani, Brazuca, a smooth ball of the same size; the smooth ball has the highest critical Reynolds number); panel texture, seam width and depth matter | Secondary, qualitative only: stage 3 |
 | Paudel, Yan, [High-fidelity simulations of full-flight soccer ball aerodynamics using a monolithic overset approach](https://link.springer.com/article/10.1007/s00466-025-02705-2), *Computational Mechanics*, 2025 | The abstract (Crossref): fully coupled CFD of a spinning free kick; spin rate drives the lateral deviation, kick speed the range and flight time; a smoother ball shows a stronger Magnus effect; compared with an ODE model using empirical drag coefficients | Qualitative: why a coefficient model (not CFD) is the right tool in a game; no numbers taken |
+| Asai et al. 2004, the infront curve kick (Sheffield Hallam repository, [record](https://shura.shu.ac.uk/2206/)) | **Not the full text** (the repository is behind a bot wall); through a search: foot 24.2 m/s, ball 27.1 m/s, 7.8 rev/s | Class B (secondary): stage 7 |
+| Hong et al. 2011, through a later *Scientific Reports* article ([srep06067](https://link.springer.com/content/pdf/10.1038/srep06067.pdf); authors and title not checked) | **A search summary**: curve shots 26.0 m/s with 7.2 rev/s about the vertical; curve kicks 4-10 rev/s, knuckleballs 0-2 rev/s | Class B (secondary): stage 7 |
+| Asai et al. 2002, [The curve kick of a football I: impact with the foot](https://shura.shu.ac.uk/2127) | **The record only**: a trade-off between ball speed and spin as the foot strikes further off centre | Qualitative: stage 7 |
+| Lees and Nolan 1998 (*J. Sports Sci.*), through later papers; an [ISBS 2008 paper](https://ojs.ub.uni-konstanz.de/cpa/article/view/1999/1867) | **Not the review itself**: ball speed / foot speed is the index of a good strike, 1.06-1.65 in the literature by where the foot is measured; the ISBS study: about 1.40 for instep and side-foot alike | Class B (secondary): the ratio 1.3 of stage 7 |
 | A 2025 *College Physics* paper on a three-line pendulum for sports balls ([abstract](https://dxwl.bnu.edu.cn/EN/10.16854/j.cnki.1000-0712.240047)) | Only that it measured footballs' moments of inertia and compared them with the thin-shell value; **the numbers were not seen** | Why the inertia factor stays class E |
 
 ## Stage 0 - the model before this work (audit)
@@ -185,7 +189,7 @@ transition). With `MatchConfig.Ground = null` the old ground model runs, bit for
 slows the spin too (1/(1+k) of the free value). A ball that lands still slipping at the contact (a bounce the friction could not finish, or a soft landing with
 spin) slides: friction μ g works on the slip, changing speed and spin together, until the bottom of the ball stops slipping; the angular momentum about the
 contact point is conserved meanwhile (checked: it ends at (v0 + k R ω0)/(1 + k), 3/5 of the speed for a thin shell with no spin). Ground kicks, touches and
-deflections are still treated as rolling from the start (the kick model is stage 7). Spin about the vertical dies at 3/s as before (D). Surface irregularities
+deflections are still treated as rolling from the start (stage 7 did not change that). Spin about the vertical dies at 3/s as before (D). Surface irregularities
 are not modelled (E): a random deflection would break the AI's predictions, which use the same integrator.
 
 | Profile | a (m/s²) | b (1/s) | Roll from the 1 m ramp (3.2 m/s) | Class |
@@ -234,6 +238,62 @@ Changed together, as the engine contract requires: `ReplayRecorder` (frame lengt
 Tests: `BallSpinReplayTests` (each frame ends with the free ball's physical spin; a held ball and the old ground model write 0, 0, 0; every rolling ball turns),
 `app/src/engine/replay/replay.test.ts` (where the spin sits in the frame, read in rad per replay second, absent from older replays).
 
+## Stage 7 - what the foot gives the ball (done)
+
+`Core/KickModel.cs`, `MatchConfig.Kick` (null: the kicks before this stage, `SimRunner --legacykick`).
+
+**Spin by kind of kick.** Each curled kick draws its spin as a launch spin parameter Sp = R w / v, so a profile holds at any kick speed. The kicker's
+draw (the same random number as before, so the old model is untouched) and his skill pick a point in the range, half each:
+
+| Kick | Sp at launch | At 26 m/s | Class |
+|---|---|---|---|
+| Curled shot (inside of the foot) | 0.11-0.27 | 4.1-10.2 rev/s | C from B: Hong 4-10 rev/s at 26 m/s; Asai's 7.8 rev/s at 27.1 m/s (Sp 0.20) and Hong's mean (0.19) sit in it |
+| Outside of the foot | 0.09-0.22 | 3.4-8.3 rev/s | D (no measurement found) |
+| Curled free kick | 0.16-0.27 | 6.0-10.2 rev/s | C from B (the upper half: a specialist with time) |
+| Curled cross or pass | 0.10-0.25 | (at the pass's speed) | D |
+| Chip (backspin) | 0.10-0.22, by skill | (at 9-15 m/s: 1.3-4.8 rev/s) | D (no measurement found) |
+| Knuckleball | unchanged: about 0.06 rev/s | | inside Hong's 0-2 rev/s |
+| Laces drive, side foot, others | unchanged (a random 8 rad/s of side spin) | | E |
+
+The old model's curls were 9-17 rad/s for a curled shot (about 2 rev/s, Sp 0.07) and 15-28 rad/s for a free kick: a third to a half of what was measured. The
+error in the spin is kept as a share of it (19%, the old model's 2.5 rad/s on its 13 rad/s; class E). The kicker allows for the stronger curl (stage 3's solvers aim
+off by exactly what it brings back), so a curled shot bends further but is not aimed worse.
+
+**The fastest strike.** Ball speed / foot speed at impact is 1.3 (class C from B: the literature's instep values are 1.06-1.65 by where the foot is measured; Asai's
+curve kick 1.12, the ISBS study 1.40). A player's foot strikes at 18 m/s plus 6 m/s for the full physical-power attribute (class D: elite instep kicks are struck at
+about 20-24 m/s), so the fastest ball is 23.4-31.2 m/s. A shot is never faster than that.
+
+**The speed-spin trade-off** (Asai 2002) is already in the strikes: the engine's curler is struck at 19-24 m/s, its laces drive at 23-33 m/s (about 0.8 of the
+speed: the measured ratios 1.12 v 1.3-1.4 give 0.80-0.86 for the same foot). It is tested, not modelled twice.
+
+**An oncoming ball.** One-dimensional impact of an effective foot mass M (restitution e) on the ball m: v_out = U (1 + e) M / (M + m) - u (e M - m) / (M + m).
+With the measured ratio r = (1 + e) M / (M + m), the second coefficient is exactly r - 1 = 0.3 whatever e is (class C). So a full strike (laces, volley,
+half-volley, bicycle, knuckleball, the weaker foot) of a ball that comes at the striker - a first-time shot, a volley - sends 30% of that ball's speed back on top;
+one running away from the foot takes it off. Strikes the kicker paces (side foot, curl, chip) are not maxed and do not take it. The part of the oncoming velocity
+across the line of the kick is not modelled (the kicker's aim allows for it).
+
+**Not modelled**: the contact point and friction as such (the impact model is one-dimensional; Asai's FEM curve of spin against offset is not reproduced, the measured
+spin ranges stand in for it), the contact time (stage 9), backspin on lofted long balls and clearances (they keep no spin), headers' speed (the head is not a foot).
+
+**In the match** (four seeds x 200 matches, old kicks v new):
+
+| Per match (mean of 4 seeds) | Old kicks | New kicks | Real (PL) |
+|---|---|---|---|
+| Goals | 2.98 (3.07, 2.82, 3.00, 3.02) | 3.10 (3.22, 2.96, 3.09, 3.12) | 2.83 [C] |
+| Shots | 25.45 | 25.77 | 25.4 [C] |
+| Shots on target | 8.49 | 8.78 | 8.8 [C] |
+| Headed goals, % of goals | 17.3 | 18.7 | 13-19 |
+| Volley goals, % of goals | 14.5 | 14.9 | n/a |
+| Free-kick goals | 0.11 | 0.11 | ~0.05-0.1 |
+| Woodwork | 0.33 | 0.38 | ~0.6-0.8 (est.) |
+
+Goals rise by 0.12 a match (4%; the seeds' spread puts that at about 1.4 standard errors, so a real but small effect): more shots on target, a few more hit the
+woodwork (the stronger curl brings more of them to the corners). The engine now scores 3.10 a match against the real 2.83; it was 2.95 after stage 5. The
+calibration round planned after the kick stages (with the marking gap) is where that is brought back - not by tuning the measured physics.
+
+Tests: `BallKickTests` (the curve kick spins as measured; the spin scales with the speed; the fastest strike; the coupling equals the impact model for any e; the
+speed-spin trade-off in the strikes; both kick models deterministic and the new one wired in).
+
 ## Plan for the next stages
 
 | Stage | What | Changes the match? |
@@ -242,7 +302,7 @@ Tests: `BallSpinReplayTests` (each frame ends with the free ball's physical spin
 | 4 | **Done** (above). Bounce: impulse model, e(v_n, surface), Coulomb friction at the contact point, spin in and out | Yes, a little |
 | 5 | **Done** (above). Rolling: slip → roll transition, rolling resistance a + b v per pitch profile (short / normal / long / wet / dry / turf) | Yes, a little |
 | 6 | **Done** (above). 3D ω through flight, bounce and roll (stages 2-5); the viewers show the real spin | No (the picture only) |
-| 7 | Kicks: foot speed, contact point and friction → ball velocity and spin per kick type | Yes |
+| 7 | **Done** (above). Kicks: measured spin per kick type, foot speed cap, an oncoming ball's share; contact point and friction not modelled as such | Yes |
 | 8 | Collisions: posts, crossbar, players, keeper hands with impulses, continuous detection | Yes |
 | 9 | Deformation: a contact-time / compression model for impact losses; visual squash from the same numbers | Small |
 | 10 | Stability: fixed step, continuous collision against posts and ground, determinism kept | No (safety) |

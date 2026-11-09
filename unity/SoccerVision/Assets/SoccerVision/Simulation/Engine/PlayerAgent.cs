@@ -148,6 +148,8 @@ namespace SoccerVision.Simulation
         public float CutInUntil = -1f;
         /// <summary>He got the ball in the box from a team-mate at a good angle and set himself to hit it first time.</summary>
         public float FirstTimeUntil = -1f;
+        /// <summary>The ball's horizontal velocity when this player last took it (for a first-time strike: what the oncoming ball adds, stage 7).</summary>
+        public Vec2 ReceivedBallVelocity;
         /// <summary>One-two: the team-mate this player just passed to and runs past for the return ball, until OneTwoUntil.</summary>
         public PlayerAgent OneTwoWith;
         public float OneTwoUntil = -1f;

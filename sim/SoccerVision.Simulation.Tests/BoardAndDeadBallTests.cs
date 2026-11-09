@@ -114,15 +114,16 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void APlayerShootsAtAnOpenGoal()
         {
-            // (a rare thing - about 0.2 a match, 60 matches on two seeds: six matches saw none a quarter of the time - so up to 24, until one is seen)
+            // (a rare thing - about 0.1 a match since the ball-physics stages, the same with the old and the new kicks (100 matches each): 24 matches
+            // saw none one time in eleven - so up to 60, until one is seen (none: e^-6, one time in 400))
             int considered = 0;
-            for (ulong seed = 60; seed < 84 && considered == 0; seed++)
+            for (ulong seed = 60; seed < 120 && considered == 0; seed++)
             {
                 var e = new MatchEngine(DemoTeams.Red(), DemoTeams.Blue(), seed, MatchConfig.CreateDefault()) { CollectDiagnostics = true };
                 e.RunToEnd();
                 considered += e.Diagnostics.GetValueOrDefault("shot.openGoal.considered");
             }
-            Assert.True(considered > 0, "no open goal ever seen in 24 matches");
+            Assert.True(considered > 0, "no open goal ever seen in 60 matches");
         }
     }
 }

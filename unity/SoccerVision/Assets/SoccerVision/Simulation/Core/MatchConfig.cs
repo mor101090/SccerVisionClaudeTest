@@ -105,6 +105,11 @@ namespace SoccerVision.Simulation
         /// (`SimRunner --legacybounce`). Rain switches it to the wet profile of the same surface.
         /// </summary>
         public GroundModel Ground = GroundModel.NaturalDry;
+        /// <summary>
+        /// What the foot gives the ball (spin by kind of kick from measurements, the fastest strike a player's foot allows, what an oncoming ball
+        /// adds; see <see cref="KickModel"/>). Null: the kicks before stage 7, kept for comparison (`SimRunner --legacykick`).
+        /// </summary>
+        public KickModel Kick = KickModel.Reference;
         /// <summary>The surface is football turf (artificial) rather than natural grass (picks the matching dry and wet ground profile).</summary>
         public bool ArtificialTurf;
         /// <summary>How the natural grass is cut: -1 short, 0 a normal match cut, +1 long (picks the dry natural profile; the thesis: a lower cut rolls further).</summary>
