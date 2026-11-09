@@ -16,7 +16,7 @@ Each round of changes is developed on its own branch, named after what it change
 - **Legacy kept**: `MatchConfig.Ground = null` reproduces stage 4 to the digit.
 - **Stage 4 v stage 5** (200 matches a seed, two seeds): goals 2.92 -> 2.95 (real 2.83), shots 26.1 -> 25.5 (25.4), on target 8.61 -> 8.57 (8.8), headed share
   of goals 19.0% -> 16.9% (13-19%), passes won by the opponent 69.6 -> 67.3, pass completion about 79.7%.
-- **Tests**: `BallRollTests` (9). TESTS_LINE
+- **Tests**: `BallRollTests` (9). `ParkingTheBusSitsDeepAndSavesTheLegs` landed on its 8 m edge on 12 matches; on 24 it reads 24 m v 33 m (threshold unchanged). `dotnet test sim/` -> **Passed! 287 / 287** (14 m 15 s).
 
 ## `feature/ball-bounce` (stage 4)
 
