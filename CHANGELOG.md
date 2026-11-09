@@ -11,7 +11,8 @@ Each round of changes is developed on its own branch, named after what it change
 - **Players**: a block or a chance touch is an impulse off the body (a cylinder moving with the player), struck where the old model drew a direction - square on it comes back, at the edge it runs on, with spin. Keeper catches, parries and punches and blocked crosses stay aimed actions; the net stays a soft absorber.
 - **In the match** (800 distinct matches each): goals 2.99 -> 3.03 (noise; standard error 0.06), woodwork 0.38 -> 0.77, corners 8.8 -> 9.7 (real 10.4), shots blocked 6.24 -> 6.58, **headed share of goals 18.7% -> 21.5%** (above the real 13-19%): left for the calibration round.
 - **Correction to stage 7**: its goal rise (2.98 -> 3.10) was about 1.4 standard errors, not conclusive; a second, independent 800 matches gave 2.93 -> 2.99. The doc no longer calls it a real effect.
-- **Tests**: `BallCollisionTests` (7).
+- **Side effects** (measured with both models on the same seeds): the crossing style crosses 21.2 -> 18.9 a match (a block hands the winger the ball back less often; still x1.35 normal play's), so `CrossesIntoTheBoxCrossesMore` now looks at 24 matches (six landed at x1.13). Dives are unchanged over 240 matches (26 / 19 v 24 / 15 bought / booked), but 32 matches drew none bought: `BoldKeepersStandHigherAndTheDiverGoesDownNearTheBox` now looks at 64. Assertions unchanged.
+- **Tests**: `BallCollisionTests` (7). `dotnet test sim/` -> 300 / 302 before the two sample sizes above (1 h 2 m); the two then pass on their own.
 
 ## `feature/ball-kick` (stage 7)
 

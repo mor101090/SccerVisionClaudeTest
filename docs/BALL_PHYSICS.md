@@ -346,6 +346,13 @@ that come back off a body give more second shots and more corners. Goals move by
 real 13-19%** (the four seeds give 19.6-23.1%, so this looks real): balls lifted off a body and rebounds off the frame fall in the box. It is left for the
 calibration round with the goals and the marking gap, not tuned in the collision physics.
 
+Two tactical side effects, measured with the old collisions and the new on the same seeds (diagnostics compared counter by counter):
+- **The crossing style crosses less**: 21.2 -> 18.9 crosses a match (40 matches; normal play 13.8 -> 13.9). A block no longer sends the ball back to
+  the winger as often (crosses blocked 12.0 -> 10.4, attempts 29.1 -> 26.0, the rebound xG falls by a third), so he gets fewer second tries. The style
+  still crosses x1.35 more than normal play (x1.54 before). `CrossesIntoTheBoxCrossesMore` now looks at 24 matches; on its six it landed at x1.13.
+- **Dives**: none bought in the 32 matches of `BoldKeepersStandHigherAndTheDiverGoesDownNearTheBox`, but over 240 matches the two models agree
+  (26 bought / 19 booked v 24 / 15). It was the sample, not the physics; the test now looks at 64 matches.
+
 Tests: `BallCollisionTests` (the impact is the bounce about any normal; angular momentum about the contact point is conserved; the frame takes more from a
 harder hit and nothing is created; a 32 m/s shot at the post is always caught, which the old test missed; the bar's top and its corners are round; a glancing
 hit on the post spins the ball; both collision models deterministic and the new one wired in).
