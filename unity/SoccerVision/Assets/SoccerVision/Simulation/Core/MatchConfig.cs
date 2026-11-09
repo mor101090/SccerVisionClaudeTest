@@ -107,6 +107,10 @@ namespace SoccerVision.Simulation
         public GroundModel Ground = GroundModel.NaturalDry;
         /// <summary>The surface is football turf (artificial) rather than natural grass (picks the matching dry and wet ground profile).</summary>
         public bool ArtificialTurf;
+        /// <summary>How the natural grass is cut: -1 short, 0 a normal match cut, +1 long (picks the dry natural profile; the thesis: a lower cut rolls further).</summary>
+        public int GrassLength;
+        /// <summary>Extra rolling resistance of a worn, uneven pitch (m/s²), set from the maintenance by <see cref="ApplyConditions"/> (0.35 at the worst, as before, class D).</summary>
+        [NonSerialized] public float RollingWear;
         /// <summary>Air density, kg/m³. Goff and Carre use 1.2 (about 20 °C at sea level); the standard atmosphere at 15 °C is 1.225 (class A/D).</summary>
         public float AirDensity = 1.2f;
         /// <summary>Dynamic viscosity of air, Pa·s: 1.85e-5 (Goff and Carre's kinematic viscosity 1.54e-5 m²/s times 1.2 kg/m³, class B).</summary>
@@ -174,8 +178,11 @@ namespace SoccerVision.Simulation
             if (Ground != null)
             {
                 // the surface, then the weather: rain wets it (the ball slides through the bounce), snow kills the bounce (class D, as before: 0.3 / 0.55 of it)
-                Ground = ArtificialTurf ? (c.IsWet ? GroundModel.ArtificialWet : GroundModel.ArtificialDry) : (c.IsWet ? GroundModel.NaturalWet : GroundModel.NaturalDry);
-                if (c.IsSnow) Ground = Ground.With(Ground.Name + ", snow", restitution: Ground.Restitution * 0.3f / 0.55f);
+                var dryNatural = GrassLength < 0 ? GroundModel.NaturalDryShort : GrassLength > 0 ? GroundModel.NaturalDryLong : GroundModel.NaturalDry;
+                Ground = ArtificialTurf ? (c.IsWet ? GroundModel.ArtificialWet : GroundModel.ArtificialDry) : (c.IsWet ? GroundModel.NaturalWet : dryNatural);
+                // snow: the bounce dies (0.3 / 0.55 of it) and the ball ploughs (the old snow rolling, 1.8 + 0.35 v: class D, as before)
+                if (c.IsSnow) Ground = Ground.With(Ground.Name + ", snow", restitution: Ground.Restitution * 0.3f / 0.55f, rollA: 1.8f, rollB: 0.35f);
+                RollingWear = 0.35f * (1f - c.Maintenance);
             }
             if (c.IsWet)
             {
