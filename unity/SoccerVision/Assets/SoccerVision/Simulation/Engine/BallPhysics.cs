@@ -11,12 +11,52 @@ namespace SoccerVision.Simulation
         public float SideSpin;
         /// <summary>Topspin (rad/s, positive dips the ball).</summary>
         public float TopSpin;
+        /// <summary>
+        /// The ball's angular velocity in world axes (rad/s, X along the pitch, Y across it, Z up), used by the physical flight model
+        /// (<see cref="MatchConfig.Aero"/>). A kick sets <see cref="SideSpin"/> and <see cref="TopSpin"/> (relative to the direction it flies
+        /// in); the first physical step turns them into this vector once (<see cref="HasWorldSpin"/>) and from then on the vector alone is the spin.
+        /// </summary>
+        public float Wx, Wy, Wz;
+        public bool HasWorldSpin;
 
         public Vec2 Position2D => new Vec2(X, Y);
         public Vec2 Velocity2D => new Vec2(Vx, Vy);
         public float HorizontalSpeed => MathF.Sqrt(Vx * Vx + Vy * Vy);
         public float Speed => MathF.Sqrt(Vx * Vx + Vy * Vy + Vz * Vz);
         public bool IsAirborne => Z > Pitch.BallRadius + 0.005f || Vz > 0.05f;
+
+        /// <summary>Angular velocity (rad/s) as a vector, whichever representation holds the spin.</summary>
+        public Vec3 AngularVelocity => HasWorldSpin ? new Vec3(Wx, Wy, Wz) : KickFrameSpin();
+
+        /// <summary>
+        /// The spin a kick set (side spin about the vertical axis, top spin about the axis across the direction of travel) as a world
+        /// vector, using the horizontal direction the ball is moving in now. A ball with no horizontal motion cannot have top spin.
+        /// </summary>
+        private Vec3 KickFrameSpin()
+        {
+            float hs = HorizontalSpeed;
+            if (hs < 1e-4f || TopSpin == 0f) return new Vec3(0f, 0f, SideSpin);
+            // Top spin: the top of the ball moves forward, w = (z x heading) * TopSpin; heading (hx, hy) -> z x h = (-hy, hx, 0)
+            return new Vec3(-Vy / hs * TopSpin, Vx / hs * TopSpin, SideSpin);
+        }
+
+        /// <summary>Turns the kick's spin into the world vector (once) and clears the two scalars, so nothing reads the spin twice.</summary>
+        public void AdoptWorldSpin()
+        {
+            if (HasWorldSpin) return;
+            var w = KickFrameSpin();
+            Wx = w.X; Wy = w.Y; Wz = w.Z;
+            SideSpin = 0f; TopSpin = 0f;
+            HasWorldSpin = true;
+        }
+
+        /// <summary>Clears all spin, in both representations.</summary>
+        public void ClearSpin()
+        {
+            SideSpin = 0f; TopSpin = 0f;
+            Wx = 0f; Wy = 0f; Wz = 0f;
+            HasWorldSpin = false;
+        }
     }
 
     /// <summary>
@@ -39,18 +79,27 @@ namespace SoccerVision.Simulation
                 // Air drag works on the speed through the air: with wind the ball drifts and carries with it.
                 float rvx = b.Vx - c.WindX, rvy = b.Vy - c.WindY;
                 float speed = MathF.Sqrt(rvx * rvx + rvy * rvy + b.Vz * b.Vz);
-                float drag = c.AirDragK * speed;
-                float ax = -drag * rvx;
-                float ay = -drag * rvy;
-                float az = -c.Gravity - drag * b.Vz;
+                float ax, ay, az;
 
-                float hs = b.HorizontalSpeed;
-                if (hs > 0.5f)
+                if (c.Aero != null)
                 {
-                    float lateral = c.MagnusK * b.SideSpin * speed;
-                    ax += lateral * (-b.Vy / hs);
-                    ay += lateral * (b.Vx / hs);
-                    az -= c.MagnusK * b.TopSpin * speed;
+                    FlightAcceleration(ref b, c, rvx, rvy, speed, out ax, out ay, out az);
+                }
+                else
+                {
+                    float drag = c.AirDragK * speed;
+                    ax = -drag * rvx;
+                    ay = -drag * rvy;
+                    az = -c.Gravity - drag * b.Vz;
+
+                    float hs = b.HorizontalSpeed;
+                    if (hs > 0.5f)
+                    {
+                        float lateral = c.MagnusK * b.SideSpin * speed;
+                        ax += lateral * (-b.Vy / hs);
+                        ay += lateral * (b.Vx / hs);
+                        az -= c.MagnusK * b.TopSpin * speed;
+                    }
                 }
 
                 b.Vx += ax * dt;
@@ -78,6 +127,7 @@ namespace SoccerVision.Simulation
                         b.Vy *= friction;
                         b.SideSpin *= 0.5f;
                         b.TopSpin *= 0.5f;
+                        b.Wx *= 0.5f; b.Wy *= 0.5f; b.Wz *= 0.5f; // (the bounce is stage 4: until then the ground still takes half the spin, as before)
                     }
                     else
                     {
@@ -103,11 +153,64 @@ namespace SoccerVision.Simulation
                 b.Y += b.Vy * dt;
                 b.SideSpin *= MathF.Max(0f, 1f - 3f * dt);
                 b.TopSpin = 0f;
+                if (b.HasWorldSpin)
+                {
+                    float roll = MathF.Max(0f, 1f - 3f * dt);
+                    b.Wz *= roll; b.Wx = 0f; b.Wy = 0f; // (rolling: only the spin about the vertical axis is left, as before; the rolling model is stage 5)
+                }
             }
 
-            float decay = MathF.Max(0f, 1f - c.SpinDecayPerSecond * dt);
-            b.SideSpin *= decay;
-            b.TopSpin *= decay;
+            if (c.Aero != null)
+            {
+                if (b.HasWorldSpin)
+                {
+                    float wd = MathF.Exp(-c.Aero.SpinDecayPerSecond * dt);
+                    b.Wx *= wd; b.Wy *= wd; b.Wz *= wd;
+                }
+                float sd = MathF.Max(0f, 1f - c.Aero.SpinDecayPerSecond * dt);
+                b.SideSpin *= sd;
+                b.TopSpin *= sd;
+            }
+            else
+            {
+                float decay = MathF.Max(0f, 1f - c.SpinDecayPerSecond * dt);
+                b.SideSpin *= decay;
+                b.TopSpin *= decay;
+            }
+        }
+
+        /// <summary>
+        /// The acceleration of a ball in the air (physical flight model): gravity, drag 1/2 rho Cd(Re, Sp) A v^2 against the airflow, and the
+        /// Magnus force 1/2 rho Cl(Sp) A v^2 along (w x v) / |w x v| - perpendicular to both the spin and the airflow, so backspin lifts,
+        /// topspin dips and sidespin curves, and spin about the line of flight does nothing. All in SI; v is the velocity relative to the air.
+        /// </summary>
+        public static void FlightAcceleration(ref BallMotion b, MatchConfig c, float rvx, float rvy, float speed, out float ax, out float ay, out float az)
+        {
+            var ball = c.Ball;
+            b.AdoptWorldSpin();
+            float rvz = b.Vz;
+            ax = 0f; ay = 0f; az = -c.Gravity;
+            if (speed < 1e-3f) return;
+
+            float inv = 1f / speed;
+            float ux = rvx * inv, uy = rvy * inv, uz = rvz * inv;           // the airflow direction (the ball's, relative to the air)
+            float wx = b.Wx, wy = b.Wy, wz = b.Wz;
+            // spin perpendicular to the flight: w x u has the magnitude |w_perp|
+            float cx = wy * uz - wz * uy, cy = wz * ux - wx * uz, cz = wx * uy - wy * ux;
+            float wPerp = MathF.Sqrt(cx * cx + cy * cy + cz * cz);
+            float sp = ball.RadiusM * wPerp * inv;                            // the spin parameter R w_perp / v
+
+            float re = AeroModel.ReynoldsNumber(c.AirDensity, speed, 2f * ball.RadiusM, c.AirDynamicViscosity);
+            float beta = 0.5f * c.AirDensity * ball.CrossSectionAreaM2 / ball.MassKg; // rho A / 2m, 1/m
+            float cd = c.Aero.Cd(re, sp);
+            float drag = beta * cd * speed * speed;
+            ax -= drag * ux; ay -= drag * uy; az -= drag * uz;
+
+            if (wPerp > 1e-3f)
+            {
+                float magnus = beta * c.Aero.Cl(sp) * speed * speed / wPerp;
+                ax += magnus * cx; ay += magnus * cy; az += magnus * cz;
+            }
         }
     }
 
@@ -318,6 +421,72 @@ namespace SoccerVision.Simulation
             }
             flightTime = t;
             return b.X;
+        }
+
+        /// <summary>
+        /// Where a ball kicked along +X at this speed and elevation, with this spin (the kick frame: side spin about the vertical axis, top spin
+        /// across the direction of travel), first touches the ground, in still air. With spin the path is not a straight line in plan: the
+        /// landing point is off to the side and a little short or long.
+        /// </summary>
+        public static Vec2 LandingPoint(float speed, float launchAngle, MatchConfig c, float sideSpin, float topSpin, out float flightTime, float startZ = Pitch.BallRadius + 0.001f)
+        {
+            c = c.StillAir;
+            var b = new BallMotion { Z = startZ, Vx = speed * MathF.Cos(launchAngle), Vz = speed * MathF.Sin(launchAngle), SideSpin = sideSpin, TopSpin = topSpin };
+            float dt = c.FixedStep, t = 0f;
+            for (int i = 0; i < 1000; i++)
+            {
+                BallPhysics.Step(ref b, c, dt);
+                t += dt;
+                if (b.Z <= Pitch.BallRadius + 0.0001f && i > 0) break;
+            }
+            flightTime = t;
+            return new Vec2(b.X, b.Y);
+        }
+
+        /// <summary>
+        /// Speed for a lofted kick with this spin whose first bounce lands <paramref name="distance"/> metres from the kicker (the straight line
+        /// to the landing point; <see cref="CurlYaw"/> gives the direction to aim in). Same as <see cref="LoftSpeedFor"/> when there is no spin.
+        /// </summary>
+        public static float LoftSpeedWithSpin(float distance, float launchAngle, MatchConfig c, float sideSpin, float topSpin, out float flightTime)
+        {
+            float lo = 3f, hi = 42f;
+            for (int i = 0; i < 22; i++)
+            {
+                float mid = 0.5f * (lo + hi);
+                float d = LandingPoint(mid, launchAngle, c, sideSpin, topSpin, out _).Length;
+                if (d < distance) lo = mid; else hi = mid;
+            }
+            LandingPoint(hi, launchAngle, c, sideSpin, topSpin, out flightTime);
+            return hi;
+        }
+
+        /// <summary>
+        /// The angle (radians, counter-clockwise positive) to add to the direction of the target so that a lofted kick with this spin comes
+        /// down on it: the curl bends the flight, so the kicker aims off to the side the ball is coming back from. -atan2 of the landing point.
+        /// </summary>
+        public static float CurlYaw(float speed, float launchAngle, MatchConfig c, float sideSpin, float topSpin)
+        {
+            var l = LandingPoint(speed, launchAngle, c, sideSpin, topSpin, out _);
+            return -MathF.Atan2(l.Y, l.X);
+        }
+
+        /// <summary>
+        /// For a drive (not a loft): the yaw to aim off by so that a ball struck at this horizontal speed and vertical speed, with this spin, has
+        /// reached the target line <paramref name="distance"/> metres ahead (measured along the ground) on the line to the target.
+        /// </summary>
+        public static float CurlYawToReach(float horizontalSpeed, float startZ, float vz, float distance, MatchConfig c, float sideSpin, float topSpin)
+        {
+            c = c.StillAir;
+            var b = new BallMotion { Z = MathF.Max(Pitch.BallRadius, startZ), Vx = horizontalSpeed, Vz = vz, SideSpin = sideSpin, TopSpin = topSpin };
+            if (b.Z <= Pitch.BallRadius && b.Vz <= 0f) b.Vz = 0.0001f;
+            float dt = c.FixedStep;
+            for (int i = 0; i < 600; i++)
+            {
+                BallPhysics.Step(ref b, c, dt);
+                if (b.X * b.X + b.Y * b.Y >= distance * distance) break;
+                if (b.HorizontalSpeed < 0.5f) break;
+            }
+            return -MathF.Atan2(b.Y, b.X);
         }
 
         /// <summary>Speed for a lofted kick at <paramref name="launchAngle"/> whose first bounce lands at <paramref name="distance"/>.</summary>

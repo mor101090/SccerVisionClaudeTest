@@ -624,11 +624,8 @@ namespace SoccerVision.Simulation
             float sigma = (0.02f + 0.08f * (1f - skill)) * (1f + 0.6f * pressure) * p.FatigueError * WeakFootFactor(p, dir);
             if (kind == KickKind.Clearance) sigma *= 1.6f;
             if (kind == KickKind.Cross) sigma *= 1.3f; // (a ball into a crowded box on the run: hard to put on a head)
-            float angle = dir.Angle + _rng.Gaussian(0f, sigma);
-            speed *= 1f + _rng.Gaussian(0f, 0.035f + 0.05f * (1f - skill));
-            float horizontal = speed * MathF.Cos(launchAngle);
-            Vec2 v = Vec2.FromAngle(angle) * horizontal;
-            float vz = speed * MathF.Sin(launchAngle);
+            float angleNoise = _rng.Gaussian(0f, sigma);
+            float speedNoise = _rng.Gaussian(0f, 0.035f + 0.05f * (1f - skill));
             float spin = 0f;
             if (curl)
             {
@@ -636,6 +633,19 @@ namespace SoccerVision.Simulation
                 // to the right. From the left wing that is an in-swinger for a right-footer, from the right wing an out-swinger.
                 spin = NaturalCurlSign(p) * _rng.Range(10f, 30f) * _curlBoost;
             }
+            float yaw = 0f;
+            if (spin != 0f && Config.Aero != null)
+            {
+                // The physical Magnus force bends the flight by metres, so a kicker who curls it aims off to the side it comes back from, and
+                // strikes it for the distance of the curved path (the same integrator as the flight, so the ball comes down on the target).
+                speed = KickSolver.LoftSpeedWithSpin(MathF.Max(2f, d), launchAngle, Config, spin, 0f, out _);
+                yaw = KickSolver.CurlYaw(speed, launchAngle, Config, spin, 0f);
+            }
+            float angle = dir.Angle + yaw + angleNoise;
+            speed *= 1f + speedNoise;
+            float horizontal = speed * MathF.Cos(launchAngle);
+            Vec2 v = Vec2.FromAngle(angle) * horizontal;
+            float vz = speed * MathF.Sin(launchAngle);
             KickBall(p, from, v, vz, spin, 0f, kind, receiver, target, false, false, startZ);
             if (kind == KickKind.Cross) Emit(MatchEventType.Cross, p.Team, p, receiver, from, _crossValue, WhistleKind.Short, _crossDetail);
             else if (kind == KickKind.Clearance) Emit(MatchEventType.Clearance, p.Team, p, null, from);

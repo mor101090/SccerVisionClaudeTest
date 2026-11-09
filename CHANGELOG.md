@@ -2,6 +2,33 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/ball-flight` (stage 3)
+
+**Ball physics, stage 3: the flight.** Built on `feature/ball-physics` (stages 0-2, [#10](https://github.com/SoccerVision/soccer-vision/pull/10)); the sources, the classes
+(A-E) and the full numbers are in `docs/BALL_PHYSICS.md`. **This changes the match.**
+- **Model** (`Core/AeroModel.cs`, `Engine/BallPhysics.cs`): gravity; drag ½ ρ Cd(Re, Sp) A v² - 0.46 below Re 1.2e5 (8 m/s), the crisis between 8.5 and 13 m/s, about
+  0.19 after it, plus up to 0.13 for spin; the Magnus force ½ ρ Cl(Sp) A v² along (ω × v̂), a vector force, so backspin lifts, topspin dips, sidespin curves and spin about the line of flight
+  does nothing (Cl 0.09 at Sp 0.05, 0.26 at 0.2, flattening at 0.3); the angular velocity is a 3D world vector that decays at 0.08/s (was 0.25). Coefficients are the two wind-tunnel
+  series and the trajectory fits of Goff and Carré 2009 (the full text was read), read from the figures by eye (±0.03 on Cd, ±0.04 on Cl) - class B/D, not a fit to our matches.
+  Knuckleball: **not modelled** (no coefficient model was found; TEST 9 is not built).
+- **Checked against measurements**: Re agrees with their Eq. 2 within 3%; a no-spin ball at 18 m/s and 22° lands 21.1 m away (they measured 21.9 m; their quoted launch values integrate to 21.4 m
+  with Cd 0.2, so the check is ±1 m); terminal velocity 31 m/s; the Magnus force does no work; mirror-image sidespin; a Beckham-like kick curves 2.5-6.5 m over 27 m (their estimate: about 3 m).
+- **Kicks aim by the curve** (`KickSolver.CurlYaw`, `CurlYawToReach`, `LoftSpeedWithSpin`): the old hand-tuned start angles (shots 0.04 + 0.02 × spin/10 rad, free kicks 0.06 rad, crosses none)
+  assumed a Magnus force 2.5 times weaker. Without the solver the same physics gave goals 2.27, shots 21.6 and headed shots 1.5 a match (crosses missing their men); with it, below.
+- **Legacy flight kept**: `MatchConfig.Aero = null` / `SimRunner --legacyflight` is the old model; checked **identical to the digit** (200 matches) after the solver change.
+- **Old v physical flight** (`SimRunner`, 200 matches each, medium v medium, default tactics):
+
+| | seed 700 old / physical | seed 900 old / physical | mean old -> physical | real |
+|---|---|---|---|---|
+| Goals | 2.61 / 2.75 | 2.69 / 3.00 | 2.65 -> 2.88 | 2.83 |
+| Shots | 24.0 / 25.1 | 24.0 / 25.9 | 24.0 -> 25.5 | 25.4 |
+| On target | 7.77 / 7.97 | 7.53 / 8.65 | 7.65 -> 8.31 | 8.8 |
+| Headed goals, % | 15.9 / 18.4 | 17.8 / 22.2 | 16.9 -> 20.3 | 13-19 |
+| Passes, completion % | 441.7 / 441.3, 79.3 / 79.4 | 438.9 / 444.7, 79.3 / 79.6 | unchanged | 80-85 |
+
+  The direction repeats on both seeds. **Open**: the headed share of goals (20%) is a little above the real range; the penalty conversion rate moves with the sample (61-71%, 50 penalties a run).
+- **Tests**: `BallFlightTests` (14: TESTS 5-8 and the checks above); `dotnet test sim/` -> **Passed! 268 / 268** (10 m 26 s), the `RealWorldPinTests` among them.
+
 ## `feature/ball-physics` (stages 0-2)
 
 **Ball physics, step by step. Stages 0-2: the audit, the ball itself, its moment of inertia. The match does not change yet.** The
