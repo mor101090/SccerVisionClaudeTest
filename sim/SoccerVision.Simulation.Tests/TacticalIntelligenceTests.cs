@@ -15,8 +15,9 @@ namespace SoccerVision.Simulation.Tests
         private static readonly ulong[] Seeds = { 31, 32, 33, 34, 35, 36 };
 
         /// <summary>Plays a match per seed and averages <paramref name="f"/>; <paramref name="sample"/> runs every 0.25 s of real time.</summary>
-        private static double Avg(Action<TeamTactics> home, Func<MatchEngine, double> f, Action<MatchEngine> sample = null)
+        private static double Avg(Action<TeamTactics> home, Func<MatchEngine, double> f, Action<MatchEngine> sample = null, ulong[] seeds = null)
         {
+            var Seeds = seeds ?? TacticalIntelligenceTests.Seeds;
             var results = new double[Seeds.Length];
             Parallel.For(0, Seeds.Length, i =>
             {
@@ -41,6 +42,8 @@ namespace SoccerVision.Simulation.Tests
             double normal = Avg(null, Depth), high = Avg(t => t.Defence = DefenceStyle.HighBackline, Depth);
             Assert.True(high > normal + 5, $"back line {high:0} m v {normal:0} m from own goal");
             // compact: the distance from the back line to the forwards out of possession is shorter
+            // (18 matches: over 30 the gap is about 2.5 m, but six landed at 1.4 m after ball physics stage 9 changed the frame's restitution)
+            var spreadSeeds = Seeds.Concat(Enumerable.Range(0, 12).Select(k => 500UL + (ulong)k)).ToArray();
             double Spread(Action<TeamTactics> tac)
             {
                 double sum = 0; int n = 0;
@@ -50,7 +53,7 @@ namespace SoccerVision.Simulation.Tests
                     if (e.PossessionTeam != e.Away) return;
                     var outfield = e.Home.Players.Where(p => !p.SentOff && !p.IsGoalkeeper).Select(p => e.Home.Forward(p.Pos)).ToList();
                     lock (gate) { sum += outfield.Max() - outfield.Min(); n++; }
-                });
+                }, spreadSeeds);
                 return sum / n;
             }
             double spreadNormal = Spread(null), spreadHigh = Spread(t => t.Defence = DefenceStyle.HighBackline);

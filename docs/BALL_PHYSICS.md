@@ -400,6 +400,9 @@ hands are soft and unmeasured) with its flattening and direction (18 mm on avera
 Nothing moves beyond the noise (goals' standard error is about 0.06): the frame is hit under once a match, and the slope only matters for the
 hardest hits. The stage 8 column reproduces stage 8's own figures exactly, as it should.
 
+One test landed on its edge with the new random course: the high back line's block length on six matches (1.4 m shorter than normal against a
+1.5 m bar). Over 30 matches the gap is 2.6 m with the old slope and 2.5 m with the new one; the test now looks at 18.
+
 **What you see.** Each replay frame ends with the latest contact since the previous frame (flattening in mm, direction x100); the website, the
 classic page and Unity draw the ball for that frame with a flat cap on the side that faced what it hit, at the real depth (a 30 m/s shot: a
 flat cap 40% of the radius deep). Seen from above, a bounce (pushed straight up, the cap underneath) shows nothing, which is what a camera
