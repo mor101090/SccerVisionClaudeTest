@@ -21,7 +21,9 @@ namespace SoccerVision.Simulation.Tests
         {
             int heels = 0, heelsFacingForward = 0, fakes = 0, nudged = 0, heldDefenders = 0;
             object gate = new object();
-            Parallel.For(0, 16, i =>
+            // (48 matches: a fake counts as not moving the ball when he loses it during the fake, which is the run of play; over 48 matches 66%
+            // of fakes moved it before ball physics stage 10 and 60% after, but 16 matches landed at 46% after stage 10 changed the random course)
+            Parallel.For(0, 48, i =>
             {
                 var red = DemoTeams.Red(9300 + (ulong)i);
                 foreach (var p in red.Starters) p.Traits |= PlayerTrait.Showboat;   // (the flair players: they try it more often)
