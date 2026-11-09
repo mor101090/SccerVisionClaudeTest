@@ -105,6 +105,31 @@ namespace SoccerVision.Simulation.Tests
         }
 
         [Fact]
+        public void TheKickersAimAgreesWithTheFlight()
+        {
+            // The AI aims a lofted ball with KickSolver; since the bounce happens inside a step, the end of that step is already back in the air.
+            // The solver must still find the first landing (a version that looked for the ball on the grass at the end of a step found the second
+            // bounce, every lofted ball came down short of its aim and headed goals fell from 21% to 3% of goals).
+            var still = C.StillAir;
+            foreach (float d in new[] { 15f, 30f, 45f, 60f })
+                foreach (float angle in new[] { 0.35f, 0.6f, 0.85f })
+                {
+                    float v = KickSolver.LoftSpeedFor(d, angle, C, out float t);
+                    if (v >= 41.9f) continue; // (out of reach at this angle)
+                    var b = new BallMotion { Z = Pitch.BallRadius + 0.001f, Vx = v * MathF.Cos(angle), Vz = v * MathF.Sin(angle) };
+                    float landed = float.NaN, when = 0f;
+                    for (int i = 0; i < 1000 && float.IsNaN(landed); i++)
+                    {
+                        BallPhysics.Step(ref b, still, C.FixedStep);
+                        when += C.FixedStep;
+                        if (b.Landed) landed = b.LandX;
+                    }
+                    Assert.InRange(landed, d - 0.3f, d + 0.3f);
+                    Assert.InRange(when, t - 0.001f, t + 0.001f);
+                }
+        }
+
+        [Fact]
         public void FlightInStillAirNeverGainsEnergy()
         {
             // drag takes energy and the Magnus force does no work: kinetic + potential energy must not grow from one step to the next

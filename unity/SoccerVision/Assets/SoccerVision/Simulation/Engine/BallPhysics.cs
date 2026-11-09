@@ -20,6 +20,12 @@ namespace SoccerVision.Simulation
         public bool HasWorldSpin;
         /// <summary>On the ground and still slipping at the contact after a landing (stage 5): friction works on it until it rolls.</summary>
         public bool Sliding;
+        /// <summary>
+        /// The last step brought the ball down onto the grass from the air (it bounced or settled), at <see cref="LandX"/>, <see cref="LandY"/>
+        /// (stage 10: the ball bounces part of the way through a step, so where it is at the end of the step is no longer where it landed).
+        /// </summary>
+        public bool Landed;
+        public float LandX, LandY;
 
         public Vec2 Position2D => new Vec2(X, Y);
         public Vec2 Velocity2D => new Vec2(Vx, Vy);
@@ -76,6 +82,7 @@ namespace SoccerVision.Simulation
         public static void Step(ref BallMotion b, MatchConfig c, float dt)
         {
             const float r = Pitch.BallRadius;
+            b.Landed = false;
             // (on the ground and not moving vertically: a ball still falling is not rolling, however close to the grass a step left it - stage 10:
             // the old test, Vz <= 0, took a falling ball that ended a step within 0.5 mm of the grass for a rolling one and killed its bounce)
             bool rolling = b.Z <= r + 0.0005f && b.Vz <= 0.0001f && b.Vz >= -RollingVerticalSpeed;
@@ -131,6 +138,7 @@ namespace SoccerVision.Simulation
                     b.X = b.X - 0.5f * (b.Vx + ax * rest + b.Vx) * rest;
                     b.Y = b.Y - 0.5f * (b.Vy + ay * rest + b.Vy) * rest;
                     b.Z = r;
+                    b.Landed = true; b.LandX = b.X; b.LandY = b.Y;
                     if (b.Vz < -BounceThreshold && c.Ground != null)
                     {
                         Bounce(ref b, c);
@@ -605,7 +613,7 @@ namespace SoccerVision.Simulation
             {
                 BallPhysics.Step(ref b, c, dt);
                 t += dt;
-                if (b.Z <= Pitch.BallRadius + 0.0001f && i > 0) break;
+                if (b.Landed && i > 0) return Landing(b, out flightTime, t).X;
             }
             flightTime = t;
             return b.X;
@@ -625,10 +633,17 @@ namespace SoccerVision.Simulation
             {
                 BallPhysics.Step(ref b, c, dt);
                 t += dt;
-                if (b.Z <= Pitch.BallRadius + 0.0001f && i > 0) break;
+                if (b.Landed && i > 0) return Landing(b, out flightTime, t);
             }
             flightTime = t;
             return new Vec2(b.X, b.Y);
+        }
+
+        /// <summary>Where the ball came down in the step it landed in (stage 10: it may have bounced up again before the step ended).</summary>
+        private static Vec2 Landing(BallMotion b, out float flightTime, float t)
+        {
+            flightTime = t;
+            return new Vec2(b.LandX, b.LandY);
         }
 
         /// <summary>
