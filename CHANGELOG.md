@@ -11,7 +11,7 @@ Each round of changes is developed on its own branch, named after what it change
   The website, the classic page and Unity turn the ball about that axis in that direction; older replays and held balls fall back to the movement. The drawn rate stays
   capped (0.5 rad a frame): a real 10 rev/s would strobe on a screen.
 - Changed together (the engine contract): `ReplayRecorder`, `app/src/engine/replay` and its copy in `web/src/replay`, the classic page, Unity.
-- **Tests**: `BallSpinReplayTests` (2), `replay.test.ts` (3); `yarn check` 130 / 130; the classic page plays a match in a browser with no page error. TESTS_LINE
+- **Tests**: `BallSpinReplayTests` (2), `replay.test.ts` (3); `yarn check` 130 / 130; the classic page plays a match in a browser with no page error; `dotnet test sim/` -> **Passed! 289 / 289** (15 m 22 s).
 
 ## `feature/ball-roll` (stage 5)
 
