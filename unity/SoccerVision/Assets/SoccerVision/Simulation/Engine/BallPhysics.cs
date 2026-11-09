@@ -70,11 +70,15 @@ namespace SoccerVision.Simulation
     public static class BallPhysics
     {
         private const float BounceThreshold = 1.1f; // below this vertical impact speed the ball starts to roll
+        /// <summary>The vertical speed below which a ball touching the grass counts as rolling (m/s): far below the slowest bounce (stage 10).</summary>
+        private const float RollingVerticalSpeed = 0.05f;
 
         public static void Step(ref BallMotion b, MatchConfig c, float dt)
         {
             const float r = Pitch.BallRadius;
-            bool rolling = b.Z <= r + 0.0005f && b.Vz <= 0.0001f;
+            // (on the ground and not moving vertically: a ball still falling is not rolling, however close to the grass a step left it - stage 10:
+            // the old test, Vz <= 0, took a falling ball that ended a step within 0.5 mm of the grass for a rolling one and killed its bounce)
+            bool rolling = b.Z <= r + 0.0005f && b.Vz <= 0.0001f && b.Vz >= -RollingVerticalSpeed;
 
             if (!rolling)
             {
@@ -104,15 +108,28 @@ namespace SoccerVision.Simulation
                     }
                 }
 
+                // Stage 10: the ball moves on the mean of its velocities at the start and the end of the step (the trapezoid rule; exact for gravity
+                // alone). Moving it on the end velocity, as before, dropped it a little early every step: a 30 m/s driven shot landed a whole step
+                // (0.55 m) short of where a fine step puts it.
+                float z0 = b.Z, vx0 = b.Vx, vy0 = b.Vy, vz0 = b.Vz;
                 b.Vx += ax * dt;
                 b.Vy += ay * dt;
                 b.Vz += az * dt;
-                b.X += b.Vx * dt;
-                b.Y += b.Vy * dt;
-                b.Z += b.Vz * dt;
+                b.X += 0.5f * (vx0 + b.Vx) * dt;
+                b.Y += 0.5f * (vy0 + b.Vy) * dt;
+                b.Z += 0.5f * (vz0 + b.Vz) * dt;
 
                 if (b.Z <= r)
                 {
+                    // Stage 10: the ball met the grass part of the way through the step. Put it where it touched (the step's straight path crosses the
+                    // ground at the fraction f), bounce it there, and let it spend the rest of the step on its new velocity - so the bounce is where and
+                    // when it happened, not up to a step (0.6 m at 30 m/s) late, and a step's worth of the rise after it is not lost.
+                    float f = c.Ground != null && z0 > r && z0 - b.Z > 1e-6f ? MathUtil.Clamp01((z0 - r) / (z0 - b.Z)) : 1f;
+                    float rest = (1f - f) * dt;
+                    // (back to the touch: the velocity then, and the position on the mean velocity up to it)
+                    b.Vx -= ax * rest; b.Vy -= ay * rest; b.Vz -= az * rest;
+                    b.X = b.X - 0.5f * (b.Vx + ax * rest + b.Vx) * rest;
+                    b.Y = b.Y - 0.5f * (b.Vy + ay * rest + b.Vy) * rest;
                     b.Z = r;
                     if (b.Vz < -BounceThreshold && c.Ground != null)
                     {
@@ -141,6 +158,21 @@ namespace SoccerVision.Simulation
                         // impulse (the spin it lands with grips or slips), it just does not leave the ground again
                         if (c.Ground != null && b.Vz < 0f) Bounce(ref b, c);
                         b.Vz = 0f;
+                    }
+                    if (rest > 0f)
+                    {
+                        // the rest of the step after the touch, from the velocity it left with (the same accelerations: a fraction of a step)
+                        float bx = b.Vx, by = b.Vy;
+                        b.Vx += ax * rest; b.Vy += ay * rest;
+                        b.X += 0.5f * (bx + b.Vx) * rest;
+                        b.Y += 0.5f * (by + b.Vy) * rest;
+                        if (b.Vz > 0f)
+                        {
+                            float bz = b.Vz;
+                            b.Vz += az * rest;
+                            b.Z += 0.5f * (bz + b.Vz) * rest;
+                            if (b.Z < r) { b.Z = r; b.Vz = 0f; }
+                        }
                     }
                 }
             }
@@ -277,6 +309,7 @@ namespace SoccerVision.Simulation
         {
             b.AdoptWorldSpin();
             float R = c.Ball.RadiusM, k = c.Ball.InertiaFactor;
+            float vx0 = b.Vx, vy0 = b.Vy, stopFraction = 1f;
             if (b.Sliding)
             {
                 float ux = b.Vx - R * b.Wy, uy = b.Vy + R * b.Wx;
@@ -299,12 +332,15 @@ namespace SoccerVision.Simulation
                 float decel = RollingDeceleration(c, hs);
                 if (c.Surface != null) decel += c.Surface.ExtraRollingDecel(b.X, b.Y, hs);
                 float newHs = MathF.Max(0f, hs - decel * dt);
+                if (newHs <= 0f && decel > 0f) stopFraction = MathUtil.Clamp01(hs / (decel * dt)); // (it stops part of the way through the step)
                 float scale = newHs / hs;
                 b.Vx *= scale;
                 b.Vy *= scale;
             }
-            b.X += b.Vx * dt;
-            b.Y += b.Vy * dt;
+            // Stage 10: on the mean of the velocities at the start and the end of the step (the trapezoid rule, as in flight); a ball that stops
+            // during the step moves only until it stops. Moving on the end velocity rolled every ball about 0.7% short.
+            b.X += 0.5f * (vx0 + b.Vx) * dt * stopFraction;
+            b.Y += 0.5f * (vy0 + b.Vy) * dt * stopFraction;
             if (!b.Sliding)
             {
                 // rolling without slipping: w x (-R z) = v  ->  w = (-v_y, v_x, .) / R
