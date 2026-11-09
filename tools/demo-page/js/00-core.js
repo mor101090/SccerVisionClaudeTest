@@ -39,7 +39,7 @@
     var DB = OB + 9, dead = a.length > DB + 2 && a[DB + 2] >= 0 ? { x: lerp(a[DB], b[DB + 2] >= 0 ? b[DB] : a[DB], k) / 10, y: lerp(a[DB + 1], b[DB + 2] >= 0 ? b[DB + 1] : a[DB + 1], k) / 10, z: a[DB + 2] / 100 } : null;
     // the other man of a substitution (the substitute waiting for the high five, the player walking off)
     var FB = DB + 3, fig = a.length > FB + 3 && a[FB + 3] > 0 ? { x: lerp(a[FB], b[FB + 3] > 0 ? b[FB] : a[FB], k) / 10, y: lerp(a[FB + 1], b[FB + 3] > 0 ? b[FB + 1] : a[FB + 1], k) / 10, f: a[FB + 2] / 100, team: Math.floor(a[FB + 3] / 1000), number: a[FB + 3] % 1000 } : null;
-    return { fig: fig, dead: dead, clock: lerp(a[1], b[1], half ? 0 : k), phase: a[2], hs: a[3], as: a[4], bx: lerp(a[5], b[5], bk) / 10, by: lerp(a[6], b[6], bk) / 10, bz: lerp(a[7], b[7], bk) / 100, owner: a[8], ps: ps, os: os, half: half };
+    return { fig: fig, dead: dead, clock: lerp(a[1], b[1], half ? 0 : k), phase: a[2], hs: a[3], as: a[4], bx: lerp(a[5], b[5], bk) / 10, by: lerp(a[6], b[6], bk) / 10, bz: lerp(a[7], b[7], bk) / 100, owner: a[8], bw: a.length >= 160 ? [a[157] / 10, a[158] / 10, a[159] / 10] : null, ps: ps, os: os, half: half }; // (bw: the free ball's physical spin, rad per replay second; older replays have none)
   }
   function minuteText(clock, second) {
     var end = clock >= 5400 && t >= et1T ? (t >= et2T ? 7200 : 6300) : second ? 5400 : 2700;
