@@ -330,6 +330,7 @@ namespace SoccerVision.Simulation
             {
                 // Loose ball won (no pass pending) - nothing extra to record.
             }
+            p.ReceivedBallVelocity = Ball.M.Velocity2D; // (before the flight is cleared)
             Ball.Owner = p;
             p.ControlStart = p.Pos;
             Ball.InHands = false;

@@ -202,7 +202,7 @@ namespace SoccerVision.Simulation
             float power = header ? _rng.Range(11f, 15f) + 3f * MathUtil.A(p.Attr.PhysicalPower)
                                  : 20f + 6f * skill + 4f * MathUtil.A(p.Attr.PhysicalPower) + _rng.Range(-1.5f, 1.5f);
             if (penalty) power = _rng.Range(21f, 27f);
-            float curlSign = 0f, curlMag = 0f, accuracy = 1f;
+            float curlSign = 0f, curlMag = 0f, accuracy = 1f, chipBackspin = 0f;
             bool knuckle = false;
             switch (tech)
             {
@@ -237,14 +237,23 @@ namespace SoccerVision.Simulation
                     power = 19f + 5f * skill + _rng.Range(-1f, 1f);
                     aimZ = _rng.Range(0.5f, 1.6f);
                     curlSign = naturalCurl;
-                    curlMag = _rng.Range(9f, 17f) * (0.7f + 0.5f * skill);
+                    {
+                        float draw = _rng.Range(9f, 17f);
+                        // (stage 7: the measured curve-kick spin; the better striker gets more of it)
+                        curlMag = Config.Kick != null ? Config.Kick.Curler.Spin(0.5f * (draw - 9f) / 8f + 0.5f * skill, power, Config.Ball.RadiusM)
+                                                      : draw * (0.7f + 0.5f * skill);
+                    }
                     accuracy = 1.5f; // a fine margin
                     break;
                 case ShotTechnique.OutsideFoot:
                     power = 19f + 5f * skill + _rng.Range(-1f, 1f);
                     aimZ = _rng.Range(0.4f, 1.6f);
                     curlSign = -naturalCurl;
-                    curlMag = _rng.Range(7f, 13f) * (0.7f + 0.5f * skill);
+                    {
+                        float draw = _rng.Range(7f, 13f);
+                        curlMag = Config.Kick != null ? Config.Kick.OutsideFoot.Spin(0.5f * (draw - 7f) / 6f + 0.5f * skill, power, Config.Ball.RadiusM)
+                                                      : draw * (0.7f + 0.5f * skill);
+                    }
                     accuracy = 1.7f; // hard to get right
                     break;
                 case ShotTechnique.Bicycle:
@@ -265,12 +274,29 @@ namespace SoccerVision.Simulation
                     aimZ = _rng.Range(1.3f, 2.1f);
                     power = MathUtil.Clamp(6.5f + 0.36f * dist, 9f, 15f);
                     accuracy = 1.25f;
+                    // (stage 7: struck under the ball - backspin, which holds it up; the solver below allows for it)
+                    if (Config.Kick != null && Config.Aero != null) chipBackspin = Config.Kick.ChipBackspin.Spin(skill, power, Config.Ball.RadiusM);
                     break;
                 case ShotTechnique.WeakFoot:
                     // On the weaker foot: less pace and less control the poorer that foot is.
                     power *= 0.86f + 0.05f * p.Attr.WeakFootLevel;
                     accuracy = 1f + (3f - p.Attr.WeakFootLevel) * 0.3f;
                     break;
+            }
+            if (Config.Kick != null && !header)
+            {
+                // Stage 7: no faster than his foot can strike it; and a full strike of a ball that is already coming at him sends part of
+                // its speed back (a first-time shot, a volley). Controlled strikes (side foot, curl, chip) are paced by the kicker, not maxed.
+                power = MathF.Min(power, Config.Kick.MaxBallSpeed(p.Attr.PhysicalPower));
+                bool full = tech == ShotTechnique.Power || tech == ShotTechnique.HalfVolley || tech == ShotTechnique.Volley || tech == ShotTechnique.Bicycle
+                            || tech == ShotTechnique.Knuckleball || tech == ShotTechnique.WeakFoot;
+                Vec2 incoming = volley || bicycle ? Ball.M.Velocity2D : firstTimeShot ? p.ReceivedBallVelocity : default;
+                if (full && (volley || bicycle || firstTimeShot))
+                {
+                    float bonus = Config.Kick.IncomingBonus(team.AttackGoal - from, incoming);
+                    power = MathF.Max(8f, power + bonus);
+                    if (CollectDiagnostics && bonus != 0f) Count("shot.incoming." + (bonus > 0f ? "added" : "taken"));
+                }
             }
             // An open goal (the keeper beaten or down, nobody in the lane): he just rolls it in - well inside the posts, low,
             // no curl, no showing off. Nine in ten of these go in.
@@ -317,7 +343,7 @@ namespace SoccerVision.Simulation
                 dir = dir.Rotate(-curlSign * (0.04f + 0.02f * curlMag / 10f));
             }
             Vec2 horizontal = dir * power;
-            float vz = KickSolver.VerticalSpeedFor(horizontal, startZ, distToAim, aimZ, Config, curlSign * curlMag, 0f);
+            float vz = KickSolver.VerticalSpeedFor(horizontal, startZ, distToAim, aimZ, Config, curlSign * curlMag, -chipBackspin);
             // Some finishes are aimed into the ground: a header nodded down so it bounces up past the keeper, a volley kept
             // down, a low drive that skips off the turf in front of him. (Bounces are hard for keepers.)
             float distToBounce = distToAim;
@@ -327,14 +353,14 @@ namespace SoccerVision.Simulation
             {
                 float bounceAt = MathF.Max(2f, distToAim - _rng.Range(1.5f, header ? 4.5f : 6.5f));
                 distToBounce = bounceAt;
-                vz = KickSolver.VerticalSpeedFor(horizontal, startZ, bounceAt, Pitch.BallRadius, Config, curlSign * curlMag, 0f);
+                vz = KickSolver.VerticalSpeedFor(horizontal, startZ, bounceAt, Pitch.BallRadius, Config, curlSign * curlMag, -chipBackspin);
                 if (CollectDiagnostics) Count("shot.bouncer");
             }
             if (curlMag > 0f && Config.Aero != null)
             {
                 // Aim off by exactly what the physical curl will bring back (the integrator the flight uses), not by a fixed angle.
                 float reach = bouncer ? distToBounce : distToAim;
-                float yawShot = KickSolver.CurlYawToReach(power, startZ, vz, reach, Config, curlSign * curlMag, 0f);
+                float yawShot = KickSolver.CurlYawToReach(power, startZ, vz, reach, Config, curlSign * curlMag, -chipBackspin);
                 dir = dir.Rotate(yawShot);
                 horizontal = dir * power;
             }
@@ -370,7 +396,8 @@ namespace SoccerVision.Simulation
             float angle = dir.Angle + _rng.Gaussian(0f, sigmaA) + _rng.Gaussian(0f, fixedLateral / MathF.Max(3f, distToAim));
             vz += _rng.Gaussian(0f, sigmaZ) + _rng.Gaussian(0f, fixedHeight / flight);
             Vec2 v = Vec2.FromAngle(angle) * power;
-            float curl = header ? 0f : (curlMag > 0f ? curlSign * curlMag + _rng.Gaussian(0f, 2.5f) : _rng.Gaussian(0f, tech == ShotTechnique.Chip ? 1f : tech == ShotTechnique.Knuckleball ? 0.4f : 8f));
+            float spinError = Config.Kick != null && curlMag > 0f ? curlMag * Config.Kick.SpinErrorFraction / 2.5f : 1f; // (stage 7: the error is a share of the spin)
+            float curl = header ? 0f : (curlMag > 0f ? curlSign * curlMag + _rng.Gaussian(0f, 2.5f) * spinError : _rng.Gaussian(0f, tech == ShotTechnique.Chip ? 1f : tech == ShotTechnique.Knuckleball ? 0.4f : 8f));
             if (CollectDiagnostics) Count("shot.tech." + tech);
             _lastShotTechnique = tech;
             if (CollectDiagnostics)
@@ -411,7 +438,7 @@ namespace SoccerVision.Simulation
                 if (zone == "six") { Count("shot.six." + (rebound ? "rebound" : assistKind) + "." + how); if (SimTime - _lastRestartAt < 7f) Count("shot.six.after." + _lastRestartType); }
             }
 
-            KickBall(p, from, v, vz, curl, 0f, header ? KickKind.Header : KickKind.Shot, null, aim, penalty, false, startZ);
+            KickBall(p, from, v, vz, curl, -chipBackspin, header ? KickKind.Header : KickKind.Shot, null, aim, penalty, false, startZ);
             Ball.IsShot = true;
             Ball.ShotKnuckle = knuckle;
             Ball.Shooter = p;

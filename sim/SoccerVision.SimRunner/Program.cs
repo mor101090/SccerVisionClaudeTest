@@ -32,7 +32,7 @@ bool golden = false;
 int exportRoster = 0;
 // --home-strength / --away-strength weak|medium|strong: how good each demo squad is (medium: the squads the game always had)
 TeamStrength homeStrength = TeamStrength.Medium, awayStrength = TeamStrength.Medium;
-bool legacyFlight = false, legacyBounce = false, artificial = false; int grassLength = 0; bool swap = false; var adjusts = new List<(string Name, int Delta)>();
+bool legacyFlight = false, legacyBounce = false, legacyKick = false, artificial = false; int grassLength = 0; bool swap = false; var adjusts = new List<(string Name, int Delta)>();
 for (int i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -74,6 +74,7 @@ for (int i = 0; i < args.Length; i++)
         case "--zoneradius": MatchEngine.ZoneRadiusScale = float.Parse(args[++i]); break; // (experiment)
         case "--savebase": MatchEngine.SaveBase = float.Parse(args[++i]); break; // (experiment: the save chance of an easy shot)
         case "--legacyflight": legacyFlight = true; break;
+        case "--legacykick": legacyKick = true; break; // (comparison: the kicks as they were before stage 7)
         case "--legacybounce": legacyBounce = true; break; // (comparison: the bounce as it was before stage 4)
         case "--artificial": artificial = true; break; // (the pitch is football turf)
         case "--grass": grassLength = args[++i] == "short" ? -1 : args[i] == "long" ? 1 : 0; break; // (short / normal / long natural grass) // (comparison: the ball flight as it was before the ball-physics work)
@@ -119,6 +120,7 @@ MatchConfig MakeConfig()
     var c = MatchConfig.CreateDefault();
     if (legacyFlight) c.Aero = null;
     if (legacyBounce) c.Ground = null;
+    if (legacyKick) c.Kick = null;
     c.ArtificialTurf = artificial;
     c.GrassLength = grassLength;
     c.HomeAdvantage = homeAdvantage;

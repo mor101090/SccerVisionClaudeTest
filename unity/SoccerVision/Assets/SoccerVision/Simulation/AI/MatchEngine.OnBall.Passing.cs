@@ -631,7 +631,10 @@ namespace SoccerVision.Simulation
             {
                 // The ball bends the way the kicking foot naturally curls it: right-footers bend it to the left, left-footers
                 // to the right. From the left wing that is an in-swinger for a right-footer, from the right wing an out-swinger.
-                spin = NaturalCurlSign(p) * _rng.Range(10f, 30f) * _curlBoost;
+                float draw = _rng.Range(10f, 30f);
+                spin = NaturalCurlSign(p) * (Config.Kick != null
+                    ? Config.Kick.CurledPass.Spin(MathF.Min(1f, (0.5f * (draw - 10f) / 20f + 0.5f * skill) * _curlBoost), speed, Config.Ball.RadiusM) // (stage 7: measured spin)
+                    : draw * _curlBoost);
             }
             float yaw = 0f;
             if (spin != 0f && Config.Aero != null)

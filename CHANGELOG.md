@@ -2,6 +2,19 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/ball-kick` (stage 7)
+
+**Ball physics, stage 7: what the foot gives the ball.** Details: `docs/BALL_PHYSICS.md`. The old kicks stay available: `SimRunner --legacykick` (`MatchConfig.Kick = null`).
+- **Spin by kind of kick** (`KickModel`), as a launch spin parameter Sp = R w / v so it holds at any speed: a curled shot 0.11-0.27 (4-10 rev/s at 26 m/s, the measured
+  curve-kick band; Asai 2004 and Hong 2011 sit in the middle), a curled free kick 0.16-0.27, the outside of the foot 0.09-0.22, a curled cross or pass 0.10-0.25,
+  a chip now has backspin (0.10-0.22). The old curls were a third to a half of the measured spin. The kicker's aim allows for the stronger curl (stage 3's solvers).
+- **The fastest strike**: ball speed / foot speed 1.3 (the literature's 1.06-1.65); the foot strikes at 18-24 m/s by physical power, so no shot is faster than 23.4-31.2 m/s.
+- **An oncoming ball**: a full strike (laces, volley, half-volley, bicycle, knuckleball, weaker foot) of a ball coming at the striker - a first-time shot, a volley - sends
+  30% of its speed back on top (one-dimensional impact: the share is exactly the speed ratio minus 1, whatever the restitution). Paced strikes (side foot, curl, chip) do not.
+- The speed-spin trade-off (Asai 2002) is already in the strikes (the curler is struck at about 0.8 of the laces drive's speed); tested, not modelled twice.
+- **In the match**: goals 2.98 -> 3.10 a match (4 seeds x 200; real 2.83), shots 25.45 -> 25.77, on target 8.49 -> 8.78, volley and free-kick goals unchanged, headed share 17.3% -> 18.7%. The goals are left for the calibration round planned after the kick stages, not tuned in the measured physics.
+- **Tests**: `BallKickTests` (6).
+
 ## `feature/ball-spin` (stage 6)
 
 **Ball physics, stage 6: the ball turns as the physics spins it.** Details: `docs/BALL_PHYSICS.md`. **The match does not change** (only the picture).
