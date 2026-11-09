@@ -13,7 +13,7 @@ Each round of changes is developed on its own branch, named after what it change
   30% of its speed back on top (one-dimensional impact: the share is exactly the speed ratio minus 1, whatever the restitution). Paced strikes (side foot, curl, chip) do not.
 - The speed-spin trade-off (Asai 2002) is already in the strikes (the curler is struck at about 0.8 of the laces drive's speed); tested, not modelled twice.
 - **In the match**: goals 2.98 -> 3.10 a match (4 seeds x 200; real 2.83), shots 25.45 -> 25.77, on target 8.49 -> 8.78, volley and free-kick goals unchanged, headed share 17.3% -> 18.7%. The goals are left for the calibration round planned after the kick stages, not tuned in the measured physics.
-- **Tests**: `BallKickTests` (6).
+- **Tests**: `BallKickTests` (6). `APlayerShootsAtAnOpenGoal` looked at 24 matches and saw none: open goals have been about 0.1 a match since the ball-physics stages, with the old kicks and the new alike (100 matches each, `--diag`); it now looks at up to 60 (the assertion is unchanged). `dotnet test sim/` -> **Passed! 295 / 295** (1 h 9 m, on a loaded machine).
 
 ## `feature/ball-spin` (stage 6)
 
