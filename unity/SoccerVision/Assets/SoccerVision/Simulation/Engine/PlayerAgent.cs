@@ -183,6 +183,8 @@ namespace SoccerVision.Simulation
         public float BallWatchUntil = -1f;
         /// <summary>Man-to-man: the opponent given to this player for the whole defensive phase (kept until possession changes).</summary>
         public PlayerAgent ManAssignment;
+        /// <summary>Man-to-man: the defender left without a man to cover behind the markers (the free man, the libero).</summary>
+        public bool IsFreeMan;
         internal PlayerAgent PrevMarkTarget;
 
         // Sliding tackle: a short lunge along SlideDir, then a moment on the ground.
@@ -304,6 +306,7 @@ namespace SoccerVision.Simulation
             DuelCooldown = 0f;
             MarkTarget = null;
             ManAssignment = null;
+            IsFreeMan = false;
             HasPendingPlan = false;
             RunTimer = 0f;
             OneTwoWith = null;
