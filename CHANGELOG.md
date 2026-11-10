@@ -2,6 +2,21 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/legs-open` (polish round 9: item 2)
+
+**Opening the legs for a nutmeg or a dummy: narrower, about half a second, in time with the ball, smooth.**
+- **Before:** a flag switched the victim's feet from 0.32 to 0.95 of the player's radius apart at once, for 0.9 s of match time (a nutmeg)
+  or 0.6 s (a dummy), from the moment the ball was played - wide, sudden, not timed to the ball; the app's renderer did not draw it at all.
+- **Now** (`MatchEngine.Legs.cs`): the engine works out when the ball will be between his legs (its distance and speed) and opens them
+  for it - a smooth rise to that moment (up to a quarter of a second; at least 0.1 s when the ball is nearly there, and always from closed)
+  and a smooth fall over a quarter of a second after it (`PlayerAgent.LegsOpen`, 0-1). At most 0.62 of the radius apart (a shoulder width).
+- **The replay frame:** the player flags carry how far open, 0-3, in bits 13-14 (bit 4096 still set while they are open, so an older reader
+  still shows it); the renderers interpolate it between frames. **All three renderers:** the app (`replay.ts`, `drawPitch.ts` - new; the copies in `web/src/replay/` kept in step), the
+  classic page (`00-core.js`, `03-ball.js`) and Unity (`EntityViews.cs`, from `LegsOpen` directly).
+- Measured over 24 matches (112 openings): 0.44 s (real) on average, 0.33-0.51 s; widest with the ball within 2 m of him 108 times of 112;
+  never more than a fifth of the way in one 0.02 s step. Parameters `LegsOpenSeconds` 0.5 (the item), `LegsOpenQuickest` 0.1 s.
+- **Tests**: `LegsOpenTests` (1).
+
 ## `feature/goal-net` (polish round 8: item 12)
 
 **The goal net gives.** `GoalNetTests` (the ball alone against the frame, and 16 matches followed every 0.02 s after each goal).

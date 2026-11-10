@@ -173,6 +173,9 @@ namespace SoccerVision.Simulation
         public Vec2 FakeDir;
         /// <summary>A nutmeg: the victim's legs are open (drawn so) while the ball goes through; the player who did it is chasing his own ball.</summary>
         public float NutmegVictimUntil = -1f, NutmegChaseUntil = -1f;
+        /// <summary>His legs open for a ball going through them (polish round 9): when it goes through (sim time), and how far apart the
+        /// feet are now (0 together - 1 as wide as they go).</summary>
+        public float LegsOpenFrom = -10f, LegsOpenAt = -10f, LegsOpen;
         /// <summary>0 none, 1 backswing, 2 strike, 3 follow-through (the swing as the replay records it).</summary>
         public int KickPhase => KickTimer <= 0f ? 0 : KickTimer > 0.30f ? 1 : KickTimer > 0.15f ? 2 : 3;
         /// <summary>Where the one-two run goes (world).</summary>

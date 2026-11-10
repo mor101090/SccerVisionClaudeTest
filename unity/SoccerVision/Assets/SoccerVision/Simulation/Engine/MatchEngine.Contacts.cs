@@ -68,7 +68,7 @@ namespace SoccerVision.Simulation
             if (!_rng.Chance(MathUtil.Clamp(chance, 0f, 0.85f))) return false;
             p.TouchCooldown = 0.7f;
             marker.StunTimer = MathF.Max(marker.StunTimer, 0.5f);
-            p.NutmegVictimUntil = SimTime + 0.6f; // (his own legs are drawn open while the ball runs through)
+            OpenLegsFor(p, BallReaches(Vec2.Dot(p.Pos - Ball.Pos, dir), speed)); // (he opens his legs as the ball runs through them)
             Ball.IntendedReceiver = mate;
             Emit(MatchEventType.Skill, team, p, mate, p.Pos, 0f, WhistleKind.Short, 3);
             if (CollectDiagnostics) Count(betterShot ? "skill.dummy.forShot" : "skill.dummy");
