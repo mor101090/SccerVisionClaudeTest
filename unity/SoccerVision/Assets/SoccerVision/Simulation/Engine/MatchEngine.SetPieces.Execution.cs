@@ -567,38 +567,66 @@ namespace SoccerVision.Simulation
             float skill = MathUtil.A((taker.Attr.FreeKicks * 2 + taker.Attr.LongShots) / 3);
             float nearSide = MathF.Abs(Ball.Pos.Y) > 0.5f ? MathF.Sign(Ball.Pos.Y) : 1f;
             // Over the wall into the corner the wall covers, or across to the keeper's side.
-            float targetSide = _rng.Chance(0.6f) ? nearSide : -nearSide;
+            float targetSide = _rng.Chance(FreeKickStyles ? FreeKickNearSide : 0.6f) ? nearSide : -nearSide;
             {
                 // Right-footers bend it left, left-footers right: they aim for the side their curl brings the ball back to.
                 Vec2 d0 = (new Vec2(Pitch.HalfLength * goalSign, targetSide * 2f) - Ball.Pos).Normalized;
                 float needed = -MathF.Sign(Vec2.Cross(d0, new Vec2(0f, targetSide)));
-                if (needed != NaturalCurlSign(taker) && _rng.Chance(0.8f)) targetSide = -targetSide;
+                if (needed != NaturalCurlSign(taker) && _rng.Chance(FreeKickStyles && targetSide == nearSide ? FreeKickFootSwitch : 0.8f)) targetSide = -targetSide;
             }
             Vec2 aim = new Vec2(Pitch.HalfLength * goalSign, targetSide * (Pitch.GoalHalfWidth - 0.4f - 0.6f * (1f - skill)));
-            float aimZ = _rng.Range(1.5f, 2.2f);
+            float aimZ = _rng.Range(FreeKickAimLow, FreeKickAimHigh); // (polish round 6: real on-target free kicks cross the line at 1.46 m, median)
             Vec2 from = Ball.Pos;
             Vec2 dir = (aim - from).Normalized;
             float power = 22f + 5f * skill;
             float curlDraw = _rng.Range(15f, 28f);
             float curl = -MathF.Sign(Vec2.Cross(dir, new Vec2(0f, targetSide)))
                          * (Config.Kick != null ? Config.Kick.FreeKick.Spin(0.5f * (curlDraw - 15f) / 13f + 0.5f * skill, power, Config.Ball.RadiusM) : curlDraw); // (stage 7: the measured curve-kick spin)
-            // The knuckleball from long range: no spin and no curl, the ball floats and dips late (for the best strikers).
+            float topSpin = _rng.Range(8f, 16f);
+            // The kind of strike (polish round 6).
             float fkDist = Vec2.Distance(from, aim);
-            bool knuckle = fkDist > 23f && fkDist < 34f && taker.Attr.FreeKicks >= 72 && _rng.Chance(0.22f);
-            if (knuckle) { aim = new Vec2(aim.X, _rng.Range(-2.4f, 2.4f)); dir = (aim - from).Normalized; curl = _rng.Gaussian(0f, 0.4f); power = 25f + 4f * skill; aimZ = _rng.Range(1.0f, 1.9f); }
+            var style = ChooseFreeKickStyle(taker, fkDist, r.Wall.Count);
+            _freeKickStyle = style;
+            bool knuckle = style == FreeKickStyle.Knuckle;
+            switch (style)
+            {
+                case FreeKickStyle.Knuckle:
+                    // no spin and no curl, the ball floats and dips late
+                    aim = new Vec2(aim.X, _rng.Range(-2.4f, 2.4f)); curl = _rng.Gaussian(0f, 0.4f); power = 25f + 4f * skill; aimZ = _rng.Range(0.8f, 1.8f); topSpin = 0f;
+                    break;
+                case FreeKickStyle.Driven:
+                    // the laces: hard, a little spin, not much bend - at either side, chest to bar height
+                    aim = new Vec2(aim.X, _rng.Range(-1f, 1f) * (Pitch.GoalHalfWidth - 0.7f)); power = 26f + 5f * MathUtil.A((taker.Attr.LongShots + taker.Attr.PhysicalPower) / 2);
+                    curl *= 0.3f; topSpin = _rng.Range(4f, 10f); aimZ = _rng.Range(0.7f, 1.8f);
+                    break;
+                case FreeKickStyle.Placed:
+                    // over the end of the wall into the near corner, with less pace and more care
+                    targetSide = nearSide;
+                    aim = new Vec2(aim.X, nearSide * (Pitch.GoalHalfWidth - 0.45f - 0.4f * (1f - skill))); power = 19f + 4f * skill;
+                    curl = -MathF.Sign(Vec2.Cross((aim - from).Normalized, new Vec2(0f, nearSide))) * MathF.Abs(curl) * 0.8f; aimZ = _rng.Range(1.5f, 2.2f);
+                    break;
+                case FreeKickStyle.Under:
+                    // low and hard along the grass where the wall stands: under it as it jumps
+                    aim = new Vec2(aim.X, nearSide * _rng.Range(1.2f, Pitch.GoalHalfWidth - 0.5f)); power = 21f + 4f * skill; curl *= 0.2f; topSpin = _rng.Range(2f, 6f); aimZ = _rng.Range(0.12f, 0.3f);
+                    break;
+            }
+            if (CollectDiagnostics) { Count("fk.style." + style); if (MathF.Abs(Ball.Pos.Y) > 3f) { Count(MathF.Sign(aim.Y) == nearSide ? "fk.side.near" : "fk.side.far");
+                var gkk = team.Opponent.Goalkeeper; if (gkk != null && r.Wall.Count >= 2) { float ky = gkk.Pos.Y * nearSide; Count("fk.keeper." + (ky < -0.73f ? "a<-0.73" : ky < -0.27f ? "b-0.73..-0.27" : ky < 0.27f ? "c-0.27..0.27" : "d>0.27")); } } }
+            dir = (aim - from).Normalized;
             // Aim the start line away from the target so the curl brings it back.
             Vec2 startDir = knuckle || Config.Aero != null ? dir : dir.Rotate(-MathF.Sign(curl) * 0.06f);
-            float topSpin = knuckle ? 0f : _rng.Range(8f, 16f);
             float vz = KickSolver.VerticalSpeedFor(startDir * power, Pitch.BallRadius, Vec2.Distance(from, aim), aimZ, Config, curl, topSpin);
             if (!knuckle && Config.Aero != null)
             {
                 // the start line that the physical curl brings back onto the aim (the same integrator as the flight)
                 startDir = dir.Rotate(KickSolver.CurlYawToReach(power, Pitch.BallRadius, vz, Vec2.Distance(from, aim), Config, curl, topSpin));
             }
-            float sigma = (0.012f + 0.045f * (1f - skill)) * (knuckle ? 1.5f : 1f);
+            float sigma = (0.012f + 0.045f * (1f - skill)) * (knuckle ? 1.5f : style == FreeKickStyle.Driven ? 1.3f : style == FreeKickStyle.Placed ? 0.8f : 1f);
             startDir = startDir.Rotate(_rng.Gaussian(0f, sigma));
-            vz += _rng.Gaussian(0f, 0.25f + 0.9f * (1f - skill));
-            foreach (var w in r.Wall) StartJump(w, 0.4f); // the wall jumps
+            vz += _rng.Gaussian(0f, (0.25f + 0.9f * (1f - skill)) * (style == FreeKickStyle.Under ? 0.4f : FreeKickHeightError));
+            if (style == FreeKickStyle.Under) vz = MathF.Min(vz, 0.8f);
+            if (FreeKickStyles) ScheduleWallJumps(r);
+            else foreach (var w in r.Wall) StartJump(w, 0.4f); // the wall jumps
             float xg = MathUtil.Clamp(0.09f - (Vec2.Distance(from, aim) - 18f) * 0.004f, 0.02f, 0.1f);
             KickBall(taker, from, startDir * power, vz, curl, topSpin, KickKind.Shot, null, aim, true, false);
             Ball.IsShot = true;

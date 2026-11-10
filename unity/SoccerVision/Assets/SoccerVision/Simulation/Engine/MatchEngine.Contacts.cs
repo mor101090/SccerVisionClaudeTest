@@ -121,6 +121,8 @@ namespace SoccerVision.Simulation
                     // (decided once per shot and per defender, not at every step the ball is near him)
                     if (_shotIsFollowUp && ((p.Index * 37 + _shotSerial * 11) % 100) < FollowUpGapPercent) { if (CollectDiagnostics) Count("block.followUpGap"); continue; }
                 }
+                // A man in the air: the ball can run under his feet (a low free kick under the jumping wall).
+                if (z < 1.05f && !p.IsGoalkeeper && BallPassesUnder(p, z)) continue;
                 ContactKind kind = ContactKind.None;
                 bool handsAllowed = p.IsGoalkeeper && Ball.HandlingForbiddenFor != p.Team
                                     && Pitch.InPenaltyArea(p.Pos, p.Team.OwnGoalSign) && Pitch.InPenaltyArea(Ball.Pos, p.Team.OwnGoalSign);
@@ -551,6 +553,7 @@ namespace SoccerVision.Simulation
                 shooter.Team.Stats.ShotsBlocked++;
                 Emit(MatchEventType.ShotBlocked, p.Team, p, shooter, Ball.Pos);
                 if (CollectDiagnostics && _lastShotOpenGoal) Count("openGoal.blocked");
+                if (CollectDiagnostics && _lastShotKind == 3) Count("fk.blocked." + _freeKickStyle + (_wallMen.Contains(p) ? ".wall" : ""));
             }
             Ball.IsShot = false;
             Vec2 v = Ball.Velocity;

@@ -2,6 +2,35 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/free-kicks` (polish round 6: item 11)
+
+**Direct free kicks: the strike, the wall and the keeper.** Measured: 400 default matches, and varied squads (below).
+- **Before:** every direct free kick was the same curled strike (a knuckleball now and then); the whole wall jumped together the moment the
+  ball was struck and could not be beaten underneath (a man in the air still touched a ball under his feet); the wall stood centred on a
+  point 1.6 m inside the near post; the keeper stood 0.9 m to the far side. Scored 10.3% (real 6.2%).
+- **Now** (`MatchEngine.SetPieces.FreeKicks.cs`): five strikes - **curled** over the wall, **driven** (laces, little spin, from 24 m on),
+  **placed** (less pace, over the end of the wall into the near corner, inside 24 m), **under the wall** (low along the grass where the wall
+  stands, 17-27 m against a wall of three or more) and the **knuckleball**. The wall is lined up as real walls are: the end man on the line
+  from the ball to 0.5 m outside the near post, the rest shoulder to shoulder inwards. Each man **jumps on his own reaction** after the
+  strike (positioning shortens it); now and then one stays down (12%). **A man in the air no longer touches a ball under his feet** - for
+  every player, not only the wall: the low free kick goes under a jumping wall. The keeper stands **0.27 m from the middle of his goal to
+  the far side** (the median of 288 real free kicks with a wall).
+- **Set against real figures** (new `tools/calibration/free_kicks.py`: StatsBomb, all 380 PL 2015/16 matches, the wall and keeper from the
+  shot freeze frames): a taker goes for the near corner over the wall 85% of the time (switching to the keeper's side when his foot bends
+  it away only 30% of the time, was 80%): 77% of the engine's go to the wall's side, real 75%. Aimed lower (0.6-1.7 m at the line, was
+  1.5-2.2; real on target cross at 1.46 m, median) with a wider spread of the strike's height (x1.5) - **scored 6.2%** over 788 free kicks in
+  three samples (fixed teams 4.2%, varied squads 5.6% and 11.7%: the takers' skill moves it).
+- **Not reached:** blocked 17% (real 34%), off target about 12% (real 31%), so the keeper saves more of them than real ones. A wall cannot
+  reach a ball above about 2.4 m (a 1.83 m man jumping 0.42 m), and the engine's taker clears it with a precise flight: a wider spread sends
+  more over the bar without more into the wall (x4: blocked 25%, but 23% over and 1.8% scored). Real misses into the wall are mis-hit,
+  lower strikes, which this model does not have - left open.
+- Unchanged elsewhere: goals about 2.55, shots 26.4, fouls 22.4, yellows 3.4 (noise).
+- New counters `fk.style.*`, `fk.blocked.<style>[.wall]`, `fk.goal.<style>`, `fk.wall.under.*`, `fk.wall.staysDown`, `fk.atWall.*`,
+  `fk.atLine.*`, `fk.side.*`, `fk.keeper.*`. SimRunner switches `--fkstyles 0` (the old free kick), `--fkaim`, `--fkerr`, `--fknear`,
+  `--fkswitch`, `--fkunder`, `--wallstay`, `--wallout`, `--keeperoff`; its free-kick reference rows now cite the StatsBomb figures.
+- **Tests**: `FreeKickTests` (192 matches with varied squads): all five strikes happen, a low shot goes under the jumping wall, every wall
+  is lined up on the near post, every keeper stands near the middle to the far side, scored 1-15%.
+
 ## `feature/dribble-touches` (polish round 5: item 9)
 
 **Running with the ball as touches - the ball really leaves the foot.** Measured: 400 default matches.

@@ -162,7 +162,7 @@ namespace SoccerVision.Simulation
             int goalKind = !ownGoal && recentShot ? _lastShotKind : 0;
             if (goalKind == 5) scoringTeam.Stats.HeaderGoals++;
             if (goalKind == 1) scoringTeam.Stats.VolleyGoals++;
-            if (goalKind == 3) scoringTeam.Stats.FreeKickGoals++;
+            if (goalKind == 3) { scoringTeam.Stats.FreeKickGoals++; if (CollectDiagnostics) Count("fk.goal." + _freeKickStyle); }
 
             // No whistle: IFAB guidance says it is not needed to stop play for a clear goal (it restarts the kick-off).
             Emit(MatchEventType.Goal, scoringTeam, scorer, assist, Ball.Pos, ownGoal ? 1f : 0f, WhistleKind.Short, goalKind);
