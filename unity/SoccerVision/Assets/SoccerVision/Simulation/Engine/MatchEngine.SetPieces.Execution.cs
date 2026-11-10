@@ -133,7 +133,7 @@ namespace SoccerVision.Simulation
             // (the taker must really be at the ball: it only moves when it is kicked)
             bool takerReady = r.Taker != null && Vec2.Distance(r.Taker.Pos, moveTo) < 0.3f;
             // (nothing restarts while the referee is still showing a card: play resumes only after he has put it away)
-            if (CardSequenceActive) { r.Timer = MathF.Min(r.Timer, r.SetupTime); r.CountsAsLostTime = true; return; }
+            if (CardSequenceActive) { r.Timer = MathF.Min(r.Timer, r.SetupTime); return; } // (not counted as lost time: as before - see the CHANGELOG)
             bool ready = r.RunningUp || r.WhistleAt >= 0f || (r.BallPlaced && r.Timer >= r.SetupTime && takerReady && PlayersSettled(r));
             if (!ready && r.Timer >= Config.MaxSetupSeconds)
             {
