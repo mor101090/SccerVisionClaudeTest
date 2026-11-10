@@ -55,6 +55,8 @@ namespace SoccerVision.Simulation
         BoldKeeper = 1 << 20,
         /// <summary>Goalkeeper: stays on his line, a shot-stopper first.</summary>
         StaysOnLine = 1 << 21,
+        /// <summary>Throws the ball into the box from the touchline: releases a throw-in at the top of the measured speeds (16.5-19 m/s).</summary>
+        LongThrowSpecialist = 1 << 22,
     }
 
     public static class PlayerTraits
@@ -66,7 +68,7 @@ namespace SoccerVision.Simulation
             PlayerTrait.SwitchesPlay, PlayerTrait.BackToGoal,
             PlayerTrait.AerialCharger, PlayerTrait.HoldsPosition, PlayerTrait.Roams, PlayerTrait.RunsBehind, PlayerTrait.PressesHard,
             PlayerTrait.SavesEnergy, PlayerTrait.Leader, PlayerTrait.BigGamePlayer, PlayerTrait.Fragile, PlayerTrait.DrawsFouls,
-            PlayerTrait.BoldKeeper, PlayerTrait.StaysOnLine,
+            PlayerTrait.BoldKeeper, PlayerTrait.StaysOnLine, PlayerTrait.LongThrowSpecialist,
         };
 
         /// <summary>The aggression a player needs before he can be a hard tackler.</summary>
@@ -156,6 +158,8 @@ namespace SoccerVision.Simulation
                 [PlayerTrait.DrawsFouls] = gk || def && !fb ? 0f : (wide ? 1.2f : st || pos == "AM" ? 1f : 0.3f) * (0.3f + A(a.Dribbling)),
                 [PlayerTrait.BoldKeeper] = gk ? 1f * (0.4f + A((a.Kicking + a.OneOnOne) / 2)) : 0f,
                 [PlayerTrait.StaysOnLine] = gk ? 1f * (0.4f + A(a.Reflexes)) : 0f,
+                // (not drawn here: a squad's long thrower is chosen in Assign, with its own random numbers, so the other traits stay as they were)
+                [PlayerTrait.LongThrowSpecialist] = 0f,
             };
 
             int want = gk ? 2 : rng.NextDouble() < 0.2 ? 2 : rng.NextDouble() < 0.85 ? 3 : 4;
@@ -176,6 +180,36 @@ namespace SoccerVision.Simulation
             return set;
         }
 
+        /// <summary>The physical power a squad's strongest outfield player needs to be its long thrower (class D).</summary>
+        public const int LongThrowerPower = 70;
+        /// <summary>How often a squad with such a man has him as a long-throw specialist (class E: no count of long-throw specialists was found).</summary>
+        public const double LongThrowerChance = 0.3;
+
+        /// <summary>
+        /// A squad has one long-throw specialist at most (polish round 2): its strongest full-back or holding midfielder (else any outfield
+        /// player), if he is strong enough, half the time. Its own random numbers: the other traits do not move.
+        /// </summary>
+        private static void AssignLongThrower(List<PlayerProfile> all, int seed)
+        {
+            var rng = new Random(seed * 104729 + 977);
+            PlayerProfile best = null;
+            foreach (var p in all)
+            {
+                if (p.NaturalPosition == PositionGroup.Goalkeeper || Count(p.Traits) >= 4) continue; // (about three traits a man; four at most)
+                // (a full-back or holding midfielder first: he is the one by the touchline, or can get there)
+                if (best == null || ThrowerScore(p) > ThrowerScore(best)) best = p;
+            }
+            if (best == null || best.Attributes.PhysicalPower < LongThrowerPower || rng.NextDouble() >= LongThrowerChance) return;
+            best.Traits |= PlayerTrait.LongThrowSpecialist;
+        }
+
+        private static int ThrowerScore(PlayerProfile p)
+        {
+            string pos = p.PositionLabel;
+            bool usual = pos == "RB" || pos == "LB" || pos == "RWB" || pos == "LWB" || pos == "DM";
+            return p.Attributes.PhysicalPower + (usual ? 8 : 0);
+        }
+
         /// <summary>Gives every player in the squad his traits (deterministic for the seed).</summary>
         public static void Assign(TeamSetup t, int seed)
         {
@@ -183,6 +217,7 @@ namespace SoccerVision.Simulation
             var all = new List<PlayerProfile>(t.Starters);
             all.AddRange(t.Bench);
             foreach (var p in all) p.Traits = Generate(p, rng);
+            AssignLongThrower(all, seed);
             // A squad has one or two hard men, not a team of them: the best tacklers keep the trait.
             var hard = all.FindAll(p => (p.Traits & PlayerTrait.HardTackler) != 0);
             hard.Sort((x, y) => y.Attributes.Tackling.CompareTo(x.Attributes.Tackling));

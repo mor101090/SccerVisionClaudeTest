@@ -399,7 +399,7 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Counter-movements", Avg(x => x.CounterMovements), "");
     Row("Counter-presses (won back)", Avg(x => x.CounterPresses), Avg(x => x.CounterPressWins).ToString("0.00"));
     Row("Wide overloads", Avg(x => x.Overloads), "");
-    Row("Long throws", Avg(x => x.LongThrows), "");
+    Row("Long throws", Avg(x => x.LongThrows), "[S] 1.43 throw-ins into the box (all of them, long or not)");
     Row("Home: passes / long balls", Avg(x => x.HomePasses), Avg(x => x.HomeLongBalls).ToString("0.0"));
     Row("Home: possession % / goals", Avg(x => x.HomePossession), Avg(x => x.HomeGoals).ToString("0.00") + " (away " + Avg(x => x.AwayGoals).ToString("0.00") + ")");
     Row("Home: fouls / yellows", Avg(x => x.HomeFouls), Avg(x => x.HomeYellows).ToString("0.00"));

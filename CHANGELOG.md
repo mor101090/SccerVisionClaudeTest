@@ -2,6 +2,27 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/long-throw` (polish round 2: item 4)
+
+**The long-throw specialist, and the throw-in as a throw.**
+- **The throw (measured, class B).** Release speed 12-19 m/s by the thrower, angle about 31 degrees, backspin 0.85 rev/s, from 2.23 m
+  ([Linthorne and Everett 2006](https://arxiv.org/abs/physics/0601149), with the studies it summarises); the flight is the ball's physics.
+  Check: the paper's typical throw (13.4 m/s, 32.1 degrees) carries 16.8 m here, 17.0 measured. A release spreads by the measured 1.6
+  degrees and 0.3 m/s.
+- **`PlayerTrait.LongThrowSpecialist`** (new): releases at 16.5-19 m/s (the top of the measured range; anyone else 12-16.5 by physical
+  power) - 22-28 m to a man's head. One a squad at most, in about 30% of squads (class E: no count was found), the strongest full-back or
+  holding midfielder with physical power 70+ and fewer than four traits; given with its own random numbers, so no other trait moves.
+- **Who throws it long.** Only a man who can reach the box from the spot - the decision is the physics: the target is as deep in the box as
+  his throw reaches (the near corner of the six-yard box at best, 15 m from the middle at worst), 6 m out. The specialist walks over (up to
+  40 m) to take a throw in his range and throws long 80% of the time (others who can reach 40%). A throw beyond his reach falls short.
+  Before: anyone with physical power over 62 inside 28 m threw it to the near post at 60%, at speeds above the measured range.
+- **Real throw-ins into the box** (new in `throw_ins.py`): 1.43 a match, median 24.9 m. The engine: about 0.3 with random squads, none with
+  the default squads (no specialist) - fewer than real (open; the engine also has 2.4 times fewer throw-ins).
+- **Default match** (400): goals 2.82 -> 2.87, shots 27.6 -> 28.0, corners 11.8 -> 11.8, long throws 0.32 -> 0 (no specialist).
+- Classic page: the trait's name and explanation in the player profile.
+- **Tests**: `LongThrowTests` (4): the flight reproduces the measured throw; release speeds stay in 12-19 m/s with the specialist at the
+  top, one a squad at most; only the specialist reaches the six-yard box from the touchline; in matches only specialists throw it long.
+
 ## `feature/touchline-throwins` (polish round 1: items 1 and 3)
 
 **Decisions by the touchline, and the throw-ins checked against real data.** Measured: 400 default matches before and after (seeds 1 and 1001).

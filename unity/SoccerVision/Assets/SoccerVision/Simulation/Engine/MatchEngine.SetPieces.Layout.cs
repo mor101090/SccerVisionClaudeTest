@@ -120,9 +120,10 @@ namespace SoccerVision.Simulation
             var att = r.Team;
             var def = att.Opponent;
             LayoutShapeAround(r.Spot, att);
-            // A long throw (a weapon against a deep, compact block): only near the box, by a strong thrower - and now and
-            // then a short one instead, when they expect the long one.
-            r.LongThrow = att.Forward(r.Spot) > 28f && r.Taker != null && r.Taker.Attr.PhysicalPower > 62 && _rng.Chance(0.6f);
+            // A long throw (a weapon against a deep, compact block): only when the thrower can reach the near post from here (polish
+            // round 2: his release speed and the flight decide it) - and now and then a short one instead, when they expect the long one.
+            r.LongThrow = r.Taker != null && att.Forward(r.Spot) > 12f && CanThrowIntoBox(r.Taker, r.Spot)
+                          && _rng.Chance(r.Taker.Has(PlayerTrait.LongThrowSpecialist) ? LongThrowChanceSpecialist : LongThrowChanceOther);
             if (r.LongThrow) { LayoutLongThrow(r); return; }
             float inward = -MathF.Sign(r.Spot.Y);
             Vec2 forward = att.DirToWorld(Vec2.UnitX);
@@ -156,7 +157,7 @@ namespace SoccerVision.Simulation
             float side = MathF.Sign(att.Lateral(r.Spot));
             var spots = new[]
             {
-                new Vec2(45.8f, side * 3.2f),    // near post: the flick-on
+                LongThrowTarget(r.Taker, r.Spot, out var aim) ? att.ToLocal(aim) - new Vec2(0f, side * 0.3f) : new Vec2(LongThrowTargetForward, side * LongThrowTargetLateral), // where the throw comes down: the flick-on
                 new Vec2(47.6f, -side * 3.6f),   // far post
                 new Vec2(43.5f, -side * 1.2f),   // arriving late in the middle
                 new Vec2(50.2f, side * 0.4f),    // on the keeper (the block)

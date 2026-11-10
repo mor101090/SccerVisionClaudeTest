@@ -384,9 +384,10 @@ namespace SoccerVision.Simulation
             Vec2 target;
             if (longThrow)
             {
-                // Low and fast, flat rather than looping, into the near post for the flick (or now and then straight to the far post).
-                float side = MathF.Sign(team.Lateral(spot));
-                target = _rng.Chance(0.7f) ? team.ToWorld(45.8f + _rng.Range(-0.8f, 0.8f), side * _rng.Range(2f, 4.2f)) : team.ToWorld(47f, -side * _rng.Range(1f, 4f));
+                // Into the near side of the six-yard box for the flick across goal (polish round 2: where it comes down is the throw's
+                // physics - see ReleaseLongThrow).
+                LongThrowTarget(taker, spot, out target);
+                target += team.DirToWorld(new Vec2(_rng.Range(-1f, 1f), _rng.Range(-1.5f, 1.5f)));
                 team.Stats.LongThrows++;
                 if (CollectDiagnostics) Count("throw.long");
             }
@@ -404,6 +405,13 @@ namespace SoccerVision.Simulation
                 }
             }
             Vec2 from = new Vec2(spot.X, spot.Y - MathF.Sign(spot.Y) * 0.05f);
+            // (real: 1.43 throw-ins a match end in the penalty area, median 24.9 m - tools/calibration/throw_ins.py)
+            if (CollectDiagnostics && Pitch.InPenaltyArea(target, team.AttackGoalSign)) Count(longThrow ? "throw.intoBox.long" : "throw.intoBox.short");
+            if (longThrow)
+            {
+                ReleaseLongThrow(taker, from, target);
+                return;
+            }
             float d = Vec2.Distance(from, target);
             float horizontal = longThrow ? MathUtil.Clamp(9f + 0.38f * d, 12f, 17f) : MathUtil.Clamp(7f + 0.35f * d, 7f, 14f);
             Vec2 dir = (target - from).Normalized.Rotate(_rng.Gaussian(0f, longThrow ? 0.035f : 0.05f));

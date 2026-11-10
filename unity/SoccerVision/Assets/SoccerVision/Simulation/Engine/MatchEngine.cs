@@ -1032,6 +1032,12 @@ namespace SoccerVision.Simulation
             if (type != MatchEventType.Goal) { _lastOutcome = type.ToString(); _lastOutcomeAt = SimTime; }
         }
 
+        internal void Count(string key, int amount)
+        {
+            Diagnostics.TryGetValue(key, out int v);
+            Diagnostics[key] = v + amount;
+        }
+
         internal void Count(string key)
         {
             Diagnostics.TryGetValue(key, out int v);

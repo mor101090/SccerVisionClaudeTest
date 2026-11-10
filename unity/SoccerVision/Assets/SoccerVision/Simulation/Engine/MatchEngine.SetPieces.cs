@@ -180,8 +180,8 @@ namespace SoccerVision.Simulation
                         if (p.IsGoalkeeper) { score = -1000f; break; }
                         score = -Vec2.Distance(p.Pos, r.Spot) + (p.Slot.IsFullBack || p.Slot.IsWideMidfielder ? 8f : 0f)
                                 + (MathF.Sign(team.Lateral(r.Spot)) == MathF.Sign(p.Slot.BaseLateral) ? 6f : 0f);
-                        // near the box the long-throw specialist comes over to take it
-                        if (team.Forward(r.Spot) > 30f && !p.Slot.IsCentreBack) score += MathF.Max(0f, p.Attr.PhysicalPower - 60) * 1.2f;
+                        // within his range of the box the long-throw specialist comes over to take it (polish round 2: who can reach is the physics)
+                        if (p.Has(PlayerTrait.LongThrowSpecialist) && Vec2.Distance(p.Pos, r.Spot) < LongThrowWalk && CanThrowIntoBox(p, r.Spot)) score += 60f;
                         break;
                     case RestartType.CornerKick:
                         if (p.IsGoalkeeper) { score = -1000f; break; }
