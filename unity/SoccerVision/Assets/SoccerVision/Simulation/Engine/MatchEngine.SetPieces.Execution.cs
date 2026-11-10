@@ -90,7 +90,12 @@ namespace SoccerVision.Simulation
                 if (IsComingOff(p)) continue; // (walking off for a change: see StepSubstitutions)
                 p.Task = PlayerTask.SetPiece;
                 p.FaceBall = true;
-                if (p == r.Taker)
+                if (CardPlayerTarget(p, out var cardTarget, out var cardUrgency))
+                {
+                    p.Target = cardTarget;
+                    p.Urgency = cardUrgency;
+                }
+                else if (p == r.Taker)
                 {
                     p.Target = moveTo;
                     float run = r.RunningUp ? (r.Type == RestartType.PenaltyKick ? 0.5f : 0.62f) : (Vec2.Distance(p.Pos, moveTo) > 8f ? 0.8f : 0.4f);
@@ -128,7 +133,7 @@ namespace SoccerVision.Simulation
             // (the taker must really be at the ball: it only moves when it is kicked)
             bool takerReady = r.Taker != null && Vec2.Distance(r.Taker.Pos, moveTo) < 0.3f;
             // (nothing restarts while the referee is still showing a card: play resumes only after he has put it away)
-            if (Referee.CardShown != 0 || _secondYellowRed != null) { r.Timer = MathF.Min(r.Timer, r.SetupTime); return; }
+            if (CardSequenceActive) { r.Timer = MathF.Min(r.Timer, r.SetupTime); return; } // (not counted as lost time: as before - see the CHANGELOG)
             bool ready = r.RunningUp || r.WhistleAt >= 0f || (r.BallPlaced && r.Timer >= r.SetupTime && takerReady && PlayersSettled(r));
             if (!ready && r.Timer >= Config.MaxSetupSeconds)
             {

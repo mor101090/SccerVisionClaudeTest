@@ -561,30 +561,16 @@ namespace SoccerVision.Simulation
         {
             var p = s.Player;
             if (p == null || p.SentOff) return;
+            // (polish round 3: the decision is made here; the card counts - event, statistics, send-off - when the referee holds it up, see ShowCardNow)
             if (s.Red)
             {
-                p.Team.Stats.RedCards++;
-                AddMomentum(p.Team.Opponent, 0.3f);
-                DampMomentum(0.93f);
-                Emit(MatchEventType.RedCard, p.Team, p, null, p.Pos, 0f);
                 ShowCard(2, p);
-                SendOff(p);
                 return;
             }
             if (s.Yellow)
             {
                 p.YellowCards++;
-                p.Team.Stats.YellowCards++;
-                Emit(MatchEventType.YellowCard, p.Team, p, null, p.Pos, p.YellowCards);
-                MaybeProtest(p, 0.5f);
                 ShowCard(1, p);
-                if (p.YellowCards >= 2)
-                {
-                    // Second caution: the referee shows the yellow card first, then the red one.
-                    if (CollectDiagnostics) Count("card.secondyellow");
-                    _secondYellowRed = p;
-                    _secondYellowRedAt = SimTime + SecondCardDelay;
-                }
             }
         }
 
@@ -593,29 +579,31 @@ namespace SoccerVision.Simulation
         private PlayerAgent _secondYellowRed;
         private float _secondYellowRedAt;
 
-        /// <summary>The referee holds a card up (1 yellow, 2 red) for a moment.</summary>
         /// <summary>
-        /// The card: with play stopped the referee first goes to the player (UpdateOfficials) and holds it up in front of him - he does not
-        /// show it from wherever he happens to be. A second card for the same player (the red after a second yellow) is shown where he is.
+        /// The card: with play stopped the referee and the player first come together (see BeginCard: he jogs over, calls him over, or waits for
+        /// him) and he holds it up in front of him - never from wherever he happens to be. A second card for the same player (the red after a
+        /// second yellow) is shown where they are.
         /// </summary>
         private void ShowCard(int card, PlayerAgent forPlayer = null)
         {
-            if (forPlayer != null && Referee.CardShown == 0 && Vec2.Distance(Referee.Pos, forPlayer.Pos) > CardDistance)
+            // (another card under way for someone else: this one waits its turn, it is not shown over it nor lost)
+            if (forPlayer != null && (Referee.PendingCard != 0 || Referee.CardShown != 0) && Referee.CardFor != forPlayer)
             {
-                Referee.PendingCard = card; Referee.CardFor = forPlayer; Referee.CardWalk = 0f;
+                _cardQueue.Add((card, forPlayer));
                 return;
             }
-            if (CollectDiagnostics) Count(forPlayer != null ? "card.shownBeside" : "card.shownNoPlayer");
-            Referee.PendingCard = 0;
-            Referee.CardFor = forPlayer;
-            Referee.CardShown = card;
-            Referee.CardTimer = (card == 2 ? 3f : 2.2f) * Config.MotionSpeed;
+            if (forPlayer != null && Referee.CardShown == 0 && Referee.PendingCard == 0 && Vec2.Distance(Referee.Pos, forPlayer.Pos) > CardDistance)
+            {
+                BeginCard(card, forPlayer);
+                return;
+            }
+            ShowCardNow(card, forPlayer);
         }
 
         /// <summary>How close the referee comes to a player to show him a card (m).</summary>
         private const float CardDistance = 2.6f;
 
-        /// <summary>After a second yellow: the red card, and the player is off.</summary>
+        /// <summary>After a second yellow: the red card (the player is off once he has taken it in: see ShowCardNow).</summary>
         private void UpdatePendingRedCard()
         {
             if (_secondYellowRed == null || SimTime < _secondYellowRedAt) return;
@@ -624,33 +612,41 @@ namespace SoccerVision.Simulation
             var p = _secondYellowRed;
             _secondYellowRed = null;
             if (p.SentOff) return;
-            p.Team.Stats.RedCards++;
-            AddMomentum(p.Team.Opponent, 0.3f);
-            DampMomentum(0.93f);
-            Emit(MatchEventType.RedCard, p.Team, p, null, p.Pos, 1f);
-            ShowCard(2, p);
-            SendOff(p);
+            ShowCardNow(2, p);
         }
 
         /// <summary>
-        /// The whistle for the end of a period while the referee is still on his way to a player with a card (or the red after a second yellow
-        /// is still to come): he shows it where he is and the player is off - a card given is never lost (a second yellow in the last seconds of a
-        /// match used to leave the player on the pitch with no red card).
+        /// The whistle for the end of a period while a card is still on its way (or the red after a second yellow, or a sent-off player still
+        /// taking it in): it is shown where they are and the player is off - a card given is never lost.
         /// </summary>
         private void ResolveCardsBeforeTheWhistle()
         {
+            if (CollectDiagnostics && _cardQueue.Count > 0) Count("card.atWhistle");
+            if (CollectDiagnostics && (Referee.PendingCard != 0 || _secondYellowRed != null || _sendOffPending != null)) Count("card.atWhistle");
             if (Referee.PendingCard != 0)
             {
                 if (CollectDiagnostics) Count("card.shownAtWhistle");
-                Referee.CardShown = Referee.PendingCard;
-                Referee.CardTimer = (Referee.PendingCard == 2 ? 3f : 2.2f) * Config.MotionSpeed;
-                Referee.PendingCard = 0;
+                ShowCardNow(Referee.PendingCard, Referee.CardFor);
             }
             if (_secondYellowRed != null)
             {
                 _secondYellowRedAt = SimTime;
                 UpdatePendingRedCard();
-                if (Referee.PendingCard != 0) { Referee.CardShown = Referee.PendingCard; Referee.CardTimer = 3f * Config.MotionSpeed; Referee.PendingCard = 0; }
+            }
+            if (_sendOffPending != null)
+            {
+                _sendOffAt = SimTime;
+                StepCardSequence();
+            }
+            // (the cards still waiting their turn: shown now, one after another, where they are)
+            while (_cardQueue.Count > 0)
+            {
+                var (card, p) = _cardQueue[0];
+                _cardQueue.RemoveAt(0);
+                if (p == null || p.SentOff) continue;
+                ShowCardNow(card, p);
+                if (_secondYellowRed != null) { _secondYellowRedAt = SimTime; UpdatePendingRedCard(); }
+                if (_sendOffPending != null) { _sendOffAt = SimTime; StepCardSequence(); }
             }
         }
 

@@ -2,6 +2,35 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/card-sequences` (polish round 3: items 5, 6 and 7)
+
+**The card as a sequence, shared by the whole match.** Measured: 400 default matches.
+- **The referee never chases (item 5).** Before, a sent-off player started walking off at once while the referee ran after him at 9 m/s.
+  Now the referee jogs (3.6 m/s at most, `CardApproachSpeed`) to a player who is near; calls over one who is more than 12 m away (the
+  player walks to him; if he is not there halfway through the referee's patience, the referee goes to meet him); and waits for one who
+  walks away - the player turns his back and walks off (more often a hot-headed one: aggression, little composure), then is called back.
+  Measured: approach 0.43, called over 2.79, walked away 0.66 a match; shown beside the player 3.76, from a distance 0.30 (the wait has a
+  limit, `CardWaitMax`); the referee faster than a jog: never.
+- **The card counts when it is held up (item 6).** The `YellowCard` / `RedCard` event - which the card indicator, the scoreboard colour,
+  the commentary and the crowd follow in the classic page, the app and Unity - and the statistics come in the step the referee holds the
+  card up, not when he decided on it (up to several seconds earlier). No renderer changed: they all follow the event.
+- **A red card (item 5).** He is shown it while he is still on the pitch, takes it in (hands on his head, or an arm out at the referee:
+  the existing gestures), then walks off; play waits until he is over the touchline (at most `SentOffLeaveWaitMax`).
+- **One shared state (item 7).** `CardSequenceActive` - a card on its way or held up, the red after a second yellow, a sent-off player
+  taking it in or still on the pitch - holds every restart. It is not added to the lost time, as before (IFAB Law 7 allows time for
+  disciplinary sanctions: open - counting it raised added time and shots, which sit at the pin test's ceiling). A card still on its way at a whistle is shown at once
+  where they are (a card given is never lost). Card counts unchanged (yellow 3.99 -> 3.83, red 0.27 -> 0.23 a match: noise; both above
+  the real 3.44 and 0.12 - open, as before).
+- **Two cards for one incident**: the second waits its turn (a queue) - before, a card decided while another was on its way was shown at once
+  over it and the first was lost (the staged match lost its second yellow that way).
+- **A calibration that had drifted, set back** (disclosed): `HeaderMinXg` 0.06 -> 0.07 - the share of headers in shots had drifted from the
+  real 16.5% (its target since round 1) to 18.6% over the later rounds; back at 16.3% (header shots 5.11 -> 4.47 a match, goals 2.80 ->
+  2.81). The pin test's shots, at its ceiling (28.006), are 27.4 again.
+- **Tests**: `CardSequenceTests` (1): every card counts when it is held up; no player is sent off before he is shown the red; play never
+  restarts with him on the pitch; the referee never runs faster than a jog; approach, summon and walk-away all happen.
+- **A test the round's new random paths moved** (assertion kept): `LongThrowsGoIntoTheSixYardBox` plays 24 matches instead of 12 (a rare
+  event, about five expected in twelve: twelve drew two).
+
 ## `feature/long-throw` (polish round 2: item 4)
 
 **The long-throw specialist, and the throw-in as a throw.**
