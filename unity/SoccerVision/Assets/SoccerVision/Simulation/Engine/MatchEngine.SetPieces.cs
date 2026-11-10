@@ -29,6 +29,7 @@ namespace SoccerVision.Simulation
         {
             FlushAdvantageSanction(); // (play is stopped: a card for a foul that was played on with advantage is shown now)
             if (type != RestartType.CornerKick && type != RestartType.GoalKick && type != RestartType.ThrowIn) _newBallRolls = false;
+            if (type != RestartType.ThrowIn) { _retrieveSameBall = false; _retrieveCarried = false; }
             // the shot that ended in a goal kick: the man who shot puts his hands on his head
             if (type == RestartType.GoalKick && Ball.Shooter != null && Ball.Shooter.Team != team && SimTime - _lastShotTime < 3f) OnShotWasted(Ball.Shooter, _lastShotXg);
             OrganiseDefence(type, team, spot);

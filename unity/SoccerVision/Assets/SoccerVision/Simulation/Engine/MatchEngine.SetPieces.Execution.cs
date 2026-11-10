@@ -45,12 +45,15 @@ namespace SoccerVision.Simulation
                 return;
             }
 
-            if (!r.BallPlaced)
+            Vec2 approach = ApproachPoint(r);
+            Vec2? fetch = null;
+            if (!r.BallPlaced && _retrieveSameBall) fetch = StepRetrievedBall(r, dt, approach); // (the thrower fetches the ball that went out)
+            else if (!r.BallPlaced)
             {
                 if (_newBallRolls)
                 {
                     // a ball boy's ball, rolled in from beyond the touchline (nobody is seen): it slows and stops on the spot
-                    const float roll = 1.5f;
+                    float roll = BallContinuity ? MathF.Max(1.5f, 2f * (r.Spot - _newBallFrom).Length / NewBallRollSpeed) : 1.5f; // (eased: it starts at twice the mean speed)
                     float k = MathUtil.Clamp01(r.Timer / roll), e = 1f - (1f - k) * (1f - k);
                     Vec2 pos = Vec2.Lerp(_newBallFrom, r.Spot, e);
                     float v = 2f * (1f - k) * (r.Spot - _newBallFrom).Length / roll;
@@ -76,9 +79,8 @@ namespace SoccerVision.Simulation
                 }
             }
 
-            Vec2 approach = ApproachPoint(r);
             // The taker first walks back to the start of his run-up, then runs up to the ball.
-            Vec2 moveTo = r.HasRunUp && !r.RunningUp ? r.RunUpStart : approach;
+            Vec2 moveTo = fetch ?? (r.HasRunUp && !r.RunningUp ? r.RunUpStart : approach);
             foreach (var p in AllPlayers)
             {
                 if (p.SentOff)
@@ -111,7 +113,7 @@ namespace SoccerVision.Simulation
                 // Everybody but the taker stays inside the field of play while a restart is set up.
                 if (p != r.Taker) p.Pos = Pitch.ClampToField(p.Pos, -0.2f);
                 else if (r.Type != RestartType.ThrowIn && r.Type != RestartType.CornerKick) p.Pos = Pitch.ClampToField(p.Pos, 0.3f);
-                else if (r.Type == RestartType.ThrowIn) p.Pos = Pitch.ClampToField(p.Pos, 0.95f); // (he walks to the line, no further than a pace over it)
+                else if (r.Type == RestartType.ThrowIn) p.Pos = Pitch.ClampToField(p.Pos, fetch.HasValue ? ThrowInRetrieveDistance + 0.6f : 0.95f); // (he walks to the line, no further than a pace over it - or to fetch the ball)
             }
 
             if (r.Type == RestartType.ThrowIn && r.BallPlaced && r.Taker != null && Vec2.Distance(r.Taker.Pos, approach) < 1.2f)
@@ -144,7 +146,7 @@ namespace SoccerVision.Simulation
                     r.Taker.Pos = approach;
                     r.Taker.Vel = Vec2.Zero;
                 }
-                if (!r.BallPlaced) { Ball.Place(r.Spot); r.BallPlaced = true; }
+                if (!r.BallPlaced) { Ball.Place(r.Spot); r.BallPlaced = true; _retrieveSameBall = false; _retrieveCarried = false; if (CollectDiagnostics) Count("restart.forced.ballPlaced"); }
                 r.RunningUp = true; // skip the run-up: the taker was put at the ball
                 ready = r.Taker != null;
             }

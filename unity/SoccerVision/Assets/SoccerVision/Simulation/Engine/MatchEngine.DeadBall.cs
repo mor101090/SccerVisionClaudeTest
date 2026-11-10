@@ -30,6 +30,8 @@ namespace SoccerVision.Simulation
         {
             if (!DeadBallActive) return;
             ref var b = ref DeadBall;
+            // (polish round 7) the new ball comes near the old one: a ball boy has picked the old one up - one ball in the picture
+            if (BallContinuity && Phase == MatchPhase.Stoppage && Vec2.Distance(new Vec2(b.X, b.Y), Ball.Pos) < 2.5f) { DeadBallActive = false; return; }
             float px = b.X, py = b.Y, pz = b.Z;
             // gravity, air drag and the grass
             b.Vz -= Config.Gravity * dt;
