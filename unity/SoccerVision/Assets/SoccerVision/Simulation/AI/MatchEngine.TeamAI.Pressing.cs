@@ -108,6 +108,7 @@ namespace SoccerVision.Simulation
                 foreach (var q in t.Players)
                     if (q.NutmegChaseUntil > SimTime && !q.SentOff && !q.IsDown) { UpdateIntercept(q); t.Chaser = q; break; }
             }
+            LetPlayOffRunOut();
             AssignAnticipation();
             AssignShielding();
         }

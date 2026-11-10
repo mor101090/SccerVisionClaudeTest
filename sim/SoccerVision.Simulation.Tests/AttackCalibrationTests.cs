@@ -21,7 +21,7 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void TheAttackLooksLikeRealFootball()
         {
-            var es = new MatchEngine[24];
+            var es = new MatchEngine[48]; // (24 until polish round 1: a 24-match mean of goals moves by about 0.35 on its own)
             Parallel.For(0, es.Length, i =>
             {
                 ulong seed = 4400 + (ulong)i;

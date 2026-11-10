@@ -75,6 +75,9 @@ for (int i = 0; i < args.Length; i++)
         case "--passon": MatchEngine.ManMarkPassOnDistance = float.Parse(args[++i]); break; // (experiment; 999 = never hands his man on)
         case "--swapgain": MatchEngine.ManMarkSwapGain = float.Parse(args[++i]); break; // (experiment; 999 = never swaps)
         case "--coverdepth": MatchEngine.ManMarkCoverDepth = float.Parse(args[++i]); break; // (experiment)
+        case "--headerminxg": MatchEngine.HeaderMinXg = float.Parse(args[++i]); break; // (experiment; polish round 1)
+        case "--volleyminxg": MatchEngine.VolleyMinXg = float.Parse(args[++i]); break; // (experiment; polish round 1)
+        case "--playoffpressure": MatchEngine.PlayOffPressure = float.Parse(args[++i]); break; // (experiment; polish round 1)
         case "--headercontest": MatchEngine.HeaderContestError = float.Parse(args[++i]); break; // (experiment; 0 = a contested header is aimed as a free one)
         case "--contestedatgoal": MatchEngine.ContestedHeaderAtGoal = float.Parse(args[++i]); break; // (experiment)
         case "--zoneradius": MatchEngine.ZoneRadiusScale = float.Parse(args[++i]); break; // (experiment)
@@ -337,7 +340,7 @@ static void Report(MatchResult[] r, double wallSeconds)
     Console.WriteLine($"Matches: {r.Length}   wall time: {wallSeconds:0.0}s   avg sim cost per match: {Avg(x => x.WallMs):0} ms");
     Console.WriteLine($"Finished: {r.Count(x => x.Finished)}/{r.Length}   recovered errors: {r.Sum(x => x.RecoveredErrors)}");
     Console.WriteLine();
-    Console.WriteLine("Per match (both teams)        sim     real-world reference. [C] = counted from match data by tools/calibration/real_leagues.py (Premier League 2015/16-2024/25, see CLAIMS.md); every other figure is an unsourced estimate");
+    Console.WriteLine("Per match (both teams)        sim     real-world reference. [C] = counted from match data by tools/calibration/real_leagues.py (Premier League 2015/16-2024/25, see CLAIMS.md); [S] = counted from StatsBomb open data by a tools/calibration script (Premier League 2015/16, see CLAIMS.md); every other figure is an unsourced estimate");
     void Row(string name, double v, string reference) => Console.WriteLine($"  {name,-26}{v,7:0.00}   {reference}");
     Row("Goals", Avg(x => x.Goals), "[C] 2.83");
     Row("xG", Avg(x => x.Xg), "~ goals");
@@ -349,14 +352,14 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Yellow cards", Avg(x => x.Yellows), "[C] 3.44");
     Row("Red cards", Avg(x => x.Reds), "[C] 0.12");
     Row("Offsides", Avg(x => x.Offsides), "~3.4 (unsourced)");
-    Row("Throw-ins", Avg(x => x.ThrowIns), "39-43");
+    Row("Throw-ins", Avg(x => x.ThrowIns), "[S] 46.2");
     Row("Goal kicks", Avg(x => x.GoalKicks), "14-18");
     Row("Free kicks", Avg(x => x.FreeKicks), "~ fouls + offsides");
     Row("Penalties", Avg(x => x.Penalties), "0.25-0.35");
     Row("Penalty conversion %", r.Sum(x => x.Penalties) > 0 ? 100.0 * r.Sum(x => x.PenaltiesScored) / r.Sum(x => x.Penalties) : 0, "75-80");
     Row("Saves", Avg(x => x.Saves), "5-6");
     Row("Keeper sorties", Avg(x => x.Sorties), "n/a");
-    Row("Headed shots", Avg(x => x.Headers), "n/a");
+    Row("Headed shots", Avg(x => x.Headers), "16.5% of shots (StatsBomb)");
     Row("Volleys", Avg(x => x.Volleys), "n/a");
     Row("Direct free-kick shots", Avg(x => x.FreeKickShots), "~0.6-1");
     Row("Headed goals % of goals", 100.0 * r.Sum(x => x.HeaderGoals) / Math.Max(1, r.Sum(x => x.Goals)), "13-19 (PL)");
@@ -411,7 +414,7 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Shots by full-backs", Avg(x => x.FullBackShots), "~1-2");
     Row("Shots by wingers", Avg(x => x.WingerShots), "~5-7");
     Row("Cut-backs from the by-line", Avg(x => x.CutBacks), "n/a");
-    Row("Crosses (all)", Avg(x => x.CrossesAll), "~18-22 (open play)");
+    Row("Crosses (all)", Avg(x => x.CrossesAll), "[S] 23.0 in open play (this row counts set-piece crosses too)");
     Row("Injuries: light (played on)", Avg(x => x.LightInjuries), "~0.5-0.8 (time-loss ~0.7-1 per match)");
     Row("Injuries: serious (had to go off)", Avg(x => x.SeriousInjuries), "~0.2-0.4");
     Row("Substitutions for injury", Avg(x => x.Substitutions), "~0.2-0.4");

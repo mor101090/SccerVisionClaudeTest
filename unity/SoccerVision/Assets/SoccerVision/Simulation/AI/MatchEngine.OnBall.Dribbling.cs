@@ -136,6 +136,8 @@ namespace SoccerVision.Simulation
                 float aerialOpp = bestOpp != null ? (bestOpp.IsGoalkeeper ? bestOpp.Attr.AerialAbility + 10f : (bestOpp.Attr.Jumping + bestOpp.Attr.Heading + bestOpp.Attr.PhysicalPower) / 3f + (bestOpp.Profile.HeightCm - 180) * 0.3f) : 0f;
                 float pWin = MathUtil.Sigmoid((bestOppT - MathF.Max(bestMateT, flight)) / 0.45f + (aerialMate - aerialOpp) / 35f);
                 float delivery = 0.35f + 0.4f * crossing; // (most crosses in the top leagues do not find a team-mate: about one in five does)
+                // a man in the lane before the ball has climbed out of his reach blocks it (polish round 1): the crosser sees him
+                delivery *= 1f - CrossBlockChance(p, pos, target, d > 30f ? 0.42f : 0.36f);
                 float headerXg = ExpectedGoals.FromLocation(target, team.AttackGoalSign) * 0.55f * (0.65f + 0.7f * MathUtil.A(bestMate.Attr.Heading));
                 float utility = pWin * delivery * (headerXg + 0.01f) - (1f - pWin * delivery) * (LossCost(team, target) * 0.25f + _riskPremium * 0.6f);
                 // the manager wants crosses: into the box from everywhere wide (crosses style, relentless pressure)
@@ -159,6 +161,32 @@ namespace SoccerVision.Simulation
                 });
             }
         }
+
+        /// <summary>
+        /// The chance that a cross struck from <paramref name="pos"/> towards <paramref name="target"/> at <paramref name="launch"/> radians is
+        /// blocked by a man close to the crosser - the same condition as the contact (<see cref="IsCrossBlock"/>: a leg within reach, 0.95 m,
+        /// while the ball is still below 1.5 m), seen ahead: where each opponent will be when the ball passes him, and how far across its
+        /// path. Full at 0.7 m across, none past 1.2 m (class D: the edge of the reach, and his last step).
+        /// </summary>
+        private float CrossBlockChance(PlayerAgent p, Vec2 pos, Vec2 target, float launch)
+        {
+            Vec2 dir = (target - pos).Normalized;
+            float below = (CrossBlockHeight - Pitch.BallRadius) / MathF.Tan(launch); // how far it travels before it is above his reach
+            float clear = 1f;
+            foreach (var o in p.Team.Opponent.Players)
+            {
+                if (o.SentOff || o.IsDown || o.IsGoalkeeper) continue;
+                Vec2 rel = o.Pos + o.Vel * 0.15f - pos;
+                float along = Vec2.Dot(rel, dir);
+                if (along < 0.2f || along > below + CrossBlockReach) continue;
+                float across = MathF.Abs(rel.X * dir.Y - rel.Y * dir.X);
+                clear *= 1f - MathUtil.Clamp01((CrossBlockReach + 0.25f - across) / 0.5f);
+            }
+            return 1f - clear;
+        }
+
+        /// <summary>The reach of a leg thrown at a cross (m) and the height below which it can block it (m): the contact's own values.</summary>
+        internal const float CrossBlockReach = 0.95f, CrossBlockHeight = 1.5f;
 
         private void EvaluateClearance(PlayerAgent p, Vec2 pos, float pressure)
         {
@@ -191,6 +219,7 @@ namespace SoccerVision.Simulation
             float utility = -LossCost(team, throwSpot) * 0.45f + 0.002f * pressure;
             _options.Add(new KickPlan
             {
+                KickOut = true,
                 Action = BallAction.Clear,
                 Kind = KickKind.Clearance,
                 Target = target,
