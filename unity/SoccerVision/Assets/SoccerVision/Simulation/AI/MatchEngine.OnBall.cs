@@ -461,6 +461,8 @@ namespace SoccerVision.Simulation
                 }
                 _pendingOneTwo = plan.OneTwo;
                 if (plan.OneTwo) p.Team.Stats.OneTwos++;
+                // (real: immediate one-twos and delayed ones, after a touch or a carry - tools/calibration/combinations.py)
+                if (plan.OneTwo && CollectDiagnostics) Count("onetwo.return." + (Vec2.Distance(p.ControlStart, p.Pos) <= OneTwoCarryDistance ? "immediate" : "delayed") + (plan.Lofted ? ".lofted" : plan.Heel ? ".heel" : ".ground"));
                 _pendingThirdMan = plan.ThirdMan;
                 if (plan.ThirdMan) p.Team.Stats.ThirdManPasses++;
                 if (_pendingThrough) p.Team.Stats.ThroughBalls++;

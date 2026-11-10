@@ -284,6 +284,7 @@ namespace SoccerVision.Simulation.Tests
             int right = red.Starters[3].ShirtNumber, left = red.Starters[6].ShirtNumber;
             TeamPlan.Parse("ctr=" + right + ";ctl=" + left).ApplyBeforeKickOff(red);
             int r1 = 0, l1 = 0, wrong = 0;
+            var log = new System.Collections.Generic.List<string>();
             // (four matches: one match can have no corner for the home side, and which match that is moves with any change in the engine)
             for (ulong seed = 13; seed < 17; seed++)
             {
@@ -292,12 +293,20 @@ namespace SoccerVision.Simulation.Tests
                 {
                     if (r.Type != RestartType.CornerKick || r.Team != e.Home || r.Taker == null) return;
                     bool rightSide = e.Home.Lateral(r.Spot) < 0f;
-                    if (rightSide) { r1++; if (r.Taker.Number != right) wrong++; } else { l1++; if (r.Taker.Number != left) wrong++; }
+                    int want = rightSide ? right : left;
+                    if (rightSide) r1++; else l1++;
+                    var designated = e.Home.Players.FirstOrDefault(p => p.Number == want);
+                    // (a designated taker who has been sent off or substituted cannot take it: another man does)
+                    if (r.Taker.Number != want && designated != null && !designated.SentOff)
+                    {
+                        log.Add($"seed {seed} minute {e.Clock.MinuteText}: corner taken by {r.Taker.Number} instead of {want} (on the pitch: {designated != null && !designated.SentOff}, sent off {designated?.SentOff}, down {designated?.IsDown})");
+                        wrong++;
+                    }
                 };
                 e.RunToEnd();
             }
             Assert.True(r1 + l1 > 0, "no corners");
-            Assert.Equal(0, wrong);
+            Assert.True(wrong == 0, string.Join("; ", log));
         }
 
         [Fact]

@@ -409,8 +409,19 @@ namespace SoccerVision.Simulation
             // Counter-attack: winning the ball in our own half starts the break.
             if (changeOfPossession && p.Team.Tactics.Special == SpecialTactic.CounterAttack && p.Team.Forward(Ball.Pos) < 12f) { p.Team.CounterUntil = SimTime + 7f; if (CollectDiagnostics) Count("counter.start"); }
             // A team-mate is on a give-and-go run past me: the wall pass is played first time.
+            // (polish round 4: only when the wall pass is on at once; otherwise he takes it under control and the runner keeps going - the
+            // delayed one-two, the more common one by far)
             foreach (var r in p.Team.Players)
-                if ((r.OneTwoWith == p && r.OneTwoUntil > SimTime) || (r.ThirdManVia == p && r.ThirdManUntil > SimTime)) { p.DecisionTimer = MathF.Min(p.DecisionTimer, 0.12f); break; }
+            {
+                if (r.OneTwoWith == p && r.OneTwoUntil > SimTime)
+                {
+                    if (WallPassOnNow(p, r)) { p.DecisionTimer = MathF.Min(p.DecisionTimer, 0.12f); break; }
+                    r.OneTwoUntil = MathF.Max(r.OneTwoUntil, SimTime + OneTwoDelayedWindow);
+                    p.OneTwoCarryUntil = SimTime + OneTwoCarrySeconds;
+                    continue;
+                }
+                if (r.ThirdManVia == p && r.ThirdManUntil > SimTime) { p.DecisionTimer = MathF.Min(p.DecisionTimer, 0.12f); break; }
+            }
             p.Task = PlayerTask.OnBall;
             p.HasPendingPlan = false;
             p.HoldTime = 0f;
