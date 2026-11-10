@@ -48,7 +48,8 @@
     Fragile: ["🩹", "Fragile", "Tires faster and is hurt more often."],
     DrawsFouls: ["🎭", "Draws fouls", "Wins free kicks and penalties near the box - and now and then goes down too easily, and is booked for it."],
     BoldKeeper: ["🧤", "Bold keeper", "Comes off his line to sweep up behind the defence and claims crosses through the crowd."],
-    StaysOnLine: ["🥅", "Stays on his line", "A shot-stopper first: stays home and trusts his reflexes."]
+    StaysOnLine: ["🥅", "Stays on his line", "A shot-stopper first: stays home and trusts his reflexes."],
+    LongThrowSpecialist: ["🏹", "Long throw specialist", "Throws the ball into the six-yard box from the touchline - near the box he comes over to take the throw."]
   };
   function traitsHtml(p) {
     var list = p.traits || [];
