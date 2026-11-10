@@ -54,29 +54,8 @@ namespace SoccerVision.Simulation
                 target = new Vec2(gx, (MathF.Abs(gx) < 1f ? 1f : MathF.Sign(gx)) * 11f);
             }
             float refSpeed = 7.2f;
-            // A card: he goes to the player first and shows it in front of him (play waits for it); then he stays with him while he holds it up.
-            if (Referee.PendingCard != 0 || (Referee.CardShown != 0 && Referee.CardFor != null && !Referee.CardFor.SentOff))
-            {
-                var pl = Referee.CardFor;
-                if (pl != null)
-                {
-                    Vec2 away = Referee.Pos - pl.Pos; float ad = away.Length;
-                    target = pl.Pos + (ad > 0.1f ? away / ad : new Vec2(0f, 1f)) * 1.6f;
-                    refSpeed = 9f;
-                }
-                if (Referee.PendingCard != 0)
-                {
-                    Referee.CardWalk += dt;
-                    if (pl == null || Vec2.Distance(Referee.Pos, pl.Pos) <= CardDistance || Referee.CardWalk > 4f * Config.MotionSpeed)
-                    {
-                        if (CollectDiagnostics) { Count(pl != null && Vec2.Distance(Referee.Pos, pl.Pos) <= CardDistance + 0.2f ? "card.shownBeside" : "card.shownFar"); Count("card.walkTenths" ); for (int k = 0; k < (int)(Referee.CardWalk * 10f); k++) Count("card.walkTenths"); }
-                        Referee.CardShown = Referee.PendingCard;
-                        Referee.CardTimer = (Referee.PendingCard == 2 ? 3f : 2.2f) * Config.MotionSpeed;
-                        Referee.PendingCard = 0;
-                    }
-                    if (Phase == MatchPhase.Stoppage && _restart != null) _restart.PauseLeft = MathF.Max(_restart.PauseLeft, 0.4f);
-                }
-            }
+            // A card (polish round 3): he jogs to a player who is near, calls over one who is far, waits for one who walks away - never chases.
+            if (CardRefereeTarget(dt, out var cardTarget, out var cardSpeed)) { target = cardTarget; refSpeed = cardSpeed; }
             MoveOfficial(Referee, target, refSpeed, dt, ball);
 
             UpdateAssistant(Assistant1, dt, ball);

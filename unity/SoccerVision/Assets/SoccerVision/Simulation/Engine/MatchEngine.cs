@@ -459,6 +459,7 @@ namespace SoccerVision.Simulation
                 if (o.CardTimer > 0f) { o.CardTimer -= dt; if (o.CardTimer <= 0f) o.CardShown = 0; }
             }
             UpdatePendingRedCard();
+            StepCardSequence();
             // (an advantage played out: the card waits for the next stoppage - see FlushAdvantageSanction)
             if (_advantageTimer > 0f) _advantageTimer -= dt;
         }
