@@ -140,7 +140,8 @@ namespace SoccerVision.Simulation.Tests
             // can reach the box throws it long - his release speed decides it - and that is the specialist; a team of strong ordinary
             // throwers, which this test used before, reaches the edge of the box at best)
             int longThrows = 0;
-            var seeds = Seeds.Concat(Seeds.Select(x => x + 100)).ToArray(); // (a rare thing: twelve matches, not six)
+            // (a rare thing: 24 matches - twelve drew two after polish round 3 moved the random paths, about five expected)
+            var seeds = Seeds.Concat(Seeds.Select(x => x + 100)).Concat(Seeds.Select(x => x + 200)).Concat(Seeds.Select(x => x + 300)).ToArray();
             Parallel.For(0, seeds.Length, i =>
             {
                 var red = DemoTeams.Red();

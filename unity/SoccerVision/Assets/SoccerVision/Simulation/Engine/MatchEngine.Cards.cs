@@ -41,8 +41,24 @@ namespace SoccerVision.Simulation
         private PlayerAgent _sendOffPending, _leavingAfterRed;
         private float _sendOffAt, _leavingSince;
 
-        /// <summary>A card is being shown, or followed up (the red after a second yellow, a sent-off player still on the pitch): nothing restarts.</summary>
-        internal bool CardSequenceActive => Referee.PendingCard != 0 || Referee.CardShown != 0 || _secondYellowRed != null || _sendOffPending != null || LeavingAfterRed;
+        /// <summary>A card is being shown, or followed up (the red after a second yellow, a sent-off player still on the pitch), or another waits its
+        /// turn: nothing restarts.</summary>
+        internal bool CardSequenceActive => Referee.PendingCard != 0 || Referee.CardShown != 0 || _secondYellowRed != null || _sendOffPending != null || LeavingAfterRed
+                                           || _cardQueue.Count > 0;
+
+        /// <summary>Cards decided while another is being shown (two players booked for one incident): each waits its turn - none is lost.</summary>
+        private readonly System.Collections.Generic.List<(int Card, PlayerAgent Player)> _cardQueue = new System.Collections.Generic.List<(int, PlayerAgent)>();
+
+        /// <summary>The next card in the queue, once the referee has put the last one away.</summary>
+        private void NextQueuedCard()
+        {
+            if (_cardQueue.Count == 0 || Referee.PendingCard != 0 || Referee.CardShown != 0) return;
+            var (card, p) = _cardQueue[0];
+            _cardQueue.RemoveAt(0);
+            if (p == null || p.SentOff) return;
+            if (CollectDiagnostics) Count("card.queued");
+            ShowCard(card, p);
+        }
 
         /// <summary>How the current card is being brought about (for the renderers' and the tests' benefit).</summary>
         public CardApproach CurrentCardApproach => _cardHow;
@@ -118,6 +134,7 @@ namespace SoccerVision.Simulation
         /// <summary>Each step: the send-off after the player's reaction.</summary>
         private void StepCardSequence()
         {
+            NextQueuedCard();
             if (_sendOffPending != null && SimTime >= _sendOffAt)
             {
                 var p = _sendOffPending;
