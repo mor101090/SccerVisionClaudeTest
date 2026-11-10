@@ -476,6 +476,14 @@ namespace SoccerVision.Simulation
             return s;
         }
 
+        /// <summary>The chance a foul that stops a promising attack adds to a caution (class D, set against the real 3.44 yellow cards a match,
+        /// Premier League 2015/16-2024/25 - real_leagues.py). It was 0.55; polish round 5's longer carries into space put the engine at 4.9.</summary>
+        public static float PromisingAttackYellow = 0.55f;
+
+        /// <summary>How readily the referee cautions for a foul (a multiplier; class D, set against the real 3.44 yellow cards a match - Premier
+        /// League 2015/16-2024/25, real_leagues.py: the engine had 3.9 before polish round 5 and 4.8 with its longer carries).</summary>
+        public static float YellowCardRate = 0.72f;
+
         private PendingSanction DecideSanctionRandom(PlayerAgent offender, PlayerAgent victim, bool fromBehind, bool playedForBall, bool penaltyArea)
         {
             float aggression = MathUtil.A(offender.Attr.Aggression);
@@ -496,12 +504,13 @@ namespace SoccerVision.Simulation
             }
 
             bool promising = IsStoppingPromisingAttack(victim, offender);
-            float pYellow = 0.06f + (fromBehind ? 0.13f : 0f) + 0.08f * aggression + (promising ? 0.55f : 0f)
+            float pYellow = 0.06f + (fromBehind ? 0.13f : 0f) + 0.08f * aggression + (promising ? PromisingAttackYellow : 0f)
                             + (offender.FoulsCommitted >= 3 ? 0.2f : 0f);
             if (!playedForBall) pYellow += 0.1f;
             if (_slideFoul) pYellow += fromBehind ? 0.15f : 0.05f; // a mistimed slide is usually reckless
             if (offender.YellowCards > 0) pYellow *= 0.45f; // referees give some leeway before a second caution
             pYellow *= RefereeBias(offender.Team, 0.12f, 0.08f); // the crowd: the home team gets the benefit of the doubt
+            pYellow *= YellowCardRate;
             if (_rng.Chance(MathUtil.Clamp(pYellow, 0f, 0.95f)))
             {
                 string reason = promising ? "stopping a promising attack" : (offender.FoulsCommitted >= 3 ? "persistent infringement" : "reckless challenge");
@@ -561,6 +570,7 @@ namespace SoccerVision.Simulation
         {
             var p = s.Player;
             if (p == null || p.SentOff) return;
+            if (CollectDiagnostics) Count("card.reason." + (s.Red ? "red." : "yellow.") + (s.Reason ?? "?").Replace(' ', '_'));
             // (polish round 3: the decision is made here; the card counts - event, statistics, send-off - when the referee holds it up, see ShowCardNow)
             if (s.Red)
             {

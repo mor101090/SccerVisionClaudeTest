@@ -179,6 +179,8 @@ namespace SoccerVision.Simulation
         public Vec2 OneTwoSpot;
         /// <summary>A delayed one-two: he carries the ball first (until then, or until he has moved it OneTwoCarryDistance) before he returns it.</summary>
         public float OneTwoCarryUntil = -1f;
+        /// <summary>How he is running with the ball now: the length of his touches (polish round 5).</summary>
+        public DribbleStyle DribbleStyleNow = DribbleStyle.Close;
         /// <summary>The opponent this player marks right now (either system).</summary>
         public PlayerAgent MarkTarget;
         /// <summary>Ball-watching: until then he has lost his man and looks at the ball (a marking lapse).</summary>

@@ -269,6 +269,7 @@ namespace SoccerVision.Simulation
                 }
             }
             if (chosen.Action == BallAction.Dribble && TryNutmeg(p, ref chosen, pos, pressure)) return chosen;
+            if (chosen.Action == BallAction.Dribble && TryKnockAndRun(p, ref chosen, pos)) return chosen;
             if (chosen.Action == BallAction.Pass && !chosen.Lofted && chosen.Receiver != null && pressure > 0.25f)
             {
                 Vec2 to = chosen.Target - pos;

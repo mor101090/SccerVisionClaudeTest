@@ -546,7 +546,8 @@ namespace SoccerVision.Simulation
         {
             if (Ball.Owner != null)
             {
-                AttachBallToOwner(Ball.Owner);
+                if (Ball.InHands) AttachBallToOwner(Ball.Owner);
+                else CarryBall(Ball.Owner, dt);
                 return;
             }
 

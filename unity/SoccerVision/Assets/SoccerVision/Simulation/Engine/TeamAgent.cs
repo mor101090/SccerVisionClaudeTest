@@ -262,6 +262,8 @@ namespace SoccerVision.Simulation
         public int CounterPresses, CounterPressWins;
         /// <summary>Long throws into the six-yard box.</summary>
         public int LongThrows;
+        /// <summary>Knock-and-runs: the ball played past a defender into space and raced for (polish round 5).</summary>
+        public int KnockOns;
         /// <summary>Wide overloads: the ball-side midfielder joins the full-back and winger on the flank.</summary>
         public int Overloads;
         public int SwitchesCompleted;

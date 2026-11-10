@@ -2,6 +2,28 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/dribble-touches` (polish round 5: item 9)
+
+**Running with the ball as touches - the ball really leaves the foot.** Measured: 400 default matches.
+- **Before:** a carried ball was drawn a set distance in front of the carrier's feet (with a small wobble): it never moved on its own.
+- **Now** (`MatchEngine.OnBall.Touches.cs`): the ball rolls by its own physics between touches and the carrier runs onto it and touches it
+  again - each touch a little faster than him: **close control** (+0.6 m/s: the ball within about a stride) with a man within 5 m, near a
+  line or in the last 27 m; **progressive** (+1.8 m/s: two or three strides) into space; and **knock-and-run** - a quicker player plays it
+  7-11 m past a defender into open grass and races him for it (the defender is not fooled, as by a nutmeg; about 0.6 a match, a third of
+  them won). Walking, the ball is shepherded back under the foot (it rolls there, it does not jump). A pass or a shot waits until his foot
+  is at the ball (1.25 m, the engine's contact limit) - he runs onto it; a ball that has run off his path he goes to. A touch that runs more
+  than 2.5 m from him is no longer his (a loose ball: 7.8 a match). A carried ball never runs out of play.
+- **Consequences, set against real figures:** with the ball exposed between touches defenders tackle more (63 -> 66) and the fouls rose
+  (22.4 -> 24.2, real 21.5): a challenge that reaches the ball before its owner plays the ball (x0.6 foul chance), `FoulRate` 1.25 -> 1.12
+  and a referee caution rate `YellowCardRate` 0.72 (yellows had been 3.9, real 3.44; 4.8 with the touches) - now fouls 22.5, yellows 3.3,
+  reds 0.19 (real 0.12). Goals 2.79 -> about 2.7 (real 2.83), shots 27.4 -> about 26.4 (real 25.4).
+- Real carries (new `tools/calibration/carries.py`, StatsBomb, all 380 PL 2015/16 matches): 37.5% under 2 m, 4.5% over 20 m, longer ones
+  more often under pressure - a reference, not a target (the engine counts touches).
+- New counters: `dribble.touch.<Close|Progressive>`, `dribble.knockOn(.Won)`, `dribble.loose`, `card.reason.*`. `TeamStats.KnockOns`.
+  SimRunner switches: `--touches`, `--closepush`, `--progpush`, `--kickreach`, `--closedist`, `--yellowrate`, `--spayellow`.
+- **Tests**: `DribbleTouchTests` (1): the ball runs ahead of a running carrier between touches, never wanders off or out of play, both touch
+  styles and knock-and-runs happen, no pass or shot is struck out of reach.
+
 ## `feature/combinations` (polish round 4: item 8)
 
 **One-twos as they are played: mostly after a carry, sometimes first time, now and then clipped.** Measured: 400 default matches.
