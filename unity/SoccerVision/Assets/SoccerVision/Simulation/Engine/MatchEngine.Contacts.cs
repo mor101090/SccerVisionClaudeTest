@@ -565,9 +565,9 @@ namespace SoccerVision.Simulation
 
         /// <summary>
         /// A contested header in the box goes at goal with this chance plus 0.4 x his heading (otherwise a flick-on or a knock-down). Class D,
-        /// set against the real totals (shots a match, the headed share of goals): 0.45 until the marking round; see CHANGELOG.
+        /// set against the real headed share of goals: 0.45 until the marking round, 0.15 since (800 matches: headed share 20.6% -> 19.7%); see CHANGELOG.
         /// </summary>
-        public static float ContestedHeaderAtGoal = 0.45f;
+        public static float ContestedHeaderAtGoal = 0.15f;
 
         private void HeaderTouch(PlayerAgent p, bool contested, bool opponentTouch)
         {
