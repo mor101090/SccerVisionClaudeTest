@@ -164,6 +164,7 @@ namespace SoccerVision.Simulation
             Home.RefreshEff(); Away.RefreshEff(); // (the score changes how both teams play)
             if (CollectDiagnostics && _lastShotKeeperBucket != null) Count("goal.keeper." + _lastShotKeeperBucket);
             if (CollectDiagnostics && _shotTags != null && SimTime - _lastShotTime < 4f) foreach (var tg in _shotTags) Count("goal." + tg);
+            if (CollectDiagnostics && !ownGoal && _lastRestartTeam == scoringTeam && _lastRestartType == RestartType.CornerKick && SimTime - _lastRestartAt < 8f && !(_penaltyKickTime >= 0f)) Count("corner.goal." + (_lastShotKind == 5 ? "head" : "foot")); // (polish round 10)
             if (SimTime - scoringTeam.SetPieceAt < 10f) scoringTeam.Stats.SetPieceGoals++;
             MomentumGoal(scoringTeam);
             bool recentShot = Ball.Shooter != null && Ball.Shooter.Team == scoringTeam && SimTime - _lastShotTime < 3f;

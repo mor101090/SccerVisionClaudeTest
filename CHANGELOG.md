@@ -2,6 +2,44 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/cross-calibration` (polish round 10: blocked crosses, shots after a cross)
+
+**Crosses stopped at the crosser's feet, and the "shots after a cross" that were really corners.** Measured: 800 matches (SimRunner seeds 1, 1001, 2001, 3001), `CrossTests` (96 matches each).
+- **A correction first.** "Shots after a cross 30%, real 13%" compared different things: the engine's number counted corners and free kicks into the box as crosses, the
+  real 13.3% is open-play crosses only (corners and free kicks are another 11.9% - the StatsBomb "set-piece" key pass). Split (`compare.py`, `CrossSetPiece`):
+  **open-play crosses were 12.2% of the shots (real 13.3%) and 19.3% of the goals (18.5%) - already right.** The excess was in the corners and free kicks into the box:
+  20.0% of the shots (real 11.9%), 18.6% of the goals (7.8%), and the headed goals 20% of all goals (real 14.3%).
+- **Blocked crosses: 10.5% -> 2.4% stopped within 10 yd of the crosser (real 1.8%), 1.0 -> 0.16 blocks a match (real blocks at any distance: 1.2% of crosses).**
+  What was wrong (counters `cross.block.*`, `cross.near.*`): 35% of the blocks were by a man within 1.5 m of the crosser, level with him or behind (the ball leaving
+  the foot "touched" him); 46% came when the crosser's own check had seen no one in the lane, because it looked at the straight line to the target while a cross starts
+  about 12 degrees off it (the curl brings it back: 80% start 6-15 degrees off; counter `cross.yaw.*`) and 0.15 s ahead while the contact lasts 0.4 s; and a
+  defender who would head the ball 6-9 m out was not counted at all. Now (`CrossBlockChanceAlong`, `ExecutePlan`):
+  a man has to be 0.5 m **ahead** of the crosser along the ball's path to touch a cross in its first 0.4 s; the lane is the ball's **real start direction** (the
+  curl's aim-off, the same numbers `KickLofted` uses: `LoftedLaunch`) with where each man will be when the ball reaches him, and a man who would head it within the
+  first 9 m counts; a crosser does not play a cross into a lane that is blocked with more than 50% (the engine's `delivery` discount was only a utility
+  discount), and **if the lane closes between the decision and the kick** (the man closing him arrives) **he thinks again** for 0.7 s (`cross.abortedAtKick`).
+- **Crosses 11 -> 13.9 a match** (real 22.95), completed 31.8% -> 28.8% (real 28%), **shots after an open-play cross 14.1%** (real 13.3%), goals 18.6% (18.5%).
+  `CrossDesire` 0.75 -> 1.5: with the lanes checked honestly the same desire gave 4-8 crosses a match. Not matched: the real 23 a match. The engine's crosses are
+  struck far too far out (39% from more than 26 m from the goal line, real 9%; 6-18 m from it only 12%, real 46%; 83% are 25+ yd long, real 61%), so each is more productive than a real one
+  (0.2 shots against 0.13) - raising the number to 23 gave 19-24% of the shots after a cross. Left open (a winger who goes on to the by-line before he crosses).
+- **Corners: the defenders get to them.** Real corners (`corner_outcomes.py`): the first thing that happens is a defender's header or boot clearing it 29%, the keeper
+  9.5%, a shot 7.8%; the engine's attackers had the first touch 65% (the header 40%, a header shot 22% of the corners). Only the fastest defender went for a
+  ball in the air (`team.Chaser`): now also the nearest to where a corner or a free kick will land, within 4 m (`SetPieceDefendersAttack` 1, `SetPieceDefenderRadius` 4 m;
+  class D, set against `corners.py`: shots a corner 0.464 -> 0.379 (real 0.406), goals 0.0385 -> 0.0272 (0.0348), **headed goals 20% -> 14.5% of all goals (14.3%)**).
+  A bonus on the defender's header in the contest did nothing (the attackers got there with no defender within reach): it was not the weights, it was who goes.
+- **Goals back to the level before the round:** the 800-match mean fell 2.54 -> 2.40 (crosses that used to be blocked also fed second balls, and a defended corner scores
+  less); `SaveBase` 0.90 -> 0.88 (class C) brings it to 2.54. Shots 26.0 -> 24.4 (real 25.4; 22-28 pinned), shots on target are 31% of the shots (real 35%) - a
+  shot-accuracy gap that is older than the round and that the keeper's base hides; saves about 4.9 a match (5-6 is an unsourced estimate; shots on target less goals
+  in real data: 6.0). Fouls 22.3, yellows 3.3, corners 10.7 (real 10.4-10.8) unchanged.
+- New counters `cross.open.*` (kicked, first.mate/opp, stoppedNear, kickP, kickNearest, origin, length), `cross.block.*`, `cross.near.*`, `cross.abortedAtKick`,
+  `corner.shot.*`, `corner.goal.*`, `corner.first.*`. Parameters `CrossDesire` 1.5, `CrossLaneAvoid` 0.5, `CrossLaneCurlAllowance` 0.1, `CrossBlockMinAlong` 0.5 m,
+  `CrossHeaderReach` 0.62 m, `CrossHeadLaneMax` 9.14 m, `CrossRethinkSeconds` 0.7, `SetPieceDefendersAttack` 1, `SetPieceDefenderRadius` 4 m
+  (SimRunner `--crossdesire`, `--crosslane`, `--crossallow`, `--crossalong`, `--crossreach`, `--crossheight`, `--crossrethink`, `--spdef`, `--spradius`, `--savebase`).
+  `CrossBlockReach`/`CrossBlockHeight` are now static fields (were constants). New `tools/calibration/cross_outcomes.py`, `corner_outcomes.py`; `corners.py` counts shots
+  and headers; `compare.py` splits open-play crosses from set-piece deliveries and compares the shots as well as the goals.
+- **Tests**: `CrossTests` (2): open-play crosses are 9+ a match, stopped at the crosser under 5%, completed 20-36%, 8-19% of the shots, a lane that closes at the kick is
+  called off; corners: the defenders first 33%+, 0.28-0.48 shots a corner, 0.012-0.045 goals, headed goals under 19% of all goals.
+
 ## `feature/legs-open` (polish round 9: item 2)
 
 **Opening the legs for a nutmeg or a dummy: narrower, about half a second, in time with the ball, smooth.**

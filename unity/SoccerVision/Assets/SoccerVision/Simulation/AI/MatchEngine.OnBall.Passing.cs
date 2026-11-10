@@ -617,34 +617,53 @@ namespace SoccerVision.Simulation
         }
 
         /// <summary>Lofted kick (long pass, cross, clearance, goal kick) solved to land on <paramref name="target"/>.</summary>
-        private void KickLofted(PlayerAgent p, Vec2 target, float launchAngle, KickKind kind, PlayerAgent receiver, float pressure, float skill, bool curl, float startZ = Pitch.BallRadius)
+        /// <summary>
+        /// The speed and the aim-off (yaw) of a lofted kick to <paramref name="target"/>: the curl bends the flight, so a kicker who curls it aims off to
+        /// the side it comes back from. <paramref name="draw"/> is the strength of the curl (10-30); the cross's lane check uses the same numbers.
+        /// </summary>
+        private float LoftedLaunch(PlayerAgent p, Vec2 from, Vec2 target, float launchAngle, float skill, bool curl, float draw, out float yaw)
         {
-            Vec2 from = Ball.Pos;
             float d = Vec2.Distance(from, target);
             float speed = KickSolver.LoftSpeedFor(MathF.Max(2f, d), launchAngle, Config, out _);
-            Vec2 dir = (target - from).Normalized;
-            float sigma = (0.02f + 0.08f * (1f - skill)) * (1f + 0.6f * pressure) * p.FatigueError * WeakFootFactor(p, dir);
-            if (kind == KickKind.Clearance) sigma *= 1.6f;
-            if (kind == KickKind.Cross) sigma *= 1.3f; // (a ball into a crowded box on the run: hard to put on a head)
-            float angleNoise = _rng.Gaussian(0f, sigma);
-            float speedNoise = _rng.Gaussian(0f, 0.035f + 0.05f * (1f - skill));
             float spin = 0f;
+            yaw = 0f;
             if (curl)
             {
                 // The ball bends the way the kicking foot naturally curls it: right-footers bend it to the left, left-footers
                 // to the right. From the left wing that is an in-swinger for a right-footer, from the right wing an out-swinger.
-                float draw = _rng.Range(10f, 30f);
                 spin = NaturalCurlSign(p) * (Config.Kick != null
                     ? Config.Kick.CurledPass.Spin(MathF.Min(1f, (0.5f * (draw - 10f) / 20f + 0.5f * skill) * _curlBoost), speed, Config.Ball.RadiusM) // (stage 7: measured spin)
                     : draw * _curlBoost);
             }
-            float yaw = 0f;
             if (spin != 0f && Config.Aero != null)
             {
                 // The physical Magnus force bends the flight by metres, so a kicker who curls it aims off to the side it comes back from, and
                 // strikes it for the distance of the curved path (the same integrator as the flight, so the ball comes down on the target).
                 speed = KickSolver.LoftSpeedWithSpin(MathF.Max(2f, d), launchAngle, Config, spin, 0f, out _);
                 yaw = KickSolver.CurlYaw(speed, launchAngle, Config, spin, 0f);
+            }
+            _loftedSpin = spin;
+            return speed;
+        }
+        private float _loftedSpin;
+
+        private void KickLofted(PlayerAgent p, Vec2 target, float launchAngle, KickKind kind, PlayerAgent receiver, float pressure, float skill, bool curl, float startZ = Pitch.BallRadius, float curlDraw = -1f)
+        {
+            Vec2 from = Ball.Pos;
+            float d = Vec2.Distance(from, target);
+            Vec2 dir = (target - from).Normalized;
+            float sigma = (0.02f + 0.08f * (1f - skill)) * (1f + 0.6f * pressure) * p.FatigueError * WeakFootFactor(p, dir);
+            if (kind == KickKind.Clearance) sigma *= 1.6f;
+            if (kind == KickKind.Cross) sigma *= 1.3f; // (a ball into a crowded box on the run: hard to put on a head)
+            float angleNoise = _rng.Gaussian(0f, sigma);
+            float speedNoise = _rng.Gaussian(0f, 0.035f + 0.05f * (1f - skill));
+            float draw = curl ? (curlDraw >= 0f ? curlDraw : _rng.Range(10f, 30f)) : 0f;
+            float speed = LoftedLaunch(p, from, target, launchAngle, skill, curl, draw, out float yaw);
+            float spin = _loftedSpin;
+            if (CollectDiagnostics && kind == KickKind.Cross && !_restartKick)
+            {
+                float ay = MathF.Abs(yaw) * 57.2958f;
+                Count("cross.yaw." + (ay < 3f ? "a<3" : ay < 6f ? "b3-6" : ay < 10f ? "c6-10" : ay < 15f ? "d10-15" : "e15+"));
             }
             float angle = dir.Angle + yaw + angleNoise;
             speed *= 1f + speedNoise;

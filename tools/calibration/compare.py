@@ -62,19 +62,29 @@ def main():
     foot = how["volley"] + how["firstTime"] + how["controlled"]
     row("foot goals in open play hit first time", (how["volley"] + how["firstTime"]) / max(1e-9, foot), opf.get("open.foot.first-time", 0))
 
-    # what set the goal up (open play)
-    a = group(d, "goal.assist.", ["Cross", "ThroughBall", "Pass", "LongPass", "solo", "rebound", "Header"])
-    open_goals = sum(a.values()) or 1
-    real = {"cross": ops.get("open.assist.cross", 0) , "through": ops.get("open.assist.through-ball", 0),
-            "ground": ops.get("open.assist.ground", 0) + ops.get("open.assist.cut-back", 0), "long": ops.get("open.assist.long-high", 0),
-            "none": ops.get("open.assist.none", 0), "rebound": ops.get("open.assist.rebound", 0), "header": ops.get("open.assist.header", 0)}
-    row("open-play goals after a cross", a["Cross"] / open_goals, real["cross"])
-    row("... after a through ball", a["ThroughBall"] / open_goals, real["through"])
-    row("... after a ground pass / cut-back", a["Pass"] / open_goals, real["ground"])
-    row("... after a long high ball", a["LongPass"] / open_goals, real["long"])
-    row("... after a headed pass", a["Header"] / open_goals, real["header"])
-    row("... a rebound", a["rebound"] / open_goals, real["rebound"])
-    row("... no pass before it (solo, loose ball)", a["solo"] / open_goals, real["none"])
+    # what set the goal / the shot up (open play; a corner or a free kick into the box is a "set-piece" delivery, as StatsBomb has it - polish round 10)
+    KINDS = ["Cross", "CrossSetPiece", "Restart", "ThroughBall", "Pass", "LongPass", "solo", "rebound", "Header"]
+
+    def setup(prefix, share_key, label):
+        a = group(d, prefix, KINDS)
+        if prefix == "shot.assist.":
+            a["solo"] -= group(d, "shot.how.", ["penalty"])["penalty"]  # (a penalty has no pass before it either)
+        total = sum(a.values()) or 1
+        t = targets[share_key]
+        real = {"cross": t.get("open.assist.cross", 0), "setpiece": t.get("open.assist.set-piece", 0), "through": t.get("open.assist.through-ball", 0),
+                "ground": t.get("open.assist.ground", 0) + t.get("open.assist.cut-back", 0), "long": t.get("open.assist.long-high", 0),
+                "none": t.get("open.assist.none", 0), "rebound": t.get("open.assist.rebound", 0), "header": t.get("open.assist.header", 0)}
+        row("open-play %s after a cross (not a set piece)" % label, a["Cross"] / total, real["cross"])
+        row("... after a corner / free kick into the box", (a["CrossSetPiece"] + a["Restart"]) / total, real["setpiece"])
+        row("... after a through ball", a["ThroughBall"] / total, real["through"])
+        row("... after a ground pass / cut-back", a["Pass"] / total, real["ground"])
+        row("... after a long high ball", a["LongPass"] / total, real["long"])
+        row("... after a headed pass", a["Header"] / total, real["header"])
+        row("... a rebound", a["rebound"] / total, real["rebound"])
+        row("... no pass before it (solo, loose ball)", a["solo"] / total, real["none"])
+
+    setup("goal.assist.", "open_play_goal_share", "goals")
+    setup("shot.assist.", "open_play_shot_share", "shots")
 
     # where the keeper was (foot shots / goals)
     def kb(k):

@@ -84,6 +84,15 @@ for (int i = 0; i < args.Length; i++)
         case "--kickreach": MatchEngine.FootReachForKick = float.Parse(args[++i]); break; // (experiment; polish round 5)
         case "--yellowrate": MatchEngine.YellowCardRate = float.Parse(args[++i]); break; // (experiment; polish round 5)
         case "--fkstyles": MatchEngine.FreeKickStyles = args[++i] != "0"; break; // (experiment; polish round 6)
+        case "--crossreach": MatchEngine.CrossBlockReach = float.Parse(args[++i]); break; // (experiment; polish round 10)
+        case "--crossheight": MatchEngine.CrossBlockHeight = float.Parse(args[++i]); break;
+        case "--crossalong": MatchEngine.CrossBlockMinAlong = float.Parse(args[++i]); break;
+        case "--crosslane": MatchEngine.CrossLaneAvoid = float.Parse(args[++i]); break;
+        case "--crossallow": MatchEngine.CrossLaneCurlAllowance = float.Parse(args[++i]); break;
+        case "--crossrethink": MatchEngine.CrossRethinkSeconds = float.Parse(args[++i]); break;
+        case "--crossdesire": MatchEngine.CrossDesire = float.Parse(args[++i]); break;
+        case "--spdef": MatchEngine.SetPieceDefendersAttack = int.Parse(args[++i]); break;
+        case "--spradius": MatchEngine.SetPieceDefenderRadius = float.Parse(args[++i]); break;
         case "--fkaim": { var a = args[++i].Split(','); MatchEngine.FreeKickAimLow = float.Parse(a[0]); MatchEngine.FreeKickAimHigh = float.Parse(a[1]); break; }
         case "--fkunder": MatchEngine.FreeKickUnderChance = float.Parse(args[++i]); break;
         case "--wallstay": MatchEngine.WallStaysDownChance = float.Parse(args[++i]); break;
@@ -433,7 +442,7 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Shots by full-backs", Avg(x => x.FullBackShots), "~1-2");
     Row("Shots by wingers", Avg(x => x.WingerShots), "~5-7");
     Row("Cut-backs from the by-line", Avg(x => x.CutBacks), "n/a");
-    Row("Crosses (all)", Avg(x => x.CrossesAll), "[S] 23.0 in open play (this row counts set-piece crosses too)");
+    Row("Crosses (all)", Avg(x => x.CrossesAll), "[S] 22.95 in open play (+10.8 corners); this row counts the set-piece crosses too - `--diag` splits them: cross.open.kicked");
     Row("Injuries: light (played on)", Avg(x => x.LightInjuries), "~0.5-0.8 (time-loss ~0.7-1 per match)");
     Row("Injuries: serious (had to go off)", Avg(x => x.SeriousInjuries), "~0.2-0.4");
     Row("Substitutions for injury", Avg(x => x.Substitutions), "~0.2-0.4");

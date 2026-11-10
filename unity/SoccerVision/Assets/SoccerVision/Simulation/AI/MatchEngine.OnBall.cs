@@ -486,6 +486,26 @@ namespace SoccerVision.Simulation
                 MaybeStartOneTwo(p, plan.Receiver);
                 MaybeStartThirdMan(p, plan.Receiver);
             }
+            // A cross whose lane has filled up between the decision and the kick (the man closing him has arrived): he sees it and thinks again.
+            // The lane is the ball's real path - the start direction with the curl's aim-off - and this is the strike's own draw of the curl.
+            float crossDraw = -1f;
+            if (plan.Action == BallAction.Cross && !_restartKick)
+            {
+                crossDraw = _rng.Range(10f, 30f);
+                if (CrossLaneAvoid < 1f)
+                {
+                    float crossSkill = MathUtil.A(p.Attr.Crossing);
+                    LoftedLaunch(p, Ball.Pos, plan.Target, plan.LaunchAngle, crossSkill, true, crossDraw, out float crossYaw);
+                    Vec2 startDir = Vec2.FromAngle((plan.Target - Ball.Pos).Angle + crossYaw);
+                    if (CrossBlockChanceAlong(p, Ball.Pos, startDir, plan.LaunchAngle, 0f) > CrossLaneAvoid)
+                    {
+                        if (CollectDiagnostics) Count("cross.abortedAtKick");
+                        p.NoCrossUntil = SimTime + CrossRethinkSeconds;
+                        p.DecisionTimer = 0.05f;
+                        return;
+                    }
+                }
+            }
             switch (plan.Action)
             {
                 case BallAction.Shoot:
@@ -495,7 +515,7 @@ namespace SoccerVision.Simulation
                     p.Team.Stats.Crosses++;
                     if (p.Slot.IsFullBack) p.Team.Stats.FullBackCrosses++;
                     else if (p.Slot.IsWideMidfielder || (p.Slot.Line == Line.Attack && MathF.Abs(p.Slot.BaseLateral) > 12f)) p.Team.Stats.WingerCrosses++;
-                    KickLofted(p, plan.Target, plan.LaunchAngle, KickKind.Cross, plan.Receiver, pressure, MathUtil.A(p.Attr.Crossing), curl: true);
+                    KickLofted(p, plan.Target, plan.LaunchAngle, KickKind.Cross, plan.Receiver, pressure, MathUtil.A(p.Attr.Crossing), curl: true, curlDraw: crossDraw);
                     break;
                 case BallAction.PlayOff:
                     ExecutePlayOff(p, plan);
@@ -601,8 +621,27 @@ namespace SoccerVision.Simulation
             Ball.LastKickKind = kind;
             if (kind == KickKind.Pass || kind == KickKind.ThroughBall || kind == KickKind.LongPass || kind == KickKind.Cross || kind == KickKind.Restart
                 || kind == KickKind.GoalkeeperDistribution || (kind == KickKind.Header && receiver != null))
-                _lastTeamPassKind[p.Team.Index] = kind == KickKind.ThroughBall && _pendingIntoSpace ? "Pass" : kind.ToString(); // (for the goal breakdown: what the last pass of the move was; a ball into a running man's path is a pass, as StatsBomb has it)
+                _lastTeamPassKind[p.Team.Index] = kind == KickKind.ThroughBall && _pendingIntoSpace ? "Pass" : (kind == KickKind.Cross && _restartKick ? "CrossSetPiece" : kind.ToString()); // (for the goal breakdown: what the last pass of the move was; a ball into a running man's path is a pass, as StatsBomb has it; a corner or a free kick into the box is a set-piece delivery there, not a cross - polish round 10)
             Ball.LastKickTime = SimTime;
+            if (kind == KickKind.Cross && _restartKick && SetPieceDefendersAttack > 0)
+            {
+                _setPieceDefenders.Clear();
+                var against = p.Team.Opponent;
+                for (int n = 0; n < SetPieceDefendersAttack; n++)
+                {
+                    PlayerAgent near = null; float nd = SetPieceDefenderRadius;
+                    foreach (var o in against.Players)
+                    {
+                        if (o.SentOff || o.IsGoalkeeper || _setPieceDefenders.Contains(o)) continue;
+                        float dd = Vec2.Distance(o.Pos, target);
+                        if (dd < nd) { nd = dd; near = o; }
+                    }
+                    if (near == null) break;
+                    _setPieceDefenders.Add(near);
+                }
+            }
+            else if (kind != KickKind.Header) _setPieceDefenders.Clear();
+            if (kind == KickKind.Cross) { _crossOrigin = from; _crossIsSetPiece = _restartKick; if (CollectDiagnostics && !_restartKick) { Count("cross.open.kicked"); _crossKickBlockP = CrossBlockChance(p, from, target, 0.36f); Count("cross.open.kickP." + BlockPBucket(_crossKickBlockP)); float og = Pitch.HalfLength - p.Team.Forward(from), om = MathF.Abs(p.Team.Lateral(from)); Count("cross.open.origin.goalLine." + (og < 6f ? "<6m" : og < 12f ? "6-12m" : og < 18f ? "12-18m" : og < 26f ? "18-26m" : "26m+")); Count("cross.open.origin.middle." + (om < 9f ? "<9m" : om < 18f ? "9-18m" : om < 26f ? "18-26m" : "26m+")); float cl = Vec2.Distance(from, target); Count("cross.open.length." + (cl < 13.7f ? "a<15yd" : cl < 22.9f ? "b15-25yd" : "c25yd+")); float nd = NearestOpponentDistance(p.Team, from); Count("cross.open.kickNearest." + (nd < 1.5f ? "a<1.5" : nd < 3f ? "b1.5-3" : nd < 5f ? "c3-5" : "d5+")); } } // (polish round 10: the real "stopped next to the crosser" is measured from where it was struck)
             restartKick |= _restartKick;
             offsideException |= _restartOffsideException;
             Ball.KickerMustWait = restartKick;

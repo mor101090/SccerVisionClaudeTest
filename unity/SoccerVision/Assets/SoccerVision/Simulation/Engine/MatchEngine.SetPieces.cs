@@ -8,6 +8,13 @@ namespace SoccerVision.Simulation
     public sealed partial class MatchEngine
     {
         private bool _restartKick;
+        /// <summary>Where the last cross was struck, and whether it was a corner or a free kick into the box (diagnostics, polish round 10).</summary>
+        private Vec2 _crossOrigin;
+        private bool _crossIsSetPiece;
+        private float _cornerFirstCountedFor = -1f, _cornerFirstTouchAt;
+        private PlayerAgent _cornerFirstToucher;
+        private float _crossKickBlockP;
+        private static string BlockPBucket(float x) => x < 0.001f ? "0" : x < 0.1f ? "a<0.1" : x < 0.3f ? "b0.1-0.3" : x < 0.6f ? "c0.3-0.6" : "d0.6+";
 
         private bool _restartOffsideException;
 

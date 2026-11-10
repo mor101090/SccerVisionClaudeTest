@@ -448,6 +448,7 @@ namespace SoccerVision.Simulation
                     if (kq != null) Count("shot.k36.keeper" + (Vec2.Dot(kq.Vel, from - kq.Pos) > 1f ? "Charging" : "Still") + (Vec2.Distance(kq.Pos, team.AttackGoal) > 5f ? "Out" : "Line"));
                 }
                 if (SimTime - _lastRestartAt < 7f) Count("shot.after." + _lastRestartType + "." + zone);
+                if (SimTime - _lastRestartAt < 7f && _lastRestartTeam == team && _lastRestartType == RestartType.CornerKick && !penalty) { Count("corner.shot." + (header ? "head" : "foot")); if (p == _cornerFirstToucher && SimTime - _cornerFirstTouchAt < 0.5f) Count("corner.first.shot." + (header ? "head" : "foot")); } // (polish round 10: shots a corner makes, as corners.py counts them)
                 if (zone == "six") { Count("shot.six." + (rebound ? "rebound" : assistKind) + "." + how); if (SimTime - _lastRestartAt < 7f) Count("shot.six.after." + _lastRestartType); }
             }
 

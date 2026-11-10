@@ -91,6 +91,7 @@ namespace SoccerVision.Simulation
 
         private void EvaluateCrosses(PlayerAgent p, Vec2 pos)
         {
+            if (SimTime < p.NoCrossUntil) return; // (he has just seen the lane close)
             var team = p.Team;
             float side = MathF.Sign(team.Lateral(pos));
             var zones = new[]
@@ -137,7 +138,11 @@ namespace SoccerVision.Simulation
                 float pWin = MathUtil.Sigmoid((bestOppT - MathF.Max(bestMateT, flight)) / 0.45f + (aerialMate - aerialOpp) / 35f);
                 float delivery = 0.35f + 0.4f * crossing; // (most crosses in the top leagues do not find a team-mate: about one in five does)
                 // a man in the lane before the ball has climbed out of his reach blocks it (polish round 1): the crosser sees him
-                delivery *= 1f - CrossBlockChance(p, pos, target, d > 30f ? 0.42f : 0.36f);
+                float laneBlock = CrossBlockChance(p, pos, target, d > 30f ? 0.42f : 0.36f);
+                // ...and a crosser does not hit a ball into a man who is standing in front of him (polish round 10: real open-play crosses are
+                // stopped by the first man within 10 yards 1.6% of the time - tools/calibration/cross_outcomes.py; he plays something else)
+                if (laneBlock > CrossLaneAvoid) { if (CollectDiagnostics) Count("cross.laneAvoided"); continue; }
+                delivery *= 1f - laneBlock;
                 float headerXg = ExpectedGoals.FromLocation(target, team.AttackGoalSign) * 0.55f * (0.65f + 0.7f * MathUtil.A(bestMate.Attr.Heading));
                 float utility = pWin * delivery * (headerXg + 0.01f) - (1f - pWin * delivery) * (LossCost(team, target) * 0.25f + _riskPremium * 0.6f);
                 // the manager wants crosses: into the box from everywhere wide (crosses style, relentless pressure)
@@ -146,7 +151,7 @@ namespace SoccerVision.Simulation
                 // the classic winger lives to cross, the inverted one would rather come inside
                 float crosser = p.PlayRole == PlayerRole.ClassicWinger ? 1.3f : p.PlayRole == PlayerRole.WingBack ? 1.15f : p.PlayRole == PlayerRole.InvertedWinger ? 0.8f : 1f;
                 if (p.PlayRole == PlayerRole.Auto && p.Slot.IsWideMidfielder && !IsCutInsidePlayer(p)) crosser *= 1.3f; // (a winger on his strong side goes to the by-line and crosses)
-                if (utility > 0f) utility *= crosser * 0.75f; // (a cross is one option among others, not the first thing a wide man thinks of)
+                if (utility > 0f) utility *= crosser * CrossDesire; // (a cross is one option among others, not the first thing a wide man thinks of)
                 _options.Add(new KickPlan
                 {
                     Action = BallAction.Cross,
@@ -168,25 +173,68 @@ namespace SoccerVision.Simulation
         /// while the ball is still below 1.5 m), seen ahead: where each opponent will be when the ball passes him, and how far across its
         /// path. Full at 0.7 m across, none past 1.2 m (class D: the edge of the reach, and his last step).
         /// </summary>
-        private float CrossBlockChance(PlayerAgent p, Vec2 pos, Vec2 target, float launch)
+        private float CrossBlockChance(PlayerAgent p, Vec2 pos, Vec2 target, float launch) => CrossBlockChanceAlong(p, pos, (target - pos).Normalized, launch, CrossLaneCurlAllowance);
+
+        /// <summary>
+        /// The same along a given start direction (the real one, with the curl's aim-off in it: <see cref="CrossBlockChance"/> takes the straight line to the
+        /// target and widens the lane by <paramref name="allowance"/> a metre of the way, because a cross starts about 12 degrees off that line - 80% of
+        /// them 6-15 - and the curl brings it back).
+        /// </summary>
+        private float CrossBlockChanceAlong(PlayerAgent p, Vec2 pos, Vec2 dir, float launch, float allowance)
         {
-            Vec2 dir = (target - pos).Normalized;
-            float below = (CrossBlockHeight - Pitch.BallRadius) / MathF.Tan(launch); // how far it travels before it is above his reach
+            float tan = MathF.Tan(launch);
+            float below = (CrossBlockHeight - Pitch.BallRadius) / tan; // how far it travels before it is above a leg's reach
+            float g = Config.Gravity;
             float clear = 1f;
             foreach (var o in p.Team.Opponent.Players)
             {
                 if (o.SentOff || o.IsDown || o.IsGoalkeeper) continue;
-                Vec2 rel = o.Pos + o.Vel * 0.15f - pos;
+                // where he will be when the ball reaches him: the cross runs at about 17 m/s (the flight time above), and he keeps his pace
+                // (polish round 10: it was 0.15 s ahead, but the contact lasts 0.4 s - a man closing the crosser was not in the lane yet)
+                Vec2 rel0 = o.Pos - pos;
+                Vec2 rel = rel0 + o.Vel * MathF.Min(0.4f, MathF.Max(0.15f, Vec2.Dot(rel0, dir) / 17f));
                 float along = Vec2.Dot(rel, dir);
-                if (along < 0.2f || along > below + CrossBlockReach) continue;
-                float across = MathF.Abs(rel.X * dir.Y - rel.Y * dir.X);
-                clear *= 1f - MathUtil.Clamp01((CrossBlockReach + 0.25f - across) / 0.5f);
+                if (along < MathF.Max(0.2f, CrossBlockMinAlong)) continue;
+                float across = MathF.Max(0f, MathF.Abs(rel.X * dir.Y - rel.Y * dir.X) - allowance * along);
+                // a leg while the ball is still low, or a header when he stands where it comes down to his head (polish round 10: 150 of the
+                // 178 "blocks" a hundred matches had were at a ball 1.2 m or higher, and a header 6.5-9 m out was a quarter of what stopped crosses)
+                float t = along / 17f;
+                float z = along * tan - 0.5f * g * t * t;
+                float reach;
+                if (along <= below + CrossBlockReach) reach = CrossBlockReach;
+                else if (along <= CrossHeadLaneMax && z <= o.HeadReach && z > 1f) reach = CrossHeaderReach; // (only near the crosser: further along the box is where the cross is meant to land)
+                else continue;
+                clear *= 1f - MathUtil.Clamp01((reach + 0.25f - across) / 0.5f);
             }
             return 1f - clear;
         }
 
         /// <summary>The reach of a leg thrown at a cross (m) and the height below which it can block it (m): the contact's own values.</summary>
-        internal const float CrossBlockReach = 0.95f, CrossBlockHeight = 1.5f;
+        public static float CrossBlockReach = 0.95f, CrossBlockHeight = 1.5f;
+        /// <summary>A defender has to be this far ahead of the crosser (along the ball's path, m) to get a leg to a cross: level with him or behind, the ball has gone past (0 = as before; class D).</summary>
+        public static float CrossBlockMinAlong = 0.5f;
+        /// <summary>A cross is not played when the chance that a man in front of the crosser blocks it is higher than this (1 = never avoided; class D).</summary>
+        public static float CrossLaneAvoid = 0.5f;
+        /// <summary>
+        /// How many defenders go for a corner or a free kick that comes into the box (the ones nearest where it will land, close enough to it): real
+        /// corners are won by the defenders first - a header or a boot clears 29%, the keeper takes 9.5%, a shot is the first thing that happens 7.8%
+        /// (tools/calibration/corner_outcomes.py); here only the fastest one went, and the side that took it got the first touch 65% of the time
+        /// (polish round 10; class D).
+        /// </summary>
+        public static int SetPieceDefendersAttack = 1;
+        /// <summary>...and only those this close to where it will land (m).</summary>
+        public static float SetPieceDefenderRadius = 4f;
+        private readonly System.Collections.Generic.List<PlayerAgent> _setPieceDefenders = new System.Collections.Generic.List<PlayerAgent>(4);
+        /// <summary>How far to the side a man still gets his head to a cross that comes down to head height where he stands (m; as the contact's own 0.62 m).</summary>
+        public static float CrossHeaderReach = 0.62f;
+        /// <summary>He counts a man who would head the ball only within this far of the crosser (m; 0 = legs only): the real "stopped next to the crosser" is the first 10 yards (9.14 m); further along the box is where the cross is meant to land.</summary>
+        public static float CrossHeadLaneMax = 9.144f;
+        /// <summary>How much a wide man wants to cross, against his other options (x the cross's utility; was 0.75; set against the real 22.95 open-play crosses a match, tools/calibration/crosses.py).</summary>
+        public static float CrossDesire = 1.5f;
+        /// <summary>The widening of the straight lane to the target when the crosser weighs a cross, per metre of the way (0.2 = 11 degrees: where the curl starts the ball; class B, measured here).</summary>
+        public static float CrossLaneCurlAllowance = 0.1f;
+        /// <summary>How long a crosser who has seen the lane close does not think of crossing again (sim s).</summary>
+        public static float CrossRethinkSeconds = 0.7f;
 
         private void EvaluateClearance(PlayerAgent p, Vec2 pos, float pressure)
         {

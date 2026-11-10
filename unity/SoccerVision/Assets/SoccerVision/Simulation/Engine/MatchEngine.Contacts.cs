@@ -95,6 +95,14 @@ namespace SoccerVision.Simulation
                     && SimTime - Ball.LastKickTime < 0.4f) continue;
                 float d = Vec2.DistanceToSegment(p.Pos, a, b, out _);
                 if (d > 2.6f) continue;
+                // A cross has just been struck: a defender level with the crosser, or behind him, cannot get a leg to a ball that has already
+                // gone past him (polish round 10: 35% of the blocks were by a man within 1.5 m of the crosser, beside him).
+                if (Ball.LastKickKind == KickKind.Cross && Ball.LastKicker != null && Ball.LastKicker.Team != p.Team && SimTime - Ball.LastKickTime < 0.4f
+                    && CrossBlockMinAlong > 0f && Ball.Velocity.LengthSq > 4f && Vec2.Dot(p.Pos - _crossOrigin, Ball.Velocity.Normalized) < CrossBlockMinAlong)
+                {
+                    if (CollectDiagnostics) Count("cross.block.behindCrosser");
+                    continue;
+                }
 
                 // The dummy: the receiver opens his legs and lets the pass run on to a team-mate behind him.
                 if (Ball.IntendedReceiver == p && !Ball.IsShot && z < 0.4f && _dummyRolledFor != Ball.LastKickTime)
@@ -223,11 +231,28 @@ namespace SoccerVision.Simulation
             }
             p.Touches++;
             bool opponentTouch = Ball.LastTouchTeam != null && Ball.LastTouchTeam != p.Team;
+            if (CollectDiagnostics && _lastRestartType == RestartType.CornerKick && SimTime - _lastRestartAt < 8f && _cornerFirstCountedFor != _lastRestartAt && p != Ball.LastKicker)
+            {
+                // the first thing that happens to a corner (tools/calibration/corner_outcomes.py: a defender's header clears 22.8%, the keeper takes 9.5%, a shot is the first thing 7.8%)
+                _cornerFirstCountedFor = _lastRestartAt; _cornerFirstToucher = p; _cornerFirstTouchAt = SimTime;
+                Count("corner.first." + (p.IsGoalkeeper ? "gk" : p.Team == _lastRestartTeam ? "att" : "def") + "." + kind);
+            }
             if (CollectDiagnostics && Ball.LastKickKind == KickKind.Cross && _crossTouchCountedFor != Ball.LastKickTime && p != Ball.LastKicker)
             {
                 // (the first touch after a cross: real open-play crosses are completed 28%, stopped next to the crosser 1.8% - crosses.py)
                 _crossTouchCountedFor = Ball.LastKickTime;
                 Count("cross.firstTouch." + (SimTime - _lastRestartAt < 1.5f ? "setPiece." : "open.") + (opponentTouch ? "opp" : "mate"));
+                if (!_crossIsSetPiece)
+                {
+                    // as crosses.py counts them: the other side's first action within 10 yards (9.14 m) of where the cross was struck
+                    Count("cross.open.first." + (opponentTouch ? "opp" : "mate"));
+                    if (opponentTouch && Vec2.Distance(Ball.Pos, _crossOrigin) < 9.144f)
+                    {
+                        Count("cross.open.stoppedNear");
+                        float sd = Vec2.Distance(Ball.Pos, _crossOrigin);
+                        Count("cross.near." + (IsCrossBlock(p) ? "block" : kind.ToString()) + "." + (sd < 2f ? "a<2" : sd < 4f ? "b2-4" : sd < 6.5f ? "c4-6.5" : "d6.5-9") + (p.IsGoalkeeper ? ".keeper" : ""));
+                    }
+                }
             }
             if (kind != ContactKind.Hands && TryPlayOffContact(p)) return; // (played off him on purpose, polish round 1)
 
@@ -541,7 +566,28 @@ namespace SoccerVision.Simulation
             Vec2 v = Ball.Velocity;
             Vec2 toLine = crosser.Team.DirToWorld(Vec2.UnitX);
             Vec2 dir = (toLine * _rng.Range(0.5f, 1.3f) + (v.LengthSq > 1f ? v.Normalized : Vec2.Zero) * 0.5f + new Vec2(_rng.Range(-0.5f, 0.5f), _rng.Range(-0.5f, 0.5f))).Normalized;
-            if (CollectDiagnostics) Count("cross.blocked");
+            if (CollectDiagnostics)
+            {
+                Count("cross.blocked");
+                if (!_crossIsSetPiece)
+                {
+                    Count("cross.block.kickP." + BlockPBucket(_crossKickBlockP));
+                    float bd = Vec2.Distance(p.Pos, _crossOrigin);
+                    Count("cross.block.blockerFromOrigin." + (bd < 1.5f ? "a<1.5" : bd < 3f ? "b1.5-3" : bd < 5f ? "c3-5" : "d5+"));
+                    Vec2 toOrigin = _crossOrigin - p.Pos;
+                    float closing = toOrigin.LengthSq > 0.01f ? Vec2.Dot(p.Vel, toOrigin.Normalized) : 0f;
+                    Count("cross.block.blockerSpeed." + (closing > 3f ? "closingFast" : closing > 0.5f ? "closing" : "standing"));
+                    Count("cross.block.blockerTask." + p.Task);
+                    Count("cross.block.crosserPressed." + (NearestOpponentDistance(crosser.Team, crosser.Pos) < 2.5f ? "yes" : "no"));
+                    float bz = Ball.Z, bt = SimTime - Ball.LastKickTime;
+                    Count("cross.block.z." + (bz < 0.3f ? "a<0.3" : bz < 0.8f ? "b0.3-0.8" : bz < 1.2f ? "c0.8-1.2" : "d1.2+"));
+                    Count("cross.block.t." + (bt < 0.05f ? "a<0.05" : bt < 0.15f ? "b0.05-0.15" : bt < 0.3f ? "c0.15-0.3" : "d0.3+"));
+                    Vec2 cd = Ball.IntendedTarget - _crossOrigin;
+                    if (cd.LengthSq > 1f) { cd = cd.Normalized; Vec2 rr = p.Pos - _crossOrigin; float al = Vec2.Dot(rr, cd), ac = MathF.Abs(rr.X * cd.Y - rr.Y * cd.X);
+                        Count("cross.block.across." + (ac < 0.4f ? "a<0.4" : ac < 0.8f ? "b0.4-0.8" : ac < 1.2f ? "c0.8-1.2" : "d1.2+")); Count("cross.block.along." + (al < 1f ? "a<1" : al < 3f ? "b1-3" : al < 5f ? "c3-5" : al < 8f ? "d5-8" : "e8+")); }
+                    Count("cross.block.speed." + (Ball.Velocity.Length < 12f ? "slow" : Ball.Velocity.Length < 18f ? "mid" : "fast"));
+                }
+            }
             SetDeflection(p, dir * MathF.Max(4f, v.Length * _rng.Range(0.3f, 0.6f)), _rng.Range(1f, 5f));
         }
 

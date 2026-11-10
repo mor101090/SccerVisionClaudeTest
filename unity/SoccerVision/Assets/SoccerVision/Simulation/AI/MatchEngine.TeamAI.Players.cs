@@ -40,7 +40,9 @@ namespace SoccerVision.Simulation
                 return;
             }
 
-            if (free && (team.Chaser == p || Ball.IntendedReceiver == p || team.Anticipator == p))
+            // A corner or a free kick in the air: the defenders nearest where it will land go for it (not only the fastest one)
+            bool setPieceDefender = free && _setPieceDefenders.Count > 0 && Ball.LastKickKind == KickKind.Cross && SimTime - Ball.LastKickTime < 3f && _setPieceDefenders.Contains(p);
+            if (free && (team.Chaser == p || Ball.IntendedReceiver == p || team.Anticipator == p || setPieceDefender))
             {
                 UpdateIntercept(p);
                 p.Task = Ball.IntendedReceiver == p ? PlayerTask.Receive : PlayerTask.Chase;
