@@ -615,6 +615,7 @@ namespace SoccerVision.Simulation
         /// </summary>
         private void ResolveCardsBeforeTheWhistle()
         {
+            if (CollectDiagnostics && (Referee.PendingCard != 0 || _secondYellowRed != null || _sendOffPending != null)) Count("card.atWhistle");
             if (Referee.PendingCard != 0)
             {
                 if (CollectDiagnostics) Count("card.shownAtWhistle");

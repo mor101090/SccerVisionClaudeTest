@@ -148,20 +148,26 @@ namespace SoccerVision.Simulation
                 _cardHow = CardApproach.Summon; // (he calls him back)
                 if (CollectDiagnostics) Count("card.walkAway.calledBack");
             }
+            // (called over and still not here halfway through his patience: he goes to him himself - at a jog)
+            if (_cardHow == CardApproach.Summon && Referee.CardWalk > 0.5f * CardWaitMax * Config.MotionSpeed)
+            {
+                _cardHow = CardApproach.Approach;
+                if (CollectDiagnostics) Count("card.summon.refereeWent");
+            }
             if (pl != null && _cardHow == CardApproach.Approach)
             {
                 Vec2 away = Referee.Pos - pl.Pos;
                 float ad = away.Length;
                 target = pl.Pos + (ad > 0.1f ? away / ad : new Vec2(0f, 1f)) * 1.6f;
             }
-            if (CollectDiagnostics && Referee.Vel.Length > CardApproachSpeed + 0.3f) Count("card.refereeFast");
+            // (counted after his first second: he is slowing down from wherever play had him running)
+            if (CollectDiagnostics && Referee.CardWalk > 1f && Referee.Vel.Length > CardApproachSpeed + 0.3f) Count("card.refereeFast");
             if (pl == null || Vec2.Distance(Referee.Pos, pl.Pos) <= CardDistance || Referee.CardWalk > CardWaitMax * Config.MotionSpeed)
             {
                 if (CollectDiagnostics) for (int k = 0; k <= (int)(Referee.CardWalk * 10f); k++) Count("card.walkTenths");
                 ShowCardNow(Referee.PendingCard, pl);
             }
-            if (Phase == MatchPhase.Stoppage && _restart != null) _restart.PauseLeft = MathF.Max(_restart.PauseLeft, 0.4f);
-            return true;
+            return true; // (the restart waits on CardSequenceActive; the players meanwhile take their places, the carded one comes over)
         }
 
         /// <summary>
