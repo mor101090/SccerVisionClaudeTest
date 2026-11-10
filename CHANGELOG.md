@@ -20,8 +20,10 @@ Each round of changes is developed on its own branch, named after what it change
   the default squads (no specialist) - fewer than real (open; the engine also has 2.4 times fewer throw-ins).
 - **Default match** (400): goals 2.82 -> 2.87, shots 27.6 -> 28.0, corners 11.8 -> 11.8, long throws 0.32 -> 0 (no specialist).
 - Classic page: the trait's name and explanation in the player profile.
-- **A test the round's new random paths moved** (assertion kept): `ForwardsShootBeforeTheKeeperIsOnThem...` judges open-goal goals over
-  192 matches instead of 96 (a rare event, about 0.05 a match: 96 matches drew two, 0.021 against its 0.03 floor; 192 give 0.04).
+- **Tests the round changed** (assertions kept): `ForwardsShootBeforeTheKeeperIsOnThem...` judges open-goal goals over 192 matches
+  instead of 96 (a rare event, about 0.05 a match: 96 matches drew two, 0.021 against its 0.03 floor; 192 give 0.04);
+  `LongThrowsGoIntoTheSixYardBox` gives its side a long-throw specialist (a side of strong ordinary throwers - its old set-up - now
+  reaches the edge of the box at best, by the measured release speeds).
 - **Tests**: `LongThrowTests` (4): the flight reproduces the measured throw; release speeds stay in 12-19 m/s with the specialist at the
   top, one a squad at most; only the specialist reaches the six-yard box from the touchline; in matches only specialists throw it long.
 
