@@ -31,6 +31,8 @@ Each round of changes is developed on its own branch, named after what it change
 - Parameters `NetAbsorption` (false: the old net), `NetStiffness` 800 1/s^2, `NetDampingRatio` 1.1, `NetFriction` 6 1/s, `NetMaxGive`
   0.5 m - approximations (D): no measured figure for a goal net was found.
 - **Tests**: `GoalNetTests` (5): shots of 10, 20 and 30 m/s into the back, the side netting and the roof, and the 43 goals above.
+  `FeatureTests.BallStaysInsideTheNetAfterAGoal` (the ball never behind the net) allowed none of the net's give: it now allows `NetMaxGive`
+  (it caught a ball 0.09 m into the net).
 
 ## `feature/ball-continuity` (polish round 7: item 10)
 
@@ -79,6 +81,13 @@ Each round of changes is developed on its own branch, named after what it change
   `--fkswitch`, `--fkunder`, `--wallstay`, `--wallout`, `--keeperoff`; its free-kick reference rows now cite the StatsBomb figures.
 - **Tests**: `FreeKickTests` (192 matches with varied squads): all five strikes happen, a low shot goes under the jumping wall, every wall
   is lined up on the near post, every keeper stands near the middle to the far side, scored 1-15%.
+- **Found by the full suite, fixed here:** the referee showed a card from up to 12 m away when his wait ran out (R3's timeout) - now he
+  walks to the player at a jog, and only at twice the wait (a player who cannot be reached) is it shown from where he stands
+  (`card.late.refereeWent`). `RunsInBehindPlaysMoreThroughBalls` compared six matches (x1.15 to x1.43 on the same code; 24 matches still x1.30); it now takes 60
+  (120 matches: x1.50; the threshold x1.3 is kept). `TheBiggestMismatchIsNotAMassacre` judged the strong side's wins on 40 matches (55% here, 77.5% with the old free
+  kick on the same seeds; 200 matches: 75% now, 70.5% before) - now 100.
+  `BoldKeepersStandHigherAndTheDiverGoesDownNearTheBox` drew no bought dive in its 64 matches (9 booked; 200 other matches: 31 bought,
+  16 booked) - now 160.
 
 ## `feature/dribble-touches` (polish round 5: item 9)
 

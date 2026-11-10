@@ -179,7 +179,18 @@ namespace SoccerVision.Simulation
             }
             // (counted after his first second: he is slowing down from wherever play had him running)
             if (CollectDiagnostics && Referee.CardWalk > 1f && Referee.Vel.Length > CardApproachSpeed + 0.3f) Count("card.refereeFast");
-            if (pl == null || Vec2.Distance(Referee.Pos, pl.Pos) <= CardDistance || Referee.CardWalk > CardWaitMax * Config.MotionSpeed)
+            // (his patience is up and they are still apart: he goes to him himself - he does not hold it up from afar; only at twice
+            // that wait - a player who cannot be reached - is it shown from where he stands)
+            float apart = pl == null ? 0f : Vec2.Distance(Referee.Pos, pl.Pos);
+            bool late = Referee.CardWalk > CardWaitMax * Config.MotionSpeed;
+            if (late && pl != null && apart > CardDistance && Referee.CardWalk <= 2f * CardWaitMax * Config.MotionSpeed)
+            {
+                if (_cardHow != CardApproach.Approach && CollectDiagnostics) Count("card.late.refereeWent");
+                _cardHow = CardApproach.Approach;
+                Vec2 away = Referee.Pos - pl.Pos;
+                target = pl.Pos + (apart > 0.1f ? away / apart : new Vec2(0f, 1f)) * 1.6f;
+            }
+            else if (pl == null || apart <= CardDistance || late)
             {
                 if (CollectDiagnostics) for (int k = 0; k <= (int)(Referee.CardWalk * 10f); k++) Count("card.walkTenths");
                 ShowCardNow(Referee.PendingCard, pl);
