@@ -20,8 +20,12 @@ Each round of changes is developed on its own branch, named after what it change
   taking it in or still on the pitch - holds every restart (and counts as lost time). A card still on its way at a whistle is shown at once
   where they are (a card given is never lost). Card counts unchanged (yellow 3.99 -> 3.83, red 0.27 -> 0.23 a match: noise; both above
   the real 3.44 and 0.12 - open, as before).
+- **Two cards for one incident**: the second waits its turn (a queue) - before, a card decided while another was on its way was shown at once
+  over it and the first was lost (the staged match lost its second yellow that way).
 - **Tests**: `CardSequenceTests` (1): every card counts when it is held up; no player is sent off before he is shown the red; play never
   restarts with him on the pitch; the referee never runs faster than a jog; approach, summon and walk-away all happen.
+- **A test the round's new random paths moved** (assertion kept): `LongThrowsGoIntoTheSixYardBox` plays 24 matches instead of 12 (a rare
+  event, about five expected in twelve: twelve drew two).
 
 ## `feature/long-throw` (polish round 2: item 4)
 
