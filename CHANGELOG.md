@@ -16,6 +16,8 @@ Each round of changes is developed on its own branch, named after what it change
 - Parameters `NetAbsorption` (false: the old net), `NetStiffness` 800 1/s^2, `NetDampingRatio` 1.1, `NetFriction` 6 1/s, `NetMaxGive`
   0.5 m - approximations (D): no measured figure for a goal net was found.
 - **Tests**: `GoalNetTests` (5): shots of 10, 20 and 30 m/s into the back, the side netting and the roof, and the 43 goals above.
+  `FeatureTests.BallStaysInsideTheNetAfterAGoal` (the ball never behind the net) allowed none of the net's give: it now allows `NetMaxGive`
+  (it caught a ball 0.09 m into the net).
 
 ## `feature/ball-continuity` (polish round 7: item 10)
 
