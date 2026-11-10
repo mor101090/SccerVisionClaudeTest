@@ -603,9 +603,9 @@ namespace SoccerVision.Simulation
         /// <summary>
         /// Below this expected-goals value a header in the box is usually not aimed at goal (60%: knocked down or flicked on instead). Class D,
         /// set against a B measurement: headers are 16.5% of real shots (792 of 4,802, StatsBomb open data, five leagues 2015/16 -
-        /// `tools/calibration/targets.json`). It was 0.03 (polish round 1).
+        /// `tools/calibration/targets.json`). It was 0.03 before polish round 1, 0.06 after it; 0.07 since round 3 (the share had drifted to 18.6%).
         /// </summary>
-        public static float HeaderMinXg = 0.06f;
+        public static float HeaderMinXg = 0.07f;
 
         /// <summary>
         /// Below this expected-goals value a ball in the air is usually (60%) taken down rather than volleyed first time. Class D, set against a

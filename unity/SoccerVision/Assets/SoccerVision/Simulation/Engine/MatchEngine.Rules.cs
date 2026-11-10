@@ -596,6 +596,12 @@ namespace SoccerVision.Simulation
         /// </summary>
         private void ShowCard(int card, PlayerAgent forPlayer = null)
         {
+            // (another card under way for someone else: this one waits its turn, it is not shown over it nor lost)
+            if (forPlayer != null && (Referee.PendingCard != 0 || Referee.CardShown != 0) && Referee.CardFor != forPlayer)
+            {
+                _cardQueue.Add((card, forPlayer));
+                return;
+            }
             if (forPlayer != null && Referee.CardShown == 0 && Referee.PendingCard == 0 && Vec2.Distance(Referee.Pos, forPlayer.Pos) > CardDistance)
             {
                 BeginCard(card, forPlayer);
@@ -625,6 +631,7 @@ namespace SoccerVision.Simulation
         /// </summary>
         private void ResolveCardsBeforeTheWhistle()
         {
+            if (CollectDiagnostics && _cardQueue.Count > 0) Count("card.atWhistle");
             if (CollectDiagnostics && (Referee.PendingCard != 0 || _secondYellowRed != null || _sendOffPending != null)) Count("card.atWhistle");
             if (Referee.PendingCard != 0)
             {
@@ -640,6 +647,16 @@ namespace SoccerVision.Simulation
             {
                 _sendOffAt = SimTime;
                 StepCardSequence();
+            }
+            // (the cards still waiting their turn: shown now, one after another, where they are)
+            while (_cardQueue.Count > 0)
+            {
+                var (card, p) = _cardQueue[0];
+                _cardQueue.RemoveAt(0);
+                if (p == null || p.SentOff) continue;
+                ShowCardNow(card, p);
+                if (_secondYellowRed != null) { _secondYellowRedAt = SimTime; UpdatePendingRedCard(); }
+                if (_sendOffPending != null) { _sendOffAt = SimTime; StepCardSequence(); }
             }
         }
 
