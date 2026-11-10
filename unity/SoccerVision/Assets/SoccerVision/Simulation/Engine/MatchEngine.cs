@@ -646,7 +646,9 @@ namespace SoccerVision.Simulation
                 }
 
                 // Net: the ball is inside the goal frame.
-                if (Ball.InGoal || (b.X * side > Pitch.HalfLength + r && MathF.Abs(b.Y) < Pitch.GoalHalfWidth && b.Z < Pitch.GoalHeight))
+                if (NetAbsorption && (Ball.InGoal || (b.X * side > Pitch.HalfLength + r && MathF.Abs(b.Y) < Pitch.GoalHalfWidth && b.Z < Pitch.GoalHeight)))
+                    SoftNet(ref b, from, side, dt); // (polish round 8: netting that gives, not a wall)
+                else if (Ball.InGoal || (b.X * side > Pitch.HalfLength + r && MathF.Abs(b.Y) < Pitch.GoalHalfWidth && b.Z < Pitch.GoalHeight))
                 {
                     float back = Pitch.HalfLength + Pitch.GoalDepth - r;
                     float impactSpeed = b.Speed;
@@ -748,7 +750,7 @@ namespace SoccerVision.Simulation
         internal int WoodworkContacts;
 
         /// <summary>Tests: the free ball alone against the goal frames for a while (no players, no rules).</summary>
-        internal BallMotion TestHitFrame(BallMotion start, float seconds, out int woodwork)
+        internal BallMotion TestHitFrame(BallMotion start, float seconds, out int woodwork, Action<BallMotion> eachStep = null)
         {
             Ball.Owner = null;
             Ball.M = start;
@@ -759,6 +761,7 @@ namespace SoccerVision.Simulation
                 var from = new Vec3(Ball.M.X, Ball.M.Y, Ball.M.Z);
                 BallPhysics.Step(ref Ball.M, Config, dt);
                 CollideGoalFrames(from, dt);
+                eachStep?.Invoke(Ball.M);
             }
             woodwork = WoodworkContacts - before;
             return Ball.M;

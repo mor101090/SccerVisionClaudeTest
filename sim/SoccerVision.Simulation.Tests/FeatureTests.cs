@@ -192,8 +192,10 @@ namespace SoccerVision.Simulation.Tests
                     e.Advance(0.1f);
                     if (e.Phase != MatchPhase.GoalCelebration) continue;
                     Interlocked.Increment(ref goals);
-                    Assert.True(MathF.Abs(e.Ball.Pos.X) <= Pitch.HalfLength + Pitch.GoalDepth + 0.01f, $"seed {6000 + i}: ball at x={e.Ball.Pos.X:0.00} behind the net");
-                    Assert.True(MathF.Abs(e.Ball.Pos.Y) <= Pitch.GoalHalfWidth + 0.01f || MathF.Abs(e.Ball.Pos.X) < Pitch.HalfLength, $"seed {6000 + i}: ball outside the side netting");
+                    // (polish round 8: the net gives - the ball may push it out by up to NetMaxGive, never further)
+                    float give = MatchEngine.NetAbsorption ? MatchEngine.NetMaxGive : 0f;
+                    Assert.True(MathF.Abs(e.Ball.Pos.X) <= Pitch.HalfLength + Pitch.GoalDepth + give + 0.01f, $"seed {6000 + i}: ball at x={e.Ball.Pos.X:0.00} behind the net");
+                    Assert.True(MathF.Abs(e.Ball.Pos.Y) <= Pitch.GoalHalfWidth + give + 0.01f || MathF.Abs(e.Ball.Pos.X) < Pitch.HalfLength, $"seed {6000 + i}: ball outside the side netting");
                 }
             });
             Assert.True(goals > 0);
