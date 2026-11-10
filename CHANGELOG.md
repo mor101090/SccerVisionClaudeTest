@@ -2,6 +2,23 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/marking-balance`
+
+**The zonal / man-to-man gap closed; fewer headed goals.** Measured: all four marking pairings, both seats, 100 matches each, on two seeds (1,600 matches), and 800 default matches.
+- **What was wrong.** A man-to-man defence conceded about 0.25 goals a match more than a zonal one (1.65 v 1.41, the mean over both seeds and both attacks; man v man 3.3-3.5 goals a match, zonal v zonal 2.5-2.7). The counters showed where: completed through balls 8 -> 14 a match, shots from inside 6 m +47%, dribbles at the keeper 51 -> 86. Every defender followed his man (up to 8 m into the other half) and nobody was left behind them; the assignments were made once, when the ball was lost, and never changed.
+- **A free man**: a back line of four or more leaves one centre-back without a man (the cover defender if there is one, else the most central): he stands 3 m behind the deepest of his markers, across towards the ball, and does not hold the offside line (the libero's price: offsides 4.1 -> 3.0 a match).
+- **Handing a man on**: a defender lets his man go once he drops 14 m into midfield (he holds the back line).
+- **Swaps**: two markers of a line swap men when the crossover saves them 3 m between them.
+- **Result**: goals conceded by a man-to-man defence 1.65 -> 1.41, by a zonal one 1.41 -> 1.34 (less of the open play in front of it): the systems now concede alike (0.07 apart, from 0.24). Win share, seats pooled, zonal over man-to-man: -1.2 and -6.2 points on the two seeds (+7.2 and -1.2 before; about 4.5 points of noise a seed). Man v man 2.85-2.91 goals a match (3.3-3.5).
+- **Fewer headed goals.** With through balls shut, more attacks end in crosses: the marking fix alone raised the headed share of goals from 20.6% to 23.7%. Two changes to headers (class D, set against the real headed share):
+  - a contested header goes wider (`HeaderContestError` 2): with a defender within 1.5 m, a header's aim error grows up to three times (fully contested at 0.5 m);
+  - a contested header in the box goes at goal with chance 0.15 + 0.4 x heading (`ContestedHeaderAtGoal`, 0.45 before; otherwise a flick-on or a knock-down).
+  Headed share of goals 20.6% -> 19.7% (real 13-19%), headed goals 0.61 -> 0.57 a match.
+- **Default match** (800 matches): goals 2.94 -> 2.78 (real 2.83), shots 26.4 -> 27.8 (real 25.4: inside the pin test's 22-28, near its top - open), on target 8.8 -> 8.5, corners 9.6 -> 10.1, pass completion 79.7% -> 80.2%, through balls 10.8 -> 7.1, offsides 4.1 -> 3.0, open-goal goals 0.085 -> 0.050 (the free man covers).
+- SimRunner switches for each part: `--nofreeman`, `--passon`, `--swapgain`, `--coverdepth`, `--headercontest`, `--contestedatgoal`. `MatchConfig.Injuries` (on; off for tests of other rules).
+- **Tests the round changed** (assertions kept): `ManMarkersKeepTheirMan...` counts a man as changed only when nobody in the group had him a moment ago (the swaps keep every man with the group); `FiveChangesInThreeOpportunities...` runs with injuries off (an injury after the test's own changes took the sixth); `ForwardsShootBeforeTheKeeper...` 48 -> 96 matches (open-goal goals now 0.05 a match); `FasterPlayersCoverMoreGround` 6 -> 12 matches (six landed at +2.6% against +3%).
+- **Tests**: `MarkingBalanceTests` (4).
+
 ## `feature/ball-parameters` (stage 12)
 
 **Ball physics, stage 12: every parameter classified.** **The match does not change.**

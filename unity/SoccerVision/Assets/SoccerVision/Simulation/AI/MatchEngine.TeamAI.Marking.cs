@@ -11,6 +11,22 @@ namespace SoccerVision.Simulation
         /// man-to-man leaked about 0.3 goals a team more than zonal; at 0.4 the gap in win share between the two systems falls from about 24 to about 9 points.</summary>
         public static float ManMarkGapScale = 0.4f;
 
+        /// <summary>
+        /// Man-to-man with a free man (the calibration round after ball physics stage 12): a back line of four or more leaves one centre-back
+        /// without a man, to cover behind the markers. Man-marking sides always kept one (the libero of catenaccio, the sweeper); without him a
+        /// marker drawn out of the line left nobody behind it, and a man-to-man defence conceded about 0.3 goals a match more than a zonal one.
+        /// </summary>
+        public static bool ManMarkFreeMan = true;
+        /// <summary>
+        /// How far (m) a defender follows his man forward of his own place in the shape before he lets him go to the midfield (he holds the line
+        /// behind instead). Man-oriented marking hands a man on rather than leaving a hole in the back line (class D).
+        /// </summary>
+        public static float ManMarkPassOnDistance = 14f;
+        /// <summary>How far (m) the free man stands behind the deepest of his markers (class D).</summary>
+        public static float ManMarkCoverDepth = 3f;
+        /// <summary>Two markers of the same line swap men when the crossover saves them this many metres between them (class D).</summary>
+        public static float ManMarkSwapGain = 3f;
+
         private readonly List<PlayerAgent> _markPool = new List<PlayerAgent>(11);
 
         private readonly List<PlayerAgent> _threats = new List<PlayerAgent>(11);
@@ -94,10 +110,22 @@ namespace SoccerVision.Simulation
             if (needBuild)
             {
                 var taken = new HashSet<PlayerAgent>();
+                foreach (var p in team.Players) p.IsFreeMan = false;
                 foreach (var line in new[] { Line.Defence, Line.Midfield })
                 {
                     var markers = new List<PlayerAgent>();
                     foreach (var p in team.Players) if (!p.SentOff && !p.IsGoalkeeper && p.Slot.Line == line) markers.Add(p);
+                    if (line == Line.Defence && ManMarkFreeMan && markers.Count >= 4)
+                    {
+                        // the free man: the cover defender if there is one, else the most central centre-back
+                        PlayerAgent free = null;
+                        foreach (var m in markers) if (m.PlayRole == PlayerRole.CoverDefender) { free = m; break; }
+                        if (free == null)
+                            foreach (var m in markers)
+                                if (free == null || MathF.Abs(m.Slot.BaseLateral) < MathF.Abs(free.Slot.BaseLateral)) free = m;
+                        free.IsFreeMan = true;
+                        markers.Remove(free);
+                    }
                     var group = new List<PlayerAgent>();
                     foreach (var o in opponents) { if (taken.Contains(o)) continue; group.Add(o); if (group.Count == markers.Count) break; }
                     // greedy nearest pairs inside the group
@@ -118,9 +146,26 @@ namespace SoccerVision.Simulation
                     }
                 }
             }
+            // Two markers of a line whose men have crossed over swap them, rather than chase across each other.
+            foreach (var a in team.Players)
+            {
+                if (a.SentOff || a.ManAssignment == null || a.Slot.Line == Line.Attack) continue;
+                foreach (var b in team.Players)
+                {
+                    if (b == a || b.SentOff || b.ManAssignment == null || b.Slot.Line != a.Slot.Line) continue;
+                    float now = Vec2.Distance(a.Pos, a.ManAssignment.Pos) + Vec2.Distance(b.Pos, b.ManAssignment.Pos);
+                    float swapped = Vec2.Distance(a.Pos, b.ManAssignment.Pos) + Vec2.Distance(b.Pos, a.ManAssignment.Pos);
+                    if (swapped < now - ManMarkSwapGain)
+                    {
+                        var t = a.ManAssignment; a.ManAssignment = b.ManAssignment; b.ManAssignment = t;
+                        if (CollectDiagnostics) Count("mark.swap");
+                    }
+                }
+            }
             foreach (var p in team.Players)
             {
                 if (p.SentOff || p.IsGoalkeeper || p.Slot.Line == Line.Attack) continue;
+                if (p.IsFreeMan && p.ManAssignment == null) continue; // (the free man covers; he takes nobody)
                 var man = p.ManAssignment;
                 if (man == null || man.SentOff)
                 {
@@ -139,6 +184,12 @@ namespace SoccerVision.Simulation
                 }
                 // the ball deep in their half: hold the shape (the assignment is kept for when they come forward)
                 if (ballF > 15f || man == null || p.IsDown || p == team.Presser || p == team.SecondPresser || man == Ball.Owner) continue;
+                // a defender lets his man go once he has dropped well into midfield: he holds the back line, the midfield has him
+                if (p.Slot.Line == Line.Defence && team.Forward(man.Pos) > team.Forward(p.ShapeTarget) + ManMarkPassOnDistance)
+                {
+                    if (CollectDiagnostics) Count("mark.passOn");
+                    continue;
+                }
                 p.MarkTarget = man;
             }
         }

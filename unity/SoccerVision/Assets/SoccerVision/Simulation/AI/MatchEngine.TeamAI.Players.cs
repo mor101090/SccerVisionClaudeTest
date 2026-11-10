@@ -298,6 +298,22 @@ namespace SoccerVision.Simulation
                         if (inBox || Vec2.Distance(p.Pos, goalSide) > 4f) urgency = 0.85f;
                     }
                 }
+                // The free man of a man-marking defence: a few metres behind the deepest of his markers, across towards the ball, to sweep up
+                // what gets past them (he marks nobody).
+                if (mark == null && p.IsFreeMan && team.Tactics.Marking == MarkingStyle.ManToMan && ballF < 15f)
+                {
+                    float deepest = float.PositiveInfinity;
+                    foreach (var q in team.Players)
+                        if (q != p && !q.SentOff && q.Slot.Line == Line.Defence) deepest = MathF.Min(deepest, team.Forward(q.Pos));
+                    if (!float.IsInfinity(deepest))
+                    {
+                        float f = MathF.Max(-Pitch.HalfLength + 6f, MathF.Min(team.Forward(target), deepest - ManMarkCoverDepth));
+                        float l = 0.35f * ballL;
+                        target = team.ToWorld(f, l);
+                        p.Task = PlayerTask.Mark;
+                        if (CollectDiagnostics) Count("mark.freeMan");
+                    }
+                }
                 // Ball-watching: now and then a defender near the ball loses his man for a moment and only watches the
                 // ball (more often a poor marker, a tired one, or in the chaos of the box) - the runner gets away from him.
                 if (mark != null && !mark.SentOff && p.BallWatchUntil < SimTime - 10f && Vec2.Distance(p.Pos, Ball.Pos) < 26f
@@ -314,7 +330,9 @@ namespace SoccerVision.Simulation
                 // Hold the line: a defender does not drop off to follow a forward standing beyond the line while the
                 // ball is still in front of it and under pressure - he is left offside. How reliably the line holds depends on the
                 // understanding between the defenders (DefensiveChemistry) and the player's own positioning.
-                if (p.Slot.Line == Line.Defence && Ball.Owner != null && Ball.Owner.Team != team && !Ball.InHands)
+                // (not the free man of a man-marking side: he stays behind the markers - and so plays everyone onside, the libero's price)
+                if (p.Slot.Line == Line.Defence && Ball.Owner != null && Ball.Owner.Team != team && !Ball.InHands
+                    && !(p.IsFreeMan && team.Tactics.Marking == MarkingStyle.ManToMan))
                 {
                     float chem = team.DefensiveChemistry;
                     float line = team.LineForward;

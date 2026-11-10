@@ -563,6 +563,12 @@ namespace SoccerVision.Simulation
             return true;
         }
 
+        /// <summary>
+        /// A contested header in the box goes at goal with this chance plus 0.4 x his heading (otherwise a flick-on or a knock-down). Class D,
+        /// set against the real headed share of goals: 0.45 until the marking round, 0.15 since (800 matches: headed share 20.6% -> 19.7%); see CHANGELOG.
+        /// </summary>
+        public static float ContestedHeaderAtGoal = 0.15f;
+
         private void HeaderTouch(PlayerAgent p, bool contested, bool opponentTouch)
         {
             if (CollectDiagnostics && Ball.Z > 1.9f) Count(p.JumpZ > 0.1f ? (p.JumpVz > -0.6f && p.JumpVz < 0.6f ? "header.jump.apex" : "header.jump.airborne") : "header.jump.ground");
@@ -621,7 +627,7 @@ namespace SoccerVision.Simulation
             if (headAtGoal)
             {
                 float hxg = EstimateShotXG(p, Ball.Pos, header: true);
-                if (contested && !_rng.Chance(0.45f + 0.4f * heading)) headAtGoal = false;
+                if (contested && !_rng.Chance(ContestedHeaderAtGoal + 0.4f * heading)) headAtGoal = false;
                 else if (hxg < 0.03f && _rng.Chance(0.6f)) headAtGoal = false;
                 if (!headAtGoal && CollectDiagnostics) Count("header.notAtGoal");
             }

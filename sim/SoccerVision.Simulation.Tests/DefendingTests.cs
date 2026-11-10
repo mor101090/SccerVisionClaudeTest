@@ -1,3 +1,4 @@
+using System.Linq;
 using SoccerVision.Simulation;
 using Xunit;
 
@@ -28,11 +29,17 @@ namespace SoccerVision.Simulation.Tests
                 {
                     e.Advance(0.1f);
                     if (e.Phase != MatchPhase.Live) { last.Clear(); continue; }
+                    // (markers swapping men when their forwards cross - the marking round's swaps, sometimes a chain of them between two samples - keep
+                    // every man with the group: only a man nobody had a moment ago counts as a change)
+                    var had = new HashSet<PlayerAgent>(last.Values);
                     foreach (var p in blue.Players)
                     {
                         if (p.SentOff || p.IsGoalkeeper || p.Slot.Line == Line.Attack) continue;
                         if (p.ManAssignment == null) { last.Remove(p); continue; }
-                        if (last.TryGetValue(p, out var before) && before != p.ManAssignment && !before.SentOff) changes++;
+                        if (last.TryGetValue(p, out var before) && before != p.ManAssignment && !before.SentOff)
+                        {
+                            if (!had.Contains(p.ManAssignment)) changes++;
+                        }
                         last[p] = p.ManAssignment;
                         // (only while he is marking - not while he covers a team-mate or steps in to intercept)
                         if (p.MarkTarget != null && p.Task == PlayerTask.Mark)
