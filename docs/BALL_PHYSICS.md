@@ -1,6 +1,7 @@
 # Ball physics
 
-The ball model of the match engine: what it is, where every number comes from, and how sure we are. Built in stages (one branch and
+The ball model of the match engine: what it is, where every number comes from, and how sure we are. Every parameter in one table:
+[`BALL_PARAMETERS.md`](BALL_PARAMETERS.md); the test bench's results: [`BALL_TEST_BENCH.md`](BALL_TEST_BENCH.md). Built in stages (one branch and
 PR each, the full engine suite before each merge). Units are SI throughout: kg, m, s, N, rad, Pa.
 
 **Classes** used for every parameter:
@@ -488,6 +489,15 @@ What the bench shows, read row by row:
 Tests: `BallTestBenchTests` (the doc is the bench's output; TESTS 2-14 are all there; FIFA's ranges; no energy created and the frame symmetric;
 spin acts as the Magnus force says; nothing passes through the post).
 
+## Stage 12 - every parameter classified (done)
+
+[`BALL_PARAMETERS.md`](BALL_PARAMETERS.md) lists every parameter of the ball's physics - the ball, the air, flight, the ground, the foot,
+collisions, deformation, the integrator - with its value, its class and its source, in one place. Of 62 rows, 5 are A, 11 B, 11 C, 28 D and 7 E.
+Most D values are choices inside an A or B range (the ball's mass in the Law's range, the ground's e in FIFA's). The E list is what needs
+calibration, in order of how much it matters to the match: the ground's restitution slope (the ball's own share is now measured, the turf's is
+not), the spin of a laces drive, ball-post and ball-body friction, the kick spin error, the inertia factor (a D value with no measurement), the
+knuckleball (a model, not a number) and pressure in the bounce. `BallParameterTests` fails when a field of a model class has no row there.
+
 ## Plan for the next stages
 
 | Stage | What | Changes the match? |
@@ -501,3 +511,4 @@ spin acts as the Magnus force says; nothing passes through the post).
 | 9 | **Done** (above). Deformation: the ball as a gas spring (k = 2 pi R P) fitted to measured impacts: contact time, flattening, the frame's measured restitution slope; the viewers draw the flat cap | A little (the frame's slope) |
 | 10 | **Done** (above). Stability: the ground touch inside the step, the trapezoid rule, the dead landing fixed; determinism tested | A little (goals 3.03 -> 2.94, noise-level) |
 | 11 | **Done** (above). Test bench: TESTS 2-14 with the recorded quantities, FIFA's tests run as FIFA runs them, `docs/BALL_TEST_BENCH.md` | No |
+| 12 | **Done** (above). Every parameter classified A-E in one table, [`BALL_PARAMETERS.md`](BALL_PARAMETERS.md), with the list of what needs calibration | No |
