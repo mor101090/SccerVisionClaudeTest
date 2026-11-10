@@ -11,7 +11,7 @@ Each round of changes is developed on its own branch, named after what it change
   for it - a smooth rise to that moment (up to a quarter of a second; at least 0.1 s when the ball is nearly there, and always from closed)
   and a smooth fall over a quarter of a second after it (`PlayerAgent.LegsOpen`, 0-1). At most 0.62 of the radius apart (a shoulder width).
 - **The replay frame:** the player flags carry how far open, 0-3, in bits 13-14 (bit 4096 still set while they are open, so an older reader
-  still shows it); the renderers interpolate it between frames. **All three renderers:** the app (`replay.ts`, `drawPitch.ts` - new), the
+  still shows it); the renderers interpolate it between frames. **All three renderers:** the app (`replay.ts`, `drawPitch.ts` - new; the copies in `web/src/replay/` kept in step), the
   classic page (`00-core.js`, `03-ball.js`) and Unity (`EntityViews.cs`, from `LegsOpen` directly).
 - Measured over 24 matches (112 openings): 0.44 s (real) on average, 0.33-0.51 s; widest with the ball within 2 m of him 108 times of 112;
   never more than a fifth of the way in one 0.02 s step. Parameters `LegsOpenSeconds` 0.5 (the item), `LegsOpenQuickest` 0.1 s.
