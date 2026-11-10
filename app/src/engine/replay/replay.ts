@@ -71,7 +71,7 @@ export interface Snapshot {
   awayScore: number;
   /** w: the ball's physical spin (world axes, rad per replay second), when the replay has it and the ball is free. contact: a contact in this frame (flattening m, push direction x, y, z). */
   ball: { x: number; y: number; z: number; owner: number; w?: [number, number, number]; contact?: [number, number, number, number] };
-  players: { x: number; y: number; facing: number; jump: number; sentOff: boolean; gk: boolean; booked: boolean; offside: boolean; sliding: boolean; grounded: boolean; injured: boolean; kick: number; kickLeft: boolean }[];
+  players: { x: number; y: number; facing: number; jump: number; sentOff: boolean; gk: boolean; booked: boolean; offside: boolean; sliding: boolean; grounded: boolean; injured: boolean; kick: number; kickLeft: boolean; legsOpen: number }[];
   /** flag: assistant's flag up; card: the referee holding up a card (0 none, 1 yellow, 2 red). */
   officials: { x: number; y: number; flag: boolean; flagDir: number; card: number }[];
   /** True when t falls in the half-time gap (no frames are recorded during the break). */
@@ -140,6 +140,8 @@ export function sample(replay: Replay, t: number): Snapshot {
       // the swing of a kicking leg: back, through the ball, settle (see the player's feet)
       kick: lerp(KICK_OFFSET[(flags >> 7) & 3], kickB, k),
       kickLeft: (flags & 512) !== 0,
+      // how far his legs are open for a ball going through them (0-1; flag bits 13-14, polish round 9)
+      legsOpen: lerp((flags >> 13) & 3, (b[o + 4] >> 13) & 3, k) / 3,
     });
   }
   const officials = [];

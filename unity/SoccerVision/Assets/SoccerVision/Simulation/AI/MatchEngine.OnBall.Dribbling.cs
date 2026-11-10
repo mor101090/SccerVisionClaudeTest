@@ -326,7 +326,7 @@ namespace SoccerVision.Simulation
             if (works)
             {
                 v.StunTimer = MathF.Max(v.StunTimer, 1.1f);     // fooled: he cannot get a foot to it
-                v.NutmegVictimUntil = SimTime + 0.9f;            // (his legs are drawn open)
+                OpenLegsFor(v, BallReaches(Vec2.Distance(Ball.Pos, v.Pos), speed)); // (his legs open as the ball goes through them)
                 p.NutmegChaseUntil = SimTime + 3f;
             }
             // he goes round the defender for his own ball

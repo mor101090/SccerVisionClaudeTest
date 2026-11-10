@@ -114,7 +114,7 @@ namespace SoccerVision.Runtime
             ShowOffside(a.OffsideMarkTimer > 0f);
             UpdateBodyScale(jump);
             UpdateDown(a.SlideTimer > 0f, a.IsDown && !a.SentOff, a.Facing);
-            UpdateKick(a.KickTimer, a.KickLeft);
+            UpdateKick(a.KickTimer, a.KickLeft, a.LegsOpen);
             _card.enabled = a.YellowCards > 0 && !a.SentOff;
             bool hurt = a.Injury != InjuryLevel.None && !a.SentOff;
             if (_injury.activeSelf != hurt) _injury.SetActive(hurt);
@@ -201,7 +201,7 @@ namespace SoccerVision.Runtime
         /// The swing of a kick or a pass: the kicking foot goes back (backswing), forward through the ball, then settles.
         /// The legs never run on the spot. _boots[0] is the right foot, _boots[1] the left.
         /// </summary>
-        private void UpdateKick(float timer, bool left)
+        private void UpdateKick(float timer, bool left, float legsOpen = 0f)
         {
             float offset = 0f;
             if (timer > 0f)
@@ -214,6 +214,8 @@ namespace SoccerVision.Runtime
                 var p = _boots[i].transform.localPosition;
                 bool kicking = (i == 1) == left;
                 p.x = 0.4f + (kicking ? offset * 0.5f : 0f);
+                // (a nutmeg: the legs open as the ball goes through them - at most a shoulder width; polish round 9)
+                p.y = (0.16f + 0.15f * legsOpen) * (i == 0 ? -1f : 1f);
                 _boots[i].transform.localPosition = p;
             }
         }

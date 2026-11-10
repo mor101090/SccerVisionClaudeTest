@@ -239,7 +239,7 @@
     var a = -facing, c = Math.cos(a), sn = Math.sin(a);
     ctx.fillStyle = boots || BOOTS; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = Math.max(.6, r * .06);
     [-1, 1].forEach(function (side) {
-      var fwd = .8 + ((side < 0) === !!kickLeft ? (heel ? -(kick || 0) : (kick || 0)) : 0), sp = open ? .95 : .32, fx = x + c * r * fwd - sn * r * sp * side, fy = y + sn * r * fwd + c * r * sp * side; // (a nutmeg: his legs are open, the ball goes between them)
+      var fwd = .8 + ((side < 0) === !!kickLeft ? (heel ? -(kick || 0) : (kick || 0)) : 0), sp = .32 + .3 * (open || 0), fx = x + c * r * fwd - sn * r * sp * side, fy = y + sn * r * fwd + c * r * sp * side; // (a nutmeg: his legs open as the ball goes between them - open 0-1, at most a shoulder width: polish round 9)
       ctx.beginPath(); ctx.ellipse(fx, fy, r * .3, r * .21, a, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     });
   }
@@ -343,7 +343,7 @@
         if (kk > .02) { keeperDive(p, tm, x, y, gy, r * g, kk, diveAng[i]); return; }
       }
       castShadow(p.x, p.y, x, gy, r * 1.05 * sh, r * .95 * sh, .5 * sh);
-      playerFeet(x, y, r * g, p.f, p.kp, p.kl, p.gk ? tm.kit.gkBoots || tm.kit.boots : tm.kit.boots, p.kh, p.no);
+      playerFeet(x, y, r * g, p.f, p.kp, p.kl, p.gk ? tm.kit.gkBoots || tm.kit.boots : tm.kit.boots, p.kh, p.lo || (p.no ? 1 : 0));
       playerDisc(x, y, r * g, p.gk ? tm.kit.gk : tm.kit.primary, p.gk ? tm.kit.gkTrim || tm.kit.secondary : tm.kit.secondary);
       ctx.fillStyle = p.gk ? tm.kit.gkNumber : tm.kit.number; ctx.font = "700 " + numFont(r * g, info.number) + "px Barlow, system-ui, sans-serif";
       fillC(String(info.number), x, y);

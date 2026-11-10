@@ -325,6 +325,7 @@ namespace SoccerVision.Simulation
             }
 
             UpdateTimers(dt);
+            UpdateLegs();
             UpdateDeadBall(dt);
             UpdateChangeFigure(dt);
             if (WalkingOut)
