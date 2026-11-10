@@ -2,6 +2,25 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/ball-continuity` (polish round 7: item 10)
+
+**One ball at a time, and it never jumps.** Measured: 400 default matches; `BallContinuityTests` (24 matches, every tenth of a second).
+- **Before:** every ball that went out was replaced by a new one rolled in from 9 m beyond the touchline, in a fixed 1.5 s - for a goal
+  kick too (it came in from the side), and starting at up to 20 m/s; a ball that stopped a metre over the touchline was still replaced.
+- **Now** (`MatchEngine.BallContinuity.cs`): where the ball will stop is worked out with the match physics the moment it goes out. A
+  throw-in where it stops **no further than 1.5 m beyond the touchline** (and within 8 m of the spot) is taken **with the same ball**:
+  it rolls to a stop, the thrower walks to it, picks it up and carries it to the spot (about 1% of throw-ins - most balls out of touch roll
+  further). Otherwise **a new ball from an attendant out of view**: **behind the goal line for a goal kick** (to the side of the goal, never
+  through the net) **or a corner**, beyond the touchline for a throw-in; it rolls in at no more than 8 m/s on average (the further, the
+  longer). The ball that went out is only a picture, and it is gone the moment the new ball comes within 2.5 m of it (a ball boy has it).
+- **Checked every tenth of a second at 72,878 moments of throw-ins, corners and goal kicks:** no jump of the match ball where it can be
+  seen (was 481 - all the fast roll-in), never the old ball beside the match ball, every goal kick's ball comes on from behind the goal line
+  (352 of 352). Goals, shots, corners, fouls unchanged (noise).
+- Counters `out.retrieved(.pickedUp)`, `out.newBall.<type>`, `restart.forced.ballPlaced`. Parameters `BallContinuity` (false: as before),
+  `ThrowInRetrieveDistance` 1.5 m (the item), `ThrowInRetrieveAlong` 8 m, `AttendantDistance` 6 m, `NewBallRollSpeed` 8 m/s
+  (approximations, D).
+- **Not changed:** after a foul the ball is still put on the spot 0.6 s after it stops (a player places it in real football: not drawn).
+
 ## `feature/free-kicks` (polish round 6: item 11)
 
 **Direct free kicks: the strike, the wall and the keeper.** Measured: 400 default matches, and varied squads (below).

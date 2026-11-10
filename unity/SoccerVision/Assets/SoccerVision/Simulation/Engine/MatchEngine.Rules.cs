@@ -79,14 +79,26 @@ namespace SoccerVision.Simulation
                 Emit(MatchEventType.ShotOffTarget, Ball.Shooter.Team, Ball.Shooter, null, Ball.Pos);
                 if (CollectDiagnostics && _lastShotOpenGoal) Count("openGoal.wide");
             }
-            ReleaseDeadBall(); // (it rolls on beyond the line; the restart is taken with a new ball)
             Ball.Owner = null;
             Ball.InHands = false;
             Ball.ClearFlight();
-            // the new ball: brought in from beyond the touchline, it rolls to the restart (see StepRestartBall)
-            _newBallFrom = new Vec2(spot.X, (Pitch.HalfWidth + 9f) * (spot.Y >= 0f ? 1f : -1f));
-            _newBallRolls = true;
-            Ball.Place(_newBallFrom);
+            // (polish round 7) A throw-in where the ball stops within reach of the spot: the same ball - it rolls on, the thrower fetches it.
+            _retrieveSameBall = CanRetrieveSameBall(type, spot);
+            _retrieveCarried = false;
+            if (_retrieveSameBall)
+            {
+                _newBallRolls = false;
+                if (CollectDiagnostics) Count("out.retrieved");
+            }
+            else
+            {
+                ReleaseDeadBall(); // (it rolls on beyond the line - only a picture now; the restart is taken with a new ball)
+                // the new ball: brought in by an attendant out of view, it rolls to the restart (see StepStoppage)
+                _newBallFrom = AttendantPosition(type, spot);
+                _newBallRolls = true;
+                Ball.Place(_newBallFrom);
+                if (CollectDiagnostics) Count("out.newBall." + type);
+            }
             ResolvePendingPass(null);
             ClearOffside();
             _penaltyKickTime = -1f;
