@@ -15,6 +15,8 @@ namespace SoccerVision.Simulation
         Restart,
         /// <summary>The ball pushed through an opponent's legs (a nutmeg): not a pass, the dribbler runs round to collect it.</summary>
         Nutmeg,
+        /// <summary>The ball knocked past a defender into space (knock-and-run): not a pass, the dribbler races him to it.</summary>
+        KnockOn,
     }
 
     /// <summary>The ball: free physics body or attached to a player (feet or goalkeeper's hands).</summary>

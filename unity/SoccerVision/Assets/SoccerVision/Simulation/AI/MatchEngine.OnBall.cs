@@ -70,9 +70,18 @@ namespace SoccerVision.Simulation
             p.Task = PlayerTask.OnBall;
             p.HoldTime += dt;
             p.DecisionTimer -= dt;
+            // (polish round 5: the ball has rolled off his path out of his reach - he goes to it first)
+            if (DribbleTouches && !BallAtFoot(p))
+            {
+                Vec2 rel = Ball.Pos - p.Pos;
+                Vec2 dir = p.Vel.LengthSq > 0.25f ? p.Vel.Normalized : p.FacingDir;
+                if (Vec2.Dot(rel, dir) < 0.3f || MathF.Abs(rel.X * dir.Y - rel.Y * dir.X) > 0.8f) { p.Target = Ball.Pos + Ball.Velocity * 0.25f; p.Urgency = MathF.Max(p.Urgency, 0.7f); }
+            }
 
             if (p.HasPendingPlan)
             {
+                // (polish round 5: the kick waits until his foot is at the ball - he runs onto it first)
+                if (!BallAtFoot(p)) { p.Target = Ball.Pos + Ball.Velocity * 0.25f; p.Urgency = MathF.Max(p.Urgency, 0.7f); return; }
                 if (p.DecisionTimer <= 0f) ExecutePlan(p, p.PendingPlan);
                 return;
             }
@@ -84,13 +93,14 @@ namespace SoccerVision.Simulation
                 case BallAction.Hold:
                 case BallAction.Dribble:
                     p.Target = plan.DribbleTarget;
+                    p.DribbleStyleNow = ChooseDribbleStyle(p, plan.DribbleTarget);
                     p.Urgency = plan.Action == BallAction.Dribble ? 0.85f : 0.3f;
                     p.DecisionTimer = (plan.Action == BallAction.Dribble ? 0.42f : 0.32f) * (1.25f - 0.5f * TempoNow(p.Team)) * _rng.Range(0.8f, 1.2f);
                     break;
                 default:
                     float turn = MathF.Abs(MathUtil.AngleDiff(p.Facing, plan.Heading));
                     float delay = plan.Heel ? 0f : turn / MathUtil.Pi * 0.32f; // (a heel flick is played where he stands: he does not turn for it)
-                    if (delay < 0.05f)
+                    if (delay < 0.05f && BallAtFoot(p))
                     {
                         ExecutePlan(p, plan);
                     }

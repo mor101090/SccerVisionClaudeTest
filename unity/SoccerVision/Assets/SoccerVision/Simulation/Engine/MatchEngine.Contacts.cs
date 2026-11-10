@@ -336,7 +336,12 @@ namespace SoccerVision.Simulation
             if (CollectDiagnostics) ContactCheck(p, Ball.Pos, Ball.Z, "control");
             bool changeOfPossession = Ball.LastTouchTeam != p.Team;
             ResolvePendingPass(p);
-            if (p.NutmegChaseUntil > SimTime) { p.Team.Stats.NutmegsWon++; p.NutmegChaseUntil = -1f; if (CollectDiagnostics) Count("skill.nutmegWon"); }
+            if (p.NutmegChaseUntil > SimTime)
+            {
+                if (Ball.LastKickKind == KickKind.KnockOn) { if (CollectDiagnostics) Count("dribble.knockOnWon"); }
+                else { p.Team.Stats.NutmegsWon++; if (CollectDiagnostics) Count("skill.nutmegWon"); }
+                p.NutmegChaseUntil = -1f;
+            }
             if (changeOfPossession) ClearOffside();
             if (changeOfPossession && Ball.LastToucher != null && Ball.LastToucher.Team != p.Team && Ball.PendingPassFrom == null && Ball.IsShot == false)
             {

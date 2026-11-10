@@ -66,7 +66,7 @@ namespace SoccerVision.Simulation
                 }
                 if (tight > 0) cap *= MathF.Max(0.55f, 1f - 0.22f * tight * (1.15f - 0.3f * MathUtil.A(p.Attr.PhysicalPower)));
             }
-            if (p.HasPendingPlan) cap = MathF.Min(cap, 3.5f);
+            if (p.HasPendingPlan && BallAtFoot(p)) cap = MathF.Min(cap, 3.5f); // (polish round 5: not while he is still running onto the ball)
             if (p.StunTimer > 0f) cap = MathF.Min(cap, 1.5f);
 
             float decel = p.MaxDecel;
