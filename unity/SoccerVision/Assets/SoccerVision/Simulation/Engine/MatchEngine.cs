@@ -486,6 +486,7 @@ namespace SoccerVision.Simulation
                 AssignBallDuties();
             }
             AnticipateHeaders();
+            StepWallJumps();
 
             // Think: may kick the ball (the carrier releases it immediately).
             for (int i = 0; i < AllPlayers.Count; i++)

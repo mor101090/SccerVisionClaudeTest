@@ -83,6 +83,15 @@ for (int i = 0; i < args.Length; i++)
         case "--progpush": MatchEngine.ProgressiveTouchPush = float.Parse(args[++i]); break; // (experiment; polish round 5)
         case "--kickreach": MatchEngine.FootReachForKick = float.Parse(args[++i]); break; // (experiment; polish round 5)
         case "--yellowrate": MatchEngine.YellowCardRate = float.Parse(args[++i]); break; // (experiment; polish round 5)
+        case "--fkstyles": MatchEngine.FreeKickStyles = args[++i] != "0"; break; // (experiment; polish round 6)
+        case "--fkaim": { var a = args[++i].Split(','); MatchEngine.FreeKickAimLow = float.Parse(a[0]); MatchEngine.FreeKickAimHigh = float.Parse(a[1]); break; }
+        case "--fkunder": MatchEngine.FreeKickUnderChance = float.Parse(args[++i]); break;
+        case "--wallstay": MatchEngine.WallStaysDownChance = float.Parse(args[++i]); break;
+        case "--keeperoff": MatchEngine.KeeperFarSideOffset = float.Parse(args[++i]); break;
+        case "--wallout": MatchEngine.WallOutsidePost = float.Parse(args[++i]); break;
+        case "--fkerr": MatchEngine.FreeKickHeightError = float.Parse(args[++i]); break;
+        case "--fknear": MatchEngine.FreeKickNearSide = float.Parse(args[++i]); break;
+        case "--fkswitch": MatchEngine.FreeKickFootSwitch = float.Parse(args[++i]); break;
         case "--spayellow": MatchEngine.PromisingAttackYellow = float.Parse(args[++i]); break; // (experiment; polish round 5)
         case "--closedist": MatchEngine.CloseControlDistance = float.Parse(args[++i]); break; // (experiment; polish round 5)
         case "--headerminxg": MatchEngine.HeaderMinXg = float.Parse(args[++i]); break; // (experiment; polish round 1)
@@ -371,10 +380,10 @@ static void Report(MatchResult[] r, double wallSeconds)
     Row("Keeper sorties", Avg(x => x.Sorties), "n/a");
     Row("Headed shots", Avg(x => x.Headers), "16.5% of shots (StatsBomb)");
     Row("Volleys", Avg(x => x.Volleys), "n/a");
-    Row("Direct free-kick shots", Avg(x => x.FreeKickShots), "~0.6-1");
+    Row("Direct free-kick shots", Avg(x => x.FreeKickShots), "[S] 1.06");
     Row("Headed goals % of goals", 100.0 * r.Sum(x => x.HeaderGoals) / Math.Max(1, r.Sum(x => x.Goals)), "13-19 (PL)");
     Row("Volley goals % of goals", 100.0 * r.Sum(x => x.VolleyGoals) / Math.Max(1, r.Sum(x => x.Goals)), "n/a");
-    Row("Free-kick goals", Avg(x => x.FreeKickGoals), "~0.05-0.1");
+    Row("Free-kick goals", Avg(x => x.FreeKickGoals), "[S] 0.066");
     Row("Woodwork hits", Avg(x => x.Woodwork), "~0.6-0.8 (est.)");
     Row("Keeper catches", Avg(x => x.Catches), "n/a");
     Row("Keeper parries", Avg(x => x.Parries), "n/a");

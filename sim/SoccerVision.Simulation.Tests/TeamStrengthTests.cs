@@ -83,9 +83,10 @@ namespace SoccerVision.Simulation.Tests
         public void TheBiggestMismatchIsNotAMassacre()
         {
             // real Premier League: a top-two side beats a bottom-three side 89% of the time, a top four side at home 80% (10 seasons, 3,800 matches).
-            // Strong v weak (both seats, 40 matches) must stay in that range: well above a coin flip, well below "always".
-            var h = Play(TeamStrength.Strong, TeamStrength.Weak, 20); var a = Play(TeamStrength.Weak, TeamStrength.Strong, 20);
-            double winPct = 100.0 * (h.HomeWins + a.AwayWins) / 40;
+            // Strong v weak (both seats, 100 matches) must stay in that range: well above a coin flip, well below "always".
+            // (40 matches swung from 55% to 77.5% on the same engine with a change that leaves this untouched - 200 matches: 70-75%)
+            var h = Play(TeamStrength.Strong, TeamStrength.Weak, 50); var a = Play(TeamStrength.Weak, TeamStrength.Strong, 50);
+            double winPct = 100.0 * (h.HomeWins + a.AwayWins) / 100;
             Assert.InRange(winPct, 62, 92);
         }
     }

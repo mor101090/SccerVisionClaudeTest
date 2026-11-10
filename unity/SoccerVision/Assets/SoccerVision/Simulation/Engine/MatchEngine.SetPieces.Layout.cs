@@ -393,6 +393,24 @@ namespace SoccerVision.Simulation
             var pool = new List<PlayerAgent>();
             foreach (var p in def.Players) if (!p.SentOff && !p.IsGoalkeeper) pool.Add(p);
             pool.Sort((x, y) => Vec2.Distance(x.Pos, centre).CompareTo(Vec2.Distance(y.Pos, centre)));
+            if (FreeKickStyles)
+            {
+                // (polish round 6) Lined up on the near post as real walls are: the end man stands on the line from the ball to a point
+                // WallOutsidePost outside the near post (against the ball bent round the wall), the rest shoulder to shoulder inwards,
+                // 9.15 m from the ball - the wall shuts the near half of the goal; the keeper takes the rest.
+                Vec2 post = new Vec2(Pitch.HalfLength * goalSign, nearSide * (Pitch.GoalHalfWidth + WallOutsidePost));
+                Vec2 toPost = (post - r.Spot).Normalized;
+                Vec2 end = r.Spot + toPost * (Pitch.RestartDistance + 0.1f);
+                Vec2 inward = toPost.Perp;
+                if (Vec2.Dot(inward, new Vec2(0f, -nearSide)) < 0f) inward = -inward;
+                if (MathF.Abs(r.Spot.Y) < 1.5f) end -= inward * (0.31f * (wallCount - 1)); // (straight in front of goal: a wall across the middle)
+                for (int i = 0; i < wallCount && i < pool.Count; i++)
+                {
+                    pool[i].ShapeTarget = end + inward * (i * 0.62f);
+                    r.Wall.Add(pool[i]);
+                }
+            }
+            else
             for (int i = 0; i < wallCount && i < pool.Count; i++)
             {
                 float offset = (i - (wallCount - 1) * 0.5f) * 0.62f;
@@ -402,7 +420,8 @@ namespace SoccerVision.Simulation
                 r.Wall.Add(pool[i]);
             }
             var gk = def.Goalkeeper;
-            if (gk != null) gk.ShapeTarget = new Vec2((Pitch.HalfLength - 0.7f) * goalSign, -nearSide * 0.9f);
+            // (polish round 6: where the wall leaves the goal open, a step towards the wall's side)
+            if (gk != null) gk.ShapeTarget = FreeKickStyles ? KeeperSpotBehindWall(r, goalSign) : new Vec2((Pitch.HalfLength - 0.7f) * goalSign, -nearSide * 0.9f);
 
             LayoutFreeKickBox(r, centre);
         }
