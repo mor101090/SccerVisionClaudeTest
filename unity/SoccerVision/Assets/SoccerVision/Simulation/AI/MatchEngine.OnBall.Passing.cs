@@ -133,6 +133,8 @@ namespace SoccerVision.Simulation
                     AddGroundPass(p, q, from, into, KickKind.ThroughBall, pressure);
                     _nextPassIntoSpace = false;
                     _nextOneTwo = false;
+                    // (polish round 4: a man in the lane - the return can be clipped over him into the run)
+                    if (LaneClearance(team, from, into) < OneTwoChipLane) AddLoftedPass(p, q, from, into, pressure, KickKind.ThroughBall, OneTwoChipMinDistance);
                     float pull = 0.009f * StyleShort(team);
                     for (int i = before; i < _options.Count; i++)
                     {
@@ -401,12 +403,12 @@ namespace SoccerVision.Simulation
             return best;
         }
 
-        private void AddLoftedPass(PlayerAgent p, PlayerAgent q, Vec2 from, Vec2 target, float pressure, KickKind kind)
+        private void AddLoftedPass(PlayerAgent p, PlayerAgent q, Vec2 from, Vec2 target, float pressure, KickKind kind, float minDistance = 12f)
         {
             var team = p.Team;
             Vec2 delta = target - from;
             float d = delta.Length;
-            if (d < 12f || d > 62f) return;
+            if (d < minDistance || d > 62f) return;
             float angle = kind == KickKind.ThroughBall ? 0.62f : (d > 35f ? 0.52f : 0.46f);
             // Drag-corrected ballistic estimate (exact solve happens only when the pass is executed).
             float v = MathF.Sqrt(d * Config.Gravity / MathF.Sin(2f * angle)) * (1f + 0.0032f * d);
@@ -536,7 +538,7 @@ namespace SoccerVision.Simulation
             // past the man on the side away from the receiver's marker: drift a little towards the receiver's line
             Vec2 spot = Pitch.ClampToField(team.ToWorld(ahead, MathUtil.Clamp(lat + (qLat - lat) * 0.3f, -30f, 30f)), -2f);
             if (SpaceAround(team, spot) < 3f) return;
-            float chance = 1.4f * (0.75f + 0.5f * MathUtil.A(p.Attr.OffTheBall) + 0.3f * MathUtil.A(p.Attr.Teamwork)) * StyleShort(team) * (0.8f + 0.4f * team.Eff.Mentality);
+            float chance = OneTwoRunChance * (0.75f + 0.5f * MathUtil.A(p.Attr.OffTheBall) + 0.3f * MathUtil.A(p.Attr.Teamwork)) * StyleShort(team) * (0.8f + 0.4f * team.Eff.Mentality);
             if (!_rng.Chance(chance)) return;
             p.OneTwoWith = q;
             p.OneTwoUntil = SimTime + 3.6f;
