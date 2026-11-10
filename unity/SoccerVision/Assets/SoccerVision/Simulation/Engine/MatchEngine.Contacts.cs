@@ -403,7 +403,6 @@ namespace SoccerVision.Simulation
                     }
                 }
             }
-            p.ControlledAt = SimTime;
             p.OneTwoUntil = -1f; // (the return ball has arrived, or the run is over)
             p.ThirdManUntil = -1f;
             p.RunCheckUntil = -1f;
@@ -418,6 +417,7 @@ namespace SoccerVision.Simulation
                 {
                     if (WallPassOnNow(p, r)) { p.DecisionTimer = MathF.Min(p.DecisionTimer, 0.12f); break; }
                     r.OneTwoUntil = MathF.Max(r.OneTwoUntil, SimTime + OneTwoDelayedWindow);
+                    p.OneTwoCarryUntil = SimTime + OneTwoCarrySeconds;
                     continue;
                 }
                 if (r.ThirdManVia == p && r.ThirdManUntil > SimTime) { p.DecisionTimer = MathF.Min(p.DecisionTimer, 0.12f); break; }

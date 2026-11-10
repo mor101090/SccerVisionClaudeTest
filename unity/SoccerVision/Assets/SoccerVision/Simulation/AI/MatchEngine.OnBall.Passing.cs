@@ -120,7 +120,7 @@ namespace SoccerVision.Simulation
                 if (offside) continue;
 
                 // One-two: q gave me the ball and is running past for it back - play it into his run, first time.
-                if (q.OneTwoWith == p && q.OneTwoUntil > SimTime)
+                if (q.OneTwoWith == p && q.OneTwoUntil > SimTime && !CarryingBeforeTheReturn(p))
                 {
                     Vec2 toSpot = q.OneTwoSpot - q.Pos;
                     float left = toSpot.Length;

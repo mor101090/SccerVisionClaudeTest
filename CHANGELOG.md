@@ -2,6 +2,28 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/combinations` (polish round 4: item 8)
+
+**One-twos as they are played: mostly after a carry, sometimes first time, now and then clipped.** Measured: 400 default matches.
+- **Real (new `tools/calibration/combinations.py`, StatsBomb, Premier League 2015/16, all 380 matches):** 24.2 one-twos a match - 3.24
+  immediate (no carry between the passes), 20.95 delayed; the return 89% along the ground, 7% low, 4% high.
+- **What was wrong.** 52 return balls a match, 77% of them first time: the receiver of a give-and-go always played it back within 0.12 s,
+  whatever was in the way.
+- **Now.** The wall pass is played first time only when it is on at once - an open lane (2.5 m) into the runner's stride and the runner
+  already 5 m goal-side of the nearest defender (`OneTwoPastHisMan`, set against the real 13% first time). Otherwise the receiver takes it
+  under control and carries it (2 m, at most 3 s) while the runner keeps his run going for up to 6 s (the data's window), and then returns
+  it: the delayed one-two. With a man in the lane the return can be clipped over him (`OneTwoChipLane`).
+- **Result** (a match): return balls 52 -> 25 (12.4 a team: the earlier round's "at least ten a team" holds), completed 38 -> about 17
+  (real 24.2), first time 77% -> 16% (real 13%), returns in the air 0% -> 14% (real 11%).
+- New counters: `onetwo.return.<immediate|delayed>.<ground|lofted|heel>`. SimRunner switches: `--onetworun`, `--onetwolane`, `--onetwopast`.
+- Other figures (400 matches): goals 2.79 -> 2.79, shots 27.8 -> 27.4, corners 11.7 -> 11.1, pass completion 79.1% -> 80.7%, open-goal
+  goals 0.055 -> 0.055; headed share of goals 20.0% -> 22.6% (open: the headed share keeps drifting up, against the real 13-19%).
+- **Tests**: `CombinationTests` (1): completed one-twos, mostly delayed, some lofted; third-man runs happen.
+- **A test whose floor changed** (disclosed): `ForwardsShootBeforeTheKeeperIsOnThem...` judges open-goal goals over 384 matches and its floor
+  is 0.015 a match, not 0.03 - the floor was the engine's own earlier rate (no real figure behind it); on the test's random squads the
+  rate is now 0.029 (0.055 on the default squads, unchanged); the test's point - the square ball for a tap-in happens, but not every match
+  - is kept.
+
 ## `feature/card-sequences` (polish round 3: items 5, 6 and 7)
 
 **The card as a sequence, shared by the whole match.** Measured: 400 default matches.

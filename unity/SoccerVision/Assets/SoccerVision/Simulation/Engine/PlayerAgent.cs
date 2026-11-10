@@ -177,8 +177,8 @@ namespace SoccerVision.Simulation
         public int KickPhase => KickTimer <= 0f ? 0 : KickTimer > 0.30f ? 1 : KickTimer > 0.15f ? 2 : 3;
         /// <summary>Where the one-two run goes (world).</summary>
         public Vec2 OneTwoSpot;
-        /// <summary>When he last took control of the ball (sim seconds): a pass soon after is played first time, a later one after a touch or a carry.</summary>
-        public float ControlledAt = -10f;
+        /// <summary>A delayed one-two: he carries the ball first (until then, or until he has moved it OneTwoCarryDistance) before he returns it.</summary>
+        public float OneTwoCarryUntil = -1f;
         /// <summary>The opponent this player marks right now (either system).</summary>
         public PlayerAgent MarkTarget;
         /// <summary>Ball-watching: until then he has lost his man and looks at the ball (a marking lapse).</summary>
