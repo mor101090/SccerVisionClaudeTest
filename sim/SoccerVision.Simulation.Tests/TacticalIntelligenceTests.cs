@@ -136,13 +136,17 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void LongThrowsGoIntoTheSixYardBox()
         {
-            // a team of strong throwers: long throws near the box land around the six-yard box
+            // a team with a long-throw specialist: long throws near the box land around the six-yard box (since polish round 2 only a man who
+            // can reach the box throws it long - his release speed decides it - and that is the specialist; a team of strong ordinary
+            // throwers, which this test used before, reaches the edge of the box at best)
             int longThrows = 0;
             var seeds = Seeds.Concat(Seeds.Select(x => x + 100)).ToArray(); // (a rare thing: twelve matches, not six)
             Parallel.For(0, seeds.Length, i =>
             {
                 var red = DemoTeams.Red();
                 foreach (var p in red.Starters) p.Attributes.PhysicalPower = 85;
+                var thrower = red.Starters.First(p => p.PositionLabel == "RB" || p.PositionLabel == "LB");
+                thrower.Traits |= PlayerTrait.LongThrowSpecialist;
                 var e = new MatchEngine(red, DemoTeams.Blue(), seeds[i], MatchConfig.CreateDefault());
                 e.RunToEnd();
                 System.Threading.Interlocked.Add(ref longThrows, e.Home.Stats.LongThrows);
