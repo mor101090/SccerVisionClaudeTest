@@ -320,8 +320,8 @@ namespace SoccerVision.Simulation.Tests
                         if (p.SentOff || p.Injury == InjuryLevel.Serious) continue; // (an injured player is helped off over the line)
                         float outside = MathF.Max(MathF.Abs(p.Pos.X) - Pitch.HalfLength, MathF.Abs(p.Pos.Y) - Pitch.HalfWidth);
                         bool exempt = setUp && p == r.Taker && (r.Type == RestartType.ThrowIn || r.Type == RestartType.CornerKick);
-                        // (a corner taker runs up from behind the corner, off the pitch)
-                        float limit = e.Phase == MatchPhase.Live ? 1.7f : (exempt ? (r.Type == RestartType.CornerKick ? 3.6f : 1.0f) : 0.35f);
+                        // (a corner taker runs up from behind the corner, off the pitch; a thrower fetches the ball that went out, up to ThrowInRetrieveDistance beyond the line)
+                        float limit = e.Phase == MatchPhase.Live ? 1.7f : (exempt ? (r.Type == RestartType.CornerKick ? 3.6f : MatchEngine.ThrowInRetrieveDistance + 0.6f) : 0.35f);
                         Interlocked.Increment(ref checkedTicks);
                         Assert.True(outside <= limit, $"seed {7000 + i} {e.Phase} {(setUp ? r.Type.ToString() : "")} {p.Team.ShortName}#{p.Number} is {outside:0.0} m outside the pitch");
                     }

@@ -160,7 +160,11 @@ namespace SoccerVision.Simulation
         {
             float nearSide = MathF.Abs(r.Spot.Y) > 0.5f ? MathF.Sign(r.Spot.Y) : 1f;
             float y = MathF.Abs(r.Spot.Y) < 1.5f ? 0f : -nearSide * KeeperFarSideOffset;
-            return new Vec2((Pitch.HalfLength - 0.8f) * goalSign, y);
+            var spot = new Vec2((Pitch.HalfLength - 0.8f) * goalSign, y);
+            // (a free kick from beside the goal: the ball is within 9.15 m of the keeper's step off his line; Law 13 lets him stand on the goal line
+            // between the posts, so he stands there instead of being pushed out of the circle past the post)
+            if (Vec2.Distance(spot, r.Spot) < Pitch.RestartDistance + 0.3f) spot = new Vec2((Pitch.HalfLength - 0.2f) * goalSign, MathUtil.Clamp(y, -Pitch.GoalHalfWidth + 0.4f, Pitch.GoalHalfWidth - 0.4f));
+            return spot;
         }
     }
 }
