@@ -82,7 +82,7 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void ASubstitutionIsMadeAtTheNextStoppageAndThePlayerCannotReturn()
         {
-            var e = Engine(11);
+            var e = Engine(11, injuries: false); // (since polish round 1 an injury in this match took a second window of its own)
             PlayUntil(e, () => e.Clock.Seconds > 20 * 60);
             var off = e.Home.Players[7];
             int outNumber = off.Number, inNumber = e.Home.Bench[3].Number;

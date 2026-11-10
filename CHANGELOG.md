@@ -32,7 +32,10 @@ Each round of changes is developed on its own branch, named after what it change
 - SimRunner switches: `--playoffpressure`, `--headerminxg`, `--volleyminxg`. New counters: `kickout.*`, `playoff.*`, `cross.firstTouch.*`,
   `volley.notStruck`.
 - **Tests the round changed** (assertions kept): `AttackCalibrationTests` runs 48 matches instead of 24 (a 24-match mean of goals moved by
-  about 0.35 on its own: 3.67 on seeds 4400-4423, 3.08 on the next 72).
+  about 0.35 on its own: 3.67 on seeds 4400-4423, 3.08 on the next 72); `AHighBacklinePlaysHighAndCompact...` measures the depth over 24
+  matches instead of 6 (the normal line now plays higher, 33 -> 36 m, with no kicks into touch ending its attacks: the high line's lead is
+  6.6 m over 24 matches, 8.7 before, but 4.1 on the first six); `ASubstitutionIsMadeAtTheNextStoppage...` runs with injuries off (an injury
+  in that match now took a second window of its own).
 - **Tests**: `TouchlineTests` (3): no deliberate kick-out in the attacking third while the ball still goes out by accident; a play-off wins
   its restart through the contact; the leg's face sends a ball driven across the defender towards the line.
 

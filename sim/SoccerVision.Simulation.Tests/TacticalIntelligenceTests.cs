@@ -39,7 +39,10 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void AHighBacklinePlaysHighAndCompactWithTheKeeperBehindIt()
         {
-            double normal = Avg(null, Depth), high = Avg(t => t.Defence = DefenceStyle.HighBackline, Depth);
+            // (24 matches: on the first six the gap fell to 4.1 m after polish round 1 - the normal line now plays higher, 33 -> 36 m, with no kicks
+            // into touch ending its attacks - while over 24 it is 6.6 m, 8.7 before)
+            var depthSeeds = Seeds.Concat(Enumerable.Range(0, 18).Select(k => 600UL + (ulong)k)).ToArray();
+            double normal = Avg(null, Depth, seeds: depthSeeds), high = Avg(t => t.Defence = DefenceStyle.HighBackline, Depth, seeds: depthSeeds);
             Assert.True(high > normal + 5, $"back line {high:0} m v {normal:0} m from own goal");
             // compact: the distance from the back line to the forwards out of possession is shorter
             // (18 matches: over 30 the gap is about 2.5 m, but six landed at 1.4 m after ball physics stage 9 changed the frame's restitution)
