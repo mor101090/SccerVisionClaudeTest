@@ -202,10 +202,11 @@ namespace SoccerVision.Simulation.Tests
             Assert.True(bold > line + 0.8, "the bold keeper stands higher");
 
             // (rare: a dive near the box, about 0.1 bought and 0.07 booked per match over 240 matches; 32 matches can draw no bought dive at all,
-            // as they did after the collisions of ball physics stage 8 changed the random stream)
-            var divers = Play(() => Give(DemoTeams.Red(), PlayerTrait.DrawsFouls), 8700, 64);
+            // as they did after the collisions of ball physics stage 8 changed the random stream - and 64 did after polish round 6 (0 bought,
+            // 9 booked; the same code over 200 other matches: 31 bought, 16 booked), so 160)
+            var divers = Play(() => Give(DemoTeams.Red(), PlayerTrait.DrawsFouls), 8700, 160);
             int bought = divers.Sum(e => e.Diagnostics.GetValueOrDefault("dive.bought")), booked = divers.Sum(e => e.Diagnostics.GetValueOrDefault("dive.booked"));
-            _out.WriteLine($"dives bought {bought}, booked {booked} in 64 matches");
+            _out.WriteLine($"dives bought {bought}, booked {booked} in 160 matches");
             Assert.True(bought > 0 && booked > 0, "the diver sometimes wins it and is sometimes booked");
             Assert.All(divers, e => Assert.Equal(0, e.RecoveredErrors));
         }

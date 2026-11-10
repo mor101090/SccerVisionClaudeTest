@@ -35,6 +35,8 @@ Each round of changes is developed on its own branch, named after what it change
   (`card.late.refereeWent`). `RunsInBehindPlaysMoreThroughBalls` compared six matches (x1.15 to x1.43 on the same code; 24 matches still x1.30); it now takes 60
   (120 matches: x1.50; the threshold x1.3 is kept). `TheBiggestMismatchIsNotAMassacre` judged the strong side's wins on 40 matches (55% here, 77.5% with the old free
   kick on the same seeds; 200 matches: 75% now, 70.5% before) - now 100.
+  `BoldKeepersStandHigherAndTheDiverGoesDownNearTheBox` drew no bought dive in its 64 matches (9 booked; 200 other matches: 31 bought,
+  16 booked) - now 160.
 
 ## `feature/dribble-touches` (polish round 5: item 9)
 
