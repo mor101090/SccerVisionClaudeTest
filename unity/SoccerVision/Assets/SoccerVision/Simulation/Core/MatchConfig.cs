@@ -52,6 +52,8 @@ namespace SoccerVision.Simulation
         public float MomentumMinutes = 8f;
         /// <summary>IFAB Law 3: the five changes in at most three opportunities during play (half-time does not count).</summary>
         public int MaxSubstitutionWindows = 3;
+        /// <summary>Players can be injured (on: the game). Off is for tests of other rules that an injury would get in the way of.</summary>
+        public bool Injuries = true;
         /// <summary>Sim seconds a seriously injured player is treated on the pitch before he is helped off.</summary>
         public float InjuryTreatmentSeconds = 9f;
         /// <summary>

@@ -9,12 +9,14 @@ namespace SoccerVision.Simulation.Tests
     /// <summary>The manager's tools: formations, the starting eleven, roles, individual instructions, set-piece takers and substitutions.</summary>
     public class ManagerTests
     {
-        private static MatchEngine Engine(ulong seed, string homePlan = null, Action<TeamSetup> setup = null)
+        private static MatchEngine Engine(ulong seed, string homePlan = null, Action<TeamSetup> setup = null, bool injuries = true)
         {
             var red = DemoTeams.Red();
             setup?.Invoke(red);
             if (homePlan != null) TeamPlan.Parse(homePlan).ApplyBeforeKickOff(red);
-            return new MatchEngine(red, DemoTeams.Blue(), seed, MatchConfig.CreateDefault());
+            var c = MatchConfig.CreateDefault();
+            c.Injuries = injuries;
+            return new MatchEngine(red, DemoTeams.Blue(), seed, c);
         }
 
         private static void PlayUntil(MatchEngine e, Func<bool> done, float maxRealSeconds = 3000f)
@@ -104,16 +106,9 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void FiveChangesInThreeOpportunitiesHalfTimeIsFree()
         {
-            // (the rules, not a particular match: a match where no injury forced a change before half-time - the first such seed from 12;
-            // with more fouls since the match-statistics round, seed 12 itself has a first-half injury substitution)
-            ulong seed = 12;
-            for (; seed < 60; seed++)
-            {
-                var probe = Engine(seed);
-                PlayUntil(probe, () => probe.Phase == MatchPhase.HalfTimeBreak);
-                if (probe.Home.SubstitutionsUsed == 0) break;
-            }
-            var e = Engine(seed);
+            // (the rules, not a particular match: with injuries off, so no forced change takes one of the five - the test used to look for a seed
+            // with no early injury, and after the marking round an injury came after its own changes and took the sixth)
+            var e = Engine(12, injuries: false);
             int Changes() => e.Home.SubstitutionsUsed;
             // at half-time: two changes, no opportunity used
             PlayUntil(e, () => e.Phase == MatchPhase.HalfTimeBreak);

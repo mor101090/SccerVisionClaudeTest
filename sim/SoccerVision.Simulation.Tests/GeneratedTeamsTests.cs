@@ -80,8 +80,8 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void FasterPlayersCoverMoreGround()
         {
-            // (over six matches: one match is too noisy)
-            double Run(int speed) => new ulong[] { 5, 6, 7, 8, 9, 10 }.AsParallel().Select(seed =>
+            // (over twelve matches: one match is too noisy, and six landed at +2.6% after the marking round changed the matches)
+            double Run(int speed) => new ulong[] { 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 }.AsParallel().Select(seed =>
             {
                 var home = DemoTeams.Red();
                 // (stamina pinned too: with the generator's realism squads - young players with less of it - distance was set by fatigue,

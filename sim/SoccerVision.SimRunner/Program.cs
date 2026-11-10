@@ -76,6 +76,7 @@ for (int i = 0; i < args.Length; i++)
         case "--swapgain": MatchEngine.ManMarkSwapGain = float.Parse(args[++i]); break; // (experiment; 999 = never swaps)
         case "--coverdepth": MatchEngine.ManMarkCoverDepth = float.Parse(args[++i]); break; // (experiment)
         case "--headercontest": MatchEngine.HeaderContestError = float.Parse(args[++i]); break; // (experiment; 0 = a contested header is aimed as a free one)
+        case "--contestedatgoal": MatchEngine.ContestedHeaderAtGoal = float.Parse(args[++i]); break; // (experiment)
         case "--zoneradius": MatchEngine.ZoneRadiusScale = float.Parse(args[++i]); break; // (experiment)
         case "--savebase": MatchEngine.SaveBase = float.Parse(args[++i]); break; // (experiment: the save chance of an easy shot)
         case "--legacyflight": legacyFlight = true; break;

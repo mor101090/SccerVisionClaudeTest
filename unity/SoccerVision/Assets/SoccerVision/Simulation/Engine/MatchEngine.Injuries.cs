@@ -24,6 +24,7 @@ namespace SoccerVision.Simulation
         /// <summary>Rolls for an injury to <paramref name="p"/> after a contact.</summary>
         private void MaybeInjure(PlayerAgent p, float pLight, float pSerious, string cause)
         {
+            if (!Config.Injuries) return; // (before any draw: with injuries on, the random stream is untouched)
             if (p == null || p.SentOff || p.Injury == InjuryLevel.Serious) return;
             if (ScriptExclusive && cause != "script") return; // a staged match has only its own injuries
             // Fitter, stronger players get hurt a little less; tired ones more.
