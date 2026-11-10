@@ -466,16 +466,25 @@ namespace SoccerVision.Simulation
         /// impulse is the bounce's (<see cref="BallPhysics.Impact"/>) with restitution e: a body gives far more than a post (e 0.2-0.55, the
         /// old model's drawn speed shares, class D) and its friction puts spin on the ball.
         /// </summary>
-        private void BodyImpact(PlayerAgent p, float e, float offset, float lift)
+        /// <summary>
+        /// The contact normal when a ball strikes a player's body (a vertical cylinder): where across the body it struck (offset -1..1: square on
+        /// at 0, a glancing touch at the edge) and how far the leg or the hip tilts it up (lift 0..1: up to 30 degrees). Shared with the test bench.
+        /// </summary>
+        internal static Vec3 BodyContactNormal(Vec2 ballVelocity, Vec2 playerVelocity, float offset, float lift)
         {
-            var cm = Config.Collisions;
-            Vec2 rel = Ball.Velocity - p.Vel;
-            Vec2 u = rel.LengthSq > 0.01f ? rel.Normalized : Ball.Velocity.Normalized;
+            Vec2 rel = ballVelocity - playerVelocity;
+            Vec2 u = rel.LengthSq > 0.01f ? rel.Normalized : ballVelocity.Normalized;
             Vec2 side = new Vec2(-u.Y, u.X);
             offset = MathUtil.Clamp(offset, -1f, 1f);
             Vec2 nh = -u * MathF.Sqrt(1f - offset * offset) + side * offset;
             float tilt = 0.5236f * MathUtil.Clamp01(lift);
-            var n = new Vec3(nh.X * MathF.Cos(tilt), nh.Y * MathF.Cos(tilt), MathF.Sin(tilt));
+            return new Vec3(nh.X * MathF.Cos(tilt), nh.Y * MathF.Cos(tilt), MathF.Sin(tilt));
+        }
+
+        private void BodyImpact(PlayerAgent p, float e, float offset, float lift)
+        {
+            var cm = Config.Collisions;
+            var n = BodyContactNormal(Ball.Velocity, p.Vel, offset, lift);
             var m = Ball.M;
             BallPhysics.Impact(ref m, Config, n, e, cm.BodyFriction, new Vec3(p.Vel.X, p.Vel.Y, 0f));
             float vz = m.Vz;

@@ -2,6 +2,15 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/ball-test-bench` (stage 11)
+
+**Ball physics, stage 11: the test bench.** Details: `docs/BALL_PHYSICS.md`; the table: `docs/BALL_TEST_BENCH.md`. **The match does not change.**
+- `BallTestBench` runs the specification's TESTS 2-14 on the engine's own physics and records speed in and out, spin, flight time, distance, bounce height, energy lost and the response for every scenario (TEST 9, the knuckleball, is listed as not built: no model).
+- FIFA's tests run as FIFA runs them, and pass: vertical rebound 0.76 m on grass (0.60-1.00), 0.69 m on turf (0.60-0.85); ramp roll 6.4 m (4-10); angle ball rebound 59-60% dry (45-70), 72-75% wet (45-80).
+- `SimRunner --bench` writes `docs/BALL_TEST_BENCH.md`; a test fails when the file and the physics disagree.
+- Also: `BallMotion.LandSpeed`; `MatchEngine.BodyContactNormal` (the body contact's geometry, now shared by the match and the bench; no change to the match).
+- **Tests**: `BallTestBenchTests` (6).
+
 ## `feature/ball-stability` (stage 10)
 
 **Ball physics, stage 10: the 20 ms step does what a step 200 times finer does.** Details: `docs/BALL_PHYSICS.md`.

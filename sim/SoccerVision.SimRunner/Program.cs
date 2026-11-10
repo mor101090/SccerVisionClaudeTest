@@ -76,6 +76,7 @@ for (int i = 0; i < args.Length; i++)
         case "--legacyflight": legacyFlight = true; break;
         case "--legacykick": legacyKick = true; break; // (comparison: the kicks as they were before stage 7)
         case "--legacycollide": legacyCollide = true; break; // (comparison: the collisions as they were before stage 8)
+        case "--bench": Console.Write(BallTestBench.Markdown(BallTestBench.Run())); return; // (the ball-physics test bench, stage 11: docs/BALL_TEST_BENCH.md)
         case "--legacybounce": legacyBounce = true; break; // (comparison: the bounce as it was before stage 4)
         case "--artificial": artificial = true; break; // (the pitch is football turf)
         case "--grass": grassLength = args[++i] == "short" ? -1 : args[i] == "long" ? 1 : 0; break; // (short / normal / long natural grass) // (comparison: the ball flight as it was before the ball-physics work)
