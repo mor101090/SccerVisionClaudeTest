@@ -2,6 +2,21 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/goal-net` (polish round 8: item 12)
+
+**The goal net gives.** `GoalNetTests` (the ball alone against the frame, and 16 matches followed every 0.02 s after each goal).
+- **Before:** the net was a wall - a ball reaching the back of the net was stopped there in one step and sent back at 12% of its speed
+  (`MatchConfig.NetRestitution`), its other motion halved; the renderers bulged the net from the event, but the ball itself stopped dead.
+- **Now** (`MatchEngine.GoalNet.cs`): the back, the sides and the roof of the net are an overdamped spring, integrated in steps of 2 ms
+  from the moment the ball reaches it: a 30 m/s shot goes 0.30 m into the net and is slowed over two steps (0.04 s), a 20 m/s one 0.21 m,
+  a 10 m/s one 0.08 m (the renderers draw a bulge of up to 0.35 m from the ball's depth); it does not come back off the net (0.0%) - the
+  net eases back and the ball drops to the bottom of the goal and lies there. The mesh slows it along the net (and its spin). Never more
+  than 0.5 m beyond the net. NetHit once when it first reaches a surface (counted `net.hit.<back|side|roof>`).
+- **After each of 43 goals** the ball went on moving into the net (no freeze) and never passed through it.
+- Parameters `NetAbsorption` (false: the old net), `NetStiffness` 800 1/s^2, `NetDampingRatio` 1.1, `NetFriction` 6 1/s, `NetMaxGive`
+  0.5 m - approximations (D): no measured figure for a goal net was found.
+- **Tests**: `GoalNetTests` (5): shots of 10, 20 and 30 m/s into the back, the side netting and the roof, and the 43 goals above.
+
 ## `feature/ball-continuity` (polish round 7: item 10)
 
 **One ball at a time, and it never jumps.** Measured: 400 default matches; `BallContinuityTests` (24 matches, every tenth of a second).
