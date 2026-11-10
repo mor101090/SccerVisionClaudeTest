@@ -30,6 +30,10 @@ Each round of changes is developed on its own branch, named after what it change
   `--fkswitch`, `--fkunder`, `--wallstay`, `--wallout`, `--keeperoff`; its free-kick reference rows now cite the StatsBomb figures.
 - **Tests**: `FreeKickTests` (192 matches with varied squads): all five strikes happen, a low shot goes under the jumping wall, every wall
   is lined up on the near post, every keeper stands near the middle to the far side, scored 1-15%.
+- **Found by the full suite, fixed here:** the referee showed a card from up to 12 m away when his wait ran out (R3's timeout) - now he
+  walks to the player at a jog, and only at twice the wait (a player who cannot be reached) is it shown from where he stands
+  (`card.late.refereeWent`). `RunsInBehindPlaysMoreThroughBalls` compared six matches (x1.15 to x1.43 on the same code); it now takes 24
+  (60 matches: x1.43).
 
 ## `feature/dribble-touches` (polish round 5: item 9)
 

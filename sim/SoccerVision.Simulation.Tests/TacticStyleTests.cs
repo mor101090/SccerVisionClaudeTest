@@ -81,7 +81,8 @@ namespace SoccerVision.Simulation.Tests
         [Fact]
         public void RunsInBehindPlaysMoreThroughBalls()
         {
-            double normal = Avg(null, e => e.Home.Stats.ThroughBalls), runs = Avg(t => t.Attack = AttackStyle.RunsInBehind, e => e.Home.Stats.ThroughBalls);
+            // (24 matches: about six through balls a match, so six matches swing the ratio by +-0.2 - 60 matches: x1.43)
+            double normal = Avg(null, e => e.Home.Stats.ThroughBalls, 24), runs = Avg(t => t.Attack = AttackStyle.RunsInBehind, e => e.Home.Stats.ThroughBalls, 24);
             Assert.True(runs > normal * 1.3, $"through balls: style {runs:0.0} v normal {normal:0.0}");
         }
 
