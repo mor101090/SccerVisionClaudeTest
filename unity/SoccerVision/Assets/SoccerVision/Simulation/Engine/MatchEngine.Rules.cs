@@ -57,6 +57,7 @@ namespace SoccerVision.Simulation
 
         private void BallOutOfPlay(RestartType type, TeamAgent team, Vec2 spot)
         {
+            CountPlayOffResult(type, team);
             if (CollectDiagnostics) Count("out." + type + "." + (SimTime - _ballChangedAt < 0.05f ? "now" : Ball.LastKickKind.ToString()) + (_ballChangeExpectedBy == null ? ".deflect" : ""));
             var shielder = team.Shielder;
             if (shielder != null && type != RestartType.CornerKick && !Ball.IsShot && Vec2.Distance(shielder.Pos, Ball.Pos) < 3f)

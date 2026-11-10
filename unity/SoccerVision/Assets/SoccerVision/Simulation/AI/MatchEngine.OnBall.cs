@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SoccerVision.Simulation
 {
-    internal enum BallAction { Hold, Dribble, Pass, Shoot, Cross, Clear }
+    internal enum BallAction { Hold, Dribble, Pass, Shoot, Cross, Clear, PlayOff }
 
     /// <summary>How a shot is struck.</summary>
     public enum ShotTechnique { Power, PlacedNear, PlacedFar, Curler, Volley, Chip, OutsideFoot, WeakFoot, Header, Penalty, HalfVolley, Knuckleball, Bicycle, Backheel }
@@ -33,6 +33,12 @@ namespace SoccerVision.Simulation
         public bool ThirdMan;
         /// <summary>A heel flick: played with the back of the heel to a team-mate behind or beside him, without turning.</summary>
         public bool Heel;
+        /// <summary>A deliberate kick into touch (conceding a throw-in rather than losing it in play).</summary>
+        public bool KickOut;
+        /// <summary>Played off a defender for a restart: a corner (else a throw-in).</summary>
+        public bool Corner;
+        /// <summary>Played off a defender: the direction from him to the line it should go out over.</summary>
+        public Vec2 Outward;
     }
 
     /// <summary>Decisions in possession (design doc: pass, through ball, cross, dribble, shoot): the options are evaluated, the best is chosen and executed.</summary>
@@ -217,7 +223,12 @@ namespace SoccerVision.Simulation
             bool crossy = team.Tactics.Attack == AttackStyle.CrossesIntoBox;
             if (crossy ? f > 15f && MathF.Abs(l) > 9f : f > 20f && MathF.Abs(l) > 13f) EvaluateCrosses(p, pos);
             if (f < -24f && pressure > 0.45f) EvaluateClearance(p, pos, pressure);
-            if (MathF.Abs(l) > 27f && pressure > 0.55f) EvaluateKickOut(p, pos, pressure);
+            // Putting it out on purpose is a defender's way out, not an attacker's: in his own half under pressure, in the middle third only when
+            // he is all but caught (polish round 1: it was offered anywhere along the touchline and was chosen most often in the attacking third,
+            // where losing the ball costs least - a winger knocked it out instead of crossing, cutting back, shielding or taking his man on).
+            if (MathF.Abs(l) > 27f && (f < 0f ? pressure > KickOutPressureOwnHalf : f < 17.5f && pressure > KickOutPressureMiddle)) EvaluateKickOut(p, pos, pressure);
+            // In the attacking third, with a defender tight on him by a line: play it off the defender for a corner or a throw-in.
+            if (f > 17.5f) EvaluatePlayOffDefender(p, pos, pressure);
 
             // Basic football sense: when a good forward pass is on (a team-mate free in front, a clear lane, a pass that
             // really gets the attack going) and he is not under pressure, he plays it - he does not stall the attack with a
@@ -474,7 +485,15 @@ namespace SoccerVision.Simulation
                     else if (p.Slot.IsWideMidfielder || (p.Slot.Line == Line.Attack && MathF.Abs(p.Slot.BaseLateral) > 12f)) p.Team.Stats.WingerCrosses++;
                     KickLofted(p, plan.Target, plan.LaunchAngle, KickKind.Cross, plan.Receiver, pressure, MathUtil.A(p.Attr.Crossing), curl: true);
                     break;
+                case BallAction.PlayOff:
+                    ExecutePlayOff(p, plan);
+                    break;
                 case BallAction.Clear:
+                    if (CollectDiagnostics && plan.KickOut)
+                    {
+                        float kf = p.Team.Forward(Ball.Pos);
+                        Count("kickout." + (kf < -17.5f ? "own" : kf < 17.5f ? "mid" : "att") + "." + (p.Slot.Line == Line.Attack ? "fwd" : p.Slot.Line == Line.Midfield ? "mid" : "def"));
+                    }
                     p.Team.PushUpUntil = SimTime + 3f;
                     CallStepUp(p.Team);
                     KickLofted(p, plan.Target, plan.LaunchAngle, KickKind.Clearance, null, pressure, 0.35f + 0.3f * MathUtil.A(p.Attr.Passing), curl: false);

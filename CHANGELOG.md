@@ -2,6 +2,40 @@
 
 Each round of changes is developed on its own branch, named after what it changes. Newest first.
 
+## `feature/touchline-throwins` (polish round 1: items 1 and 3)
+
+**Decisions by the touchline, and the throw-ins checked against real data.** Measured: 400 default matches before and after (seeds 1 and 1001).
+- **Throw-ins (item 3): investigated, not reduced.** Real: 46.2 a match in the Premier League 2015/16 (StatsBomb, all 380 matches, new
+  `tools/calibration/throw_ins.py`; the last event before one: a pass that went out 13.8, a clearance 9.3, a duel 7.0, a block 6.1, a
+  miscontrol 4.1). The engine had 20.6 - fewer, not more (about the real rate per minute played: its match is 2.2 times shorter in true
+  time). What was wrong was their cause: 7.2 a match were deliberate kicks into touch, 4.95 of them in the attacking third (69%). After the
+  round: 18.8, deliberate 2.0, none in the attacking third. `SimRunner --diag` now shows the sourced 46.2 instead of the unsourced "39-43".
+- **No kick into touch without a reason (item 1).** In his own half under pressure (0.55) a player may still put it out; in the middle third
+  only when all but caught (`KickOutPressureMiddle` 0.85); in the attacking third never. Counted as `kickout.<third>.<line>`.
+- **Playing it off the defender.** Pinned by a line (pressure 0.7, a man within 2.5 m, the line within 4 m behind him), a player can drive the
+  ball at his man's outside leg (12-18 m/s by technique). Nothing is scripted: a clean strike (35-70% by dribbling and control) meets the leg
+  and the stage 8 body impact sends it on - the face between where it came from and the line, the defender moving as he was until his
+  reaction time is up, the ball's rolling spin; a poor one runs past him or is his ball. The decision predicts the same contact and roll
+  (`PredictPlayOffOut`), values a corner at 0.039 xG (**measured**: StatsBomb, 143 goals from 4,107 corners, new `corners.py`), and the side
+  lets a ball that is going out for its restart run. Measured: 9.1 tries a match, 4.5 clean contacts, 4.4 restarts won from them (4.2 corners).
+- **A cross sees the man who would block it.** The cross option now predicts the block the contact model gives (a leg within 0.95 m while the
+  ball is below 1.5 m: `CrossBlockChance`). Real crosses are almost never stopped next to the crosser (1.8%, new `crosses.py`); the engine
+  blocked 8.35 a match (about 42%), with the kick-outs gone that rose to 10.7, and every one fed a corner and the box. After: 2.35 (about 16%).
+- **Headers and volleys aimed at goal only when it is worth it.** A header under 0.06 xG is usually knocked down or flicked on (`HeaderMinXg`,
+  0.03 before), a ball in the air under 0.03 xG is usually taken down instead of volleyed (`VolleyMinXg`, new) - set against the real shot mix
+  (headers 16.5% of shots, volleys and half-volleys 23.7%). Without them the open attacks the kick-outs used to end pushed shots to 29-31.
+- **Default match** (400): goals 2.71 -> 2.82 (real 2.83), shots 27.6 -> 27.6 (real 25.4), corners 10.1 -> 11.8 (real 10.4-10.8: **high**,
+  open), throw-ins 20.6 -> 18.8, goal kicks 17.0 -> 15.6, crosses (all) 30.4 -> 26.9, headed shots 5.45 -> 4.83, headed share of goals
+  19.5% -> 20.6% (more corners; open), pass completion 80.2% -> 79.1%.
+- **Open** (measured, not fixed here): crosses reach a team-mate first 41% of the time (real 28%) and about 30% of shots follow a cross (real
+  13%); blocked crosses are still about 16% (real 1.8%); corners about 1.2 a match over the real count.
+- SimRunner switches: `--playoffpressure`, `--headerminxg`, `--volleyminxg`. New counters: `kickout.*`, `playoff.*`, `cross.firstTouch.*`,
+  `volley.notStruck`.
+- **Tests the round changed** (assertions kept): `AttackCalibrationTests` runs 48 matches instead of 24 (a 24-match mean of goals moved by
+  about 0.35 on its own: 3.67 on seeds 4400-4423, 3.08 on the next 72).
+- **Tests**: `TouchlineTests` (3): no deliberate kick-out in the attacking third while the ball still goes out by accident; a play-off wins
+  its restart through the contact; the leg's face sends a ball driven across the defender towards the line.
+
 ## `feature/marking-balance`
 
 **The zonal / man-to-man gap closed; fewer headed goals.** Measured: all four marking pairings, both seats, 100 matches each, on two seeds (1,600 matches), and 800 default matches.

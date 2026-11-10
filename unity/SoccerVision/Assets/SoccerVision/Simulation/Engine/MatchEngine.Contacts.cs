@@ -20,6 +20,7 @@ namespace SoccerVision.Simulation
         private readonly List<Contact> _contacts = new List<Contact>(8);
 
         private float _dummyRolledFor = -1f;
+        private float _crossTouchCountedFor = -1f;
 
         /// <summary>
         /// The dummy - opening his legs: a receiver with a marker on him and a team-mate further along the line of the pass in a
@@ -87,6 +88,7 @@ namespace SoccerVision.Simulation
             {
                 if (p.SentOff || p.TouchCooldown > 0f || p.StunTimer > 0f) continue;
                 if (p.Task == PlayerTask.Shield && p.Team.Shielder == p) continue; // letting it run out, on purpose
+                if (LeavesPlayOffToRun(p)) continue; // (played off a defender, going out for our restart)
                 if (p == Ball.LastKicker && (Ball.KickerMustWait || SimTime - Ball.LastKickTime < 0.3f)) continue;
                 // Law 12.2: an opponent may not prevent the goalkeeper releasing the ball from the hands.
                 if (Ball.LastKickKind == KickKind.GoalkeeperDistribution && Ball.LastKicker != null && Ball.LastKicker.Team != p.Team
@@ -108,7 +110,7 @@ namespace SoccerVision.Simulation
                 {
                     // The full-back closing the crosser gets a leg in the way.
                     surprised = false;
-                    footReach = 0.95f;
+                    footReach = CrossBlockReach;
                 }
                 if (blocker)
                 {
@@ -123,7 +125,7 @@ namespace SoccerVision.Simulation
                 bool handsAllowed = p.IsGoalkeeper && Ball.HandlingForbiddenFor != p.Team
                                     && Pitch.InPenaltyArea(p.Pos, p.Team.OwnGoalSign) && Pitch.InPenaltyArea(Ball.Pos, p.Team.OwnGoalSign);
                 if (handsAllowed && z <= p.GoalkeeperReach && d <= GoalkeeperHandReach(p)) kind = ContactKind.Hands;
-                else if (z <= (blocker || IsCrossBlock(p) ? 1.5f : 1.05f) && d <= footReach) kind = ContactKind.Feet;
+                else if (z <= (blocker || IsCrossBlock(p) ? CrossBlockHeight : 1.05f) && d <= footReach) kind = ContactKind.Feet;
                 else if (z > 1.05f && z <= p.HeadReach && d <= (surprised ? 0.4f : 0.62f)) kind = ContactKind.Head;
                 else if (z <= 1.9f && d <= 0.33f) kind = ContactKind.Body;
                 // A lofted ball to him from a team-mate, nobody on him, at chest height: he does not head it on into nowhere, he takes it down
@@ -219,6 +221,13 @@ namespace SoccerVision.Simulation
             }
             p.Touches++;
             bool opponentTouch = Ball.LastTouchTeam != null && Ball.LastTouchTeam != p.Team;
+            if (CollectDiagnostics && Ball.LastKickKind == KickKind.Cross && _crossTouchCountedFor != Ball.LastKickTime && p != Ball.LastKicker)
+            {
+                // (the first touch after a cross: real open-play crosses are completed 28%, stopped next to the crosser 1.8% - crosses.py)
+                _crossTouchCountedFor = Ball.LastKickTime;
+                Count("cross.firstTouch." + (SimTime - _lastRestartAt < 1.5f ? "setPiece." : "open.") + (opponentTouch ? "opp" : "mate"));
+            }
+            if (kind != ContactKind.Hands && TryPlayOffContact(p)) return; // (played off him on purpose, polish round 1)
 
             if (kind != ContactKind.Hands && IsCrossBlock(p))
             {
@@ -312,10 +321,13 @@ namespace SoccerVision.Simulation
             float finishing = MathUtil.A((p.Attr.Finishing + p.Attr.BallControl) / 2);
             float pTry = (opponentTouch ? 0.35f : 0.5f) + 0.4f * finishing;
             if (!_rng.Chance(pTry)) return false;
+            float xg = EstimateShotXG(p, Ball.Pos) * 0.8f;
+            // a poor chance is usually taken down rather than struck first time (as a header is: see HeaderMinXg)
+            if (xg < VolleyMinXg && _rng.Chance(0.6f)) { if (CollectDiagnostics) Count("volley.notStruck"); return false; }
             ResolvePendingPass(p);
             Ball.LastToucher = p;
             Ball.LastTouchTeam = team;
-            ExecuteShot(p, false, false, EstimateShotXG(p, Ball.Pos) * 0.8f, volley: true);
+            ExecuteShot(p, false, false, xg, volley: true);
             return true;
         }
 
@@ -481,12 +493,15 @@ namespace SoccerVision.Simulation
             return new Vec3(nh.X * MathF.Cos(tilt), nh.Y * MathF.Cos(tilt), MathF.Sin(tilt));
         }
 
-        private void BodyImpact(PlayerAgent p, float e, float offset, float lift)
+        private void BodyImpact(PlayerAgent p, float e, float offset, float lift) => BodyImpact(p, e, offset, lift, p.Vel);
+
+        /// <summary>The body impact with the body moving at <paramref name="bodyVel"/> (the velocity he had before he could react to the ball).</summary>
+        private void BodyImpact(PlayerAgent p, float e, float offset, float lift, Vec2 bodyVel)
         {
             var cm = Config.Collisions;
-            var n = BodyContactNormal(Ball.Velocity, p.Vel, offset, lift);
+            var n = BodyContactNormal(Ball.Velocity, bodyVel, offset, lift);
             var m = Ball.M;
-            BallPhysics.Impact(ref m, Config, n, e, cm.BodyFriction, new Vec3(p.Vel.X, p.Vel.Y, 0f));
+            BallPhysics.Impact(ref m, Config, n, e, cm.BodyFriction, new Vec3(bodyVel.X, bodyVel.Y, 0f));
             float vz = m.Vz;
             if (vz < 0f && Ball.Z <= Pitch.BallRadius + 0.02f) vz = 0f;   // (a ball on the ground cannot be driven into it)
             SetDeflection(p, new Vec2(m.Vx, m.Vy), vz);
@@ -569,6 +584,20 @@ namespace SoccerVision.Simulation
         /// </summary>
         public static float ContestedHeaderAtGoal = 0.15f;
 
+        /// <summary>
+        /// Below this expected-goals value a header in the box is usually not aimed at goal (60%: knocked down or flicked on instead). Class D,
+        /// set against a B measurement: headers are 16.5% of real shots (792 of 4,802, StatsBomb open data, five leagues 2015/16 -
+        /// `tools/calibration/targets.json`). It was 0.03 (polish round 1).
+        /// </summary>
+        public static float HeaderMinXg = 0.06f;
+
+        /// <summary>
+        /// Below this expected-goals value a ball in the air is usually (60%) taken down rather than volleyed first time. Class D, set against a
+        /// B measurement: volleys and half-volleys are 23.7% of real open-play shots (StatsBomb open data, five leagues 2015/16 -
+        /// `tools/calibration/targets.json`; 26% here without the rule). There was no such rule before polish round 1.
+        /// </summary>
+        public static float VolleyMinXg = 0.03f;
+
         private void HeaderTouch(PlayerAgent p, bool contested, bool opponentTouch)
         {
             if (CollectDiagnostics && Ball.Z > 1.9f) Count(p.JumpZ > 0.1f ? (p.JumpVz > -0.6f && p.JumpVz < 0.6f ? "header.jump.apex" : "header.jump.airborne") : "header.jump.ground");
@@ -628,7 +657,7 @@ namespace SoccerVision.Simulation
             {
                 float hxg = EstimateShotXG(p, Ball.Pos, header: true);
                 if (contested && !_rng.Chance(ContestedHeaderAtGoal + 0.4f * heading)) headAtGoal = false;
-                else if (hxg < 0.03f && _rng.Chance(0.6f)) headAtGoal = false;
+                else if (hxg < HeaderMinXg && _rng.Chance(0.6f)) headAtGoal = false;
                 if (!headAtGoal && CollectDiagnostics) Count("header.notAtGoal");
             }
             if (headAtGoal)
