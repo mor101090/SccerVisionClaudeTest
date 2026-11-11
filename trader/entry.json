@@ -1,0 +1,22 @@
+{
+  "created_by": "trader-entry",
+  "symbol": "TTWO",
+  "setup": "orb",
+  "side": "buy",
+  "date": "2026-11-11",
+  "status": "triggered",
+  "time": "10:30 AM",
+  "bar_start": "10:25",
+  "bar_index": 11,
+  "price": 233.48,
+  "level": 233.37,
+  "interval": "5m",
+  "opening_range": {
+    "high": 233.37,
+    "low": 225.21,
+    "minutes": 15
+  },
+  "source": "yahoo",
+  "checked_at": "2026-11-11T18:01:40Z",
+  "reason": "the 10:25 bar closed above the range high"
+}
